@@ -71,40 +71,44 @@ struct InspectorToolbar: ToolbarContent {
 }
 
 @Observable final class Inspector: Frame {
-    var model: Tab = .composition
+    var model: Tab = .library
     var presented: Bool = false
     var position: CGFloat = 0
     var expanded: Set<AnyHashable> = []
 
     enum Tab: String, CaseIterable {
-        case composition, preview
+        case library, preview, settings
 
         var label: String {
             switch self {
-            case .composition: "Compose"
+            case .library: "Library"
             case .preview: "Preview"
+            case .settings: "Settings"
             }
         }
 
         var image: String {
             switch self {
-            case .composition: "rectangle.3.offgrid"
+            case .library: "building.columns"
             case .preview: "eyeglasses"
+            case .settings: "gearshape.2"
             }
         }
     }
 
     func params(_ studio: AgencyModel) -> Params {
         switch studio.studio.inspector.model {
-        case .composition: return CompositionMapper.params(studio, self)
+        case .library: return LibraryMapper.params(studio, self)
         case .preview: return PreviewMapper.params(studio, self)
+        case .settings: return CompositionMapper.params(studio, self)
         }
     }
 
     func closures(_ studio: AgencyModel) -> Closures {
         switch studio.studio.inspector.model {
-        case .composition: return CompositionMapper.closures(studio, self)
+        case .library: return LibraryMapper.closures(studio, self)
         case .preview: return PreviewMapper.closures(studio, self)
+        case .settings: return CompositionMapper.closures(studio, self)
         }
     }
 

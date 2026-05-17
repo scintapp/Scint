@@ -12,12 +12,9 @@ private enum InlineComponentPresentation {
 
     init?(_ entry: Entry) {
         switch entry {
-        case .artifact(let ref), .control(let ref), .service(let ref), .sheet(let ref):
-            self.init(ref)
-        case .todo(let id, let title, let complete):
-            self = .todo(id, title, complete)
-        case .text:
-            return nil
+        case .artifact(let ref), .control(let ref), .service(let ref), .sheet(let ref): self.init(ref)
+        case .todo(let id, let title, let complete): self = .todo(id, title, complete)
+        case .text: return nil
         }
     }
 
@@ -27,16 +24,11 @@ private enum InlineComponentPresentation {
 
     private init?(_ ref: Reference) {
         switch ref.type {
-        case is Artifact.Type:
-            self = .artifact(ref)
-        case is Control.Type:
-            self = .control(ref)
-        case is Service.Type:
-            self = .service(ref)
-        case is Sheet.Type:
-            self = .sheet(ref)
-        default:
-            return nil
+        case is Artifact.Type: self = .artifact(ref)
+        case is Control.Type: self = .control(ref)
+        case is Service.Type: self = .service(ref)
+        case is Sheet.Type: self = .sheet(ref)
+        default: return nil
         }
     }
 
@@ -144,10 +136,8 @@ struct InlineComponentView: View {
 
     private func performActivation() {
         switch entry {
-        case .todo(let id, let title, let complete):
-            update(.todo(id, title, !complete))
-        default:
-            activate()
+        case .todo(let id, let title, let complete): update(.todo(id, title, !complete))
+        default: activate()
         }
     }
 }

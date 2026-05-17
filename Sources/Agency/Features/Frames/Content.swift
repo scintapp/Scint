@@ -11,7 +11,7 @@ struct ContentToolbar: ToolbarContent {
         ToolbarItem(placement: .navigation) { NavigationControls() }
         ToolbarItem(placement: .principal) { RuntimeControls() }
         ToolbarItem(placement: .primaryAction) { LayoutPicker() }
-        ToolbarItem(placement: .primaryAction) { DetailsToggle(presented: $presented) }
+        ToolbarItem(placement: .primaryAction) { DetailsToggle() }
         ToolbarItem(placement: .accessoryBar(id: "pathfinder")) { Pathfinder() }
     }
 }

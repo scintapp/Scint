@@ -66,12 +66,7 @@ struct AgencyEditor: View {
     let onSubmit: (() -> Void)?
     let onActivate: ((Entry) -> Void)?
 
-    @MainActor init(
-        ref: Reference,
-        mode: EditorCanvas.Mode = .document,
-        onSubmit: (() -> Void)? = nil,
-        onActivate: ((Entry) -> Void)? = nil
-    ) {
+    @MainActor init(ref: Reference, mode: EditorCanvas.Mode = .document, onSubmit: (() -> Void)? = nil, onActivate: ((Entry) -> Void)? = nil) {
         self.ref = ref
         self.mode = mode
         self.onSubmit = onSubmit

@@ -64,26 +64,26 @@ struct NavigatorToolbar: ToolbarContent {
 }
 
 @Observable final class Navigator: Frame {
-    var model: Tab = .space
+    var model: Tab = .boundaries
     var position: CGFloat = 0
     var presented: Bool = true
     var expanded: Set<AnyHashable> = []
 
     enum Tab: String, CaseIterable {
-        case space, library, notifications
+        case boundaries, contexts, notifications
 
         var label: String {
             switch self {
-            case .space: "Space"
-            case .library: "Library"
-            case .notifications: "Errors"
+            case .boundaries: "Boundaries"
+            case .contexts: "Processes"
+            case .notifications: "Notifications"
             }
         }
 
         var image: String {
             switch self {
-            case .space: "cube.transparent"
-            case .library: "building.columns"
+            case .boundaries: "cube.transparent"
+            case .contexts: "building.columns"
             case .notifications: "app.badge"
             }
         }
@@ -91,24 +91,24 @@ struct NavigatorToolbar: ToolbarContent {
 
     func params(_ agency: AgencyModel) -> Params {
         switch agency.studio.navigator.model {
-        case .space: BoundaryMapper.params(agency, self)
-        case .library: LibraryMapper.params(agency, self)
+        case .boundaries: BoundaryMapper.params(agency, self)
+        case .contexts: ActivityMapper.params(agency, self)
         case .notifications: NotificationsMapper.params(agency, self)
         }
     }
 
     func closures(_ agency: AgencyModel) -> Closures {
         switch agency.studio.navigator.model {
-        case .space: BoundaryMapper.closures(agency)
-        case .library: LibraryMapper.closures(agency)
-        case .notifications: SpacesMapper.closures(agency)
+        case .boundaries: BoundaryMapper.closures(agency, self)
+        case .contexts: ActivityMapper.closures(agency, self)
+        case .notifications: SpacesMapper.closures(agency, self)
         }
     }
 
     @MainActor func build(_ agency: AgencyModel) -> some View {
         VStack {
             NavigatorTabs()
-            Constructor.build(agency.studio.navigator, params(agency,), closures(agency))
+            Constructor.build(self, params(agency), closures(agency))
         }
     }
 }

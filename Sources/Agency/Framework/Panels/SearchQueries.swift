@@ -212,7 +212,7 @@ struct SheetMapper: Mapper {
 }
 
 struct SheetsMapper: Mapper {
-    static func closures(_ agency: AgencyModel) -> Closures {
+    static func closures(_ agency: AgencyModel, _ frame: any Frame) -> Closures {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
@@ -229,7 +229,7 @@ struct SheetsMapper: Mapper {
         )
     }
 
-    static func params(_ agency: AgencyModel) -> Params {
+    static func params(_ agency: AgencyModel, _ frame: any Frame) -> Params {
         let origin = agency.session.boundary
         let sheets = origin
             .flatMap { Boundary.with($0, { $0.closure }) }

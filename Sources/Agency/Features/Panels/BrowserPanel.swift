@@ -10,8 +10,8 @@ struct BrowserPanel: View {
             Color.clear.frame(height: 90)
             Constructor.build(
                 agency.studio.content,
-                SheetsMapper.params(agency),
-                SheetsMapper.closures(agency)
+                SheetsMapper.params(agency, agency.studio.content),
+                SheetsMapper.closures(agency, agency.studio.content)
             )
         }
     }

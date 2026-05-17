@@ -11,8 +11,8 @@ import SwiftUI
 
 @Observable final class AgencyModel {
     var artifacts: ArtifactManager
-    var studio: StudioModel
     var panels: [AnyHashable: PanelCoordinator] = [:]
+    var studio: StudioModel
     let session: SessionModel
     var search: Search
     var settings: Settings

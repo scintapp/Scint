@@ -75,7 +75,7 @@ enum Design {
                 switch entry {
                 case .app: return "app"
                 case .file: return "doc"
-                case .http: return "link"
+                case .http: return "bookmark"
                 case .image: return "photo"
                 case .script: return "scroll"
                 case .skill: return "sparkles"
@@ -112,7 +112,7 @@ enum Design {
         static var tasks: Color { Color(red: 1.25884, green: 0.84799, blue: 0.94741) }
         static var output: Color { Color(red: 1.03119, green: 0.81027, blue: 1.39988) }
 
-        static var ready: Color { Color(red: 0.430, green: 0.460, blue: 0.580) }
+        static var ready: Color { Color(red: 0.530, green: 0.720, blue: 0.680) }
         static var active: Color { Color(red: 0.568, green: 0.419, blue: 0.517) }
         static var blocked: Color { Color(red: 0.560, green: 0.430, blue: 0.280) }
         static var inactive: Color { Color(red: 0.500, green: 0.480, blue: 0.580) }

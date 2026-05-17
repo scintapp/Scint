@@ -12,6 +12,7 @@ struct Agency: App {
                 Studio()
                     .environment(agency)
                     .onAppear(perform: { ShortcutManager.shared.register(agency: agency) } )
+                    .background(Design.Background.console)
                     .focusable(false)
 
             } else {

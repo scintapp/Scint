@@ -20,7 +20,13 @@ struct Studio: View {
                 .toolbar { NavigatorToolbar() }
 
         } detail: {
-            VerticalSplit($console.presented, position: $console.position) {
+            VerticalSplit(
+                $console.presented,
+                position: $console.position,
+                collapsedHeight: 30,
+                minTopHeight: 0,
+                minBottomHeight: 0
+            ) {
                 agency.studio.content.build(agency)
             } bottom: {
                 agency.studio.console.build(agency)

@@ -78,7 +78,7 @@ struct ArtifactsMapper: Mapper {
 }
 
 struct BoundaryMapper: Mapper {
-    static func closures(_ agency: AgencyModel) -> Closures {
+    static func closures(_ agency: AgencyModel, _ frame: any Frame) -> Closures {
         return Closures(
             selected: { item in
                 guard let ref = item.ref else { return false }
@@ -90,8 +90,6 @@ struct BoundaryMapper: Mapper {
             }
         )
     }
-
-    static func params(_ agency: AgencyModel) -> Params { .init() }
 
     static func params(_ agency: AgencyModel, _ frame: any Frame) -> Params {
         let expanded = frame.expanded
@@ -249,7 +247,7 @@ struct CompositionMapper: Mapper {
         )
     }
 
-    static func params(_ agency: AgencyModel) -> Params {
+    static func params(_ agency: AgencyModel, _ frame: any Frame) -> Params {
         let origin = agency.session.boundary ?? agency.session.space
 
         guard let components = Boundary.with(origin, { Closure.with($0.closure, { $0.components }) }) ?? [] else {
@@ -323,7 +321,7 @@ struct CompositionMapper: Mapper {
 }
 
 struct DetailMapper: Mapper {
-    static func closures(_ agency: AgencyModel) -> Closures {
+    static func closures(_ agency: AgencyModel, _ frame: any Frame) -> Closures {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
@@ -341,7 +339,7 @@ struct DetailMapper: Mapper {
         )
     }
 
-    static func params(_ agency: AgencyModel) -> Params {
+    static func params(_ agency: AgencyModel, _ frame: any Frame) -> Params {
         let origin = agency.session.boundary
         let sheets = origin
             .flatMap { Boundary.with($0, { $0.closure }) }
@@ -389,7 +387,7 @@ struct DetailMapper: Mapper {
 }
 
 struct LibraryMapper: Mapper {
-    static func closures(_ agency: AgencyModel) -> Closures {
+    static func closures(_ agency: AgencyModel, _ frame: any Frame) -> Closures {
         Closures(
             selected: { item in
                 guard let ref = item.ref else { return false }
@@ -402,7 +400,7 @@ struct LibraryMapper: Mapper {
         )
     }
 
-    static func params(_ agency: AgencyModel) -> Params {
+    static func params(_ agency: AgencyModel, _ frame: any Frame) -> Params {
         func sortItems(_ items: [ItemParams]) -> [ItemParams] {
             items.sorted {
                 $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
@@ -451,15 +449,9 @@ struct NotificationsMapper: Mapper {
 }
 
 struct PreviewMapper: Mapper {
-    static func closures(_ agency: AgencyModel) -> Closures {
-        Closures()
-    }
-
     static func closures(_ agency: AgencyModel, _ frame: any Frame) -> Closures {
-        Closures()
+        .init()
     }
-
-    static func params(_ studio: AgencyModel) -> Params { .init() }
 
     static func params(_ studio: AgencyModel, _ frame: any Frame) -> Params {
         .init(

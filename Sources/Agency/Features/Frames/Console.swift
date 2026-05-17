@@ -9,7 +9,7 @@ struct ConsoleToolbar: View {
     var body: some View {
         HStack(alignment: .center) {
             Spacer()
-            ConsoleToggle(presented: $presented)
+            ConsoleToggle()
         }
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, minHeight: 30, maxHeight: 30)
