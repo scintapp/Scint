@@ -260,7 +260,7 @@ struct ExecutionSurface: View {
                    HStack(spacing: 8) {
                        Image(systemName: "terminal")
                            .foregroundStyle(.secondary)
-                       Text("Composer")
+                       Text("Search")
                            .font(.headline)
                    }
                }

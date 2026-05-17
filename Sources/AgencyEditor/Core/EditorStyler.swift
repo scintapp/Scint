@@ -60,8 +60,11 @@ final class EditorStyler: NSObject {
 
         let nsString = fullString as NSString
         textStorage.enumerateAttribute(.attachment, in: fullRange) { value, range, _ in
-            guard value == nil else { return }
-            textStorage.setAttributes(baseAttributes, range: range)
+            if value == nil {
+                textStorage.setAttributes(baseAttributes, range: range)
+            } else {
+                textStorage.addAttributes(baseAttributes, range: range)
+            }
         }
 
         var insideFence = false
@@ -104,7 +107,9 @@ final class EditorStyler: NSObject {
                   let entry = resolveInlineEntry(id) else { continue }
 
             let attachment = EditorAttachment(entry: entry)
-            textStorage.replaceCharacters(in: match.range, with: NSAttributedString(attachment: attachment))
+            let mutable = NSMutableAttributedString(attributedString: NSAttributedString(attachment: attachment))
+            mutable.addAttributes(baseAttributes, range: NSRange(location: 0, length: mutable.length))
+            textStorage.replaceCharacters(in: match.range, with: mutable)
         }
     }
 

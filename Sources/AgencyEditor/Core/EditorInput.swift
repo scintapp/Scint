@@ -108,8 +108,8 @@ final class EditorInputView: NSTextView {
         backingContentStorage.synchronizeTextLayoutManagers(nil)
         renderedText = text
         renderedVersion = renderVersion
-        typingAttributes = styler.typingAttributes
         setPlainSelectedRange(selectedRange)
+        resetTypingAttributes()
         rebuildInlineComponents()
         invalidateIntrinsicContentSize()
         needsDisplay = true
@@ -141,6 +141,8 @@ final class EditorInputView: NSTextView {
     override func didChangeText() {
         super.didChangeText()
         renderedText = ""
+        renderedVersion = -1
+        resetTypingAttributes()
         rebuildInlineComponents()
         invalidateIntrinsicContentSize()
     }
@@ -160,6 +162,14 @@ final class EditorInputView: NSTextView {
     }
 
     override func scrollRangeToVisible(_ range: NSRange) {}
+
+    private func resetTypingAttributes() {
+        guard let styler else { return }
+        font = styler.style.baseFont
+        textColor = styler.style.textColor
+        insertionPointColor = styler.style.textColor
+        typingAttributes = styler.typingAttributes
+    }
 
     override func copy(_ sender: Any?) {
         let displaySelection = selectedRange()
@@ -342,17 +352,21 @@ final class EditorInputView: NSTextView {
         return NSTextRange(location: start, end: end)
     }
 
-    private func textSegmentFrame(for range: NSTextRange) -> CGRect? {
-        var frame: CGRect?
+    private func textSegmentMetrics(for range: NSTextRange) -> (frame: CGRect, baseline: CGFloat)? {
+        var metrics: (frame: CGRect, baseline: CGFloat)?
         backingTextLayoutManager.enumerateTextSegments(
             in: range,
             type: .standard,
             options: .rangeNotRequired
-        ) { _, textSegmentFrame, _, _ in
-            frame = textSegmentFrame
+        ) { _, textSegmentFrame, baselinePosition, _ in
+            metrics = (textSegmentFrame, baselinePosition)
             return false
         }
-        return frame
+        return metrics
+    }
+
+    private func textSegmentFrame(for range: NSTextRange) -> CGRect? {
+        textSegmentMetrics(for: range)?.frame
     }
 
     private func rebuildInlineComponents() {
@@ -393,17 +407,21 @@ final class EditorInputView: NSTextView {
     }
 
     private func layoutInlineComponents() {
+        let containerOrigin = textContainerOrigin
+        let font = self.font ?? .systemFont(ofSize: NSFont.systemFontSize)
+
         for component in inlineComponents {
             guard let textRange = characterRange(for: component.range),
-                  let frame = textSegmentFrame(for: textRange) else {
+                  let metrics = textSegmentMetrics(for: textRange) else {
                 component.view.isHidden = true
                 continue
             }
 
             let size = component.view.size
+            let yOffset = EditorAttachment.baselineOffset(size: size, font: font)
             component.view.frame = CGRect(
-                x: frame.minX,
-                y: frame.minY,
+                x: containerOrigin.x + metrics.frame.minX,
+                y: containerOrigin.y + metrics.frame.minY + metrics.baseline - size.height - yOffset,
                 width: size.width,
                 height: size.height
             )

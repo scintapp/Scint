@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import AppKit
 
+
 struct VisualEffectView: NSViewRepresentable {
     let material: NSVisualEffectView.Material
     let blendingMode: NSVisualEffectView.BlendingMode

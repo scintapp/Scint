@@ -16,6 +16,6 @@ extension KeyboardShortcuts.Name {
         self.agency = agency
         KeyboardShortcuts.onKeyDown(for: .toggleCompose) { self.agency?.toggleCompose() }
         KeyboardShortcuts.onKeyDown(for: .toggleActivity) { self.agency?.toggleActivity() }
-//        KeyboardShortcuts.onKeyDown(for: .toggleSearch) { self.agency?.toggleSearch() }
+        KeyboardShortcuts.onKeyDown(for: .toggleSearch) { self.agency?.toggleSearch() }
     }
 }

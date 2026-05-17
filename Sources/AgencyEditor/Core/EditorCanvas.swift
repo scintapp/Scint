@@ -12,7 +12,7 @@ public struct EditorCanvas: View {
 
     public enum Mode: Equatable {
         case document
-        case composer
+        case Search
     }
 
     let mode: Mode
@@ -26,41 +26,41 @@ public struct EditorCanvas: View {
     public var body: some View {
         switch mode {
         case .document: documentBody
-        case .composer: composerBody
+        case .Search: SearchBody
         }
     }
 
     private var documentBody: some View {
         GeometryReader { geometry in
             ScrollView {
-                blockStack
+                editorContent
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         GeometryReader { proxy in
                             Color.clear.preference(
                                 key: DocumentFrameKey.self,
-                                value: proxy.frame(in: .named(EditorBlockStack.canvasSpace))
+                                value: proxy.frame(in: .named(EditorContentView.canvasSpace))
                             )
                         }
                     )
             }
-            .coordinateSpace(name: EditorBlockStack.canvasSpace)
+            .coordinateSpace(name: EditorContentView.canvasSpace)
             .onPreferenceChange(DocumentFrameKey.self) { editor.documentFrame = $0 }
             .overlay(alignment: .topLeading) { menuOverlay(in: geometry.size) }
         }
     }
 
-    private var composerBody: some View {
-        blockStack
+    private var SearchBody: some View {
+        editorContent
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
-            .coordinateSpace(name: EditorBlockStack.canvasSpace)
+            .coordinateSpace(name: EditorContentView.canvasSpace)
             .onPreferenceChange(DocumentFrameKey.self) { editor.documentFrame = $0 }
             .background(
                 GeometryReader { proxy in
                     Color.clear.preference(
                         key: DocumentFrameKey.self,
-                        value: proxy.frame(in: .named(EditorBlockStack.canvasSpace))
+                        value: proxy.frame(in: .named(EditorContentView.canvasSpace))
                     )
                 }
             )
@@ -71,12 +71,11 @@ public struct EditorCanvas: View {
             }
     }
 
-    private var blockStack: some View {
-        EditorBlockStack(
-            mode: mode,
+    private var editorContent: some View {
+        EditorContentView(
             onCommand: { selector in handleCommand(selector) },
-            onSegmentTextChange: {
-                if mode == .composer, editor.sheet.dirty {
+            onTextChange: {
+                if mode == .Search, editor.sheet.dirty {
                     editor.sheet.sync()
                 }
             }
@@ -100,21 +99,21 @@ public struct EditorCanvas: View {
 
         case #selector(NSResponder.insertTab(_:)), #selector(NSResponder.moveDown(_:)):
             guard editor.menu.isOpen else { return false }
-            DispatchQueue.main.async { editor.menu.cycle() }
+            DispatchQueue.main.async { editor.moveMenuSelection(1) }
             return true
 
         case #selector(NSResponder.moveUp(_:)):
             guard editor.menu.isOpen else { return false }
-            DispatchQueue.main.async { editor.menu.cycle(reverse: true) }
+            DispatchQueue.main.async { editor.moveMenuSelection(-1) }
             return true
 
         case #selector(NSResponder.moveRight(_:)):
-            guard editor.menu.isOpen else { return false }
+            guard editor.menu.isOpen, editor.menu.kind == .command else { return false }
             DispatchQueue.main.async { editor.menu.openSubmenuForSelection() }
             return true
 
         case #selector(NSResponder.moveLeft(_:)):
-            guard editor.menu.isOpen, editor.menu.presentedSubmenu != nil else { return false }
+            guard editor.menu.isOpen, editor.menu.kind == .command, editor.menu.presentedSubmenu != nil else { return false }
             DispatchQueue.main.async { editor.menu.closeSubmenu() }
             return true
 
@@ -137,8 +136,8 @@ public struct EditorCanvas: View {
     @ViewBuilder
     private func menuOverlay(in size: CGSize) -> some View {
         if editor.menu.isOpen {
-            let menuWidth: CGFloat = editor.menu.presentedSubmenu == nil ? 230 : 460
-            let menuHeight: CGFloat = 230
+            let menuWidth = editor.menu.size.width
+            let menuHeight = editor.menu.size.height
             let padding: CGFloat = 16
             let anchorRect = editor.menu.anchorRect
 
@@ -155,7 +154,7 @@ public struct EditorCanvas: View {
 
             let viewportHeight = NSApp.mainWindow?.contentView?.bounds.height ?? size.height
             let placeAbove: Bool = {
-                if mode == .composer { return true }
+                if mode == .Search { return true }
                 let roomBelow = size.height - anchor.y
                 return roomBelow < menuHeight + padding && anchorTopY > menuHeight + padding
             }()
@@ -165,7 +164,7 @@ public struct EditorCanvas: View {
                 : anchor.y + 6
 
             let upperBound = max(padding, size.height - menuHeight - padding)
-            let lowerBound: CGFloat = mode == .composer
+            let lowerBound: CGFloat = mode == .Search
                 ? -(viewportHeight - size.height - padding)
                 : padding
 

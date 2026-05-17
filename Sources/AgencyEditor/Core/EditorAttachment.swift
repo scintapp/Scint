@@ -71,6 +71,11 @@ nonisolated final class EditorAttachment: NSTextAttachment {
         InlineComponentView.size(for: entry)
     }
 
+    nonisolated static func baselineOffset(size: CGSize, font: NSFont) -> CGFloat {
+        let textHeight = font.ascender - font.descender
+        return font.descender + ((textHeight - size.height) / 2)
+    }
+
     nonisolated static func token(for id: UUID) -> String {
         "{{component:\(id.uuidString.lowercased())}}"
     }
@@ -93,7 +98,9 @@ nonisolated final class EditorAttachment: NSTextAttachment {
         position: CGPoint
     ) -> CGRect {
         let size = displaySize
-        return CGRect(x: 0, y: -2, width: size.width, height: size.height)
+        let font = attributes[.font] as? NSFont ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        let baselineOffset = Self.baselineOffset(size: size, font: font)
+        return CGRect(x: 0, y: baselineOffset, width: size.width, height: size.height)
     }
 
     nonisolated override func image(

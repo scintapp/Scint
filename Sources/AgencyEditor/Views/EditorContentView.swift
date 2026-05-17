@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+
 private struct SegmentFramesKey: PreferenceKey {
     static let defaultValue: [UUID: CGRect] = [:]
     static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
@@ -8,29 +9,20 @@ private struct SegmentFramesKey: PreferenceKey {
     }
 }
 
-struct EditorBlockStack: View {
+struct EditorContentView: View {
     @Environment(EditorModel.self) private var editor
 
     static let sharedStyler = EditorStyler()
     static let canvasSpace = "editorCanvas"
 
-    let mode: EditorCanvas.Mode
     let onCommand: (Selector) -> Bool
-    let onSegmentTextChange: (() -> Void)?
+    let onTextChange: (() -> Void)?
 
     var body: some View {
         LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(editor.segments) { segment in
-                segmentRow(segment)
-                    .background(
-                        GeometryReader { proxy in
-                            Color.clear
-                                .preference(
-                                    key: SegmentFramesKey.self,
-                                    value: [segment.id: proxy.frame(in: .named(Self.canvasSpace))]
-                                )
-                        }
-                    )
+                input(for: segment)
+                    .background(frameReader(for: segment.id))
             }
         }
         .onPreferenceChange(SegmentFramesKey.self) { frames in
@@ -40,43 +32,41 @@ struct EditorBlockStack: View {
         }
     }
 
-    @ViewBuilder
-    private func segmentRow(_ segment: EditorSegment) -> some View {
-        switch segment {
-        case .text(let s):
-            textRow(s)
-        case .task(let t):
-            EditorTaskBlock(segment: t)
-                .padding(.vertical, 4)
-        }
-    }
+    private func input(for segment: EditorSegment) -> some View {
+        let isFocused = editor.focusedSegmentID == segment.id
 
-    private func textRow(_ s: EditorSegment.TextSegment) -> some View {
-        let isFocused = editor.focusedSegmentID == s.id
         return EditorInput(
-            text: s.text,
+            text: segment.text,
             renderVersion: editor.renderVersion,
-            selection: s.selection,
+            selection: segment.selection,
             isFocused: isFocused,
             hasFocusedTextEntry: isFocused,
             styler: Self.sharedStyler,
             makeInlineComponentView: { entry, activate in
-                AnyView(InlineComponentView(entry: entry, activate: activate))
+                AnyView(InlineComponentView(entry: entry, activate: activate, update: editor.updateInlineEntry))
             },
             resolveComponent: { id in editor.componentEntry(for: id) },
             registerComponents: { entries in editor.registerInlineEntries(entries) },
             onTextChange: { newText, newSelection, caretRect in
-                editor.write(segmentID: s.id, text: newText, selection: newSelection, caretRect: caretRect)
-                onSegmentTextChange?()
+                editor.write(segmentID: segment.id, text: newText, selection: newSelection, caretRect: caretRect)
+                onTextChange?()
             },
             onSelectionChange: { newSelection, caretRect in
-                editor.select(segmentID: s.id, selection: newSelection, caretRect: caretRect)
+                editor.select(segmentID: segment.id, selection: newSelection, caretRect: caretRect)
             },
-            onFocusGained: { editor.focusGained(segmentID: s.id) },
+            onFocusGained: { editor.focusGained(segmentID: segment.id) },
             onActivateEntry: { entry in editor.activate(entry) },
             onCommand: onCommand
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
-}
 
+    private func frameReader(for id: UUID) -> some View {
+        GeometryReader { proxy in
+            Color.clear.preference(
+                key: SegmentFramesKey.self,
+                value: [id: proxy.frame(in: .named(Self.canvasSpace))]
+            )
+        }
+    }
+}
