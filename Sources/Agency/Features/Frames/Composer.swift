@@ -43,7 +43,7 @@ import Foundation
         }
     }
 
-    static func controls(_ agency: AgencyModel) -> Controls {
+    static func closures(_ agency: AgencyModel) -> Closures {
         .init(
             selected: {
                 item in guard let ref = item.ref else { return false }

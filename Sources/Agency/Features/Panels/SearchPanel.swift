@@ -2,7 +2,7 @@ import AgencyRuntime
 import SwiftUI
 import Foundation
 
-
+#if false
 struct PanelRow: View {
     let name: String
     let image: String
@@ -10,13 +10,7 @@ struct PanelRow: View {
     let isSelected: Bool
     let onTap: () -> Void
 
-    init(
-        name: String,
-        image: String,
-        description: String? = nil,
-        isSelected: Bool,
-        onTap: @escaping () -> Void
-    ) {
+    init(name: String, image: String, description: String? = nil, isSelected: Bool, onTap: @escaping () -> Void) {
         self.name = name
         self.image = image
         self.description = description
@@ -103,7 +97,6 @@ struct SearchPanel: View {
     }
 }
 
-#if false
 struct PanelInput: View {
     var query: String
     let image: String
@@ -335,7 +328,7 @@ struct SearchPanel: View {
     private func activate() {
         guard flatItems.indices.contains(agency.index) else { return }
         let item = flatItems[agency.index]
-        agency.controls(agency).onSelect?(item)
+        agency.closures(agency).onSelect?(item)
         dismiss()
     }
 
@@ -595,8 +588,7 @@ struct SearchPanel: View {
 
 //import AgencyRuntime
 //import SwiftUI
-//
-//
+
 //struct PanelRow: View {
 //    let hit: SearchResult
 //    let isSelected: Bool
@@ -1149,7 +1141,7 @@ struct SearchPanel: View {
 //        }
 //    }
 //
-//    func controls(_ agency: AgencyModel) -> Controls {
+//    func closures(_ agency: AgencyModel) -> Controls {
 //        Controls(
 //            selected: { item in
 //                guard let ref = item.ref else { return false }
@@ -1203,7 +1195,7 @@ struct SearchPanel: View {
 //        SearchMapper.params(agency)
 //    }
 //
-//    func controls(_ agency: AgencyModel) -> Controls {
+//    func closures(_ agency: AgencyModel) -> Controls {
 //        Controls(
 //            selected: { item in
 //                guard let ref = item.ref else { return false }
@@ -1217,7 +1209,7 @@ struct SearchPanel: View {
 //    }
 //
 //    func build(_ agency: AgencyModel) -> some View {
-//        Constructor.build(self, Self.params(agency), controls(agency))
+//        Constructor.build(self, Self.params(agency), closures(agency))
 //    }
 //}
 //
@@ -1298,7 +1290,7 @@ struct SearchPanel: View {
 //    private func activate() {
 //        guard flatItems.indices.contains(model.index) else { return }
 //        let item = flatItems[model.index]
-//        model.controls(agency).onSelect?(item)
+//        model.closures(agency).onSelect?(item)
 //        dismiss()
 //    }
 //

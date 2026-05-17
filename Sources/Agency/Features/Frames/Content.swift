@@ -4,15 +4,13 @@ import SwiftUI
 
 
 struct ContentToolbar: ToolbarContent {
+    @Environment(AgencyModel.self) var agency
     @Binding var presented: Bool
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .navigation) { NavigationControls() }
-        ToolbarItem(placement: .navigation) { SpaceControls() }.sharedBackgroundVisibility(.hidden)
-        ToolbarSpacer(.flexible, placement: .principal)
-        ToolbarSpacer(.flexible, placement: .secondaryAction)
+        ToolbarItem(placement: .principal) { RuntimeControls() }
         ToolbarItem(placement: .primaryAction) { LayoutPicker() }
-        ToolbarSpacer(.fixed, placement: .primaryAction)
         ToolbarItem(placement: .primaryAction) { DetailsToggle(presented: $presented) }
         ToolbarItem(placement: .accessoryBar(id: "pathfinder")) { Pathfinder() }
     }
@@ -57,7 +55,6 @@ struct ContentToolbar: ToolbarContent {
         }
         .background(Design.Background.content)
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .toolbar { ContentToolbar(presented: $content.presented) }
     }
 }
 

@@ -8,7 +8,6 @@ struct NavigatorTabs: View {
 
     @ViewBuilder func effect(_ tab: Navigator.Tab) -> some View {
         if agency.studio.navigator.model == tab {
-
             RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .fill(Color.black.opacity(0.2))
                 .glassEffect(.clear)
@@ -98,18 +97,18 @@ struct NavigatorToolbar: ToolbarContent {
         }
     }
 
-    func controls(_ agency: AgencyModel) -> Controls {
+    func closures(_ agency: AgencyModel) -> Closures {
         switch agency.studio.navigator.model {
-        case .space: BoundaryMapper.controls(agency)
-        case .library: LibraryMapper.controls(agency)
-        case .notifications: SpacesMapper.controls(agency)
+        case .space: BoundaryMapper.closures(agency)
+        case .library: LibraryMapper.closures(agency)
+        case .notifications: SpacesMapper.closures(agency)
         }
     }
 
     @MainActor func build(_ agency: AgencyModel) -> some View {
         VStack {
             NavigatorTabs()
-            Constructor.build(agency.studio.navigator, params(agency), controls(agency))
+            Constructor.build(agency.studio.navigator, params(agency,), closures(agency))
         }
     }
 }

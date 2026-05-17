@@ -50,7 +50,7 @@ import Foundation
 //        }
 //    }
 
-//    private func controls(_ agency: AgencyModel) -> Controls {
+//    private func closures(_ agency: AgencyModel) -> Controls {
 //        Controls(
 //            selected: { item in
 //                guard let ref = item.ref else { return false }
@@ -118,7 +118,7 @@ import Foundation
 //        SearchMapper.params(agency)
 //    }
 //
-//    static func controls(_ agency: AgencyModel) -> Controls {
+//    static func closures(_ agency: AgencyModel) -> Controls {
 //        Controls(
 //            selected: { item in
 //                guard let ref = item.ref else { return false }
@@ -296,7 +296,7 @@ import Foundation
 //    private func activate() {
 //        guard flatItems.indices.contains(model.index) else { return }
 //        let item = flatItems[model.index]
-//        model.controls(agency).onSelect?(item)
+//        model.closures(agency).onSelect?(item)
 //        dismiss()
 //    }
 //

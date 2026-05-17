@@ -8,11 +8,15 @@ protocol Model: CaseIterable {}
 protocol Mapper {
     static func params(_ agency: AgencyModel) -> Params
     static func params(_ agency: AgencyModel, _ frame: any Frame) -> Params
-    static func controls(_ agency: AgencyModel) -> Controls
+    static func closures(_ agency: AgencyModel) -> Closures
+    static func closures(_ agency: AgencyModel, _ frame: any Frame) -> Closures
 }
 
 extension Mapper {
     static func params(_ agency: AgencyModel, _ frame: any Frame) -> Params { .init() }
+    static func params(_ agency: AgencyModel) -> Params { .init() }
+    static func closures(_ agency: AgencyModel) -> Closures { .init() }
+    static func closures(_ agency: AgencyModel, _ frame: any Frame) -> Closures { .init() }
 }
 
 protocol Panel: View {}

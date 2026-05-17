@@ -197,9 +197,7 @@ struct HorizontalSplit<Leading: View, Trailing: View>: NSViewRepresentable {
         self.trailing = trailing()
     }
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeNSView(context: Context) -> FillSplitView {
         let split = FillSplitView()
@@ -207,17 +205,14 @@ struct HorizontalSplit<Leading: View, Trailing: View>: NSViewRepresentable {
         split.dividerStyle = .thin
         split.delegate = context.coordinator
         split.arrangesAllSubviews = true
-
         split.addArrangedSubview(SplitHostingView(rootView: leading))
         split.addArrangedSubview(SplitHostingView(rootView: trailing))
-
         return split
     }
 
     func updateNSView(_ split: FillSplitView, context: Context) {
         (split.arrangedSubviews[0] as? SplitHostingView<Leading>)?.rootView = leading
         (split.arrangedSubviews[1] as? SplitHostingView<Trailing>)?.rootView = trailing
-
         context.coordinator.parent = self
         context.coordinator.apply(to: split)
     }
@@ -225,46 +220,28 @@ struct HorizontalSplit<Leading: View, Trailing: View>: NSViewRepresentable {
     @MainActor final class Coordinator: NSObject, NSSplitViewDelegate {
         var parent: HorizontalSplit
 
-        init(_ parent: HorizontalSplit) {
-            self.parent = parent
-        }
+        init(_ parent: HorizontalSplit) { self.parent = parent }
 
-        private var isCollapsed: Bool {
-            !parent.presented
-        }
+        private var isCollapsed: Bool { !parent.presented }
 
         func apply(to split: NSSplitView) {
             guard split.bounds.width > 0, split.arrangedSubviews.count == 2 else { return }
-
             let total = split.bounds.width
             let divider = split.dividerThickness
-
-            let trailingWidth = isCollapsed
-                ? parent.collapsedWidth
-                : max(parent.position, parent.minTrailingWidth)
-
+            let trailingWidth = isCollapsed ? parent.collapsedWidth : max(parent.position, parent.minTrailingWidth)
             let leadingWidth = max(parent.minLeadingWidth, total - trailingWidth - divider)
-
             split.setPosition(leadingWidth, ofDividerAt: 0)
         }
 
-        func splitView(_ splitView: NSSplitView, canCollapseSubview subview: NSView) -> Bool {
-            subview === splitView.arrangedSubviews.last
-        }
+//        func splitView(_ splitView: NSSplitView, canCollapseSubview subview: NSView) -> Bool {
+//            subview === splitView.arrangedSubviews.last
+//        }
 
-        func splitView(
-            _ splitView: NSSplitView,
-            constrainSplitPosition proposedPosition: CGFloat,
-            ofSubviewAt dividerIndex: Int
-        ) -> CGFloat {
+        func splitView(_ splitView: NSSplitView, constrainSplitPosition proposedPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
             let total = splitView.bounds.width
             let divider = splitView.dividerThickness
             let minLeading = parent.minLeadingWidth
-
-            let maxLeading = isCollapsed
-                ? total - parent.collapsedWidth - divider
-                : total - parent.minTrailingWidth - divider
-
+            let maxLeading = isCollapsed ? total - parent.collapsedWidth - divider : total - parent.minTrailingWidth - divider
             return min(max(proposedPosition, minLeading), maxLeading)
         }
 
@@ -273,13 +250,6 @@ struct HorizontalSplit<Leading: View, Trailing: View>: NSViewRepresentable {
             effectiveRect proposedEffectiveRect: NSRect,
             forDrawnRect drawnRect: NSRect,
             ofDividerAt dividerIndex: Int
-        ) -> NSRect {
-            NSRect(
-                x: drawnRect.minX - 4,
-                y: drawnRect.minY,
-                width: drawnRect.width + 8,
-                height: drawnRect.height
-            )
-        }
+        ) -> NSRect { .zero }
     }
 }

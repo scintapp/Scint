@@ -4,7 +4,7 @@ import SwiftUI
 
 struct ItemCard: View {
     let item: ItemParams
-    let settings: Controls
+    let closures: Closures
     let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 24)
 
     var body: some View {
@@ -41,8 +41,8 @@ struct ItemCard: View {
         .background { shape.fill(Design.Background.panels) }
         .overlay { shape.stroke(lineWidth: 1).fill(.primary.opacity(0.1)) }
         .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .onTapGesture(count: 2) { settings.onOpen?(item) }
-        .onTapGesture { settings.onSelect?(item) }
+        .onTapGesture(count: 2) { closures.onOpen?(item) }
+        .onTapGesture { closures.onSelect?(item) }
     }
 }
 

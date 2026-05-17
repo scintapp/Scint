@@ -37,7 +37,7 @@ struct ActivityPanel: View {
         }
     }
 }
-//
+
 //struct ConsolePanel: View {
 //    @Environment(AgencyModel.self) var agency
 //
@@ -69,7 +69,7 @@ struct ActivityPanel: View {
 //            Constructor.build(
 //                agency.studio.content,
 //                BoundaryMapper.params(agency),
-//                BoundaryMapper.controls(agency)
+//                BoundaryMapper.closures(agency)
 //            )
 //        }
 //    }
@@ -84,7 +84,7 @@ struct ActivityPanel: View {
 //            Constructor.build(
 //                agency.studio.content,
 //                DetailMapper.params(agency),
-//                DetailMapper.controls(agency)
+//                DetailMapper.closures(agency)
 //            )
 //        }
 //        .frame(maxWidth: .infinity, maxHeight: .infinity)

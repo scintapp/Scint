@@ -3,7 +3,7 @@ import AgencyRuntime
 import UniformTypeIdentifiers
 
 
-struct Controls {
+struct Closures {
     var onToggle: ((ItemParams) -> Void)?
     var setControls: ((_ controls: ControlsParams) -> AnyView)?
     var selected: ((_ item: ItemParams) -> Bool)?

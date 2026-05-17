@@ -59,10 +59,10 @@ import SwiftUI
         panel(id: "activity", size: CGSize(width: 640, height: 480), view: view).toggle()
     }
 
-    @MainActor func toggleSearch() {
-        let view = AnyView(BasePanel(SearchPanel().environment(self)))
-        panel(id: "search", size: CGSize(width: 640, height: 480), view: view).toggle()
-    }
+//    @MainActor func toggleSearch() {
+//        let view = AnyView(BasePanel(SearchPanel().environment(self)))
+//        panel(id: "search", size: CGSize(width: 640, height: 480), view: view).toggle()
+//    }
 
     @MainActor func panel(id: AnyHashable, size: CGSize, view: @autoclosure () -> AnyView) -> PanelCoordinator {
         if let existing = panels[id] { return existing }

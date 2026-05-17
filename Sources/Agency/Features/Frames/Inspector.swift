@@ -96,15 +96,15 @@ struct InspectorToolbar: ToolbarContent {
 
     func params(_ studio: AgencyModel) -> Params {
         switch studio.studio.inspector.model {
-        case .composition: return CompositionMapper.params(studio)
-        case .preview: return PreviewMapper.params(studio)
+        case .composition: return CompositionMapper.params(studio, self)
+        case .preview: return PreviewMapper.params(studio, self)
         }
     }
 
-    func controls(_ studio: AgencyModel) -> Controls {
+    func closures(_ studio: AgencyModel) -> Closures {
         switch studio.studio.inspector.model {
-        case .composition: return CompositionMapper.controls(studio)
-        case .preview: return PreviewMapper.controls(studio)
+        case .composition: return CompositionMapper.closures(studio, self)
+        case .preview: return PreviewMapper.closures(studio, self)
         }
     }
 
@@ -112,7 +112,7 @@ struct InspectorToolbar: ToolbarContent {
         VStack {
             InspectorTabs()
             Constructor.build(
-                agency.studio.inspector, params(agency), controls(agency))
+                agency.studio.inspector, params(agency), closures(agency))
         }
     }
 }

@@ -56,11 +56,11 @@ struct AgencyBrowser: View {
 //            }
 //        }
 //
-//        @MainActor func controls(_ agency: AgencyModel) -> Controls {
+//        @MainActor func closures(_ agency: AgencyModel) -> Controls {
 //            switch self {
-//            case .grid: return BoundaryMapper.controls(agency)
-//            case .list: return BoundaryMapper.controls(agency)
-//            case .table: return BoundaryMapper.controls(agency)
+//            case .grid: return BoundaryMapper.closures(agency)
+//            case .list: return BoundaryMapper.closures(agency)
+//            case .table: return BoundaryMapper.closures(agency)
 //            }
 //        }
 //
@@ -82,15 +82,15 @@ struct AgencyBrowser: View {
 //
 //    enum Mode: String, CaseIterable {
 //        case boundary, editor
-//        @MainActor func controls(_ agency: AgencyModel) -> Controls { BoundaryMapper.controls(agency) }
+//        @MainActor func closures(_ agency: AgencyModel) -> Controls { BoundaryMapper.closures(agency) }
 //        @MainActor func params(_ agency: AgencyModel) -> Params { BoundaryMapper.params(agency) }
 //    }
 //
 //    func build(_ agency: AgencyModel) -> some View {
-//        Constructor.build(agency.studio.content, params(agency), controls(agency))
+//        Constructor.build(agency.studio.content, params(agency), closures(agency))
 //    }
 //
-//    static func controls(_ agency: AgencyModel) -> Controls { return ProcessesMapper.controls(agency) }
+//    static func closures(_ agency: AgencyModel) -> Controls { return ProcessesMapper.closures(agency) }
 //    static func params(_ agency: AgencyModel) -> Params { return ProcessesMapper.params(agency) }
 //}
 

@@ -13,6 +13,7 @@ struct LayoutPicker: View {
             Image(systemName: "square.grid.2x2")
             Image(systemName: "list.bullet")
         }
+        .glassEffect(.regular.tint(.black.opacity(0.05)))
         .pickerStyle(.segmented)
         .labelsHidden()
         .help("Show library items in a grid, list, or a table")

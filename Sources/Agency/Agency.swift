@@ -7,9 +7,9 @@ struct Agency: App {
     @State private var agency: AgencyModel?
 
     var body: some Scene {
-        Window("Agency", id: "browser") {
+        Window("Agency", id: "studio") {
             if let agency {
-                Browser()
+                Studio()
                     .environment(agency)
                     .onAppear(perform: { ShortcutManager.shared.register(agency: agency) } )
                     .focusable(false)

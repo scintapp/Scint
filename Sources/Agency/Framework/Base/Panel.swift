@@ -17,8 +17,8 @@ import UniformTypeIdentifiers
         .init()
     }
 
-    func controls(_ agency: AgencyModel) -> Controls {
-        Controls(
+    func closures(_ agency: AgencyModel) -> Closures {
+        Closures(
             selected: { item in
                 guard let ref = item.ref else { return false }
                 return agency.session.selected(ref, item.path)
@@ -87,19 +87,3 @@ struct BasePanel<Content: View>: View {
     }
 }
 
-struct PanelToggle<Content: View>: View {
-    @Environment(AgencyModel.self) private var agency
-    let id: String
-    let icon: String
-    @ViewBuilder let content: () -> Content
-
-    private var panel: AnyView { AnyView(BasePanel(content().environment(agency))) }
-
-    var body: some View {
-        Button { agency.panel(id: id, size: CGSize(width: 640, height: 480), view: panel).toggle() } label: {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .medium))
-        }
-        .buttonBorderShape(.circle)
-    }
-}

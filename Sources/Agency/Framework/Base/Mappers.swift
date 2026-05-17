@@ -3,8 +3,8 @@ import AgencyRuntime
 
 
 struct ArtifactsMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
-        return Controls(
+    static func closures(_ agency: AgencyModel) -> Closures {
+        return Closures(
             selected: { item in
                 guard let ref = item.ref else { return false }
                 return agency.session.selected(ref, item.path)
@@ -78,8 +78,8 @@ struct ArtifactsMapper: Mapper {
 }
 
 struct BoundaryMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
-        return Controls(
+    static func closures(_ agency: AgencyModel) -> Closures {
+        return Closures(
             selected: { item in
                 guard let ref = item.ref else { return false }
                 return agency.session.selected(ref, item.path)
@@ -205,8 +205,8 @@ struct BoundaryMapper: Mapper {
 }
 
 struct BrowserMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
-        return Controls()
+    static func closures(_ agency: AgencyModel) -> Closures {
+        return Closures()
     }
 
     static func params(_ agency: AgencyModel) -> Params {
@@ -240,8 +240,8 @@ struct BrowserMapper: Mapper {
 }
 
 struct CatalogMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
-        Controls(
+    static func closures(_ agency: AgencyModel) -> Closures {
+        Closures(
             selected: { item in
                 guard let ref = item.ref else { return false }
                 return agency.session.selected(ref, item.path)
@@ -305,8 +305,8 @@ struct ContentMapper: Mapper {
         )
     }
 
-    static func controls(_ agency: AgencyModel) -> Controls {
-        Controls(
+    static func closures(_ agency: AgencyModel) -> Closures {
+        Closures(
             selected: { _ in false },
             onSelect: { item in
                 guard let ref = item.ref else { return }
@@ -317,7 +317,7 @@ struct ContentMapper: Mapper {
 }
 
 struct DetailMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
+    static func closures(_ agency: AgencyModel) -> Closures {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
@@ -383,8 +383,8 @@ struct DetailMapper: Mapper {
 }
 
 struct InterfacesMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
-        Controls(
+    static func closures(_ agency: AgencyModel) -> Closures {
+        Closures(
             selected: { _ in false },
             onSelect: { item in
                 guard let ref = item.ref else { return }
@@ -395,14 +395,14 @@ struct InterfacesMapper: Mapper {
 
     static func params(_ agency: AgencyModel) -> Params {
         let services = Runtime.shared.search(agency.search.query, limit: 50).all.filter { $0.ref.type is Service.Type }
-        let controls = Runtime.shared.search(agency.search.query, limit: 50).all.filter { $0.ref.type is Control.Type }
+        let closures = Runtime.shared.search(agency.search.query, limit: 50).all.filter { $0.ref.type is Control.Type }
         let artifacts = Runtime.shared.search(agency.search.query, limit: 50).all.filter { $0.ref.type is Artifact.Type }
 
         return .init(
             nesting: .flat,
             sections: [
-                .init(id: "services",  name: "Services",  items: services.map(item(from:))),
-                .init(id: "controls",  name: "Controls",  items: controls.map(item(from:))),
+                .init(id: "services", name: "Services", items: services.map(item(from:))),
+                .init(id: "closures", name: "Controls", items: closures.map(item(from:))),
                 .init(id: "artifacts", name: "Artifacts", items: artifacts.map(item(from:))),
             ].filter { !$0.items.isEmpty }
         )
@@ -410,8 +410,8 @@ struct InterfacesMapper: Mapper {
 }
 
 struct LibraryMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
-        Controls(
+    static func closures(_ agency: AgencyModel) -> Closures {
+        Closures(
             selected: { item in
                 guard let ref = item.ref else { return false }
                 return agency.session.selected(ref, item.path)
@@ -455,7 +455,7 @@ struct LibraryMapper: Mapper {
 }
 
 struct NotificationsMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls { .init() }
+    static func closures(_ agency: AgencyModel) -> Closures { .init() }
 
     static func params(_ model: AgencyModel) -> Params {
         .init(
@@ -472,11 +472,17 @@ struct NotificationsMapper: Mapper {
 }
 
 struct PreviewMapper: Mapper {
-    static func controls(_ studio: AgencyModel) -> Controls {
-        Controls()
+    static func closures(_ agency: AgencyModel) -> Closures {
+        Closures()
     }
 
-    static func params(_ studio: AgencyModel) -> Params {
+    static func closures(_ agency: AgencyModel, _ frame: any Frame) -> Closures {
+        Closures()
+    }
+
+    static func params(_ studio: AgencyModel) -> Params { .init() }
+
+    static func params(_ studio: AgencyModel, _ frame: any Frame) -> Params {
         .init(
             sections: [
                 .init(
@@ -510,7 +516,7 @@ struct PreviewMapper: Mapper {
 }
 
 struct ProcessMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
+    static func closures(_ agency: AgencyModel) -> Closures {
         return .init()
     }
 
@@ -533,7 +539,7 @@ struct ProcessMapper: Mapper {
 }
 
 struct SpacesMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
+    static func closures(_ agency: AgencyModel) -> Closures {
         .init(
             selected: { _ in false },
             onSelect: { item in
@@ -564,8 +570,8 @@ struct SpacesMapper: Mapper {
 }
 
 struct SpaceMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
-        return Controls(
+    static func closures(_ agency: AgencyModel) -> Closures {
+        return Closures(
             selected: { item in
                 guard let ref = item.ref else { return false }
                 return agency.session.selected(ref, item.path)
@@ -666,7 +672,7 @@ struct SpaceMapper: Mapper {
 }
 
 struct SheetsMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
+    static func closures(_ agency: AgencyModel) -> Closures {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
@@ -697,7 +703,7 @@ struct SheetsMapper: Mapper {
                     showsHeader: false,
                     layout: .grid,
                     items: sheets.map { sheet in
-                        let controls = sheet.entries.reduce(into: 0) { total, entry in if case .control = entry { total += 1 } }
+                        let closures = sheet.entries.reduce(into: 0) { total, entry in if case .control = entry { total += 1 } }
                         let artifacts = sheet.entries.reduce(into: 0) { total, entry in if case .artifact = entry { total += 1 } }
                         let tasks = sheet.entries.reduce(into: 0) { total, entry in if case .todo = entry { total += 1 } }
 
@@ -708,7 +714,7 @@ struct SheetsMapper: Mapper {
                             image: "text.alignleft",
                             description: sheet.content,
                             badges: [
-                                .init(icon: "switch.2", label: "", count: controls, tint: Design.Tint.control),
+                                .init(icon: "switch.2", label: "", count: closures, tint: Design.Tint.control),
                                 .init(icon: "archivebox", label: "", count: artifacts, tint: Design.Tint.artifact),
                                 .init(icon: "checkmark.app", label: "", count: tasks, tint: Design.Tint.task),
                             ]
@@ -721,7 +727,7 @@ struct SheetsMapper: Mapper {
 }
 
 struct SheetMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls { return .init() }
+    static func closures(_ agency: AgencyModel) -> Closures { return .init() }
 
     static func params(_ agency: AgencyModel) -> Params {
         let query = "\(agency.search.query) !sheet"
@@ -742,7 +748,7 @@ struct SheetMapper: Mapper {
 }
 
 struct CompositionMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls {
+    static func closures(_ agency: AgencyModel, _ frame: any Frame) -> Closures {
         .init(
             onSelect: { item in
                 guard let ref = item.ref else { return }
@@ -758,7 +764,7 @@ struct CompositionMapper: Mapper {
             return Params()
         }
 
-        let controls: [ItemParams] = components
+        let closures: [ItemParams] = components
             .filter { $0.type is Control.Type }
             .compactMap { control in
                 guard let name = Control.with(control, { $0.name }) else { return nil }
@@ -801,14 +807,14 @@ struct CompositionMapper: Mapper {
                     id: "settings",
                     name: "Settings",
                     layout: .group,
-                    footnote: "Load controls and services from the library into this boundary.",
+                    footnote: "Load closures and services from the library into this boundary.",
                     items: [
                         .init(
                             name: "Controls",
                             image: "switch.2",
                             trailingKind: .load,
-                            count: controls.count,
-                            items: controls
+                            count: closures.count,
+                            items: closures
                         ),
                         .init(
                             name: "Services",
@@ -825,7 +831,7 @@ struct CompositionMapper: Mapper {
 }
 
 struct SearchMapper: Mapper {
-    static func controls(_ agency: AgencyModel) -> Controls { .init() }
+    static func closures(_ agency: AgencyModel) -> Closures { .init() }
 
     static func params(_ agency: AgencyModel) -> Params {
         let query = agency.search.query

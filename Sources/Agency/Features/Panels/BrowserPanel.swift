@@ -11,7 +11,7 @@ struct BrowserPanel: View {
             Constructor.build(
                 agency.studio.content,
                 SheetsMapper.params(agency),
-                SheetsMapper.controls(agency)
+                SheetsMapper.closures(agency)
             )
         }
     }

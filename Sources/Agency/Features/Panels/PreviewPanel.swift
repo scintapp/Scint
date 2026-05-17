@@ -20,7 +20,7 @@ import AgencyRuntime
     var position: CGFloat = 0
     var expanded: Set<AnyHashable> = []
 
-    func controls(_ model: AgencyModel) -> Controls { PreviewMapper.controls(model) }
-    func params(_ model: AgencyModel) -> Params { PreviewMapper.params(model) }
+    func controls(_ agency: AgencyModel) -> Closures { PreviewMapper.closures(agency, self) }
+    func params(_ agency: AgencyModel) -> Params { PreviewMapper.params(agency, self) }
 }
 

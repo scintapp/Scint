@@ -25,14 +25,14 @@ import SwiftUI
         }
     }
 
-    static func controls(_ agency: AgencyModel) -> Controls { return ProcessMapper.controls(agency) }
+    static func closures(_ agency: AgencyModel) -> Controls { return ProcessMapper.closures(agency) }
     static func params(_ agency: AgencyModel) -> Params { return ProcessMapper.params(agency) }
 
     @MainActor func build(_ agency: AgencyModel) -> some View {
         Constructor.build(
             agency.studio.console,
             Console.params(agency),
-            Console.controls(agency)
+            Console.closures(agency)
         )
     }
 }

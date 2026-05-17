@@ -57,7 +57,7 @@ struct DetailsPanel: Panel {
             Constructor.build(
                 agency.studio.content,
                 DetailMapper.params(agency),
-                DetailMapper.controls(agency)
+                DetailMapper.closures(agency)
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

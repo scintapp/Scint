@@ -2,24 +2,14 @@ import SwiftUI
 import AgencyRuntime
 
 
-struct BrowserToolbar: ToolbarContent {
-    @Environment(AgencyModel.self) var agency
-
-    var body: some ToolbarContent {
-        ToolbarItem(placement: .navigation) { NavigationControls() }
-        ToolbarItem(placement: .navigation) { SpaceControls() }.sharedBackgroundVisibility(.hidden)
-        ToolbarSpacer(.flexible, placement: .primaryAction)
-        ToolbarItem(placement: .primaryAction) { LayoutPicker() }
-    }
-}
-
-struct Browser: View {
+struct Studio: View {
     @Environment(AgencyModel.self) var agency
 
     var body: some View {
         @Bindable var navigator = agency.studio.navigator
         @Bindable var inspector = agency.studio.inspector
         @Bindable var console = agency.studio.console
+        @Bindable var content = agency.studio.console
 
         NavigationSplitView {
             navigator.build(agency)
@@ -39,12 +29,14 @@ struct Browser: View {
             .environment(agency)
             .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar(removing: .title)
+            .toolbar { ContentToolbar(presented: $content.presented) }
         }
         .inspector(isPresented: $inspector.presented) {
             inspector.build(agency)
                 .environment(agency)
                 .ignoresSafeArea(.container, edges: .top)
                 .inspectorColumnWidth(min: 200, ideal: 330, max: 440)
+                .toolbar(removing: .sidebarToggle)
                 .toolbar { InspectorToolbar() }
         }
     }
