@@ -88,7 +88,9 @@
 		7C857AD52F05270000D4187D /* Exceptions for "Resources" folder in "AgencyStudio" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Activities.swift,
 				Browser.swift,
+				Editor.swift,
 				Executor.swift,
 				Info.plist,
 			);

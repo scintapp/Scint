@@ -38,7 +38,7 @@ struct ItemCard: View {
         .padding(.top, 16)
         .frame(width: 160, height: 160, alignment: .topLeading)
         .contentShape(shape)
-        .background { shape.fill(Design.Background.panels) }
+        .background { shape.fill(Design.Background.panel) }
         .overlay { shape.stroke(lineWidth: 1).fill(.primary.opacity(0.1)) }
         .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         .onTapGesture(count: 2) { closures.onOpen?(item) }

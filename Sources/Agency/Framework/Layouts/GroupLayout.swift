@@ -43,8 +43,8 @@ struct GroupHeader: View {
     let ref: Reference
 
     var body: some View {
-        let title = Boundary.with(ref) { $0.name } ?? "Boundary"
-        let description = Boundary.with(ref) { $0.description }
+        let title = Space.with(ref) { $0.name } ?? "Boundary"
+        let description = Space.with(ref) { $0.description }
 
 
         VStack(alignment: .leading) {

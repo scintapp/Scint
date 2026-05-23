@@ -1,0 +1,292 @@
+import SwiftUI
+
+
+enum EditorMenuFocus: Hashable {
+    case formPrimary
+    case formSecondary
+}
+
+struct EditorMenuEmptyState: View {
+    let title: String
+    let width: CGFloat
+    let height: CGFloat
+
+    var body: some View {
+        HStack {
+            Spacer()
+            VStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 18))
+                    .foregroundStyle(.quaternary)
+                Text(title)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer()
+        }
+        .frame(width: width, height: height)
+    }
+}
+
+struct EditorMenuIconTile: View {
+    let icon: String
+    let selected: Bool
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(selected ? Color.white.opacity(0.16) : Color.white.opacity(0.07))
+                .frame(width: 26, height: 26)
+            Image(systemName: icon.isEmpty ? "square.stack.3d.up" : icon)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(selected ? .white : .primary.opacity(0.78))
+        }
+    }
+}
+
+struct EditorMenuRow: View {
+    @Environment(EditorModel.self) private var editor
+    let item: MenuItem
+
+    private var menu: MenuModel { editor.menu }
+    private var selected: Bool { item.id == menu.selectedID }
+
+    var body: some View {
+        Button {
+            menu.select(item)
+            editor.commitMenuSelection()
+        } label: {
+            HStack(spacing: 10) {
+                if let icon = item.icon {
+                    EditorMenuIconTile(icon: icon, selected: selected)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.label)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(selected ? .white : .primary.opacity(0.86))
+                        .lineLimit(1)
+
+                    if !item.detail.isEmpty {
+                        Text(item.detail)
+                            .font(.system(size: 11))
+                            .foregroundStyle(selected ? .white.opacity(0.65) : .secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                if selected {
+                    Image(systemName: "return")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(selected ? Color.white.opacity(0.08) : Color.clear)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct EditorMenuList: View {
+    @Environment(EditorModel.self) private var editor
+
+    private var menu: MenuModel { editor.menu }
+    private var emptyTitle: String {
+        switch menu.kind {
+        case .command: return "No commands found"
+        case .reference: return "No references found"
+        case .form: return ""
+        }
+    }
+
+    var body: some View {
+        Group {
+            if menu.items.isEmpty {
+                EditorMenuEmptyState(title: emptyTitle, width: menu.size.width, height: menu.size.height)
+            } else {
+                list
+            }
+        }
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
+    }
+
+    private var list: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(menu.items) { item in
+                        if case .dividerItem = item {
+                            Divider()
+                                .overlay(Color.white.opacity(0.08))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                        } else {
+                            EditorMenuRow(item: item)
+                                .id(item.id)
+                        }
+                    }
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 6)
+            }
+            .onChange(of: menu.selectedID) { _, newID in
+                guard let newID else { return }
+                withAnimation(.easeOut(duration: 0.1)) {
+                    proxy.scrollTo(newID, anchor: .center)
+                }
+            }
+        }
+    }
+}
+
+struct MenuForm: View {
+    @Environment(EditorModel.self) private var editor
+
+    let kind: MenuFormKind
+    let focus: FocusState<EditorMenuFocus?>.Binding
+
+    private var menu: MenuModel { editor.menu }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Divider().overlay(Color.white.opacity(0.08))
+            fields
+        }
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
+    }
+
+    private var header: some View {
+        HStack(spacing: 9) {
+            Image(systemName: kind.icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 22, height: 22)
+
+            Text(kind.title)
+                .font(.system(size: 13, weight: .semibold))
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+
+    private var fields: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            formField(
+                placeholder: kind.primaryPlaceholder,
+                text: Binding(get: { menu.formPrimary }, set: { menu.formPrimary = $0 }),
+                focusValue: .formPrimary,
+                commit: commitPrimaryField
+            )
+
+            if kind == .link {
+                formField(
+                    placeholder: "URL",
+                    text: Binding(get: { menu.formSecondary }, set: { menu.formSecondary = $0 }),
+                    focusValue: .formSecondary,
+                    commit: { editor.commitMenuSelection() }
+                )
+            }
+
+            actions
+        }
+        .padding(12)
+    }
+
+    private var actions: some View {
+        HStack {
+            Spacer()
+            Button("Cancel") { menu.close() }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            Button("Insert") { editor.commitMenuSelection() }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+        }
+    }
+
+    private func formField(
+        placeholder: String,
+        text: Binding<String>,
+        focusValue: EditorMenuFocus,
+        commit: @escaping () -> Void
+    ) -> some View {
+        TextField(placeholder, text: text)
+            .textFieldStyle(.plain)
+            .font(.system(size: 13))
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.white.opacity(0.07))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                    )
+            )
+            .focused(focus, equals: focusValue)
+            .onKeyPress(.return) {
+                commit()
+                return .handled
+            }
+            .onKeyPress(.escape) {
+                menu.close()
+                return .handled
+            }
+    }
+
+    private func commitPrimaryField() {
+        if kind == .link {
+            focus.wrappedValue = .formSecondary
+        } else {
+            editor.commitMenuSelection()
+        }
+    }
+}
+
+struct EditorMenu: View {
+    @Environment(EditorModel.self) private var editor
+    @FocusState private var focus: EditorMenuFocus?
+
+    let position: CGPoint
+    private var menu: MenuModel { editor.menu }
+
+    var body: some View {
+        content
+            .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
+            .offset(x: position.x, y: position.y)
+            .onChange(of: menu.kind) { _, kind in focusInitialField(for: kind) }
+            .onAppear { focusInitialField(for: menu.kind) }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch menu.kind {
+        case .command, .reference:
+            EditorMenuList()
+        case .form(let kind):
+            MenuForm(kind: kind, focus: $focus)
+        }
+    }
+
+    private func focusInitialField(for kind: EditorMenuKind) {
+        switch kind {
+        case .command, .reference:
+            focus = nil
+        case .form:
+            focus = .formPrimary
+        }
+    }
+}

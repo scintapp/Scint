@@ -5,28 +5,28 @@ import SwiftUI
 
 enum EditorMenuKind: Equatable {
     case command
-    case library
-    case form(ComponentFormKind)
+    case reference
+    case form(MenuFormKind)
 }
 
-enum ComponentFormKind: Equatable {
+enum MenuFormKind: Equatable {
     case task
     case link
-    
+
     var title: String {
         switch self {
         case .task: return "New Task"
         case .link: return "New Link"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .task: return "checkmark.circle"
         case .link: return "link"
         }
     }
-    
+
     var primaryPlaceholder: String {
         switch self {
         case .task: return "Task"
@@ -35,219 +35,329 @@ enum ComponentFormKind: Equatable {
     }
 }
 
-enum MenuSubmenu: String, Equatable {
-    case controls
-    case skills
-    
-    var title: String {
+enum MenuItem: Identifiable, Equatable {
+    case commandItem(id: String, label: String, icon: String?, keywords: [String])
+    case reference(Reference, name: String, description: String, icon: String, tags: [String])
+    case dividerItem(String)
+
+    var id: String {
         switch self {
-        case .controls: return "Controls"
-        case .skills: return "Skills"
+        case .commandItem(let id, _, _, _): return "command:\(id)"
+        case .reference(let ref, _, _, _, _): return "reference:\(ref.id.uuidString)"
+        case .dividerItem(let id): return "divider:\(id)"
         }
     }
-    
-    var placeholder: String {
+
+    var commandID: String? {
+        guard case .commandItem(let id, _, _, _) = self else { return nil }
+        return id
+    }
+
+    var label: String {
         switch self {
-        case .controls: return "Controls will be listed here."
-        case .skills: return "Skills will be listed here."
+        case .commandItem(_, let label, _, _): return label
+        case .reference(_, let name, _, _, _): return name
+        case .dividerItem: return ""
         }
     }
-}
 
-enum MenuActivation {
-    case insert(item: MenuItem, replacementRange: NSRange)
-    case openSubmenu(MenuSubmenu)
-}
+    var detail: String {
+        switch self {
+        case .commandItem: return ""
+        case .reference(_, _, let description, _, let tags):
+            if !description.isEmpty { return description }
+            return tags.joined(separator: " ")
+        case .dividerItem: return ""
+        }
+    }
 
-struct MenuItem: Identifiable, Equatable {
-    enum Kind: Equatable {
-        case action
-        case submenu(MenuSubmenu)
-        case divider
+    var icon: String? {
+        switch self {
+        case .commandItem(_, _, let icon, _): return icon
+        case .reference(_, _, _, let icon, _): return icon
+        case .dividerItem: return nil
+        }
     }
-    
-    let id: String
-    let label: String
-    let icon: String?
-    let keywords: [String]
-    let kind: Kind
-    
-    init(id: String, label: String, icon: String? = nil, keywords: [String] = []) {
-        self.init(id: id, label: label, icon: icon, keywords: keywords, kind: .action)
-    }
-    
-    init(id: String, label: String, icon: String? = nil, submenu: MenuSubmenu, keywords: [String] = []) {
-        self.init(id: id, label: label, icon: icon, keywords: keywords, kind: .submenu(submenu))
-    }
-    
-    private init(id: String, label: String, icon: String?, keywords: [String], kind: Kind) {
-        self.id = id
-        self.label = label
-        self.icon = icon
-        self.keywords = keywords
-        self.kind = kind
-    }
-    
-    static func divider(_ id: String) -> MenuItem {
-        MenuItem(id: id, label: "", icon: nil, keywords: [], kind: .divider)
-    }
-    
+
     var isSelectable: Bool {
-        if case .divider = kind { return false }
+        if case .dividerItem = self { return false }
         return true
     }
-    
-    var submenu: MenuSubmenu? {
-        guard case .submenu(let submenu) = kind else { return nil }
-        return submenu
+
+    func matches(_ query: String) -> Bool {
+        guard !query.isEmpty else { return true }
+
+        switch self {
+        case .commandItem(_, let label, _, let keywords):
+            return label.localizedCaseInsensitiveContains(query)
+                || keywords.contains { $0.localizedCaseInsensitiveContains(query) }
+        case .reference(_, let name, let description, _, let tags):
+            return name.localizedCaseInsensitiveContains(query)
+                || description.localizedCaseInsensitiveContains(query)
+                || tags.contains { $0.localizedCaseInsensitiveContains(query) }
+        case .dividerItem:
+            return false
+        }
     }
+
+    static func command(id: String, label: String, icon: String? = nil, keywords: [String] = []) -> MenuItem {
+        .commandItem(id: id, label: label, icon: icon, keywords: keywords)
+    }
+
+    static func divider(_ id: String) -> MenuItem {
+        .dividerItem(id)
+    }
+}
+
+struct MenuCommit {
+    let entries: [Entry]
+    let replacementRange: NSRange
 }
 
 @Observable final class MenuModel {
-    var items: [MenuItem]
+    private let commandItems: [MenuItem]
+    private let makeEntries: (MenuItem) -> [Entry]?
+
     var kind: EditorMenuKind = .command
     var query: String = ""
-    var item: String?
-    var libraryIndex = 0
+    var selectedID: String?
     var replacementRange = NSRange(location: 0, length: 0)
     var anchorRect: CGRect = .zero
-    var presentedSubmenu: MenuSubmenu?
     var isOpen = false
     var formPrimary = ""
     var formSecondary = ""
-    
+    private(set) var items: [MenuItem] = []
+
+    private var normalizedQuery: String {
+        query.lowercased().trimmingCharacters(in: .whitespaces)
+    }
+
     var size: CGSize {
         switch kind {
-        case .command: return CGSize(width: presentedSubmenu == nil ? 280 : 560, height: 230)
-        case .library: return CGSize(width: 360, height: 360)
+        case .command: return CGSize(width: 280, height: 230)
+        case .reference: return CGSize(width: 360, height: 320)
         case .form(.task): return CGSize(width: 320, height: 162)
         case .form(.link): return CGSize(width: 320, height: 214)
         }
     }
-    
-    var filtered: [MenuItem] {
-        let q = normalizedQuery
-        guard !q.isEmpty else { return items }
-        return items.filter { item in
-            item.isSelectable && (
-                item.label.localizedCaseInsensitiveContains(q)
-                || item.keywords.contains { $0.localizedCaseInsensitiveContains(q) }
-            )
+
+    private var currentItems: [MenuItem] {
+        switch kind {
+        case .command:
+            let filtered = commandItems.filter { item in
+                if case .dividerItem = item { return normalizedQuery.isEmpty }
+                return item.matches(normalizedQuery)
+            }
+            return trimmedDividers(in: filtered)
+        case .reference:
+            return MenuSearch.items(for: query)
+        case .form:
+            return []
         }
     }
-    
-    private var normalizedQuery: String {
-        query.lowercased().trimmingCharacters(in: .whitespaces)
+
+    init(items: [MenuItem] = [], makeEntries: @escaping (MenuItem) -> [Entry]? = { _ in nil }) {
+        self.commandItems = items
+        self.makeEntries = makeEntries
+        self.items = items
     }
-    
-    init(items: [MenuItem] = []) { self.items = items }
-    
+
     func open(kind: EditorMenuKind, query: String, replacementRange: NSRange, anchorRect: CGRect) {
         let wasClosed = !isOpen
         let kindChanged = self.kind != kind
+
         isOpen = true
         self.kind = kind
         self.query = query
         self.replacementRange = replacementRange
+        refreshItems()
+
         if wasClosed || kindChanged {
             self.anchorRect = anchorRect
-            presentedSubmenu = nil
-            item = nil
-            libraryIndex = 0
+            selectedID = nil
             formPrimary = ""
             formSecondary = ""
         }
+
         ensureValidSelection()
     }
-    
-    func openForm(_ formKind: ComponentFormKind) {
-        kind = .form(formKind)
-        query = ""
-        presentedSubmenu = nil
-        item = nil
-        libraryIndex = 0
-        formPrimary = defaultPrimaryValue(for: formKind)
-        formSecondary = ""
-    }
-    
+
     func close() {
         isOpen = false
         kind = .command
         query = ""
         replacementRange = NSRange(location: 0, length: 0)
         anchorRect = .zero
-        presentedSubmenu = nil
-        item = nil
-        libraryIndex = 0
+        selectedID = nil
         formPrimary = ""
         formSecondary = ""
+        items = []
     }
-    
-    func select(itemId: String) {
-        item = itemId
+
+    func select(_ item: MenuItem) {
+        guard item.isSelectable else { return }
+        selectedID = item.id
     }
-    
-    func cycle(reverse: Bool = false) {
-        let items = selectableItems
-        guard !items.isEmpty else { return }
-        guard let current = item,
-              let idx = items.firstIndex(where: { $0.id == current }) else {
-            item = items.first?.id
+
+    func moveSelection(_ delta: Int) {
+        let selectable = items.filter(\.isSelectable)
+        guard !selectable.isEmpty else {
+            selectedID = nil
             return
         }
-        let next = reverse
-        ? (idx - 1 + items.count) % items.count
-        : (idx + 1) % items.count
-        item = items[next].id
+
+        guard let selectedID,
+              let index = selectable.firstIndex(where: { $0.id == selectedID })
+        else {
+            self.selectedID = selectable.first?.id
+            return
+        }
+
+        self.selectedID = selectable[(index + delta + selectable.count) % selectable.count].id
     }
-    
-    func activateSelection() -> MenuActivation? {
-        guard isOpen,
-              let item = selectedMenuItem else { return nil }
-        
-        switch item.kind {
-        case .action:
-            return .insert(item: item, replacementRange: replacementRange)
-        case .submenu(let submenu):
-            presentedSubmenu = submenu
-            return .openSubmenu(submenu)
-        case .divider:
+
+    func handleCommand(_ selector: Selector) -> (handled: Bool, commit: MenuCommit?) {
+        guard isOpen else { return (false, nil) }
+
+        switch selector {
+        case #selector(NSResponder.insertNewline(_:)):
+            return (true, commitSelection())
+        case #selector(NSResponder.insertTab(_:)), #selector(NSResponder.moveDown(_:)):
+            moveSelection(1)
+            return (true, nil)
+        case #selector(NSResponder.moveUp(_:)):
+            moveSelection(-1)
+            return (true, nil)
+        case #selector(NSResponder.cancelOperation(_:)):
+            close()
+            return (true, nil)
+        default:
+            return (false, nil)
+        }
+    }
+
+    func commitSelection() -> MenuCommit? {
+        switch kind {
+        case .command, .reference:
+            guard let selected = selectedItem else { return nil }
+            return commit(selected)
+        case .form(let formKind):
+            return commitForm(formKind)
+        }
+    }
+
+    private var selectedItem: MenuItem? {
+        if let selectedID, let selected = items.first(where: { $0.id == selectedID }) {
+            return selected
+        }
+        return items.first(where: \.isSelectable)
+    }
+
+    private func commit(_ item: MenuItem) -> MenuCommit? {
+        switch item {
+        case .commandItem:
+            if item.commandID == "new-task" {
+                openForm(.task)
+                return nil
+            }
+            if item.commandID == "new-link" {
+                openForm(.link)
+                return nil
+            }
+
+            guard let entries = makeEntries(item), !entries.isEmpty else { return nil }
+            let range = replacementRange
+            close()
+            return MenuCommit(entries: entries, replacementRange: range)
+
+        case .reference(let ref, _, _, _, _):
+            guard let entry = MenuSearch.entry(for: ref) else { return nil }
+            let range = replacementRange
+            close()
+            return MenuCommit(entries: [entry], replacementRange: range)
+
+        case .dividerItem:
             return nil
         }
     }
-    
-    func openSubmenuForSelection() {
-        guard let submenu = selectedMenuItem?.submenu else { return }
-        presentedSubmenu = submenu
+
+    private func openForm(_ formKind: MenuFormKind) {
+        kind = .form(formKind)
+        query = ""
+        selectedID = nil
+        formPrimary = defaultPrimaryValue(for: formKind)
+        formSecondary = ""
+        items = []
     }
-    
-    func closeSubmenu() {
-        presentedSubmenu = nil
+
+    private func commitForm(_ kind: MenuFormKind) -> MenuCommit? {
+        let title = formPrimary.trimmingCharacters(in: .whitespacesAndNewlines)
+        let entry: Entry
+
+        switch kind {
+        case .task:
+            entry = .todo(UUID(), title.isEmpty ? "Task" : title, false)
+        case .link:
+            let fallbackTitle = title.isEmpty ? "Link" : title
+            let url = normalizedURL(from: formSecondary)
+            let ref = Artifact.register(fallbackTitle, url)
+            if url == nil {
+                Artifact.update(ref) { $0.entry = .http(nil) }
+            }
+            entry = .artifact(ref)
+        }
+
+        let range = replacementRange
+        close()
+        return MenuCommit(entries: [entry], replacementRange: range)
     }
-    
-    private var selectableItems: [MenuItem] {
-        filtered.filter(\.isSelectable)
-    }
-    
-    private var selectedMenuItem: MenuItem? {
-        guard let item else { return nil }
-        return filtered.first(where: { $0.id == item })
-    }
-    
+
     private func ensureValidSelection() {
-        guard case .command = kind else { return }
-        let items = selectableItems
-        if items.isEmpty {
-            item = nil
-        } else if !items.contains(where: { $0.id == item }) {
-            item = items.first?.id
+        let selectable = items.filter(\.isSelectable)
+        if selectable.isEmpty {
+            selectedID = nil
+        } else if !selectable.contains(where: { $0.id == selectedID }) {
+            selectedID = selectable.first?.id
         }
     }
-    
-    private func defaultPrimaryValue(for formKind: ComponentFormKind) -> String {
+
+    private func refreshItems() {
+        items = currentItems
+    }
+
+    private func trimmedDividers(in items: [MenuItem]) -> [MenuItem] {
+        var result: [MenuItem] = []
+        var previousWasDivider = true
+
+        for item in items {
+            if case .dividerItem = item {
+                guard !previousWasDivider else { continue }
+                previousWasDivider = true
+                result.append(item)
+            } else {
+                previousWasDivider = false
+                result.append(item)
+            }
+        }
+
+        while result.last?.isSelectable == false {
+            result.removeLast()
+        }
+
+        return result
+    }
+
+    private func defaultPrimaryValue(for formKind: MenuFormKind) -> String {
         switch formKind {
         case .task: return "Task"
         case .link: return "Link"
         }
+    }
+
+    private func normalizedURL(from value: String) -> URL? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if let url = URL(string: trimmed), url.scheme != nil { return url }
+        return URL(string: "https://\(trimmed)")
     }
 }

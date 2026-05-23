@@ -93,6 +93,43 @@ struct SearchInput: View {
     }
 }
 
+struct ControlPromptBar: View {
+    @Binding var prompt: Search.ControlPrompt
+    let focused: FocusState<Bool>.Binding
+    let onSubmit: () -> Void
+    let onCancel: () -> KeyPress.Result
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: Design.Component.icon(for: prompt.ref))
+                .foregroundStyle(.secondary)
+                .font(.system(size: 20))
+
+            Text(prompt.ref.name)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+            TextField("Arguments", text: $prompt.arguments)
+                .foregroundStyle(.primary)
+                .font(.system(size: 16))
+                .textFieldStyle(.plain)
+                .focused(focused)
+                .onKeyPress(.return) { onSubmit(); return .handled }
+                .onKeyPress(.escape) { onCancel() }
+
+            Button(action: onSubmit) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .buttonStyle(.glassProminent)
+            .keyboardShortcut(.return, modifiers: [])
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+}
+
 struct SearchDetails: View {
     let details: SearchResultDetails
 
@@ -315,19 +352,29 @@ struct SearchPanel: View {
         @Bindable var search = agency.search
 
         VStack(alignment: .leading, spacing: 0) {
-            if let details = agency.search.details {
+            if let _ = agency.search.prompt {
+                ControlPromptBar(
+                    prompt: Binding(
+                        get: { agency.search.prompt ?? .init(ref: flatItems[agency.search.index].ref!) },
+                        set: { agency.search.prompt = $0 }
+                    ),
+                    focused: $focused,
+                    onSubmit: { dispatchControl() },
+                    onCancel: { closePrompt(); return .handled }
+                )
+            } else if let details = agency.search.details {
                 SearchDetails(details: details)
                     .onKeyPress(.tab) { closeDetails(); return .handled }
             } else {
                 SearchInput(
                     query: $search.query,
-                    image: agency.search.scope.image,
-                    placeholder: agency.search.scope.placeholder,
+                    image: agency.search.model.image,
+                    placeholder: agency.search.model.placeholder,
                     focused: $focused,
                     onUpArrow: { move(-1); return .handled },
                     onDownArrow: { move(+1); return .handled },
                     onReturn: { activate(); return .handled },
-                    onTab: { showDetails(); return .handled }
+                    onTab: { showAuxiliary(); return .handled }
                 )
 
                 SearchContent(
@@ -340,22 +387,20 @@ struct SearchPanel: View {
         .frame(maxWidth: .infinity)
         .onAppear { focused = true }
         .onChange(of: agency.search.query) { _, _ in agency.search.index = 0 }
-        .onChange(of: agency.search.scope) { _, _ in agency.search.reset(); focused = true }
+        .onChange(of: agency.search.model) { _, _ in agency.search.reset(); focused = true }
         .background(modalitySwitchers)
     }
 
     private var modalitySwitchers: some View {
         ZStack {
-            Button { agency.search.scope = .everything } label: { EmptyView() }
+            Button { agency.search.model = .all } label: { EmptyView() }
                 .keyboardShortcut("1", modifiers: .command)
-            Button { agency.search.scope = .space } label: { EmptyView() }
+            Button { agency.search.model = .space } label: { EmptyView() }
                 .keyboardShortcut("2", modifiers: .command)
-            Button { agency.search.scope = .controls } label: { EmptyView() }
+            Button { agency.search.model = .library } label: { EmptyView() }
                 .keyboardShortcut("3", modifiers: .command)
-            Button { agency.search.scope = .library } label: { EmptyView() }
+            Button { agency.search.model = .activities } label: { EmptyView() }
                 .keyboardShortcut("4", modifiers: .command)
-            Button { agency.search.scope = .activity } label: { EmptyView() }
-                .keyboardShortcut("0", modifiers: .command)
         }
         .frame(width: 0, height: 0)
         .opacity(0)
@@ -370,8 +415,48 @@ struct SearchPanel: View {
     private func activate() {
         guard flatItems.indices.contains(agency.search.index) else { return }
         let item = flatItems[agency.search.index]
+
+        if let ref = item.ref, ref.type is Control.Type {
+            agency.search.prompt = .init(ref: ref)
+            focused = true
+            return
+        }
+
         agency.search.closures(agency).onSelect?(item)
         dismiss()
+    }
+
+    private func showAuxiliary() {
+        guard flatItems.indices.contains(agency.search.index) else { return }
+        guard let ref = flatItems[agency.search.index].ref else { return }
+
+        if ref.type is Control.Type {
+            agency.search.prompt = .init(ref: ref)
+            focused = true
+            return
+        }
+
+        agency.search.details = Runtime.shared.searchDetails(for: ref)
+    }
+    
+    private func dispatchControl() {
+        guard let prompt = agency.search.prompt else { return }
+        let arguments = prompt.arguments
+            .split(whereSeparator: \.isWhitespace)
+            .map(String.init)
+        let ref = prompt.ref
+
+        Task {
+            do { try await Runtime.shared.dispatch(ref, arguments: arguments) }
+            catch { print("Control dispatch failed: \(error)") }
+        }
+
+        dismiss()
+    }
+
+    private func closePrompt() {
+        agency.search.prompt = nil
+        focused = true
     }
 
     private func showDetails() {
@@ -390,4 +475,3 @@ struct SearchPanel: View {
         agency.panels["search"]?.hide()
     }
 }
-

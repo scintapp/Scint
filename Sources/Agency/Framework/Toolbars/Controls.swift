@@ -78,7 +78,7 @@ struct SpaceRow: View {
     let ref: Reference
     let selected: Bool
 
-    private var name: String { Space.with(ref) { $0.name } ?? "Space" }
+    private var name: String { Workspace.with(ref) { $0.name } ?? "Space" }
 
     var body: some View {
         HStack(alignment: .center) {
@@ -175,14 +175,14 @@ struct RuntimeControls: View {
                             Text(Sheet.with(selection, { $0.name }) ?? "")
                                 .font(.system(size: 11, weight: .medium))
                         }
-                    case is Boundary.Type:
-                        return Button { } label: {
-                            Text(Boundary.with(selection, { $0.name }) ?? "")
-                                .font(.system(size: 11, weight: .medium))
-                        }
                     case is Space.Type:
                         return Button { } label: {
                             Text(Space.with(selection, { $0.name }) ?? "")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                    case is Workspace.Type:
+                        return Button { } label: {
+                            Text(Workspace.with(selection, { $0.name }) ?? "")
                                 .font(.system(size: 11, weight: .medium))
                         }
                     default:

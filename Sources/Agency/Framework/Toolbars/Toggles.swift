@@ -71,12 +71,17 @@ struct ConsoleToggle: View {
     @Environment(AgencyModel.self) var agency
 
     var body: some View {
-        Button { agency.studio.console.presented.toggle() } label: {
+        @Bindable var console = agency.studio.console
+
+        Button {
+            console.presented.toggle()
+            if console.position < 1 { console.position = 120 }
+        } label: {
             Image(systemName: "dock.rectangle")
                 .frame(maxWidth: 28, maxHeight: 28, alignment: .center)
                 .font(.system(size: 15, weight: .light))
-                .foregroundStyle(agency.studio.console.presented ? Color.secondary.opacity(0.8) : Color.primary.opacity(0.85))
-                .help(agency.studio.console.presented ? "Hide console." : "Show console.")
+                .foregroundStyle(console.presented ? Color.secondary.opacity(0.8) : Color.primary.opacity(0.85))
+                .help(console.presented ? "Hide console." : "Show console.")
         }
         .buttonStyle(.plain)
         .buttonBorderShape(.circle)
@@ -84,7 +89,7 @@ struct ConsoleToggle: View {
     }
 }
 
-struct DetailsToggle: View {
+struct OutlineToggle: View {
     @Environment(AgencyModel.self) var agency
 
     var body: some View {

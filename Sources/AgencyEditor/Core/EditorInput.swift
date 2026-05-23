@@ -3,25 +3,22 @@ import SwiftUI
 
 
 final class EditorInputView: NSTextView {
+    private(set) var renderedText = ""
     private let minimumLineHeight: CGFloat = 24
     private let backingContentStorage = NSTextContentStorage()
     private let backingTextLayoutManager = NSTextLayoutManager()
     private let backingTextContainer = NSTextContainer(size: NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
     private weak var styler: EditorStyler?
+    fileprivate var isApplyingTextStorageChange = false
 
-    private struct InlineComponent {
-        let id: UUID
-        let range: NSRange
-        let view: EditorAttachmentView
+    private var currentAttributedString: NSAttributedString {
+        if let textStorage = backingContentStorage.textStorage { return NSAttributedString(attributedString: textStorage) }
+        return backingContentStorage.attributedString ?? NSAttributedString(string: string)
     }
-    private var inlineComponents: [InlineComponent] = []
 
-    private(set) var renderedText = ""
-    private(set) var renderedVersion = 0
-
-    var registerComponents: (([Entry]) -> Void)?
-    var activateEntry: ((Entry) -> Void)?
-    var makeInlineComponentView: ((Entry, @escaping () -> Void) -> AnyView)?
+    var plainText: String { currentAttributedString.string }
+    var plainSelectedRange: NSRange { selectedRange() }
+    var onCommandFromView: ((Selector) -> Bool)?
 
     convenience init() { self.init(frame: .zero) }
 
@@ -32,30 +29,17 @@ final class EditorInputView: NSTextView {
         super.init(frame: frameRect, textContainer: backingTextContainer)
     }
 
+    override func insertNewline(_ sender: Any?) {
+        if onCommandFromView?(#selector(NSResponder.insertNewline(_:))) == true { return }
+        super.insertNewline(sender)
+    }
+
+    override func cancelOperation(_ sender: Any?) {
+        if onCommandFromView?(#selector(NSResponder.cancelOperation(_:))) == true { return }
+        super.cancelOperation(sender)
+    }
+
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    var plainText: String {
-        let attributed = currentAttributedString
-        let fullRange = NSRange(location: 0, length: attributed.length)
-        var result = ""
-
-        attributed.enumerateAttributes(in: fullRange) { attributes, range, _ in
-            if let attachment = attributes[.attachment] as? EditorAttachment {
-                result.append(attachment.token)
-            } else {
-                result.append(attributed.attributedSubstring(from: range).string)
-            }
-        }
-
-        return result
-    }
-
-    var plainSelectedRange: NSRange {
-        let selected = selectedRange()
-        let location = plainIndex(forDisplayIndex: selected.location)
-        let end = plainIndex(forDisplayIndex: selected.location + selected.length)
-        return NSRange(location: location, length: max(0, end - location))
-    }
 
     fileprivate func configure(with styler: EditorStyler) {
         self.styler = styler
@@ -88,41 +72,63 @@ final class EditorInputView: NSTextView {
         typingAttributes = styler.typingAttributes
     }
 
-    fileprivate func setPlainSelectedRange(_ range: NSRange) {
-        setSelectedRange(displayRange(forPlainRange: range))
+    var caretIsOnFirstLine: Bool {
+        let ns = plainText as NSString
+        let caret = min(selectedRange().location, ns.length)
+        return ns.substring(to: caret).range(of: "\n", options: .backwards) == nil
     }
 
-    fileprivate func render(
-        text: String,
-        selectedRange: NSRange,
-        renderVersion: Int,
-        resolveComponent: (UUID) -> Entry?
-    ) {
-        guard let styler else { return }
-        let attributed = styler.attributedString(for: text, resolveInlineEntry: resolveComponent)
-        if let textStorage = backingContentStorage.textStorage {
-            textStorage.setAttributedString(attributed)
-        } else {
-            backingContentStorage.attributedString = attributed
+    var caretIsOnLastLine: Bool {
+        let ns = plainText as NSString
+        let caret = min(selectedRange().location, ns.length)
+        return ns.substring(from: caret).range(of: "\n") == nil
+    }
+
+    private func caretLineFragmentRect(at location: Int) -> CGRect? {
+        var result: CGRect?
+        let target = min(max(location, 0), (plainText as NSString).length)
+        backingTextLayoutManager.enumerateTextLayoutFragments(
+            from: backingTextLayoutManager.documentRange.location,
+            options: [.ensuresLayout]
+        ) { fragment in
+            let range = fragment.rangeInElement
+            let start = backingTextLayoutManager.offset(
+                from: backingTextLayoutManager.documentRange.location,
+                to: range.location
+            )
+            let end = backingTextLayoutManager.offset(
+                from: backingTextLayoutManager.documentRange.location,
+                to: range.endLocation
+            )
+            if target >= start && target <= end {
+                result = fragment.layoutFragmentFrame
+                return false
+            }
+            return true
         }
+        return result
+    }
+
+    fileprivate func setPlainSelectedRange(_ range: NSRange) { setSelectedRange(clamp(range, in: plainText)) }
+
+    fileprivate func render(text: String, selectedRange: NSRange) {
+        guard let styler else { return }
+        let attributed = styler.attributedString(for: text)
+        isApplyingTextStorageChange = true
+        defer { isApplyingTextStorageChange = false }
+        if let textStorage = backingContentStorage.textStorage { textStorage.setAttributedString(attributed) }
+        else { backingContentStorage.attributedString = attributed }
         backingContentStorage.synchronizeTextLayoutManagers(nil)
         renderedText = text
-        renderedVersion = renderVersion
         setPlainSelectedRange(selectedRange)
         resetTypingAttributes()
-        rebuildInlineComponents()
-        invalidateIntrinsicContentSize()
-        needsDisplay = true
+        invalidateEditorLayout()
     }
 
-    override var intrinsicContentSize: NSSize {
-        guard let container = textContainer else {
-            return NSSize(width: NSView.noIntrinsicMetric, height: minimumLineHeight)
-        }
-
-        let targetWidth = max(bounds.width, 1)
-        if container.containerSize.width != targetWidth {
-            container.containerSize = NSSize(width: targetWidth, height: .greatestFiniteMagnitude)
+    func measuredSize(for proposedWidth: CGFloat?) -> CGSize {
+        let targetWidth = max(proposedWidth ?? bounds.width, 1)
+        if backingTextContainer.containerSize.width != targetWidth {
+            backingTextContainer.containerSize = NSSize(width: targetWidth, height: .greatestFiniteMagnitude)
         }
 
         backingTextLayoutManager.ensureLayout(
@@ -135,33 +141,38 @@ final class EditorInputView: NSTextView {
         let measured = ceil(rect.height) + textContainerInset.height * 2
         let minimum = lineHeight + textContainerInset.height * 2
 
-        return NSSize(width: NSView.noIntrinsicMetric, height: max(measured, minimum))
+        return CGSize(width: targetWidth, height: max(measured, minimum))
+    }
+
+    override var intrinsicContentSize: NSSize {
+        let measured = measuredSize(for: bounds.width)
+        return NSSize(width: NSView.noIntrinsicMetric, height: measured.height)
+    }
+
+    override var fittingSize: NSSize {
+        let measured = measuredSize(for: bounds.width)
+        return NSSize(width: measured.width, height: measured.height)
     }
 
     override func didChangeText() {
         super.didChangeText()
-        renderedText = ""
-        renderedVersion = -1
+        guard !isApplyingTextStorageChange else { return }
+        renderedText = plainText
+        restylePreservingSelection()
         resetTypingAttributes()
-        rebuildInlineComponents()
-        invalidateIntrinsicContentSize()
     }
 
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
-        if let container = textContainer, container.containerSize.width != newSize.width {
-            container.containerSize = NSSize(width: newSize.width, height: .greatestFiniteMagnitude)
+        if backingTextContainer.containerSize.width != newSize.width {
+            backingTextContainer.containerSize = NSSize(width: newSize.width, height: .greatestFiniteMagnitude)
         }
-        layoutInlineComponents()
-        invalidateIntrinsicContentSize()
-    }
-
-    override func layout() {
-        super.layout()
-        layoutInlineComponents()
+        invalidateEditorLayout()
     }
 
     override func scrollRangeToVisible(_ range: NSRange) {}
+
+    override var acceptsFirstResponder: Bool { true }
 
     private func resetTypingAttributes() {
         guard let styler else { return }
@@ -171,290 +182,57 @@ final class EditorInputView: NSTextView {
         typingAttributes = styler.typingAttributes
     }
 
-    override func copy(_ sender: Any?) {
-        let displaySelection = selectedRange()
-        guard displaySelection.length > 0 else {
-            super.copy(sender)
-            return
-        }
+    private func restylePreservingSelection() {
+        guard let styler else { return }
 
-        let selection = plainSelectedRange
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(plainSubstring(for: selection), forType: .string)
-
-        let entries = inlineEntries(in: displaySelection)
-        if !entries.isEmpty,
-           let data = try? JSONEncoder().encode(entries) {
-            pasteboard.setData(data, forType: EditorInput.inlineEntriesPasteboardType)
-        }
-    }
-
-    override func cut(_ sender: Any?) {
-        let selection = plainSelectedRange
-        guard selection.length > 0 else {
-            super.cut(sender)
-            return
-        }
-
-        copy(sender)
-        replaceCharacters(in: selectedRange(), with: "")
-        didChangeText()
-    }
-
-    override func paste(_ sender: Any?) {
-        let pasteboard = NSPasteboard.general
-
-        if let data = pasteboard.data(forType: EditorInput.inlineEntriesPasteboardType),
-           let entries = try? JSONDecoder().decode([Entry].self, from: data),
-           !entries.isEmpty {
-            registerComponents?(entries)
-        }
-
-        guard let string = pasteboard.string(forType: .string) else {
-            super.paste(sender)
-            return
-        }
-
-        replaceCharacters(in: selectedRange(), with: string)
-        didChangeText()
-    }
-
-    override var acceptsFirstResponder: Bool { true }
-
-    func caretRectForCurrentSelection() -> CGRect {
         let selection = selectedRange()
-        guard let window else { return .zero }
+        let text = plainText
+        let attributed = styler.attributedString(for: text)
+        let wasUndoRegistrationEnabled = undoManager?.isUndoRegistrationEnabled ?? false
 
-        let rectOnScreen = firstRect(forCharacterRange: selection, actualRange: nil)
-        if !rectOnScreen.isNull, !rectOnScreen.isEmpty {
-            let rectInWindow = window.convertFromScreen(rectOnScreen)
-            return convert(rectInWindow, from: nil)
-        }
+        isApplyingTextStorageChange = true
+        if wasUndoRegistrationEnabled { undoManager?.disableUndoRegistration() }
 
-        let fallbackIndex = max(0, min(selection.location, (string as NSString).length))
-        if let textRange = characterRange(for: NSRange(location: fallbackIndex, length: 0)),
-           let textSegmentFrame = textSegmentFrame(for: textRange) {
-            return textSegmentFrame
-        }
+        if let textStorage = backingContentStorage.textStorage { textStorage.setAttributedString(attributed) }
+        else { backingContentStorage.attributedString = attributed }
 
-        return CGRect(x: 0, y: 0, width: 1, height: minimumLineHeight)
+        backingContentStorage.synchronizeTextLayoutManagers(nil)
+
+        if wasUndoRegistrationEnabled { undoManager?.enableUndoRegistration() }
+        setPlainSelectedRange(selection)
+        isApplyingTextStorageChange = false
+
+        renderedText = text
+        invalidateEditorLayout()
     }
 
-    private func displayRange(forPlainRange range: NSRange) -> NSRange {
-        let location = displayIndex(forPlainIndex: range.location)
-        let end = displayIndex(forPlainIndex: range.location + range.length)
-        return NSRange(location: location, length: max(0, end - location))
+    private func invalidateEditorLayout() {
+        invalidateIntrinsicContentSize()
+        needsDisplay = true
     }
 
-    private func plainIndex(forDisplayIndex target: Int) -> Int {
-        var plain = 0
-        let attributed = currentAttributedString
-        let fullRange = NSRange(location: 0, length: attributed.length)
-
-        attributed.enumerateAttributes(in: fullRange) { attributes, range, stop in
-            if target <= range.location {
-                stop.pointee = true
-                return
-            }
-
-            let segmentEnd = range.location + range.length
-            let plainLength = plainLength(for: attributes, range: range)
-
-            if target >= segmentEnd {
-                plain += plainLength
-                return
-            }
-
-            if attributes[.attachment] is EditorAttachment {
-                plain += target > range.location ? plainLength : 0
-            } else {
-                plain += target - range.location
-            }
-            stop.pointee = true
-        }
-
-        return plain
-    }
-
-    private func displayIndex(forPlainIndex target: Int) -> Int {
-        var plain = 0
-        var display = 0
-        let attributed = currentAttributedString
-        let fullRange = NSRange(location: 0, length: attributed.length)
-
-        attributed.enumerateAttributes(in: fullRange) { attributes, range, stop in
-            if target <= plain {
-                stop.pointee = true
-                return
-            }
-
-            let plainLength = plainLength(for: attributes, range: range)
-            let plainEnd = plain + plainLength
-
-            if target >= plainEnd {
-                plain = plainEnd
-                display = range.location + range.length
-                return
-            }
-
-            if attributes[.attachment] is EditorAttachment {
-                display = range.location + (target > plain ? range.length : 0)
-            } else {
-                display = range.location + (target - plain)
-            }
-            stop.pointee = true
-        }
-
-        return display
-    }
-
-    private func plainLength(for attributes: [NSAttributedString.Key: Any], range: NSRange) -> Int {
-        if let attachment = attributes[.attachment] as? EditorAttachment {
-            return attachment.tokenLength
-        }
-        return range.length
-    }
-
-    private func plainSubstring(for range: NSRange) -> String {
-        let plain = plainText as NSString
-        let length = plain.length
+    private func clamp(_ range: NSRange, in string: String) -> NSRange {
+        let length = (string as NSString).length
         let location = min(max(range.location, 0), length)
-        let clamped = NSRange(location: location, length: min(range.length, length - location))
-        return plain.substring(with: clamped)
-    }
-
-    private func inlineEntries(in range: NSRange) -> [Entry] {
-        var entries: [Entry] = []
-        let attributed = currentAttributedString
-        attributed.enumerateAttribute(.attachment, in: range) { value, _, _ in
-            guard let attachment = value as? EditorAttachment else { return }
-            entries.append(attachment.entry)
-        }
-        return entries
-    }
-
-    private var currentAttributedString: NSAttributedString {
-        if let textStorage = backingContentStorage.textStorage {
-            return NSAttributedString(attributedString: textStorage)
-        }
-        return backingContentStorage.attributedString ?? NSAttributedString(string: string)
-    }
-
-    private func characterRange(for range: NSRange) -> NSTextRange? {
-        let documentRange = backingContentStorage.documentRange
-        guard let start = backingContentStorage.location(documentRange.location, offsetBy: range.location) else {
-            return nil
-        }
-        guard let end = backingContentStorage.location(start, offsetBy: range.length) else {
-            return nil
-        }
-        return NSTextRange(location: start, end: end)
-    }
-
-    private func textSegmentMetrics(for range: NSTextRange) -> (frame: CGRect, baseline: CGFloat)? {
-        var metrics: (frame: CGRect, baseline: CGFloat)?
-        backingTextLayoutManager.enumerateTextSegments(
-            in: range,
-            type: .standard,
-            options: .rangeNotRequired
-        ) { _, textSegmentFrame, baselinePosition, _ in
-            metrics = (textSegmentFrame, baselinePosition)
-            return false
-        }
-        return metrics
-    }
-
-    private func textSegmentFrame(for range: NSTextRange) -> CGRect? {
-        textSegmentMetrics(for: range)?.frame
-    }
-
-    private func rebuildInlineComponents() {
-        let existing = Dictionary(uniqueKeysWithValues: inlineComponents.map { ($0.id, $0.view) })
-        var next: [InlineComponent] = []
-        var kept = Set<UUID>()
-
-        let attributed = currentAttributedString
-        let fullRange = NSRange(location: 0, length: attributed.length)
-
-        attributed.enumerateAttribute(.attachment, in: fullRange) { value, range, _ in
-            guard let attachment = value as? EditorAttachment else { return }
-            let entry = attachment.entry
-            let id = entry.id
-            let size = attachment.displaySize
-            let rootView = makeInlineComponentView?(entry, { [weak self] in
-                self?.handleActivation(for: entry)
-            }) ?? AnyView(EmptyView())
-
-            let view: EditorAttachmentView
-            if let reused = existing[id] {
-                reused.update(entry: entry, size: size, rootView: rootView)
-                view = reused
-            } else {
-                view = EditorAttachmentView(entry: entry, size: size, rootView: rootView)
-                addSubview(view)
-            }
-            kept.insert(id)
-            next.append(InlineComponent(id: id, range: range, view: view))
-        }
-
-        for (id, view) in existing where !kept.contains(id) {
-            view.removeFromSuperview()
-        }
-
-        inlineComponents = next
-        layoutInlineComponents()
-    }
-
-    private func layoutInlineComponents() {
-        let containerOrigin = textContainerOrigin
-        let font = self.font ?? .systemFont(ofSize: NSFont.systemFontSize)
-
-        for component in inlineComponents {
-            guard let textRange = characterRange(for: component.range),
-                  let metrics = textSegmentMetrics(for: textRange) else {
-                component.view.isHidden = true
-                continue
-            }
-
-            let size = component.view.size
-            let yOffset = EditorAttachment.baselineOffset(size: size, font: font)
-            component.view.frame = CGRect(
-                x: containerOrigin.x + metrics.frame.minX,
-                y: containerOrigin.y + metrics.frame.minY + metrics.baseline - size.height - yOffset,
-                width: size.width,
-                height: size.height
-            )
-            component.view.isHidden = false
-        }
-    }
-
-    private func handleActivation(for entry: Entry) {
-        window?.makeFirstResponder(self)
-        activateEntry?(entry)
+        let maxLength = length - location
+        return NSRange(location: location, length: min(range.length, maxLength))
     }
 }
 
 struct EditorInput: NSViewRepresentable {
     typealias NSViewType = EditorInputView
-    static let inlineEntriesPasteboardType = NSPasteboard.PasteboardType("com.agencyagency.inline-entries")
-
+    @Environment(\.editorFocus) private var focus
+    let id: UUID
     let text: String
-    let renderVersion: Int
     let selection: NSRange?
-    let isFocused: Bool
-    let hasFocusedTextEntry: Bool
+    let isEditing: Bool
     let styler: EditorStyler
-    let makeInlineComponentView: (Entry, @escaping () -> Void) -> AnyView
-    let resolveComponent: (UUID) -> Entry?
-    let registerComponents: ([Entry]) -> Void
-    let onTextChange: (String, NSRange, CGRect) -> Void
-    let onSelectionChange: (NSRange, CGRect) -> Void
+    let onTextChange: (String, NSRange) -> Void
+    let onSelectionChange: (NSRange) -> Void
     let onFocusGained: () -> Void
-    let onActivateEntry: (Entry) -> Void
-    let onCommand: (Selector) -> Bool
+    let onCommand: (Selector, Bool, Bool) -> Bool
 
-    func makeCoordinator() -> Self.Coordinator {
+    func makeCoordinator() -> Coordinator {
         Coordinator(
             onTextChange: onTextChange,
             onSelectionChange: onSelectionChange,
@@ -463,62 +241,40 @@ struct EditorInput: NSViewRepresentable {
         )
     }
 
-    func makeNSView(context: Self.Context) -> EditorInputView {
+    func makeNSView(context: Context) -> EditorInputView {
         let view = EditorInputView()
         view.delegate = context.coordinator
         view.configure(with: styler)
+        view.render(text: text, selectedRange: clamp(selection ?? .init(location: 0, length: 0), in: text))
+        context.coordinator.view = view
 
-        view.registerComponents = registerComponents
-        view.activateEntry = onActivateEntry
-        view.makeInlineComponentView = makeInlineComponentView
-        view.render(
-            text: text,
-            selectedRange: clamp(selection ?? .init(location: 0, length: 0), in: text),
-            renderVersion: renderVersion,
-            resolveComponent: resolveComponent
-        )
-
-        if let selection {
-            view.setPlainSelectedRange(clamp(selection, in: text))
+        view.onCommandFromView = { [weak coordinator = context.coordinator, weak view] selector in
+            guard let coordinator, let view else { return false }
+            return coordinator.onCommand(selector, view.caretIsOnFirstLine, view.caretIsOnLastLine)
         }
 
-        context.coordinator.view = view
+        focus.register(view, for: id)
         return view
     }
 
-    func updateNSView(_ view: EditorInputView, context: Self.Context) {
-        view.registerComponents = registerComponents
-        view.activateEntry = onActivateEntry
-        view.makeInlineComponentView = makeInlineComponentView
+    func updateNSView(_ view: EditorInputView, context: Context) {
         let targetSelection = clamp(selection ?? view.plainSelectedRange, in: text)
-
-        if view.renderedText != text || view.renderedVersion != renderVersion {
-            view.render(
-                text: text,
-                selectedRange: targetSelection,
-                renderVersion: renderVersion,
-                resolveComponent: resolveComponent
-            )
-        } else if view.plainSelectedRange != targetSelection {
-            view.setPlainSelectedRange(targetSelection)
-        }
+        if view.renderedText != text { view.render(text: text, selectedRange: targetSelection) }
+        else if view.plainSelectedRange != targetSelection { view.setPlainSelectedRange(targetSelection) }
 
         context.coordinator.onTextChange = onTextChange
         context.coordinator.onSelectionChange = onSelectionChange
         context.coordinator.onFocusGained = onFocusGained
         context.coordinator.onCommand = onCommand
-        syncFocus(view: view)
+        context.coordinator.lastSelection = view.plainSelectedRange
+
+        // Re-register in case the view was recycled to a new id.
+        focus.register(view, for: id)
+        // NO syncFocus — the coordinator owns first-responder now.
     }
 
-    private func syncFocus(view: EditorInputView) {
-        guard let window = view.window else { return }
-        let isCurrentlyFocused = window.firstResponder === view
-
-        if isFocused && !isCurrentlyFocused {
-            DispatchQueue.main.async { window.makeFirstResponder(view) }
-        } else if hasFocusedTextEntry && !isFocused && isCurrentlyFocused {
-            DispatchQueue.main.async { window.makeFirstResponder(nil) }
-        }
+    static func dismantleNSView(_ view: EditorInputView, coordinator: Coordinator) {
+        // id capture: see note below.
     }
 
     private func clamp(_ range: NSRange, in string: String) -> NSRange {
@@ -529,35 +285,42 @@ struct EditorInput: NSViewRepresentable {
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
-        var onTextChange: (String, NSRange, CGRect) -> Void
-        var onSelectionChange: (NSRange, CGRect) -> Void
+        var onTextChange: (String, NSRange) -> Void
+        var onSelectionChange: (NSRange) -> Void
         var onFocusGained: () -> Void
-        var onCommand: (Selector) -> Bool
+        var onCommand: (Selector, Bool, Bool) -> Bool
         weak var view: EditorInputView?
+        var lastSelection: NSRange?
 
-        init(
-            onTextChange: @escaping (String, NSRange, CGRect) -> Void,
-            onSelectionChange: @escaping (NSRange, CGRect) -> Void,
-            onFocusGained: @escaping () -> Void,
-            onCommand: @escaping (Selector) -> Bool
-        ) {
+        init(onTextChange: @escaping (String, NSRange) -> Void, onSelectionChange: @escaping (NSRange) -> Void,
+             onFocusGained: @escaping () -> Void, onCommand: @escaping (Selector, Bool, Bool) -> Bool) {
             self.onTextChange = onTextChange
             self.onSelectionChange = onSelectionChange
             self.onFocusGained = onFocusGained
             self.onCommand = onCommand
         }
 
-        func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool { onCommand(selector) }
+        func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+            guard let view = view else { return onCommand(selector, true, true) }
+            return onCommand(selector, view.caretIsOnFirstLine, view.caretIsOnLastLine)
+        }
+
         func textDidBeginEditing(_ notification: Notification) { onFocusGained() }
 
         func textDidChange(_ notification: Notification) {
             guard let view else { return }
-            onTextChange(view.plainText, view.plainSelectedRange, view.caretRectForCurrentSelection())
+            guard !view.isApplyingTextStorageChange else { return }
+            lastSelection = view.plainSelectedRange
+            onTextChange(view.plainText, view.plainSelectedRange)
         }
 
         func textViewDidChangeSelection(_ notification: Notification) {
             guard let view else { return }
-            onSelectionChange(view.plainSelectedRange, view.caretRectForCurrentSelection())
+            guard !view.isApplyingTextStorageChange else { return }
+            let selection = view.plainSelectedRange
+            guard selection != lastSelection else { return }
+            lastSelection = selection
+            onSelectionChange(selection)
         }
     }
 }
