@@ -296,7 +296,7 @@ struct MenuCommit {
 
         switch kind {
         case .task:
-            entry = .todo(UUID(), title.isEmpty ? "Task" : title, false)
+            entry = .task(UUID(), title.isEmpty ? "Task" : title, false)
         case .link:
             let fallbackTitle = title.isEmpty ? "Link" : title
             let url = normalizedURL(from: formSecondary)

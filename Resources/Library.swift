@@ -13,7 +13,7 @@
 //    var trailingSystemImage: String?
 //}
 //
-//struct MockNote: Identifiable {
+//struct MockItem: Identifiable {
 //    let id = UUID()
 //    let title: String
 //    let preview: String
@@ -50,8 +50,8 @@
 //        LibrarySidebarItem(name: "Untagged", icon: "gearshape")
 //    ]
 //
-//    static let library: [MockNote] = [
-//        MockNote(
+//    static let library: [MockItem] = [
+//        MockItem(
 //            title: "Philosophy Reading List",
 //            preview: "A book on dialectics",
 //            date: "2/21/23",
@@ -60,7 +60,7 @@
 //            tag: "#readinglist",
 //            body: "A book on dialectics\n\nHegel, Plato, and a handful of modern library to revisit."
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "Philosophy",
 //            preview: "Ah, where to begin. What exactly do I hope to gain by studying philosophy?",
 //            date: "1/25/23",
@@ -69,7 +69,7 @@
 //            tag: nil,
 //            body: "Ah, where to begin. What exactly do I hope to gain by studying philosophy? I think that's the wrong question to ask. I think it more pertinent to examine what I stand to lose if I don't.\n\nA quote from Sophie's World explains quite nicely."
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "Courage",
 //            preview: "How to live more courageously.",
 //            date: "1/21/23",
@@ -78,7 +78,7 @@
 //            tag: nil,
 //            body: "How to live more courageously.\n\nWrite plainly. Decide sooner. Let the small discomfort happen."
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "Life happens where fear and curiosity meet",
 //            preview: "Interesting I wrote this days or weeks ago and yesterday found myself reading a book about vulnerability.",
 //            date: "12/28/22",
@@ -87,7 +87,7 @@
 //            tag: "#thoughts",
 //            body: "Interesting I wrote this days or weeks ago and yesterday found myself reading a book about vulnerability.\n\nThe overlap was not subtle."
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "Thoughts on career",
 //            preview: "With Crowd Content, I constantly worry about what's coming next.",
 //            date: "10/30/22",
@@ -96,7 +96,7 @@
 //            tag: nil,
 //            body: "With Crowd Content, I constantly worry about what's coming next. I think to myself, I could do this writing, and I might even enjoy it, but then what?"
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "Transitions",
 //            preview: "Caren said to me, you're often either in a transition or preparing for one.",
 //            date: "10/30/22",
@@ -105,7 +105,7 @@
 //            tag: "#thoughts",
 //            body: "Caren said to me, you're often either in a transition or preparing for one. That feels right."
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "Why productivity software is trash",
 //            preview: "It does a great job at making you feel more productive, not so much at actually making you more so.",
 //            date: "10/30/22",
@@ -114,7 +114,7 @@
 //            tag: "#thoughts",
 //            body: "It does a great job at making you feel more productive, not so much at actually making you more so."
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "Dialectic thinking",
 //            preview: "Theses, antitheses, and syntheses.",
 //            date: "10/25/22",
@@ -123,7 +123,7 @@
 //            tag: "#thoughts",
 //            body: "Theses, antitheses, and syntheses.\n\nHegel's something or other, and it's also the foundation of a lot of analysis."
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "Friedrich Nietzsche",
 //            preview: "He who has a why to live for can bear almost any how.",
 //            date: "9/10/22",
@@ -132,7 +132,7 @@
 //            tag: "#quotes",
 //            body: "He who has a why to live for can bear almost any how."
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "Myself as a gadfly",
 //            preview: "A gadfly is a person who interferes with the status quo of a society or community.",
 //            date: "9/10/22",
@@ -141,7 +141,7 @@
 //            tag: "#thoughts",
 //            body: "A gadfly is a person who interferes with the status quo of a society or community by posing novel, potentially upsetting questions."
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "On running away",
 //            preview: "Never really feels like how the movies make it seem.",
 //            date: "9/10/22",
@@ -150,7 +150,7 @@
 //            tag: "#thoughts",
 //            body: "Never really feels like how the movies make it seem. You spend all this time wanting to get away, trying so hard to get where you want to be."
 //        ),
-//        MockNote(
+//        MockItem(
 //            title: "Nietzsche",
 //            preview: "How does Nietzsche recommend escaping mediocrity?",
 //            date: "6/24/22",
@@ -180,15 +180,260 @@
 //    ]
 //}
 //
+//struct LibraryCollectionPane: View {
+//    let library: [MockItem]
+//    let selectedItemID: UUID?
+//    let displayMode: LibraryDisplayMode
+//    let select: (UUID) -> Void
+//
+//    var body: some View {
+//        ScrollView {
+//            if displayMode == .gallery {
+//                libraryGallery
+//            } else {
+//                libraryList
+//            }
+//        }
+//        .background(Color(nsColor: .controlBackgroundColor))
+//    }
+//
+//    private var years: [Int] {
+//        Array(Set(library.map(\.year))).sorted(by: >)
+//    }
+//
+//    private var libraryGallery: some View {
+//        LazyVStack(alignment: .leading, spacing: 26) {
+//            ForEach(years, id: \.self) { year in
+//                let yearLibrary = library.filter { $0.year == year }
+//
+//                VStack(alignment: .leading, spacing: 16) {
+//                    Text(String(year))
+//                        .font(.title2.weight(.semibold))
+//
+//                    LazyVGrid(
+//                        columns: [GridItem(.adaptive(minimum: 180, maximum: 240), spacing: 18)],
+//                        alignment: .leading,
+//                        spacing: 24
+//                    ) {
+//                        ForEach(yearLibrary) { note in
+//                            ItemCard(note: note, selected: selectedItemID == note.id)
+//                                .onTapGesture {
+//                                    select(note.id)
+//                                }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        .padding(24)
+//        .frame(maxWidth: .infinity, alignment: .topLeading)
+//    }
+//
+//    private var libraryList: some View {
+//        LazyVStack(alignment: .leading, spacing: 0) {
+//            ForEach(years, id: \.self) { year in
+//                Text(String(year))
+//                    .font(.title2.weight(.semibold))
+//                    .padding(.horizontal, 24)
+//                    .padding(.top, 22)
+//                    .padding(.bottom, 10)
+//
+//                ForEach(library.filter { $0.year == year }) { note in
+//                    ItemListRow(note: note, selected: selectedItemID == note.id)
+//                        .padding(.horizontal, 24)
+//                        .onTapGesture {
+//                            select(note.id)
+//                        }
+//                }
+//            }
+//        }
+//        .padding(.bottom, 24)
+//    }
+//}
+//
+//struct SidebarRow: View {
+//    let icon: String
+//    let label: String
+//    var tint: Color = .secondary
+//    var trailingText: String?
+//    var trailingSystemImage: String?
+//    var selected: Bool = false
+//
+//    var body: some View {
+//        HStack(spacing: 8) {
+//            Image(systemName: icon)
+//                .font(.system(size: 15, weight: .medium))
+//                .foregroundStyle(tint)
+//                .frame(width: 18)
+//
+//            Text(label).lineLimit(1)
+//
+//            Spacer(minLength: 8)
+//
+//            if let trailingSystemImage {
+//                Image(systemName: trailingSystemImage)
+//                    .font(.system(size: 12, weight: .medium))
+//                    .foregroundStyle(.secondary)
+//            }
+//
+//            if let trailingText {
+//                Text(trailingText)
+//                    .foregroundStyle(.secondary)
+//                    .monospacedDigit()
+//            }
+//        }
+//        .padding(.horizontal, 8)
+//        .padding(.vertical, 5)
+//        .background(selected ? Color.accentColor.opacity(0.16) : Color.clear)
+//        .clipShape(.rect(cornerRadius: 7))
+//    }
+//}
+//
+//struct SidebarFolderRow: View {
+//    let icon: String
+//    let label: String
+//    var trailingSystemImage: String?
+//    var selected: Bool = false
+//
+//    var body: some View {
+//        SidebarRow(
+//            icon: icon,
+//            label: label,
+//            tint: .secondary,
+//            trailingSystemImage: trailingSystemImage,
+//            selected: selected
+//        )
+//    }
+//}
+//
+//struct ItemCard: View {
+//    let note: MockItem
+//    var selected: Bool = false
+//
+//    var body: some View {
+//        VStack(alignment: .leading, spacing: 8) {
+//            VStack(alignment: .leading, spacing: 8) {
+//                Text(note.title)
+//                    .font(.headline)
+//                    .lineLimit(1)
+//
+//                Text(note.preview)
+//                    .font(.caption)
+//                    .foregroundStyle(.secondary)
+//                    .lineLimit(6)
+//
+//                if let tag = note.tag {
+//                    TagChip(label: tag)
+//                }
+//
+//                Spacer(minLength: 0)
+//            }
+//            .padding(12)
+//            .frame(height: 132, alignment: .topLeading)
+//            .frame(maxWidth: .infinity)
+//            .background(Color(nsColor: .textBackgroundColor).opacity(0.18))
+//            .overlay {
+//                RoundedRectangle(cornerRadius: 7)
+//                    .stroke(selected ? Color.accentColor : Color(nsColor: .separatorColor), lineWidth: selected ? 2 : 1)
+//            }
+//            .clipShape(.rect(cornerRadius: 7))
+//
+//            Text(note.title)
+//                .font(.headline)
+//                .lineLimit(1)
+//                .frame(maxWidth: .infinity)
+//
+//            Text(note.date)
+//                .font(.callout)
+//                .foregroundStyle(.secondary)
+//                .frame(maxWidth: .infinity)
+//        }
+//        .frame(width: 210)
+//    }
+//}
+//
+//struct ItemListRow: View {
+//    let note: MockItem
+//    var selected: Bool = false
+//
+//    var body: some View {
+//        HStack(alignment: .firstTextBaseline, spacing: 8) {
+//            VStack(alignment: .leading, spacing: 3) {
+//                Text(note.title)
+//                    .font(.headline)
+//                    .lineLimit(1)
+//
+//                HStack(spacing: 8) {
+//                    Text(note.date)
+//                        .foregroundStyle(.primary)
+//
+//                    Text(note.preview)
+//                        .foregroundStyle(.secondary)
+//                        .lineLimit(1)
+//                }
+//                .font(.callout)
+//            }
+//
+//            Spacer(minLength: 0)
+//        }
+//        .padding(.horizontal, 12)
+//        .padding(.vertical, 10)
+//        .background(selected ? Color.accentColor.opacity(0.24) : Color.clear)
+//        .clipShape(.rect(cornerRadius: 7))
+//        .overlay(alignment: .bottom) {
+//            Divider()
+//                .padding(.leading, 12)
+//        }
+//    }
+//}
+//
+//struct TagChip: View {
+//    let label: String
+//
+//    var body: some View {
+//        Text(label)
+//            .font(.caption2.weight(.medium))
+//            .foregroundStyle(.blue)
+//            .lineLimit(1)
+//    }
+//}
+//
+//struct ItemDetailPane: View {
+//    let note: MockItem
+//
+//    var body: some View {
+//        ScrollView {
+//            VStack(alignment: .leading, spacing: 20) {
+//                Text(note.timestamp)
+//                    .font(.callout)
+//                    .foregroundStyle(.secondary)
+//                    .frame(maxWidth: .infinity, alignment: .center)
+//
+//                Text(note.title)
+//                    .font(.title.weight(.semibold))
+//
+//                Text(note.body)
+//                    .font(.title3)
+//                    .lineSpacing(6)
+//                    .textSelection(.enabled)
+//            }
+//            .padding(.horizontal, 34)
+//            .padding(.vertical, 26)
+//            .frame(maxWidth: .infinity, alignment: .topLeading)
+//        }
+//        .background(Color(nsColor: .textBackgroundColor).opacity(0.08))
+//    }
+//}
+//
 //struct Library: View {
 //    @State private var selectedFolderID = LibraryMockData.subjects[3].id
-//    @State private var selectedNoteID = LibraryMockData.library.last?.id
+//    @State private var selectedItemID = LibraryMockData.library.last?.id
 //    @State private var displayMode: LibraryDisplayMode = .gallery
 //    @State private var searchText = ""
 //    @State private var subjectsExpanded = true
 //
-//    private var selectedNote: MockNote {
-//        LibraryMockData.library.first { $0.id == selectedNoteID } ?? LibraryMockData.library[0]
+//    private var selectedItem: MockItem {
+//        LibraryMockData.library.first { $0.id == selectedItemID } ?? LibraryMockData.library[0]
 //    }
 //
 //    var body: some View {
@@ -198,10 +443,10 @@
 //        } content: {
 //            LibraryCollectionPane(
 //                library: LibraryMockData.library,
-//                selectedNoteID: selectedNoteID,
+//                selectedItemID: selectedItemID,
 //                displayMode: displayMode
 //            ) { noteID in
-//                selectedNoteID = noteID
+//                selectedItemID = noteID
 //            }
 //            .navigationSplitViewColumnWidth(min: 300, ideal: displayMode == .gallery ? 760 : 360, max: 900)
 //            .toolbar(removing: .title)
@@ -232,11 +477,11 @@
 //                    Button { } label: {
 //                        Image(systemName: "square.and.pencil")
 //                    }
-//                    .help("New Note")
+//                    .help("New Item")
 //                }
 //            }
 //        } detail: {
-//            NoteDetailPane(note: selectedNote)
+//            ItemDetailPane(note: selectedItem)
 //                .toolbar(removing: .title)
 //                .toolbar {
 //                    ToolbarItemGroup {
@@ -341,250 +586,5 @@
 //                .help("Toggle Sidebar")
 //            }
 //        }
-//    }
-//}
-//
-//struct LibraryCollectionPane: View {
-//    let library: [MockNote]
-//    let selectedNoteID: UUID?
-//    let displayMode: LibraryDisplayMode
-//    let select: (UUID) -> Void
-//
-//    var body: some View {
-//        ScrollView {
-//            if displayMode == .gallery {
-//                libraryGallery
-//            } else {
-//                libraryList
-//            }
-//        }
-//        .background(Color(nsColor: .controlBackgroundColor))
-//    }
-//
-//    private var years: [Int] {
-//        Array(Set(library.map(\.year))).sorted(by: >)
-//    }
-//
-//    private var libraryGallery: some View {
-//        LazyVStack(alignment: .leading, spacing: 26) {
-//            ForEach(years, id: \.self) { year in
-//                let yearLibrary = library.filter { $0.year == year }
-//
-//                VStack(alignment: .leading, spacing: 16) {
-//                    Text(String(year))
-//                        .font(.title2.weight(.semibold))
-//
-//                    LazyVGrid(
-//                        columns: [GridItem(.adaptive(minimum: 180, maximum: 240), spacing: 18)],
-//                        alignment: .leading,
-//                        spacing: 24
-//                    ) {
-//                        ForEach(yearLibrary) { note in
-//                            NoteCard(note: note, selected: selectedNoteID == note.id)
-//                                .onTapGesture {
-//                                    select(note.id)
-//                                }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        .padding(24)
-//        .frame(maxWidth: .infinity, alignment: .topLeading)
-//    }
-//
-//    private var libraryList: some View {
-//        LazyVStack(alignment: .leading, spacing: 0) {
-//            ForEach(years, id: \.self) { year in
-//                Text(String(year))
-//                    .font(.title2.weight(.semibold))
-//                    .padding(.horizontal, 24)
-//                    .padding(.top, 22)
-//                    .padding(.bottom, 10)
-//
-//                ForEach(library.filter { $0.year == year }) { note in
-//                    NoteListRow(note: note, selected: selectedNoteID == note.id)
-//                        .padding(.horizontal, 24)
-//                        .onTapGesture {
-//                            select(note.id)
-//                        }
-//                }
-//            }
-//        }
-//        .padding(.bottom, 24)
-//    }
-//}
-//
-//struct SidebarRow: View {
-//    let icon: String
-//    let label: String
-//    var tint: Color = .secondary
-//    var trailingText: String?
-//    var trailingSystemImage: String?
-//    var selected: Bool = false
-//
-//    var body: some View {
-//        HStack(spacing: 8) {
-//            Image(systemName: icon)
-//                .font(.system(size: 15, weight: .medium))
-//                .foregroundStyle(tint)
-//                .frame(width: 18)
-//
-//            Text(label).lineLimit(1)
-//
-//            Spacer(minLength: 8)
-//
-//            if let trailingSystemImage {
-//                Image(systemName: trailingSystemImage)
-//                    .font(.system(size: 12, weight: .medium))
-//                    .foregroundStyle(.secondary)
-//            }
-//
-//            if let trailingText {
-//                Text(trailingText)
-//                    .foregroundStyle(.secondary)
-//                    .monospacedDigit()
-//            }
-//        }
-//        .padding(.horizontal, 8)
-//        .padding(.vertical, 5)
-//        .background(selected ? Color.accentColor.opacity(0.16) : Color.clear)
-//        .clipShape(.rect(cornerRadius: 7))
-//    }
-//}
-//
-//struct SidebarFolderRow: View {
-//    let icon: String
-//    let label: String
-//    var trailingSystemImage: String?
-//    var selected: Bool = false
-//
-//    var body: some View {
-//        SidebarRow(
-//            icon: icon,
-//            label: label,
-//            tint: .secondary,
-//            trailingSystemImage: trailingSystemImage,
-//            selected: selected
-//        )
-//    }
-//}
-//
-//struct NoteCard: View {
-//    let note: MockNote
-//    var selected: Bool = false
-//
-//    var body: some View {
-//        VStack(alignment: .leading, spacing: 8) {
-//            VStack(alignment: .leading, spacing: 8) {
-//                Text(note.title)
-//                    .font(.headline)
-//                    .lineLimit(1)
-//
-//                Text(note.preview)
-//                    .font(.caption)
-//                    .foregroundStyle(.secondary)
-//                    .lineLimit(6)
-//
-//                if let tag = note.tag {
-//                    TagChip(label: tag)
-//                }
-//
-//                Spacer(minLength: 0)
-//            }
-//            .padding(12)
-//            .frame(height: 132, alignment: .topLeading)
-//            .frame(maxWidth: .infinity)
-//            .background(Color(nsColor: .textBackgroundColor).opacity(0.18))
-//            .overlay {
-//                RoundedRectangle(cornerRadius: 7)
-//                    .stroke(selected ? Color.accentColor : Color(nsColor: .separatorColor), lineWidth: selected ? 2 : 1)
-//            }
-//            .clipShape(.rect(cornerRadius: 7))
-//
-//            Text(note.title)
-//                .font(.headline)
-//                .lineLimit(1)
-//                .frame(maxWidth: .infinity)
-//
-//            Text(note.date)
-//                .font(.callout)
-//                .foregroundStyle(.secondary)
-//                .frame(maxWidth: .infinity)
-//        }
-//        .frame(width: 210)
-//    }
-//}
-//
-//struct NoteListRow: View {
-//    let note: MockNote
-//    var selected: Bool = false
-//
-//    var body: some View {
-//        HStack(alignment: .firstTextBaseline, spacing: 8) {
-//            VStack(alignment: .leading, spacing: 3) {
-//                Text(note.title)
-//                    .font(.headline)
-//                    .lineLimit(1)
-//
-//                HStack(spacing: 8) {
-//                    Text(note.date)
-//                        .foregroundStyle(.primary)
-//
-//                    Text(note.preview)
-//                        .foregroundStyle(.secondary)
-//                        .lineLimit(1)
-//                }
-//                .font(.callout)
-//            }
-//
-//            Spacer(minLength: 0)
-//        }
-//        .padding(.horizontal, 12)
-//        .padding(.vertical, 10)
-//        .background(selected ? Color.accentColor.opacity(0.24) : Color.clear)
-//        .clipShape(.rect(cornerRadius: 7))
-//        .overlay(alignment: .bottom) {
-//            Divider()
-//                .padding(.leading, 12)
-//        }
-//    }
-//}
-//
-//struct TagChip: View {
-//    let label: String
-//
-//    var body: some View {
-//        Text(label)
-//            .font(.caption2.weight(.medium))
-//            .foregroundStyle(.blue)
-//            .lineLimit(1)
-//    }
-//}
-//
-//struct NoteDetailPane: View {
-//    let note: MockNote
-//
-//    var body: some View {
-//        ScrollView {
-//            VStack(alignment: .leading, spacing: 20) {
-//                Text(note.timestamp)
-//                    .font(.callout)
-//                    .foregroundStyle(.secondary)
-//                    .frame(maxWidth: .infinity, alignment: .center)
-//
-//                Text(note.title)
-//                    .font(.title.weight(.semibold))
-//
-//                Text(note.body)
-//                    .font(.title3)
-//                    .lineSpacing(6)
-//                    .textSelection(.enabled)
-//            }
-//            .padding(.horizontal, 34)
-//            .padding(.vertical, 26)
-//            .frame(maxWidth: .infinity, alignment: .topLeading)
-//        }
-//        .background(Color(nsColor: .textBackgroundColor).opacity(0.08))
 //    }
 //}

@@ -3,23 +3,27 @@ import Observation
 import AgencyRuntime
 
 
-final class ArtifactManager {
-    var roots: [Reference] = []
+final class ArtifactManager: Model {
+    private var workspace: Reference?
     var showHiddenFiles: Bool = false
 
-    init(roots: [Reference] = []) { self.roots = roots }
+    init(workspace: Reference? = nil) { self.workspace = workspace }
+
+    var roots: [Reference] {
+        guard let workspace else { return [] }
+        return Workspace.with(workspace) { workspace in
+            workspace.components.compactMap { ref in
+                guard Artifact.with(ref, {
+                    if case .file(let url) = $0.entry { return url?.isFileURL == true }
+                    return false
+                }) == true else { return nil }
+                return ref
+            }
+        } ?? []
+    }
 
     func load(runtime: Runtime, space: Reference) async {
-        guard let closure = Workspace.with(space, { $0 })?.closure else { return }
-        self.roots = Closure.with(closure) { closure in
-            closure.components.compactMap { ref in
-                if Artifact.with(ref, {
-                    if $0.entry.type == "file" { return true }
-                    return false
-                }) == true { return ref }
-                return nil
-            }
-        }!
+        self.workspace = space
     }
 
     func isDirectory(at url: URL) -> Bool {

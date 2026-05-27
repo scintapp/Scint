@@ -9,13 +9,14 @@ struct Breadcrumbs: View {
     var refs: [Reference] { agency.session.path }
 
     func segment(_ ref: Reference) -> some View {
-        HStack(spacing: 6) {
+        return HStack(spacing: 6) {
             Image(systemName: Design.Component.icon(for: ref))
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.primary.opacity(0.6))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.primary.opacity(0.9))
+
             Text(Runtime.shared.get(ref).name)
-                .font(.system(size: 11, weight: .light))
-                .foregroundStyle(.primary.opacity(0.7))
+                .font(.system(size: 12, weight: .light))
+                .foregroundStyle(.primary.opacity(0.9))
         }
         .frame(maxHeight: 28, alignment: .center)
     }
@@ -23,15 +24,16 @@ struct Breadcrumbs: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 4) {
             Group {
-                ForEach(Array(refs.enumerated()), id: \.element.id) { index, ref in
+                ForEach(Array(refs.enumerated()), id: \.element) { index, ref in
                     Button { agency.select(ref) } label: {
                         segment(ref)
                     }
 
                     if index < refs.count - 1 {
                         Image(systemName: "chevron.compact.forward")
-                            .font(.system(size: 15, weight: .light))
+                            .font(.system(size: 16, weight: .light))
                             .foregroundStyle(.primary.opacity(0.7))
+                            .padding(.leading, 1)
                             .padding(.trailing, 2)
                     }
                 }

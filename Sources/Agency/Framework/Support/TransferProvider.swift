@@ -5,353 +5,196 @@ import Foundation
 
 
 extension UTType {
+    nonisolated static let workspace = UTType(exportedAs: "com.kaechle.Agency.workspace")
+    nonisolated static let space = UTType(exportedAs: "com.kaechle.Agency.space")
+    nonisolated static let sheet = UTType(exportedAs: "com.kaechle.Agency.sheet")
     nonisolated static let artifact = UTType(exportedAs: "com.kaechle.Agency.artifact")
-    nonisolated static let boundary = UTType(exportedAs: "com.kaechle.Agency.boundary")
+    nonisolated static let control = UTType(exportedAs: "com.kaechle.Agency.control")
+    nonisolated static let service = UTType(exportedAs: "com.kaechle.Agency.service")
+
+    nonisolated static var agency: [UTType] { [.workspace, .space, .sheet, .artifact, .control, .service] }
 }
 
-enum TransferModel {
-    static func boundary(for ref: Reference?, source: Reference) -> BoundaryTransfer? {
-        guard let ref else { return nil }
-        guard ref.type is Space.Type else { return nil }
-        return BoundaryTransfer(ref: ref, source: source)
+enum ReferenceTransfer {
+    private struct Payload: Codable {
+        let ref: Reference
+        let origin: Reference?
     }
 
-    static func provider(for ref: Reference?, source: Reference) -> NSItemProvider? {
-        guard let transfer = boundary(for: ref, source: source),
-              let data = try? JSONEncoder().encode(transfer) else { return nil }
+    static func provider(for item: ItemParams) -> NSItemProvider? {
+        guard let ref = transferableRef(for: item, create: true), let type = type(for: ref),
+              let data = try? JSONEncoder().encode(Payload(ref: ref, origin: item.path == nil ? item.origin : nil))
+        else { return nil }
 
         let provider = NSItemProvider()
-        provider.registerDataRepresentation(forTypeIdentifier: UTType.boundary.identifier, visibility: .all) { completion in
+        provider.suggestedName = item.name
+        provider.registerDataRepresentation(forTypeIdentifier: type.identifier, visibility: .all) { completion in
             completion(data, nil)
             return nil
         }
         return provider
     }
 
-    static func drop(_ providers: [NSItemProvider], to target: Reference, perform: @escaping @MainActor (Bool) -> Void) -> Bool {
-        guard let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.boundary.identifier) }) else {
+    static func canDrag(_ item: ItemParams) -> Bool {
+        guard item.path == nil else { return transferableRef(for: item, create: false) != nil }
+        guard let ref = item.ref, exists(ref) else { return false }
+        return item.origin != nil || ref.type is Space.Type || canShare(ref)
+    }
+
+    static func dropTypes(for target: ItemParams) -> [UTType] {
+        canDrop(on: target) ? UTType.agency : []
+    }
+
+    static func handle(_ providers: [NSItemProvider], target: ItemParams) -> Bool {
+        guard canDrop(on: target), let owner = target.ref else { return false }
+        var accepted = false
+
+        for provider in providers {
+            for type in UTType.agency where provider.hasItemConformingToTypeIdentifier(type.identifier) {
+                accepted = true
+                provider.loadDataRepresentation(forTypeIdentifier: type.identifier) { data, _ in
+                    guard let data, let payload = try? JSONDecoder().decode(Payload.self, from: data) else { return }
+                    Task { @MainActor in
+                        if move(payload.ref, from: payload.origin, to: owner) {
+                            try? await Runtime.shared.save()
+                        }
+                    }
+                }
+                break
+            }
+        }
+
+        return accepted
+    }
+
+    @discardableResult
+    static func paste(_ refs: [Reference], from origin: Reference?, move: Bool, to owner: Reference) -> Reference? {
+        var pasted: Reference?
+        for ref in refs {
+            if move {
+                if Self.move(ref, from: origin, to: owner) { pasted = ref }
+            } else if canShare(ref), attach(ref, to: owner) {
+                pasted = ref
+            }
+        }
+        return pasted
+    }
+
+    static func canPaste(_ refs: [Reference], move: Bool, to owner: Reference) -> Bool {
+        !refs.contains(owner) && (move || refs.allSatisfy(canShare))
+    }
+
+    static func canShare(_ ref: Reference) -> Bool {
+        exists(ref) && (ref.type is any Functional.Type || ref.type is Transcript.Type)
+    }
+
+    @discardableResult
+    static func detach(_ ref: Reference, from origin: Reference?) -> Bool {
+        if ref.type is Space.Type {
+            let parent = origin ?? Space.with(ref, { $0.space }) ?? nil
+            if let parent { return Space.with(parent) { $0.remove(child: ref) } != nil }
             return false
         }
 
-        provider.loadDataRepresentation(forTypeIdentifier: UTType.boundary.identifier) { data, _ in
-            guard let data,
-                  let transfer = try? JSONDecoder().decode(BoundaryTransfer.self, from: data) else {
-                Task { await perform(false) }
-                return
-            }
-
-            Task {
-                let moved = move(transfer, to: target)
-                await perform(moved)
-            }
+        if ref.type is Route.Type {
+            guard let origin else { return false }
+            return Space.update(origin) { $0.routes.remove(ref) != nil } ?? false
         }
 
+        guard let origin, let closure = closure(for: origin) else { return false }
+        return Closure.update(closure) {
+            let sheets = $0.sheets.count
+            let components = $0.components.count
+            $0.sheets.removeAll { $0 == ref }
+            $0.components.removeAll { $0 == ref }
+            return sheets != $0.sheets.count || components != $0.components.count
+        } ?? false
+    }
+
+    static func exists(_ ref: Reference) -> Bool {
+        switch ref.type {
+        case is Workspace.Type: Workspace.with(ref, { _ in true }) == true
+        case is Space.Type: Space.with(ref, { _ in true }) == true
+        case is Closure.Type: Closure.with(ref, { _ in true }) == true
+        case is Route.Type: Route.with(ref, { _ in true }) == true
+        case is Sheet.Type: Sheet.with(ref, { _ in true }) == true
+        case is Transcript.Type: Transcript.with(ref, { _ in true }) == true
+        case is Artifact.Type: Artifact.with(ref, { _ in true }) == true
+        case is Control.Type: Control.with(ref, { _ in true }) == true
+        case is Service.Type: Service.with(ref, { _ in true }) == true
+        default: false
+        }
+    }
+
+    private static func canDrop(on target: ItemParams) -> Bool {
+        guard target.path == nil, let ref = target.ref else { return false }
+        return ref.type is Workspace.Type || ref.type is Space.Type
+    }
+
+    private static func transferableRef(for item: ItemParams, create: Bool) -> Reference? {
+        guard let ref = item.ref else { return nil }
+        guard let path = item.path else { return ref }
+        guard ref.type is Artifact.Type else { return nil }
+        if Artifact.with(ref, { $0.entry.url }) == path { return ref }
+        return create ? Artifact.register(item.name, path) : ref
+    }
+
+    private static func move(_ ref: Reference, from origin: Reference?, to owner: Reference) -> Bool {
+        guard ref != owner else { return false }
+        if ref.type is Space.Type, contains(ref, owner) { return false }
+        detach(ref, from: origin)
+        return attach(ref, to: owner)
+    }
+
+    private static func attach(_ ref: Reference, to owner: Reference) -> Bool {
+        switch ref.type {
+        case is Space.Type:
+            guard let space = Space.with(ref, { $0 }) else { return false }
+            space.attach(to: owner)
+            return true
+        case is Sheet.Type:
+            guard let closure = closure(for: owner) else { return false }
+            Closure.update(closure) { if !$0.sheets.contains(ref) { $0.sheets.append(ref) } }
+            Sheet.update(ref) { $0.owner = closure }
+            return true
+        case is Transcript.Type:
+            return attachComponent(ref, to: owner)
+        case is any Functional.Type:
+            return attachComponent(ref, to: owner)
+        default:
+            return false
+        }
+    }
+
+    private static func attachComponent(_ ref: Reference, to owner: Reference) -> Bool {
+        guard let closure = closure(for: owner) else { return false }
+        Closure.update(closure) { if !$0.components.contains(ref) { $0.components.append(ref) } }
         return true
     }
 
-    static func move(_ transfer: BoundaryTransfer, to target: Reference) -> Bool {
-        guard transfer.ref != target else {
-            return false
-        }
-        guard transfer.ref.type is Space.Type, target.type is Space.Type else {
-            return false
-        }
-        guard Space.with(transfer.ref, { $0 }) != nil, Space.with(target, { $0 }) != nil else {
-            return false
-        }
-        guard !contains(target, descendant: transfer.ref) else {
-            return false
-        }
-        guard Space.with(transfer.ref, { $0.boundary }) != target else {
-            return false
-        }
-
-        if let currentParent = Space.with(transfer.ref, { $0.boundary }) ?? nil,
-           currentParent.type is Space.Type {
-            Space.update(currentParent) { current in
-                current.boundaries.remove(transfer.ref)
-            }
-        }
-
-        Space.update(target) { boundary in
-            boundary.boundaries.insert(transfer.ref)
-        }
-
-        Space.update(transfer.ref) { boundary in
-            boundary.boundary = target
-        }
-
-        return true
+    private static func closure(for owner: Reference) -> Reference? {
+        Space.with(owner, { $0.closure }) ?? Workspace.with(owner, { $0.closure })
     }
 
-    private static func contains(_ target: Reference, descendant: Reference) -> Bool {
-        var cursor: Reference? = target
-
+    private static func contains(_ child: Reference, _ parent: Reference) -> Bool {
+        var cursor: Reference? = parent
         while let current = cursor {
-            if current == descendant { return true }
-            cursor = Space.with(current, { $0.boundary }) ?? nil
+            if current == child { return true }
+            cursor = Space.with(current) { $0.space } ?? nil
         }
-
         return false
     }
-}
 
-struct BoundaryTransfer: Codable, Transferable {
-    let ref: Reference
-    let source: Reference
-
-    nonisolated static var transferRepresentation: some TransferRepresentation {
-        CodableRepresentation(contentType: .boundary)
-    }
-}
-
-enum TransferProvider {
-    static func provider(for request: InteractionRequest, source: Reference) -> NSItemProvider? {
-        guard let ref = request.domain.reference else { return nil }
-        return TransferModel.provider(for: ref, source: source)
-    }
-
-    static func dropTypes(for request: InteractionRequest) -> [UTType] {
-        switch request.domain {
-        case .boundary:
-            [.boundary]
-        default:
-            []
-        }
-    }
-
-    static func drop(_ providers: [NSItemProvider], on request: InteractionRequest) -> Bool {
-        guard case .boundary(let target) = request.domain else { return false }
-        return TransferModel.drop(providers, to: target, perform: { _ in })
-    }
-
-    @MainActor static func decorate(_ view: AnyView, request: InteractionRequest?, agency: AgencyModel) -> AnyView {
-        guard let request else { return view }
-
-        let withDrag: AnyView
-        if let provider = provider(for: request, source: agency.session.space) {
-            withDrag = AnyView(view.onDrag { provider })
-        } else {
-            withDrag = view
-        }
-
-        let types = dropTypes(for: request)
-        guard !types.isEmpty else { return withDrag }
-
-        return AnyView(
-            withDrag.onDrop(of: types, isTargeted: nil) { providers in
-                drop(providers, on: request)
-            }
-        )
-    }
-}
-
-enum Domain: Hashable {
-    case name(Key)
-    case description(Key)
-    case tags(Key)
-    case context(Key)
-    case boundary(Reference)
-    case closure(Reference)
-    case route(Reference)
-    case space(Reference)
-    case intent(Reference)
-    case artifact(Reference)
-    case control(Reference)
-    case service(Reference)
-    case transcript(Reference)
-    case sheet(Reference)
-    case task(Reference, UUID)
-    case content(Reference, UUID)
-
-    var reference: Reference? {
-        switch self {
-        case .boundary(let ref),
-             .closure(let ref),
-             .route(let ref),
-             .space(let ref),
-             .intent(let ref),
-             .artifact(let ref),
-             .control(let ref),
-             .service(let ref),
-             .transcript(let ref),
-             .sheet(let ref),
-             .task(let ref, _),
-             .content(let ref, _):
-            ref
-        case .name, .description, .tags, .context:
-            nil
-        }
-    }
-
-    static func from(_ ref: Reference) -> Domain {
+    private static func type(for ref: Reference) -> UTType? {
         switch ref.type {
-        case is Workspace.Type: .space(ref)
-        case is Space.Type: .boundary(ref)
-        case is Closure.Type: .closure(ref)
-        case is Route.Type: .route(ref)
-        case is Artifact.Type: .artifact(ref)
-        case is Control.Type: .control(ref)
-        case is Service.Type: .service(ref)
-        case is Transcript.Type: .transcript(ref)
-        case is Sheet.Type: .sheet(ref)
-        default: .context(.context(ref.contextId))
+        case is Workspace.Type: .workspace
+        case is Space.Type: .space
+        case is Sheet.Type: .sheet
+        case is Artifact.Type: .artifact
+        case is Control.Type: .control
+        case is Service.Type: .service
+        default: nil
         }
-    }
-}
-
-enum MenuContext {
-    enum Interface {
-        enum Inspector {
-            case composition
-            case preview
-            case thread
-        }
-
-        enum Content {
-            case boundary
-            case pathfinder
-            case statusbar
-
-            enum Console {
-                case activity
-                case statusbar
-            }
-
-            enum Editor {
-                case canvas
-                case component
-            }
-        }
-
-        enum Navigator {
-            case library
-            case notifications
-            case threads
-            case space
-        }
-
-        enum Toolbar {
-            case badge
-            case breadcrumb
-        }
-    }
-}
-
-enum MenuSurface {
-    case sheet
-    case boundary
-    case editor
-    case content
-    case console
-    case inspector
-    case navigator
-    case panel
-}
-
-struct InteractionRequest {
-    let surface: MenuSurface
-    let domain: Domain
-}
-
-@MainActor enum AppCommands {
-    static func open(_ ref: Reference, in agency: AgencyModel) {
-//        agency.open(ref)
-    }
-
-    static func newBoundary(in parent: Reference, agency: AgencyModel) {
-        let ref = Space.new("New Boundary", in: parent)
-        agency.select(ref)
-    }
-}
-
-@MainActor enum MenuProvider {
-    static func actions(for request: InteractionRequest, in agency: AgencyModel) -> [ContextMenuAction] {
-        switch request.domain {
-        case .space(let ref):
-            spaceActions(ref, surface: request.surface)
-        case .boundary(let ref):
-            boundaryActions(ref, surface: request.surface)
-        case .sheet(let ref):
-            sheetActions(ref, surface: request.surface)
-        case .artifact(let ref),
-             .control(let ref),
-             .service(let ref),
-             .transcript(let ref),
-             .closure(let ref),
-             .route(let ref),
-             .intent(let ref):
-            referenceActions(ref)
-        case .task(let ref, _),
-             .content(let ref, _):
-            referenceActions(ref)
-        case .name, .description, .tags, .context:
-            []
-        }
-    }
-
-    @ViewBuilder
-    static func menu(for request: InteractionRequest, in agency: AgencyModel) -> some View {
-        ForEach(actions(for: request, in: agency)) { action in
-            Button(role: action.role) {
-                action.perform(agency)
-            } label: {
-                if let systemImage = action.systemImage {
-                    Label(action.title, systemImage: systemImage)
-                } else {
-                    Text(action.title)
-                }
-            }
-        }
-    }
-
-    private static func spaceActions(_ ref: Reference, surface: MenuSurface) -> [ContextMenuAction] {
-        referenceActions(ref) + [
-            .init(id: "new-boundary", title: "New Boundary", systemImage: "rectangle.stack.badge.plus") { agency in
-                AppCommands.newBoundary(in: ref, agency: agency)
-            }
-        ]
-    }
-
-    private static func boundaryActions(_ ref: Reference, surface: MenuSurface) -> [ContextMenuAction] {
-        referenceActions(ref) + [
-            .init(id: "new-child-boundary", title: "New Child Boundary", systemImage: "rectangle.stack.badge.plus") { agency in
-                AppCommands.newBoundary(in: ref, agency: agency)
-            }
-        ]
-    }
-
-    private static func sheetActions(_ ref: Reference, surface: MenuSurface) -> [ContextMenuAction] {
-        [
-            .init(id: "open-sheet", title: "Open Sheet", systemImage: "list.bullet.rectangle") { agency in
-                AppCommands.open(ref, in: agency)
-            }
-        ] + referenceActions(ref)
-    }
-
-    private static func referenceActions(_ ref: Reference) -> [ContextMenuAction] {
-        [
-            .init(id: "select", title: "Select", systemImage: "cursorarrow") { agency in
-
-            }
-        ]
-    }
-}
-
-
-struct ContextMenuAction: Identifiable {
-    let id: String
-    let role: ButtonRole?
-    let title: String
-    let systemImage: String?
-    let perform: @MainActor (AgencyModel) -> Void
-
-    init(id: String,title: String,systemImage: String? = nil,role: ButtonRole? = nil,perform: @escaping @MainActor (AgencyModel) -> Void) {
-        self.id = id
-        self.title = title
-        self.systemImage = systemImage
-        self.role = role
-        self.perform = perform
     }
 }
 

@@ -2,6 +2,12 @@ import AppKit
 import SwiftUI
 
 
+private struct InlinePattern {
+    let regex: NSRegularExpression
+    let attrs: [NSAttributedString.Key: Any]
+    let delimLength: Int
+}
+
 struct Style: @unchecked Sendable {
     var textColor: NSColor
     var baseFont: NSFont
@@ -20,9 +26,9 @@ struct Style: @unchecked Sendable {
     static let dark = Style(
         textColor: .white,
         baseFont: .systemFont(ofSize: 15, weight: .light),
-        h1Font: .systemFont(ofSize: 20, weight: .semibold),
-        h2Font: .systemFont(ofSize: 18, weight: .medium),
-        h3Font: .systemFont(ofSize: 16, weight: .medium),
+        h1Font: .systemFont(ofSize: 24, weight: .bold),
+        h2Font: .systemFont(ofSize: 20, weight: .semibold),
+        h3Font: .systemFont(ofSize: 18, weight: .semibold),
         codeFont: .monospacedSystemFont(ofSize: 14, weight: .regular),
         codeBgColor: NSColor.black.withAlphaComponent(0.2),
         codeFenceColor: NSColor.black.withAlphaComponent(0.3),
@@ -52,6 +58,7 @@ final class EditorStyler: NSObject {
 
         let fullString = textStorage.string
         let fullRange = NSRange(location: 0, length: textStorage.length)
+
         guard !fullString.isEmpty else {
             textStorage.endEditing()
             return
@@ -90,12 +97,6 @@ final class EditorStyler: NSObject {
         }
 
         textStorage.endEditing()
-    }
-
-    private struct InlinePattern {
-        let regex: NSRegularExpression
-        let attrs: [NSAttributedString.Key: Any]
-        let delimLength: Int
     }
 
     private lazy var inlinePatterns: [InlinePattern] = {
@@ -140,22 +141,11 @@ final class EditorStyler: NSObject {
         for pattern in inlinePatterns {
             let matches = pattern.regex.matches(in: string, range: NSRange(string.startIndex..., in: string))
             for match in matches {
-                let full = NSRange(
-                    location: range.location + match.range.location,
-                    length: match.range.length
-                )
+                let full = NSRange(location: range.location + match.range.location, length: match.range.length)
                 guard full.length > pattern.delimLength * 2 else { continue }
-
                 let open = NSRange(location: full.location, length: pattern.delimLength)
-                let close = NSRange(
-                    location: full.location + full.length - pattern.delimLength,
-                    length: pattern.delimLength
-                )
-                let inner = NSRange(
-                    location: open.location + open.length,
-                    length: full.length - pattern.delimLength * 2
-                )
-
+                let close = NSRange(location: full.location + full.length - pattern.delimLength, length: pattern.delimLength)
+                let inner = NSRange(location: open.location + open.length, length: full.length - pattern.delimLength * 2)
                 textStorage.addAttributes(pattern.attrs, range: inner)
                 textStorage.addAttributes(hideAttrs, range: open)
                 textStorage.addAttributes(hideAttrs, range: close)
@@ -165,12 +155,7 @@ final class EditorStyler: NSObject {
         styleLinks(textStorage, string: string, offset: range.location, hideAttrs: hideAttrs)
     }
 
-    private func styleLinks(
-        _ textStorage: NSMutableAttributedString,
-        string: String,
-        offset: Int,
-        hideAttrs: [NSAttributedString.Key: Any]
-    ) {
+    private func styleLinks(_ textStorage: NSMutableAttributedString, string: String, offset: Int, hideAttrs: [NSAttributedString.Key: Any]) {
         guard let regex = try? NSRegularExpression(pattern: #"\[([^\]\n]+)\]\(([^)\n]+)\)"#) else { return }
 
         for match in regex.matches(in: string, range: NSRange(string.startIndex..., in: string)) {
@@ -252,12 +237,7 @@ final class EditorStyler: NSObject {
         }
     }
 
-    private func styleHeading(
-        _ textStorage: NSMutableAttributedString,
-        level: Int,
-        contentStart: Int,
-        lineRange: NSRange
-    ) {
+    private func styleHeading(_ textStorage: NSMutableAttributedString, level: Int, contentStart: Int, lineRange: NSRange) {
         let font: NSFont
         let spacing: CGFloat
 
@@ -283,9 +263,11 @@ final class EditorStyler: NSObject {
             location: lineRange.location + contentStart,
             length: max(0, lineRange.length - contentStart)
         )
+
         if contentRange.length > 0 {
             textStorage.addAttributes([.font: font], range: contentRange)
         }
+
         textStorage.addAttributes(
             [.foregroundColor: style.syntaxHiddenColor, .font: NSFont.systemFont(ofSize: 0.1)],
             range: NSRange(location: lineRange.location, length: min(contentStart, lineRange.length))
@@ -309,12 +291,7 @@ final class EditorStyler: NSObject {
         )
     }
 
-    private func styleChecklist(
-        _ textStorage: NSMutableAttributedString,
-        checked: Bool,
-        contentStart: Int,
-        lineRange: NSRange
-    ) {
+    private func styleChecklist(_ textStorage: NSMutableAttributedString, checked: Bool, contentStart: Int, lineRange: NSRange) {
         textStorage.addAttributes([.paragraphStyle: listParagraphStyle()], range: lineRange)
         guard lineRange.length >= contentStart else { return }
         textStorage.addAttributes(

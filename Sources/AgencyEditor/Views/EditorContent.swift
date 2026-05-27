@@ -34,13 +34,35 @@ struct EditorContent: View {
     
     @ViewBuilder private func block(entry: Entry) -> some View {
         switch entry {
-        case .text(_, let text):
-            input(id: entry.id, text: text)
-        default:
-            component(id: entry.id, entry: entry)
+        case .content(_, let text): input(id: entry.id, text: text)
+        default: component(id: entry.id, entry: entry)
         }
     }
-    
+
+    @ViewBuilder private func background(_ content: String) -> some View {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmed.hasPrefix("```") {
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Design.Background.card)
+                .padding(.horizontal, 3)
+                .padding(.vertical, 4)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .strokeBorder(.gray.opacity(0.04), lineWidth: 1)
+                }
+        }
+
+        if trimmed.hasPrefix(">") {
+            HStack(spacing: 0) {
+                RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                    .fill(Design.SheetEntry.accent)
+                    .frame(width: 3)
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
     private func input(id: UUID, text: String) -> some View {
         EditorInput(
             id: id,
@@ -53,6 +75,7 @@ struct EditorContent: View {
             onFocusGained: { editor.focusGained(id: id) },
             onCommand: onCommand
         )
+        .background { background(text) }
         .frame(maxWidth: .infinity, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
     }
@@ -60,12 +83,12 @@ struct EditorContent: View {
     private func component(id: UUID, entry: Entry) -> some View {
         SelectableEntry(
             id: id,
+            entry: entry,
             isSelected: editor.isBlockSelected(id: id),
             onFocusGained: { editor.focusGained(id: id) },
             onCommand: { selector in editor.handleCommand(selector, atTopLine: true, atBottomLine: true) }
         ) {
-            EditorSheetEntry(entry: entry)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            EditorSheet(entry: entry).frame(maxWidth: .infinity, alignment: .leading)
         }
     }
     

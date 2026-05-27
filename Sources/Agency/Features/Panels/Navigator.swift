@@ -57,7 +57,7 @@ struct NavigatorToolbar: ToolbarContent {
     var body: some ToolbarContent {
         @Bindable var navigator = agency.studio.navigator
 
-        ToolbarItem(placement: .primaryAction) { NavigatorToggle(presented: $navigator.presented) }
+        ToolbarItem(placement: .primaryAction) { NavigatorToggle() }
             .sharedBackgroundVisibility(agency.studio.navigator.presented ? .hidden : .visible)
         ToolbarSpacer(.fixed, placement: .automatic)
     }
@@ -65,6 +65,7 @@ struct NavigatorToolbar: ToolbarContent {
 
 @Observable final class Navigator: Panel {
     var model: Model = .workspace
+    var layout: Layout = .list
     var position: CGFloat = 0
     var presented: Bool = true
     var expanded: Set<AnyHashable> = []
@@ -91,17 +92,17 @@ struct NavigatorToolbar: ToolbarContent {
 
     func params(_ agency: AgencyModel) -> Params {
         switch agency.studio.navigator.model {
-        case .workspace: WorkspaceMapper.params(agency, self)
-        case .library: LibraryMapper.params(agency, self)
-        case .notifications: NotificationsMapper.params(agency, self)
+        case .workspace: WorkspaceMap.params(agency, self)
+        case .library: LibraryMap.params(agency, self)
+        case .notifications: NotificationsMap.params(agency, self)
         }
     }
 
     func closures(_ agency: AgencyModel) -> Closures {
         switch agency.studio.navigator.model {
-        case .workspace: WorkspaceMapper.closures(agency, self)
-        case .library: LibraryMapper.closures(agency, self)
-        case .notifications: NotificationsMapper.closures(agency, self)
+        case .workspace: WorkspaceMap.closures(agency, self)
+        case .library: LibraryMap.closures(agency, self)
+        case .notifications: NotificationsMap.closures(agency, self)
         }
     }
 
@@ -110,6 +111,10 @@ struct NavigatorToolbar: ToolbarContent {
             NavigatorTabs()
             Builder.build(self, closures(agency), params(agency))
         }
+        .ignoresSafeArea(.container, edges: .vertical)
+        .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 330)
+        .toolbar(removing: .sidebarToggle)
+        .toolbar { NavigatorToolbar() }
     }
 }
 

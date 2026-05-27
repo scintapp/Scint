@@ -1,86 +1,92 @@
-
 import AgencyRuntime
 import SwiftUI
 
 
 struct ContentToolbar: ToolbarContent {
     @Environment(AgencyModel.self) var agency
-    @Binding var presented: Bool
 
     var body: some ToolbarContent {
-        ToolbarItem(placement: .navigation) { NavigationControls() }
-        ToolbarItem(placement: .principal) { RuntimeControls() }
-        ToolbarItem(placement: .primaryAction) { LayoutPicker() }
-        ToolbarItem(placement: .primaryAction) { OutlineToggle() }
-        ToolbarItem(placement: .accessoryBar(id: "pathfinder")) { Pathfinder() }
+        ToolbarItem(placement: .navigation) { NavigationControls().environment(agency) }
+        ToolbarSpacer(.flexible, placement: .navigation)
+        ToolbarItem(placement: .principal) { ProcessControls().environment(agency) }
+        ToolbarSpacer(.flexible, placement: .primaryAction)
+        ToolbarItem(placement: .primaryAction) { LayoutPicker().environment(agency) }
+        ToolbarItem(placement: .accessoryBar(id: "pathfinder")) { Pathfinder().environment(agency) }
     }
 }
 
 @Observable final class Content: Panel {
     var model: Model = .space
+    var layout: Layout = .grid
     var position: CGFloat = 280
     var presented: Bool = true
     var expanded: Set<AnyHashable> = []
 
-    enum Model: CaseIterable {
-        case workspace, space, sheet
-
-        var image: String {
-            switch self {
-            case .workspace: "cube.transparent"
-            case .space: "app"
-            case .sheet: "square.and.pencil"
-            }
-        }
-    }
+    enum Model: CaseIterable { case sheet, space, workspace }
 
     func closures(_ agency: AgencyModel) -> Closures {
         switch self.model {
-        case .workspace: SpaceMapper.closures(agency, self)
-        case .space: SpaceMapper.closures(agency, self)
         case .sheet: .init()
+        case .space:
+            agency.session.space == nil ? RootSpaceMap.closures(agency, self) : SpaceMap.closures(agency, self)
+        case .workspace: RootSpaceMap.closures(agency, self)
         }
     }
 
     func params(_ agency: AgencyModel) -> Params {
         switch self.model {
-        case .workspace: SpaceMapper.params(agency, self)
-        case .space: SpaceMapper.params(agency, self)
         case .sheet: .init()
+        case .space:
+            switch self.layout {
+            case .grid: SpaceMap.params(agency, self)
+            case .table: SpaceMap.params(agency, self)
+            default: SpaceMap.params(agency, self)
+            }
+        case .workspace:
+            switch self.layout {
+            case .grid: RootSpaceMap.params(agency, self)
+            case .table: RootSpaceMap.params(agency, self)
+            default: RootSpaceMap.params(agency, self)
+            }
         }
     }
 
     @MainActor func build(_ agency: AgencyModel) -> some View {
-        @Bindable var content = self
+        @Bindable var console = agency.studio.console
+        let closures = closures(agency)
+        let params = params(agency)
 
-        return ScrollView {
-            Color.clear.frame(height: 90)
-            switch content.model {
-            case .workspace:
-                Builder.build(self, closures(agency), params(agency))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 12)
+        return VerticalSplit($console.presented, position: $console.position) {
+            GeometryReader { proxy in
+                ScrollView {
+                    Color.clear.frame(height: 80)
+                    switch self.model {
+                    case .sheet:
+                        if let ref = agency.session.sheet {
+                            Editor(ref: ref)
+                                .padding(.top, 20)
+                                .frame(maxWidth: 720, maxHeight: .infinity)
+                        }
 
-            case .space:
-                Builder.build(self, closures(agency), params(agency))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 12)
+                    case .space:
+                        Builder.build(self, closures, params)
+                            .frame(maxWidth: .infinity, minHeight: max(proxy.size.height - 90, 0), alignment: .topLeading)
 
-            case .sheet:
-                if let _ = agency.session.sheet {
-                    Editor(ref: agency.session.sheet!)
-                        .frame(maxWidth: 700, maxHeight: .infinity,  alignment: .top)
-                        .padding(.horizontal, 12)
+                    case .workspace:
+                        Builder.build(self, closures, params)
+                            .frame(maxWidth: .infinity, minHeight: max(proxy.size.height - 90, 0), alignment: .topLeading)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Design.Background.content)
             }
+        } bottom: {
+            agency.studio.console.build(agency)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Design.Background.content)
+        .environment(agency)
+        .ignoresSafeArea(.container, edges: .top)
         .scrollEdgeEffectStyle(.soft, for: .top)
+        .toolbar(removing: .title)
+        .toolbar { ContentToolbar() }
     }
 }
-
-
-
-
-

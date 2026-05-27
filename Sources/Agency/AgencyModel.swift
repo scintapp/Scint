@@ -3,93 +3,6 @@ import Foundation
 import SwiftUI
 
 
-struct Selection: Equatable, Sendable {
-    var space: Reference
-    var boundary: Reference?
-    var component: Reference?
-    var entry: UUID?
-    var url: URL?
-
-    init(space: Reference) { self.space = space }
-
-    enum Axis: Sendable { case boundary, component, entry, url }
-
-    func selected(_ ref: Reference) -> Bool {
-        switch ref.type {
-        case is Workspace.Type: return space == ref
-        case is Space.Type:  return boundary == ref
-        case is any Composable.Type, is any Interfacing.Type:
-            return component == ref && entry == nil && url == nil
-        default: return false
-        }
-    }
-
-    func selected(_ ref: Reference, _ entry: UUID?) -> Bool {
-        guard let entry else { return selected(ref) }
-        return component == ref && self.entry == entry
-    }
-
-    func selected(_ ref: Reference, _ url: URL?) -> Bool {
-        guard let url else { return selected(ref) }
-        return component == ref && self.url == url
-    }
-
-    func selecting(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) -> Self {
-        var next = self
-
-        switch ref.type {
-        case is Workspace.Type:
-            next.space = ref
-            next.boundary = nil
-            next.component = nil
-            next.entry = nil
-            next.url = nil
-
-        case is Space.Type:
-            next.boundary = ref
-            next.component = nil
-            next.entry = nil
-            next.url = nil
-
-        case is any Composable.Type, is any Interfacing.Type:
-            if let origin, origin != next.boundary {
-                next.boundary = origin
-            }
-            next.component = ref
-            next.entry = entry
-            next.url = url
-
-        default:
-            break
-        }
-
-        return next
-    }
-
-    func clearing(_ axis: Axis) -> Self {
-        var next = self
-        switch axis {
-        case .boundary:
-            next.boundary = nil
-            next.component = nil
-            next.entry = nil
-            next.url = nil
-
-        case .component:
-            next.component = nil
-            next.entry = nil
-            next.url = nil
-
-        case .entry:
-            next.entry = nil
-
-        case .url:
-            next.url = nil
-        }
-        return next
-    }
-}
-
 @Observable final class Session {
     private(set) var selection: Selection
     private(set) var history: [Selection] = []
@@ -97,19 +10,20 @@ struct Selection: Equatable, Sendable {
     private static let maxHistory = 100
     private static let maxPathDepth = 100
 
-    var space: Reference { selection.space }
-    var boundary: Reference? { selection.boundary }
+    var service: Reference?
+    var workspace: Reference { selection.workspace }
+    var space: Reference? { selection.space }
     var component: Reference? { selection.component }
     var entry: UUID? { selection.entry }
     var url: URL? { selection.url }
 
-    var thread: Reference? {
-        guard let component, component.type is Transcript.Type else { return nil }
+    var sheet: Reference? {
+        guard let component, component.type is Sheet.Type else { return nil }
         return component
     }
 
-    var sheet: Reference? {
-        guard let component, component.type is Sheet.Type else { return nil }
+    var transcript: Reference? {
+        guard let component, component.type is Transcript.Type else { return nil }
         return component
     }
 
@@ -117,24 +31,22 @@ struct Selection: Equatable, Sendable {
     var canGoForward: Bool { cursor < history.count - 1 }
 
     var path: [Reference] {
-        var refs: [Reference] = [selection.space]
+        var refs: [Reference] = [selection.workspace]
 
-        if let boundary = selection.boundary {
+        if let space = selection.space {
             var chain: [Reference] = []
-            var cursor: Reference? = boundary
+            var cursor: Reference? = space
             var depth = 0
+
             while let current = cursor, depth < Self.maxPathDepth {
                 chain.append(current)
-                cursor = Space.with(current) { $0.boundary } ?? nil
+                cursor = Space.with(current) { $0.space } ?? nil
                 depth += 1
             }
             refs.append(contentsOf: chain.reversed())
         }
 
-        if let component = selection.component {
-            refs.append(component)
-        }
-
+        if let component = selection.component { refs.append(component) }
         return refs
     }
 
@@ -180,6 +92,7 @@ struct Selection: Equatable, Sendable {
         selection = initial
         history = [initial]
         cursor = 0
+        service = nil
     }
 
     private func push(_ selection: Selection) {
@@ -195,23 +108,23 @@ struct Selection: Equatable, Sendable {
     }
 }
 
-@Observable final class AgencyModel {
+@Observable final class AgencyModel: Model {
+    var aperture: Aperture
     var artifacts: ArtifactManager
-    var features: [AnyHashable: any Feature] = [:]
-    var panels: [AnyHashable: PanelCoordinator] = [:]
     var studio: StudioModel
-    let session: Session
-    var search: Search
+    var session: Session
+    var models: [AnyHashable: any Model] = [:]
+    var panels: [AnyHashable: PanelCoordinator] = [:]
 
     init(_ space: Reference) {
-        self.search = .init()
+        self.aperture = .init()
         self.artifacts = .init()
-        self.session = .init(space)
         self.studio = .init()
+        self.session = .init(space)
     }
 
     func load() async {
-        await load(Runtime.shared.space)
+        await load(Runtime.shared.workspace)
         await SampleData.load()
         try? await Runtime.shared.save()
     }
@@ -221,26 +134,71 @@ struct Selection: Equatable, Sendable {
         await artifacts.load(runtime: Runtime.shared, space: space)
     }
 
+    func select(_ ref: Reference, entry: UUID?) { session.apply(session.selection.selecting(ref, entry: entry)) }
+
     func select(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) {
         session.apply(session.selection.selecting(ref, from: origin, entry: entry, url: url))
         if ref.type is Sheet.Type, entry == nil, url == nil { studio.content.model = .sheet }
         else if ref.type is Space.Type || ref.type is Workspace.Type { studio.content.model = .space }
     }
 
-    func select(_ ref: Reference, _ entry: UUID?) { session.apply(session.selection.selecting(ref, entry: entry)) }
     func open(_ ref: Reference) { select(ref) }
     func forward() { session.forward() }
     func backward() { session.back() }
     func clear(_ axis: Selection.Axis) { session.apply(session.selection.clearing(axis)) }
-
-    func search(_ query: String, facet: String, limit: Int) -> [ItemParams] {
-        Runtime.shared
-            .search("\(query) !\(facet)", limit: limit)
-            .all
-            .map(item(from:))
+    func query(_ query: String, facet: String, limit: Int) -> [QueryResult] {
+        Runtime.shared.query("\(query) !\(facet)", limit: limit).all
     }
 
-    func item(from result: SearchResult) -> ItemParams {
+    @discardableResult
+    func process(service: Reference? = nil, arguments: [String] = []) -> Composition? {
+        let services = Workspace.with(session.workspace, { $0.services }) ?? []
+        let selected = service ?? session.service
+
+        guard let origin = session.space,
+              let closure = Space.with(origin, { $0.closure }),
+              let service = selected.flatMap({ services.contains($0) ? $0 : nil }) ?? services.first
+        else { return nil }
+
+        let existing = Set(Runtime.shared.transcripts(for: origin))
+        session.service = service
+        let processArguments = arguments.isEmpty ? [closure.id.uuidString] : arguments
+        guard let composition = Runtime.shared.compose(Request(origin, [.process(service, args: processArguments)]))
+        else { return nil }
+
+        let transcript = latestProcessTranscript(in: composition)
+            ?? Runtime.shared.transcripts(for: origin).first { !existing.contains($0) }
+            ?? composition.transcript
+        select(transcript, from: origin)
+        studio.inspector.context = .processing
+        return composition
+    }
+
+    @discardableResult
+    func selectProcessTranscript(for origin: Reference? = nil) -> Reference? {
+        guard let origin = origin ?? session.space,
+              origin.type is Space.Type,
+              let composition = Runtime.shared.context(for: origin),
+              let transcript = latestProcessTranscript(in: composition)
+        else { return nil }
+        select(transcript, from: origin)
+        return transcript
+    }
+
+    func openProcessInspector() {
+        selectProcessTranscript()
+        studio.inspector.context = .processing
+        studio.inspector.presented = true
+    }
+
+    private func latestProcessTranscript(in composition: Composition) -> Reference? {
+        composition.intention.reversed().compactMap { intention in
+            if case .processor(let ref) = intention { return ref }
+            return nil
+        }.first
+    }
+
+    func item(from result: QueryResult) -> ItemParams {
         ItemParams(
             ref: result.ref,
             name: result.name,
@@ -250,19 +208,19 @@ struct Selection: Equatable, Sendable {
         )
     }
 
-    @MainActor func toggleCompose() {
-        let view = AnyView(BasePanel(ComposePanel().environment(self)))
-        panel(id: "compose", size: CGSize(width: 640, height: 480), view: view).toggle()
+    @MainActor func toggleAperture() {
+        let view = AnyView(BasePanel(SearchView().environment(self)))
+        panel(id: "aperture", size: CGSize(width: 640, height: 480), view: view).toggle()
     }
 
-    @MainActor func toggleActivity() {
-        let view = AnyView(BasePanel(Activities().environment(self)))
-        panel(id: "activity", size: CGSize(width: 640, height: 480), view: view).toggle()
-    }
+//    @MainActor func toggleComposer() {
+//        let view = AnyView(BasePanel(studio.composer.build(self).environment(self)))
+//        panel(id: "composer", size: CGSize(width: 680, height: 800), view: view).toggle()
+//    }
 
-    @MainActor func toggleSearch() {
-        let view = AnyView(BasePanel(SearchPanel().environment(self)))
-        panel(id: "search", size: CGSize(width: 640, height: 480), view: view).toggle()
+    @MainActor func toggleProcesses() {
+        let view = AnyView(BasePanel(EmptyView().environment(self)))
+        panel(id: "processes", size: CGSize(width: 640, height: 480), view: view).toggle()
     }
 
     @MainActor func panel(id: AnyHashable, size: CGSize, view: @autoclosure () -> AnyView) -> PanelCoordinator {

@@ -11,8 +11,8 @@ struct Outline: View {
             Color.clear.frame(height: 90)
             Builder.build(
                 agency.studio.content,
-                OutlineMapper.closures(agency, agency.studio.content),
-                OutlineMapper.params(agency, agency.studio.content)
+                OutlineMap.closures(agency, agency.studio.content),
+                OutlineMap.params(agency, agency.studio.content)
             )
         }
     }

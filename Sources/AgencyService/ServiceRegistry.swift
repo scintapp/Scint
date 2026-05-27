@@ -66,7 +66,7 @@ final class ServiceRegistry: @unchecked Sendable {
     }
 }
 
-public enum ServicePolicy: String {
+public enum ServicePolicy: String, Sendable {
     case never
     case onFailure
     case always
@@ -76,7 +76,7 @@ public enum ServicePolicy: String {
     }
 }
 
-public struct ServiceDefinition {
+public struct ServiceDefinition: Sendable {
     public let id: String
     public let command: String
     public let arguments: [String]
@@ -121,9 +121,22 @@ public struct Handler: Codable & Sendable {
                 .split(whereSeparator: \.isNewline)
                 .map(String.init)
                 .filter { !$0.isEmpty }
-                .map { .message(id: UUID().uuidString, text: $0) }
+                .map { line in
+                    .provider(Properties(.object([
+                        "type": .string("message"),
+                        "text": .string(line)
+                    ])))
+                }
+
         case .events:
-            return [Event.load(chunk)]
+            guard let properties = Properties.provider(chunk) else {
+                return [.provider(Properties(.object([
+                    "type": .string("raw"),
+                    "text": .string(chunk)
+                ])))]
+            }
+            return [.provider(properties)]
         }
     }
 }
+

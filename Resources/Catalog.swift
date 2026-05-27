@@ -313,7 +313,7 @@
 //            }
 //            .frame(minHeight: 160)
 //        }
-//        .background(Design.Background.panels)
+//        .background(Design.Background.panel)
 //    }
 //
 //    private func select(_ component: Component) {

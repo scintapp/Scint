@@ -8,37 +8,19 @@
 //    let inspector = Inspector()
 //}
 //
-//struct Browser: View {
-//    @Environment(AgencyModel.self) var agency
+//@Observable final class BrowserContent: Frame {
+//    var mode: BrowserViewMode = .grid
+//    var position: CGFloat = 280
+//    var presented: Bool = true
+//    var expanded: Set<AnyHashable> = []
+//    var searchText = ""
 //
-//    var body: some View {
-//        @Bindable var console = agency.browser.console
-//        @Bindable var inspector = agency.browser.inspector
-//
-//        VerticalSplit(
-//            $console.presented,
-//            position: $console.position,
-//            collapsedHeight: 30,
-//            minTopHeight: 0,
-//            minBottomHeight: 0
-//        ) {
-//            agency.browser.content.build(agency)
-//        } bottom: {
-//            agency.browser.console.build(agency)
-//        }
-//        .environment(agency)
-//        .ignoresSafeArea(.container, edges: .top)
-//        .scrollEdgeEffectStyle(.soft, for: .top)
-//        .toolbar(removing: .title)
-//        .toolbar { BrowserToolbar() }
-//        .inspector(isPresented: $inspector.presented) {
-//            inspector.build(agency)
-//                .environment(agency)
-//                .ignoresSafeArea(.container, edges: .top)
-//                .inspectorColumnWidth(min: 200, ideal: 330, max: 440)
-//                .toolbar(removing: .sidebarToggle)
-//                .toolbar { BrowserInspectorToolbar() }
-//        }
+//    @MainActor func build(_ agency: AgencyModel) -> some View {
+//        BrowserCollection(
+//            model: self,
+//            params: BrowserMapper.params(agency, self),
+//            closures: BrowserMapper.closures(agency, self)
+//        )
 //    }
 //}
 //
@@ -99,22 +81,6 @@
 //        }
 //        .buttonBorderShape(.circle)
 //        .labelsHidden()
-//    }
-//}
-//
-//@Observable final class BrowserContent: Frame {
-//    var mode: BrowserViewMode = .grid
-//    var position: CGFloat = 280
-//    var presented: Bool = true
-//    var expanded: Set<AnyHashable> = []
-//    var searchText = ""
-//
-//    @MainActor func build(_ agency: AgencyModel) -> some View {
-//        BrowserCollection(
-//            model: self,
-//            params: BrowserMapper.params(agency, self),
-//            closures: BrowserMapper.closures(agency, self)
-//        )
 //    }
 //}
 //
@@ -187,7 +153,7 @@
 //            )
 //        }
 //
-//        func boundary(for ref: Reference, in agency: AgencyModel) -> ItemParams? {
+//        func space(for ref: Reference, in agency: AgencyModel) -> ItemParams? {
 //            let name = Boundary.with(ref, { $0.name }) ?? "Boundary"
 //            let childBoundaries = Boundary.with(ref, { $0.boundaries }) ?? []
 //            let childSheets = Boundary.with(ref, { $0.closure })
@@ -197,7 +163,7 @@
 //
 //            let children: [ItemParams]
 //            if isExpanded {
-//                let boundaries = childBoundaries.compactMap { boundary(for: $0, in: agency) }
+//                let boundaries = childBoundaries.compactMap { space(for: $0, in: agency) }
 //                let sheets = childSheets.compactMap { sheet(for: $0, origin: ref) }
 //                children = sort(boundaries + sheets)
 //            } else {
@@ -222,7 +188,7 @@
 //            let isExpanded = expanded.contains(AnyHashable(ref))
 //
 //            let children = isExpanded
-//            ? sort(childRefs.compactMap { boundary(for: $0, in: agency) })
+//            ? sort(childRefs.compactMap { space(for: $0, in: agency) })
 //            : []
 //
 //            guard matches(name) || !children.isEmpty || query.isEmpty else { return nil }
@@ -242,7 +208,7 @@
 //            sections: [
 //                .init(
 //                    id: "spaces",
-//                    name: "Spaces",
+//                    name: "Workspaces",
 //                    showsHeader: false,
 //                    items: sort(Runtime.shared.spaces.compactMap { space(for: $0, in: agency) })
 //                )
@@ -567,6 +533,40 @@
 //                        .padding(.leading, CGFloat(depth + 1) * 18)
 //                }
 //            }
+//        }
+//    }
+//}
+//
+//struct Browser: View {
+//    @Environment(AgencyModel.self) var agency
+//
+//    var body: some View {
+//        @Bindable var console = agency.browser.console
+//        @Bindable var inspector = agency.browser.inspector
+//
+//        VerticalSplit(
+//            $console.presented,
+//            position: $console.position,
+//            collapsedHeight: 30,
+//            minTopHeight: 0,
+//            minBottomHeight: 0
+//        ) {
+//            agency.browser.content.build(agency)
+//        } bottom: {
+//            agency.browser.console.build(agency)
+//        }
+//        .environment(agency)
+//        .ignoresSafeArea(.container, edges: .top)
+//        .scrollEdgeEffectStyle(.soft, for: .top)
+//        .toolbar(removing: .title)
+//        .toolbar { BrowserToolbar() }
+//        .inspector(isPresented: $inspector.presented) {
+//            inspector.build(agency)
+//                .environment(agency)
+//                .ignoresSafeArea(.container, edges: .top)
+//                .inspectorColumnWidth(min: 200, ideal: 330, max: 440)
+//                .toolbar(removing: .sidebarToggle)
+//                .toolbar { BrowserInspectorToolbar() }
 //        }
 //    }
 //}

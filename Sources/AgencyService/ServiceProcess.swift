@@ -20,16 +20,12 @@ private struct TrackedProcess {
 
 final class ProcessStore: @unchecked Sendable {
     static let shared = ProcessStore()
-
     private let queue = DispatchQueue(label: "com.kaechle.agencyd.store", attributes: .concurrent)
     private var processes: [pid_t: TrackedProcess] = [:]
     private let registry = ServiceRegistry.shared
     private let iso8601 = ISO8601DateFormatter()
     private lazy var userEnvironment: [String: String] = resolveUserEnvironment()
     let started = Date()
-
-
-    private init() {}
 
     func start(ownerID: UUID,command: String,arguments: [String],env: [String: String] = [:],label: String? = nil,restartCount: Int = 0,policy: ServicePolicy = .never,emit: @escaping (Int32, String) -> Void, reply: @escaping (Int32, String?, String?) -> Void) {
         let sanitizedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -36,14 +36,14 @@ enum EditorSurface {
                 return Sheet.Entry.artifact(Artifact.register(name, url))
             }
             return entries.isEmpty ? nil : entries
-        case "heading-1": return [.text(UUID(), "# ")]
-        case "heading-2": return [.text(UUID(), "## ")]
-        case "heading-3": return [.text(UUID(), "### ")]
-        case "bulleted-list": return [.text(UUID(), "- ")]
-        case "numbered-list": return [.text(UUID(), "1. ")]
-        case "checklist": return [.text(UUID(), "- [ ] ")]
-        case "quote": return [.text(UUID(), "> ")]
-        case "code-block": return [.text(UUID(), "```\n\n```")]
+        case "heading-1": return [.content(UUID(), "# ")]
+        case "heading-2": return [.content(UUID(), "## ")]
+        case "heading-3": return [.content(UUID(), "### ")]
+        case "bulleted-list": return [.content(UUID(), "- ")]
+        case "numbered-list": return [.content(UUID(), "1. ")]
+        case "checklist": return [.content(UUID(), "- [ ] ")]
+        case "quote": return [.content(UUID(), "> ")]
+        case "code-block": return [.content(UUID(), "```\n\n```")]
         default: return nil
         }
     }

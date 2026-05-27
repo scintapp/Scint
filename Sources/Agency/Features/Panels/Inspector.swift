@@ -4,7 +4,7 @@ import SwiftUI
 
 
 struct InspectorTab: View {
-    let inspector: Inspector.Tab
+    let inspector: Inspector.Model
     let selected: Bool
     let action: () -> Void
 
@@ -39,7 +39,7 @@ struct InspectorTabs: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(Inspector.Tab.allCases, id: \.self) { tab in
+            ForEach(Inspector.Model.allCases, id: \.self) { tab in
                 InspectorTab(
                     inspector: tab,
                     selected: inspector.model == tab,
@@ -59,30 +59,78 @@ struct InspectorTabs: View {
     }
 }
 
+struct TranscriptSelector: View {
+    @Environment(AgencyModel.self) var agency
+    let inspector: Inspector
+
+    private var space: Reference? { agency.session.space ?? agency.session.workspace }
+    private var transcripts: [Reference] {
+        guard let space else { return [] }
+        return Runtime.shared.transcripts(for: space)
+    }
+    private var current: String {
+        guard let transcript = agency.session.transcript else { return "Transcripts" }
+        return Transcript.with(transcript, { $0.name }) ?? "Transcripts"
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 0) {
+            Menu {
+                ForEach(transcripts, id: \.self) { ref in
+                    let name = Transcript.with(ref, { $0.name }) ?? "Transcript"
+                    Button { agency.select(ref) } label: {
+                        if agency.session.selected(ref) {
+                            Label(name, systemImage: "checkmark")
+                        } else {
+                            Text(name)
+                        }
+                    }
+                }
+                if transcripts.isEmpty { Text("No transcripts").foregroundStyle(.secondary) }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(current)
+                }
+            }
+            .menuStyle(.borderlessButton)
+        }
+        .padding([.horizontal, .bottom], 8)
+        .frame(maxWidth: .infinity, maxHeight: 89, alignment: .bottom)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.gray.opacity(0.05)).blur(radius: 0.1).frame(height: 1)
+        }
+    }
+}
+
 struct InspectorToolbar: ToolbarContent {
     @Environment(AgencyModel.self) var agency
 
     var body: some ToolbarContent {
         @Bindable var inspector = agency.studio.inspector
         ToolbarSpacer(.flexible, placement: .automatic)
-        ToolbarItem(placement: .primaryAction) { InspectorToggle(presented: $inspector.presented) }
+        ToolbarItem(placement: .primaryAction) { InspectorTogglePicker() }
             .sharedBackgroundVisibility(inspector.presented ? .hidden : .visible)
     }
 }
 
 @Observable final class Inspector: Panel {
-    var model: Tab = .preview
+    var model: Model = .composition
+    var context: Context = .authoring
+    var layout: Layout = .list
     var presented: Bool = false
     var position: CGFloat = 0
     var expanded: Set<AnyHashable> = []
 
-    enum Tab: String, CaseIterable {
-        case preview, composition
+    enum Context: CaseIterable { case authoring, processing }
+
+    enum Model: String, CaseIterable {
+        case composition, preview
 
         var label: String {
             switch self {
-            case .preview: "Preview"
             case .composition: "Settings"
+            case .preview: "Preview"
+
             }
         }
 
@@ -94,30 +142,50 @@ struct InspectorToolbar: ToolbarContent {
         }
     }
 
-    func params(_ agency: AgencyModel) -> Params {
-        switch model {
-        case .preview: return PreviewMapper.params(agency, self)
-        case .composition: return CompositionMapper.params(agency, self)
+    func closures(_ agency: AgencyModel) -> Closures {
+        switch context {
+        case .authoring:
+            switch model {
+            case .composition: return CompositionMap.closures(agency, self)
+            case .preview: return PreviewMap.closures(agency, self)
+            }
+        case .processing: return TranscriptsMap.closures(agency, self)
         }
     }
 
-    func closures(_ agency: AgencyModel) -> Closures {
-        switch model {
-        case .preview: return PreviewMapper.closures(agency, self)
-        case .composition: return CompositionMapper.closures(agency, self)
+    func params(_ agency: AgencyModel) -> Params {
+        switch context {
+        case .authoring:
+            switch model {
+            case .composition: return CompositionMap.params(agency, self)
+            case .preview: return PreviewMap.params(agency, self)
+            }
+        case .processing: return TranscriptsMap.params(agency, self)
         }
     }
+
 
     @MainActor func build(_ agency: AgencyModel) -> some View {
         VStack {
-            InspectorTabs(inspector: self)
-            Builder.build(self, closures(agency), params(agency))
+            switch context {
+            case .authoring:  InspectorTabs(inspector: self)
+            case .processing: TranscriptSelector(inspector: self)
+            }
+            switch context {
+            case .authoring:
+                Builder.build(self, closures(agency), params(agency))
+            case .processing:
+                TranscriptView()
+                    .environment(agency)
+            }
         }
-        .environment(agency)
         .ignoresSafeArea(.container, edges: .top)
-        .inspectorColumnWidth(min: 200, ideal: 330, max: 440)
         .toolbar(removing: .sidebarToggle)
         .toolbar { InspectorToolbar() }
+        .inspectorColumnWidth(
+            min: context == .processing ? 380 : 260,
+            ideal: context == .processing ? 440 : 300,
+            max: context == .processing ? 500 : 340
+        )
     }
 }
-

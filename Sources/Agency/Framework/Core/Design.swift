@@ -32,12 +32,10 @@ enum LayoutScale {
     static let sidebarRowVertical: CGFloat = 2
     static let sidebarRowLeading: CGFloat = 0
     static let sidebarRowTrailing: CGFloat = 0
-
     static let detailStackSpacing: CGFloat = 18
     static let detailTitleTop: CGFloat = 12
     static let detailHorizontal: CGFloat = 20
     static let detailBottom: CGFloat = 20
-
     static let listStackSpacing: CGFloat = 18
     static let listSectionSpacing: CGFloat = 24
     static let listGroupSpacing: CGFloat = 10
@@ -51,14 +49,12 @@ enum LayoutScale {
     static let listArtworkSpacing: CGFloat = 14
     static let listRowHorizontal: CGFloat = 10
     static let listRowVertical: CGFloat = 8
-
     static let gridStackSpacing: CGFloat = 22
     static let gridSectionSpacing: CGFloat = 14
     static let gridColumnMin: CGFloat = 180
     static let gridColumnMax: CGFloat = 210
     static let gridColumnSpacing: CGFloat = 22
     static let gridRowSpacing: CGFloat = 22
-
     static let cardStackSpacing: CGFloat = 8
     static let cardTextSpacing: CGFloat = 4
     static let tagHorizontal: CGFloat = 8
@@ -67,41 +63,59 @@ enum LayoutScale {
 
 enum Design {
     enum SheetEntry {
-        static let background = Color(red: 0.09875, green: 0.09875, blue: 0.09875)
-        static let card = Color(red: 0.09875, green: 0.09875, blue: 0.09875)
-        static let cardHeader   = Color(red: 0.071, green: 0.067, blue: 0.063)
-        static let stroke = Color.white.opacity(0.08)
-        static let accent = Color(red: 0.847, green: 0.624, blue: 0.376)
-        static let accentSoft = Color(red: 0.847, green: 0.624, blue: 0.376).opacity(0.14)
-        static let textPrimary = Color(red: 0.93, green: 0.92, blue: 0.90)
-        static let textSecondary = Color.white.opacity(0.55)
-        static let textTertiary = Color.white.opacity(0.35)
-        static let codeBlockBg = Color(red: 0.063, green: 0.059, blue: 0.055)
+        static let background = Design.Background.content
+        static let card = Design.Background.panel
+        static let cardHeader = Color.primary.opacity(0.06)
+        static let stroke = Color.primary.opacity(0.1)
+        static let accent = Color.secondary
+        static let accentSoft = Color.primary.opacity(0.06)
+        static let textPrimary = Color.primary
+        static let textSecondary = Color.secondary
+        static let textTertiary = Color.secondary.opacity(0.7)
+        static let codeBlockBg = Color.primary.opacity(0.08)
     }
 
     enum Component {
         static func icon(for ref: Reference) -> String {
             switch ref.type {
-            case is Artifact.Type:
-                let entry = Artifact.with(ref, { $0.entry })
-                switch entry {
-                case .app: return "app"
-                case .file: return "doc"
-                case .http: return "bookmark"
-                case .image: return "photo"
-                case .script: return "scroll"
-                case .skill: return "sparkles"
-                case .exec: return "terminal"
-                default: return "archivebox"
-                }
-            case is Control.Type: return "terminal"
-            case is Service.Type: return "app.connected.to.app.below.fill"
+            case is Artifact.Type: if let entry = Artifact.with(ref, { $0 })?.entry { return Design.Component.icon(for: entry) }
+            case is Control.Type: return "switch.2"
+            case is Route.Type: return "app.connected.to.app.below.fill"
+            case is Service.Type: return "gear"
+            case is Sheet.Type: for entry in Sheet.with(ref, { $0.entries }) ?? [] { return Design.Component.icon(for: entry) }
+            case is Transcript.Type: for entry in Transcript.with(ref, { $0.entries }) ?? [] { return Design.Component.icon(for: entry) }
+            case is Space.Type: return "app"
             case is Workspace.Type: return "cube.transparent"
-            case is Space.Type: return "square.split.bottomrightquarter"
-            case is Sheet.Type: return "text.alignleft"
-            case is Transcript.Type: return "bubble.left.and.text.bubble.right"
-            case is Route.Type: return "point.3.connected.trianglepath.dotted"
             default: return "app.grid"
+            }
+            return "app.grid"
+        }
+
+        static func icon(for entry: Artifact.Entry) -> String {
+            switch entry {
+            case .app: return "square.grid.2x2.fill"
+            case .file: return "folder"
+            case .http: return "doc.badge.ellipsis"
+            case .image: return "photo"
+            case .script: return "chevron.left.forwardslash.chevron.right"
+            case .skill: return "shippingbox"
+            case .exec: return "terminal"
+            }
+        }
+
+        static func icon(for entry: Sheet.Entry) -> String {
+            switch entry {
+            case .artifact(let ref), .control(let ref), .service(let ref), .sheet(let ref): return Component.icon(for: ref)
+            case .content: return "text.alignleft"
+            case .task: return "checkmark.app"
+            }
+        }
+
+        static func icon(for entry: Transcript.Entry) -> String {
+            switch entry {
+            case .event: return "23.calendar"
+            case .sheet(let ref, _): return Self.icon(for: ref)
+            case .transcript(let ref, _, _): return Component.icon(for: ref)
             }
         }
     }
@@ -122,17 +136,19 @@ enum Design {
 
     enum Tint {
         static var input: Color { Color(red: 0.780, green: 0.840, blue: 1.205) }
-        static var tasks: Color { Color(red: 1.25884, green: 0.84799, blue: 0.94741) }
         static var output: Color { Color(red: 1.03119, green: 0.81027, blue: 1.39988) }
 
+        static var active: Color { Color(red: 0.620, green: 0.590, blue: 0.640) }
+        static var observing: Color { Color(red: 0.890, green: 0.9, blue: 1.00) }
+        static var running: Color { Color(red: 0.743, green: 0.901, blue: 0.920) }
+        static var blocked: Color { Color(red: 0.801, green: 0.630, blue: 0.506) }
+        static var failed: Color { Color(red: 0.796, green: 0.555, blue: 0.662) }
+
         static var ready: Color { Color(red: 0.530, green: 0.720, blue: 0.680) }
-        static var active: Color { Color(red: 0.568, green: 0.419, blue: 0.517) }
-        static var blocked: Color { Color(red: 0.560, green: 0.430, blue: 0.280) }
-        static var inactive: Color { Color(red: 0.500, green: 0.480, blue: 0.580) }
 
         static var info: Color { Color(red: 0.980, green: 1.040, blue: 1.305) }
         static var request: Color { Color(red: 1.090, green: 0.920, blue: 1.120) }
-        static var warning: Color { Color(red: 0.88311, green: 0.71807, blue: 0.56035) }
+        static var warning: Color { Color(red: 0.89311, green: 0.71807, blue: 0.66035) }
         static var error: Color { Color(red: 0.77637, green: 0.45581, blue: 0.56299) }
 
         static var success: Color { Color(red: 0.62598, green: 0.74072, blue: 0.90186) }
@@ -140,7 +156,7 @@ enum Design {
 
         static var artifact: Color { Color(red: 0.85884, green: 1.00799, blue: 1.34741) }
         static var control: Color { Color(red: 1.15884, green: 1.00799, blue: 1.44741) }
-        static var service: Color { Color(red: 1.15884, green: 1.00799, blue: 1.44741) }
+        static var service: Color { Color(red: 0.743, green: 0.901, blue: 0.920) }
         static var structure: Color { Color(red: 1.27736, green: 1.36706, blue: 1.47239) }
         static var sheet: Color { Color(red: 1.46963, green: 1.08887, blue: 0.98027) }
         static var task: Color { Color(red: 1.38884, green: 0.81799, blue: 0.94741) }

@@ -1,39 +1,101 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-    <dict>
-        <key>UTExportedTypeDeclarations</key>
-        <array>
-            <dict>
-                <key>UTTypeConformsTo</key>
-                <array>
-                    <string>public.data</string>
-                </array>
-                <key>UTTypeDescription</key>
-                <string>Draggable interface object</string>
-                <key>UTTypeIdentifier</key>
-                <string>com.kaechle.Agency.artifact</string>
-                <key>UTTypeTagSpecification</key>
-                <dict>
-                    <key>public.mime-type</key>
-                    <string>application/vnd.kaechle.agency.boundary+json</string>
-                </dict>
-            </dict>
-            <dict>
-                <key>UTTypeConformsTo</key>
-                <array>
-                    <string>public.data</string>
-                </array>
-                <key>UTTypeDescription</key>
-                <string>Draggable structural object</string>
-                <key>UTTypeIdentifier</key>
-                <string>com.kaechle.Agency.boundary</string>
-                <key>UTTypeTagSpecification</key>
-                <dict>
-                    <key>public.mime-type</key>
-                    <string>application/vnd.kaechle.agency.boundary+json</string>
-                </dict>
-            </dict>
-        </array>
-    </dict>
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Draggable Space</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.kaechle.Agency.space</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.mime-type</key>
+				<string>application/vnd.kaechle.agency.space+json</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Draggable Workspace</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.kaechle.Agency.workspace</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.mime-type</key>
+				<string>application/vnd.kaechle.agency.workspace+json</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Draggable Sheet</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.kaechle.Agency.sheet</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.mime-type</key>
+				<string>application/vnd.kaechle.agency.sheet+json</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Draggable Artifact</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.kaechle.Agency.artifact</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.mime-type</key>
+				<string>application/vnd.kaechle.agency.artifact+json</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Draggable Control</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.kaechle.Agency.control</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.mime-type</key>
+				<string>application/vnd.kaechle.agency.control+json</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Draggable Service</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.kaechle.Agency.service</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.mime-type</key>
+				<string>application/vnd.kaechle.agency.service+json</string>
+			</dict>
+		</dict>
+	</array>
+</dict>
 </plist>

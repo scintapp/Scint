@@ -4,7 +4,7 @@ import SwiftUI
 
 enum MenuSearch {
     static func items(for query: String) -> [MenuItem] {
-        Runtime.shared.search(query, limit: 12).all.compactMap { result in
+        Runtime.shared.query(query, limit: 12).all.compactMap { result in
             guard entry(for: result.ref) != nil else { return nil }
             return MenuItem.reference(
                 result.ref,

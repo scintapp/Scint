@@ -12,6 +12,7 @@ final class EditorInputView: NSTextView {
     fileprivate var isApplyingTextStorageChange = false
 
     private var currentAttributedString: NSAttributedString {
+        if let textStorage { return NSAttributedString(attributedString: textStorage) }
         if let textStorage = backingContentStorage.textStorage { return NSAttributedString(attributedString: textStorage) }
         return backingContentStorage.attributedString ?? NSAttributedString(string: string)
     }
@@ -116,9 +117,7 @@ final class EditorInputView: NSTextView {
         let attributed = styler.attributedString(for: text)
         isApplyingTextStorageChange = true
         defer { isApplyingTextStorageChange = false }
-        if let textStorage = backingContentStorage.textStorage { textStorage.setAttributedString(attributed) }
-        else { backingContentStorage.attributedString = attributed }
-        backingContentStorage.synchronizeTextLayoutManagers(nil)
+        applyStyledText(attributed)
         renderedText = text
         setPlainSelectedRange(selectedRange)
         resetTypingAttributes()
@@ -176,8 +175,6 @@ final class EditorInputView: NSTextView {
 
     private func resetTypingAttributes() {
         guard let styler else { return }
-        font = styler.style.baseFont
-        textColor = styler.style.textColor
         insertionPointColor = styler.style.textColor
         typingAttributes = styler.typingAttributes
     }
@@ -193,10 +190,7 @@ final class EditorInputView: NSTextView {
         isApplyingTextStorageChange = true
         if wasUndoRegistrationEnabled { undoManager?.disableUndoRegistration() }
 
-        if let textStorage = backingContentStorage.textStorage { textStorage.setAttributedString(attributed) }
-        else { backingContentStorage.attributedString = attributed }
-
-        backingContentStorage.synchronizeTextLayoutManagers(nil)
+        applyStyledText(attributed)
 
         if wasUndoRegistrationEnabled { undoManager?.enableUndoRegistration() }
         setPlainSelectedRange(selection)
@@ -204,6 +198,17 @@ final class EditorInputView: NSTextView {
 
         renderedText = text
         invalidateEditorLayout()
+    }
+
+    private func applyStyledText(_ attributed: NSAttributedString) {
+        if let textStorage { textStorage.setAttributedString(attributed) }
+
+        if let backingTextStorage = backingContentStorage.textStorage {
+            if backingTextStorage !== textStorage { backingTextStorage.setAttributedString(attributed) }
+        }
+        else { backingContentStorage.attributedString = attributed }
+
+        backingContentStorage.synchronizeTextLayoutManagers(nil)
     }
 
     private func invalidateEditorLayout() {
@@ -267,15 +272,10 @@ struct EditorInput: NSViewRepresentable {
         context.coordinator.onFocusGained = onFocusGained
         context.coordinator.onCommand = onCommand
         context.coordinator.lastSelection = view.plainSelectedRange
-
-        // Re-register in case the view was recycled to a new id.
         focus.register(view, for: id)
-        // NO syncFocus — the coordinator owns first-responder now.
     }
 
-    static func dismantleNSView(_ view: EditorInputView, coordinator: Coordinator) {
-        // id capture: see note below.
-    }
+    static func dismantleNSView(_ view: EditorInputView, coordinator: Coordinator) {}
 
     private func clamp(_ range: NSRange, in string: String) -> NSRange {
         let length = (string as NSString).length
