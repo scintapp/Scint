@@ -1,4 +1,4 @@
-# AgencyService
+# AgencyHarness
 
 ### What it does
 
@@ -16,7 +16,7 @@ The capability surface, drawn from the XPC interface and the `request` dispatche
 - **Process lifecycle** — `start`, `stop`, `restart`, with PID as the handle.
 - **Bidirectional I/O** — child stdout/stderr is merged into one pipe and streamed back to the client in real time via an `emit` callback; `write` pushes data to the child's stdin, with an optional `close` to signal EOF.
 - **Introspection** — `list` (human-readable), `listJSON`, `inspect` (per-PID detail: uptime, restart count, policy, start time), and `status` (daemon-wide snapshot of all processes + services + daemon uptime).
-- **Service registry** — `registerService` / `unregisterService` / `services` / `startService` / `stopService` / `restartService`, keyed by string ID.
+- **Harness registry** — `registerHarness` / `unregisterHarness` / `services` / `startHarness` / `stopHarness` / `restartHarness`, keyed by string ID.
 - **Restart policies** — `never`, `onFailure`, `always`, evaluated in the process termination handler, with a delayed (1s) re-spawn and an incrementing restart counter.
 - **Environment resolution** — on first use it spins up a login shell (`$SHELL -lc "env -0"`) to capture the user's *real* interactive environment, so child processes inherit a realistic PATH etc. rather than the daemon's bare launchd environment.
 - **Variable expansion** — its own hand-rolled `$VAR` / `${VAR}` substitution over command and arguments against that resolved environment.
@@ -26,19 +26,19 @@ The capability surface, drawn from the XPC interface and the `request` dispatche
 
 The structure is clean and layered:
 
-**`Service.swift`** — the `@main` entry point. Stands up an `NSXPCListener`, wires a `ServiceDelegate`, touches `ProcessStore.shared` to force initialization, and parks on `RunLoop.main.run()`. Minimal by design.
+**`Harness.swift`** — the `@main` entry point. Stands up an `NSXPCListener`, wires a `HarnessDelegate`, touches `ProcessStore.shared` to force initialization, and parks on `RunLoop.main.run()`. Minimal by design.
 
-**`ServiceDelegate`** — per-connection setup. On each new XPC connection it sets the exported interface (`ServiceProviding`, what the daemon offers) and the remote interface (`ServiceHandling`, the callback channel back to the client), then instantiates a fresh `ServiceDaemon` as the exported object. So each client connection gets its own daemon facade with its own `ownerID`.
+**`HarnessDelegate`** — per-connection setup. On each new XPC connection it sets the exported interface (`HarnessProviding`, what the daemon offers) and the remote interface (`HarnessHandling`, the callback channel back to the client), then instantiates a fresh `HarnessDaemon` as the exported object. So each client connection gets its own daemon facade with its own `ownerID`.
 
-**`ServiceDaemon`** — the XPC-facing facade. It's almost pure delegation: nearly every method forwards to `ProcessStore.shared`, passing along its `ownerID` and an `emit` closure. The `emit` closure is the elegant bit — it resolves the remote object proxy (`ServiceHandling`) lazily and pushes output chunks back to *that specific client*. So the daemon instance is per-connection, but the actual state lives in a shared singleton.
+**`HarnessDaemon`** — the XPC-facing facade. It's almost pure delegation: nearly every method forwards to `ProcessStore.shared`, passing along its `ownerID` and an `emit` closure. The `emit` closure is the elegant bit — it resolves the remote object proxy (`HarnessHandling`) lazily and pushes output chunks back to *that specific client*. So the daemon instance is per-connection, but the actual state lives in a shared singleton.
 
 **`ProcessStore`** — the real engine, and the heart of the module. A `@unchecked Sendable` singleton guarding a `[pid_t: TrackedProcess]` dictionary behind a **concurrent dispatch queue** with barrier writes (the classic concurrent-read / barrier-write pattern). It owns spawning, the pipe wiring and readability handlers, the termination handler (cleanup + policy-driven restart), env resolution, variable expansion, and the JSON `request` router. `TrackedProcess` is the per-process record — process handle, pipes, owner, label, start time, restart count, policy, and the captured `emit`.
 
-**`ServiceRegistry`** — a second `@unchecked Sendable` singleton, also concurrent-queue-guarded, holding the *definitions* and the bidirectional `serviceID ↔ pid` mappings. It's deliberately separate from `ProcessStore`: the registry knows about *what services exist and which PID is currently fronting each*, while the store knows about *live processes*. This file also defines the shared value types — `ServicePolicy`, `ServiceDefinition`, and a `Handler` type that turns raw output chunks into `Event`s (either line-split messages or a single parsed event), which is clearly a seam into the `AgencyRuntime` layer.
+**`HarnessRegistry`** — a second `@unchecked Sendable` singleton, also concurrent-queue-guarded, holding the *definitions* and the bidirectional `serviceID ↔ pid` mappings. It's deliberately separate from `ProcessStore`: the registry knows about *what services exist and which PID is currently fronting each*, while the store knows about *live processes*. This file also defines the shared value types — `HarnessPolicy`, `HarnessDefinition`, and a `Handler` type that turns raw output chunks into `Event`s (either line-split messages or a single parsed event), which is clearly a seam into the `AgencyRuntime` layer.
 
-**`ServiceUtilities.swift`** — small free functions for JSON encode/parse and `Any?`→`Int32` coercion, the connective tissue for the JSON protocol.
+**`HarnessUtilities.swift`** — small free functions for JSON encode/parse and `Any?`→`Int32` coercion, the connective tissue for the JSON protocol.
 
-The dependency direction is notable: the daemon imports `AgencyRuntime` and leans on types from it (`ServiceProviding`, `ServiceHandling`, `Event`). So the *contracts* live upstream in the runtime, and this module is the privileged implementation that actually holds the processes.
+The dependency direction is notable: the daemon imports `AgencyRuntime` and leans on types from it (`HarnessProviding`, `HarnessHandling`, `Event`). So the *contracts* live upstream in the runtime, and this module is the privileged implementation that actually holds the processes.
 
 ### Initial thoughts
 
@@ -54,6 +54,6 @@ The **registry/store split** is the cleanest architectural decision here: stable
 
 And the **`Handler` / `Event` type** is the one outward-facing hint about the layer above: output isn't just streamed as text, it can be interpreted as structured events. That implies the runtime layer expects child processes to speak some event protocol on stdout, and this daemon is the transport for it.
 
-So my running map so far: **`AgencyService` = the privileged process-supervisor at the bottom of the stack**, contracts defined in `AgencyRuntime` above it, talking XPC to whatever clients sit higher. I'll expect the next layers to define those `ServiceProviding`/`ServiceHandling`/`Event` contracts and the client side that consumes this.
+So my running map so far: **`AgencyHarness` = the privileged process-supervisor at the bottom of the stack**, contracts defined in `AgencyRuntime` above it, talking XPC to whatever clients sit higher. I'll expect the next layers to define those `HarnessProviding`/`HarnessHandling`/`Event` contracts and the client side that consumes this.
 
 Ready for the next module whenever you are.

@@ -3,6 +3,40 @@ import Foundation
 import SwiftUI
 
 
+enum ConsoleMonitorFilter: Hashable, CaseIterable {
+    case all
+    case state(Composition.State)
+
+    static var allCases: [ConsoleMonitorFilter] {
+        [.all, .state(.active), .state(.running), .state(.blocked), .state(.failed), .state(.idle)]
+    }
+
+    var state: Composition.State? {
+        if case .state(let state) = self { return state }
+        return nil
+    }
+
+    var title: String {
+        state?.consoleName ?? "All"
+    }
+}
+
+struct ConsoleMonitorModel {
+    var filter: ConsoleMonitorFilter
+    var compositions: [Composition]
+
+    var visibleCompositions: [Composition] {
+        guard let state = filter.state else { return compositions }
+        return compositions.filter { $0.state == state }
+    }
+
+    func count(for filter: ConsoleMonitorFilter) -> Int {
+        guard let state = filter.state else { return compositions.count }
+        return compositions.filter { $0.state == state }.count
+    }
+}
+
+
 struct ProcessesOverview: View {
     private let states: [Composition.State] = [.active, .running, .blocked, .failed]
 

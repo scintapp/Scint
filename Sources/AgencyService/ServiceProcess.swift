@@ -14,7 +14,7 @@ private struct TrackedProcess {
     let started: Date
     var exitCode: Int32?
     var restartCount: Int
-    let policy: ServicePolicy
+    let policy: HarnessPolicy
     let emit: (Int32, String) -> Void
 }
 
@@ -22,12 +22,12 @@ final class ProcessStore: @unchecked Sendable {
     static let shared = ProcessStore()
     private let queue = DispatchQueue(label: "com.kaechle.agencyd.store", attributes: .concurrent)
     private var processes: [pid_t: TrackedProcess] = [:]
-    private let registry = ServiceRegistry.shared
+    private let registry = HarnessRegistry.shared
     private let iso8601 = ISO8601DateFormatter()
     private lazy var userEnvironment: [String: String] = resolveUserEnvironment()
     let started = Date()
 
-    func start(ownerID: UUID,command: String,arguments: [String],env: [String: String] = [:],label: String? = nil,restartCount: Int = 0,policy: ServicePolicy = .never,emit: @escaping (Int32, String) -> Void, reply: @escaping (Int32, String?, String?) -> Void) {
+    func start(ownerID: UUID,command: String,arguments: [String],env: [String: String] = [:],label: String? = nil,restartCount: Int = 0,policy: HarnessPolicy = .never,emit: @escaping (Int32, String) -> Void, reply: @escaping (Int32, String?, String?) -> Void) {
         let sanitizedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !sanitizedCommand.isEmpty else { reply(-1, nil, "Command is required")
@@ -362,12 +362,12 @@ final class ProcessStore: @unchecked Sendable {
         }
     }
 
-    func registerService(definition: ServiceDefinition, reply: @escaping (String) -> Void) {
+    func registerHarness(definition: HarnessDefinition, reply: @escaping (String) -> Void) {
         registry.register(definition)
         reply(jsonString(["ok": true, "id": definition.id]))
     }
 
-    func unregisterService(id: String, reply: @escaping (Bool) -> Void) {
+    func unregisterHarness(id: String, reply: @escaping (Bool) -> Void) {
         if let pid = registry.activePID(for: id) { stop(pid: pid) { _ in } }
         reply(registry.unregister(id))
     }
@@ -391,7 +391,7 @@ final class ProcessStore: @unchecked Sendable {
         }
     }
 
-    func startService(id: String, emit: @escaping (Int32, String) -> Void, ownerID: UUID, reply: @escaping (String) -> Void) {
+    func startHarness(id: String, emit: @escaping (Int32, String) -> Void, ownerID: UUID, reply: @escaping (String) -> Void) {
         guard let def = registry.definition(for: id) else {
             reply(jsonString(["ok": false, "error": "service_not_found", "id": id]))
             return
@@ -424,12 +424,12 @@ final class ProcessStore: @unchecked Sendable {
         }
     }
 
-    func stopService(id: String, reply: @escaping (Bool) -> Void) {
+    func stopHarness(id: String, reply: @escaping (Bool) -> Void) {
         guard let pid = registry.activePID(for: id) else { reply(false); return }
         stop(pid: pid, reply: reply)
     }
 
-    func restartService(id: String,emit: @escaping (Int32, String) -> Void,ownerID: UUID,reply: @escaping (String) -> Void) {
+    func restartHarness(id: String,emit: @escaping (Int32, String) -> Void,ownerID: UUID,reply: @escaping (String) -> Void) {
         guard let def = registry.definition(for: id) else {
             reply(jsonString(["ok": false, "error": "service_not_found", "id": id]))
             return
@@ -489,7 +489,7 @@ final class ProcessStore: @unchecked Sendable {
                 let command = (req["command"] as? String) ?? ""
                 let arguments = (req["arguments"] as? [String]) ?? []
                 let label = req["label"] as? String
-                let policy = ServicePolicy.from(req["policy"] as? String)
+                let policy = HarnessPolicy.from(req["policy"] as? String)
 
                 start(ownerID: ownerID, command: command, arguments: arguments,
                       label: label, policy: policy, emit: emit) { pid, _, error in
@@ -518,14 +518,14 @@ final class ProcessStore: @unchecked Sendable {
                 write(pid: pid, input: input, close: close, reply: reply)
 
             case "service/register":
-                guard let def = ServiceDefinition(params: req)
+                guard let def = HarnessDefinition(params: req)
                 else { reply(#"{"ok":false,"error":"invalid_service_definition"}"#); return }
-                registerService(definition: def, reply: reply)
+                registerHarness(definition: def, reply: reply)
 
             case "service/unregister":
                 guard let id = req["id"] as? String
                 else {reply(#"{"ok":false,"error":"missing_id"}"#); return }
-                unregisterService(id: id) { ok in reply(jsonString(["ok": ok, "id": id])) }
+                unregisterHarness(id: id) { ok in reply(jsonString(["ok": ok, "id": id])) }
 
             case "service/list":
                 services(reply: reply)
@@ -533,17 +533,17 @@ final class ProcessStore: @unchecked Sendable {
             case "service/start":
                 guard let id = req["id"] as? String
                 else { reply(#"{"ok":false,"error":"missing_id"}"#); return }
-                startService(id: id, emit: emit, ownerID: ownerID, reply: reply)
+                startHarness(id: id, emit: emit, ownerID: ownerID, reply: reply)
 
             case "service/stop":
                 guard let id = req["id"] as? String
                 else { reply(#"{"ok":false,"error":"missing_id"}"#); return }
-                stopService(id: id) { ok in reply(jsonString(["ok": ok, "id": id])) }
+                stopHarness(id: id) { ok in reply(jsonString(["ok": ok, "id": id])) }
 
             case "service/restart":
                 guard let id = req["id"] as? String
                 else { reply(#"{"ok":false,"error":"missing_id"}"#); return }
-                restartService(id: id, emit: emit, ownerID: ownerID, reply: reply)
+                restartHarness(id: id, emit: emit, ownerID: ownerID, reply: reply)
 
             default:
                 reply(jsonString(["ok": false, "error": "unknown_action", "action": action]))

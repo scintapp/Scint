@@ -20,10 +20,10 @@ import SwiftUI
 //    }
 //
 //    private func service(_ ref: Reference) -> some View {
-//        let name = Service.with(ref, { $0.name }) ?? "Service"
-//        let subtitle = Service.with(ref, { $0.entries.compactMap(\.rendered).joined(separator: " ") }) ?? ""
+//        let name = Harness.with(ref, { $0.name }) ?? "Harness"
+//        let subtitle = Harness.with(ref, { $0.entries.compactMap(\.rendered).joined(separator: " ") }) ?? ""
 //
-//        return EntryCard(icon: Design.Component.icon(for: ref), label: "Service") {
+//        return EntryCard(icon: Design.Component.icon(for: ref), label: "Harness") {
 //            HStack(spacing: 10) {
 //                EntryGlyph(icon: Design.Component.icon(for: ref))
 //                EntryTextBlock(title: name, detail: subtitle)

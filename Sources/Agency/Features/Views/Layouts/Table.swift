@@ -102,22 +102,37 @@ struct TableRow: View {
     let item: ItemParams
     let columns: [ColumnParams]
     let closures: Closures
+    let expanded: Bool
     let selected: Bool
-    let action: (() -> Void)?
+    let selectAction: (() -> Void)?
+    let openAction: (() -> Void)?
+    let detail: AnyView?
+    let cellContent: ((ColumnParams, ItemParams) -> AnyView?)?
 
-    init(item: ItemParams, columns: [ColumnParams], closures: Closures) {
+    init(
+        item: ItemParams,
+        columns: [ColumnParams],
+        closures: Closures,
+        expanded: Bool = false,
+        detail: AnyView? = nil,
+        cellContent: ((ColumnParams, ItemParams) -> AnyView?)? = nil
+    ) {
         self.item = item
         self.columns = columns
         self.closures = closures
+        self.expanded = expanded
         self.selected = closures.selected?(item) ?? false
-        self.action = closures.onSelect.map { onSelect in { onSelect(item) } }
+        self.selectAction = closures.onSelect.map { onSelect in { onSelect(item) } }
+        self.openAction = closures.onOpen.map { onOpen in { onOpen(item) } }
+        self.detail = detail
+        self.cellContent = cellContent
     }
 
     private var row: some View {
         HStack(spacing: 0) {
             ForEach(columns) { column in
                 TableCell(column: column) {
-                    cell(column.value, item)
+                    cell(column, item)
                 }
             }
         }
@@ -133,14 +148,29 @@ struct TableRow: View {
     }
 
     var body: some View {
-        Group {
-            if let action { Button(action: action) { row } .buttonStyle(.plain) }
-            else { row }
+        VStack(spacing: 0) {
+            row
+                .gesture(
+                    TapGesture(count: 2).onEnded { openAction?() }
+                        .exclusively(before: TapGesture(count: 1).onEnded { selectAction?() })
+                )
+                .onHover { isHovered = $0 }
+
+            if expanded, let detail {
+                detail
+            }
         }
-        .onHover { isHovered = $0 }
     }
 
-    @ViewBuilder private func cell(_ value: ColumnParams.ColumnValue, _ item: ItemParams) -> some View {
+    @ViewBuilder private func cell(_ column: ColumnParams, _ item: ItemParams) -> some View {
+        if let custom = cellContent?(column, item) {
+            custom
+        } else {
+            defaultCell(column.value, item)
+        }
+    }
+
+    @ViewBuilder private func defaultCell(_ value: ColumnParams.ColumnValue, _ item: ItemParams) -> some View {
         switch value {
         case .primary:
             TableItemIcon(item: item)
@@ -184,6 +214,25 @@ struct TableLayout: View {
     let section: ListParams
     let columns: [ColumnParams]
     let closures: Closures
+    let expanded: (ItemParams) -> Bool
+    let detail: (ItemParams) -> AnyView?
+    let cellContent: ((ColumnParams, ItemParams) -> AnyView?)?
+
+    init(
+        section: ListParams,
+        columns: [ColumnParams],
+        closures: Closures,
+        expanded: ((ItemParams) -> Bool)? = nil,
+        detail: ((ItemParams) -> AnyView?)? = nil,
+        cellContent: ((ColumnParams, ItemParams) -> AnyView?)? = nil
+    ) {
+        self.section = section
+        self.columns = columns
+        self.closures = closures
+        self.expanded = expanded ?? closures.tableExpanded ?? { _ in false }
+        self.detail = detail ?? closures.tableDetail ?? { _ in nil }
+        self.cellContent = cellContent ?? closures.tableCell
+    }
 
     var body: some View { tableContent }
 
@@ -197,7 +246,14 @@ struct TableLayout: View {
                 }
                 VStack {
                     ForEach(section.items) { item in
-                        TableRow(item: item, columns: columns, closures: closures)
+                        TableRow(
+                            item: item,
+                            columns: columns,
+                            closures: closures,
+                            expanded: expanded(item),
+                            detail: detail(item),
+                            cellContent: cellContent
+                        )
                     }
                 }
             }

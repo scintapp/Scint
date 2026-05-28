@@ -14,7 +14,7 @@ final class ArtifactManager: Model {
         return Workspace.with(workspace) { workspace in
             workspace.components.compactMap { ref in
                 guard Artifact.with(ref, {
-                    if case .file(let url) = $0.entry { return url?.isFileURL == true }
+                    if case .file(let url) = $0.kind { return url?.isFileURL == true }
                     return false
                 }) == true else { return nil }
                 return ref
@@ -32,7 +32,7 @@ final class ArtifactManager: Model {
         return isDirectory.boolValue
     }
 
-    func children(of entry: Artifact.Entry) -> [URL] {
+    func children(of entry: Artifact.Kind) -> [URL] {
         entry.children
             .map { $0 }
             .filter { child in

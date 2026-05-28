@@ -12,7 +12,7 @@ enum Renderer {
             case is Artifact.Type: components.append(render(ref, Artifact.self))
             case is Sheet.Type: components.append(render(ref, Sheet.self))
             case is Transcript.Type: components.append(render(ref, Transcript.self))
-            case is Control.Type: interfaces.append(render(ref, Control.self))
+            case is Command.Type: interfaces.append(render(ref, Command.self))
             case is Route.Type: structures.append(render(ref, Route.self))
             case is Closure.Type: structures.append(render(ref, Closure.self))
             case is Space.Type: structures.append(render(ref, Space.self))

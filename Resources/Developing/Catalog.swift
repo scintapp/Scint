@@ -253,7 +253,7 @@
 //            case .script: "Scripts"
 //            case .skill: "Skills"
 //            case .control: "Controls"
-//            case .service: "Services"
+//            case .service: "Harness"
 //            }
 //        }
 //

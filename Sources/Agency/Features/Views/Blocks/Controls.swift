@@ -242,7 +242,7 @@ struct ProcessControls: View {
     @Environment(AgencyModel.self) var agency
     private var ref: Reference { agency.session.space ?? agency.session.workspace }
     private var services: [Reference] { Workspace.with(agency.session.workspace, { $0.services }) ?? [] }
-    private var selectedService: Reference? {
+    private var selectedHarness: Reference? {
         if let service = agency.session.service, services.contains(service) { return service }
         return services.first
     }
@@ -277,21 +277,21 @@ struct ProcessControls: View {
                         else {
                             ForEach(services) { ref in
                                 Button { agency.session.service = ref } label: {
-                                    Label(ref.name, systemImage: ref == selectedService ? "checkmark" : "arrow.2.squarepath")
+                                    Label(ref.name, systemImage: ref == selectedHarness ? "checkmark" : "arrow.2.squarepath")
                                 }
                             }
                         }
                     } label: {
                         Button { } label: {
-                            if let selectedService {
-                                Image(systemName: Design.Component.icon(for: selectedService))
+                            if let selectedHarness {
+                                Image(systemName: Design.Component.icon(for: selectedHarness))
                                     .foregroundStyle(.primary.opacity(0.9))
                                     .font(.system(size: 9, weight: .semibold))
-                                Text("\(Service.with(selectedService, { $0 })?.name ?? "Select Service")")
+                                Text("\(Harness.with(selectedHarness, { $0 })?.name ?? "Select Harness")")
                                     .foregroundStyle(.primary.opacity(0.9))
                                     .font(.system(size: 11))
                             } else {
-                                Text("Select Service")
+                                Text("Select Harness")
                                     .foregroundStyle(.primary.opacity(0.9))
                                     .font(.system(size: 11))
                             }
@@ -303,16 +303,12 @@ struct ProcessControls: View {
                 Spacer()
                 Spacer()
 
-                ControlGroup {
-                    Button {
-                        agency.process(service: selectedService)
-                    } label: {
+                Group {
+                    Button { agency.process(service: selectedHarness) } label: {
                         Image(systemName: isRunning ? "circle.fill" : "play.fill")
                             .foregroundStyle(isRunning ? Design.Tint.running : .primary)
                     }
-
-                    .font(.system(size: 9))
-                    .disabled(agency.session.space == nil || selectedService == nil)
+                    .disabled(agency.session.space == nil || selectedHarness == nil)
                     .help(isRunning ? "Process running" : "Start a process from this space")
                 }
                 .controlGroupStyle(.navigation)

@@ -26,11 +26,11 @@ struct ComponentIcon: View {
         if let ref = item.ref {
             switch ref.type {
             case is Artifact.Type:
-                if let entry = Artifact.with(ref, { $0.entry }) { artifact(entry) }
+                if let entry = Artifact.with(ref, { $0.kind }) { artifact(entry) }
                 else { app(Design.Component.icon(for: ref), Design.Tint.artifact) }
-            case is Control.Type: app(Design.Component.icon(for: ref), Design.Tint.control)
+            case is Command.Type: app(Design.Component.icon(for: ref), Design.Tint.control)
             case is Route.Type: route
-            case is Service.Type: service
+            case is Harness.Type: service
             case is Sheet.Type: sheet
             case is Transcript.Type: transcript
             case is Space.Type, is Workspace.Type: space
@@ -41,7 +41,7 @@ struct ComponentIcon: View {
         }
     }
 
-    @ViewBuilder private func artifact(_ entry: Artifact.Entry) -> some View {
+    @ViewBuilder private func artifact(_ entry: Artifact.Kind) -> some View {
         switch entry {
         case .app:
             app(Design.Component.icon(for: entry), Design.Tint.artifact)
@@ -87,12 +87,76 @@ struct ComponentIcon: View {
 
     private var space: some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-        return VStack { }
-            .frame(width: tile, height: tile)
-            .clipShape(shape)
-            .glassEffect(.regular.tint(Design.Tint.success.opacity(0.06)), in: shape)
-            .overlay(shape.strokeBorder(Design.Tint.success.opacity(0.14), lineWidth: 0.5))
-            .contentShape(shape)
+        let preview = spacePreview
+
+        return ZStack {
+            if preview.items.isEmpty {
+                Image(systemName: "square.dashed")
+                    .font(.system(size: size == .grid ? 18 : 8, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.28))
+            } else {
+                SpaceIconPreview(preview: preview, size: size)
+            }
+        }
+        .frame(width: tile, height: tile)
+        .clipShape(shape)
+        .glassEffect(.regular.tint(Design.Tint.success.opacity(0.06)), in: shape)
+        .overlay(shape.strokeBorder(Design.Tint.success.opacity(0.14), lineWidth: 0.5))
+        .contentShape(shape)
+    }
+
+    private var spacePreview: SpaceIconPreviewModel {
+        let refs = spaceContentReferences
+        let previewCount = refs.count > 4 ? 3 : 4
+        let items = refs.prefix(previewCount).map {
+            SpaceIconPreviewModel.Item(
+                ref: $0,
+                symbol: Design.Component.icon(for: $0),
+                tint: previewTint(for: $0)
+            )
+        }
+
+        return .init(items: items, overflow: max(0, refs.count - items.count))
+    }
+
+    private var spaceContentReferences: [Reference] {
+        guard let ref = item.ref else { return [] }
+
+        switch ref.type {
+        case is Workspace.Type:
+            return spaceContents(
+                spaces: Workspace.with(ref, { Array($0.spaces) }) ?? [],
+                closure: Workspace.with(ref, { $0.closure }),
+                routes: []
+            )
+        case is Space.Type:
+            return spaceContents(
+                spaces: Space.with(ref, { Array($0.spaces) }) ?? [],
+                closure: Space.with(ref, { $0.closure }),
+                routes: Space.with(ref, { Array($0.routes) }) ?? []
+            )
+        default:
+            return []
+        }
+    }
+
+    private func spaceContents(spaces: [Reference], closure: Reference?, routes: [Reference]) -> [Reference] {
+        let sheets = closure.flatMap { Closure.with($0, { Array($0.sheets) }) } ?? []
+        let components = closure.flatMap { Closure.with($0, { Array($0.components) }) } ?? []
+        return spaces + sheets + components + routes
+    }
+
+    private func previewTint(for ref: Reference) -> Color {
+        switch ref.type {
+        case is Artifact.Type: Design.Tint.artifact
+        case is Command.Type: Design.Tint.control
+        case is Route.Type: Design.Tint.structure
+        case is Harness.Type: Design.Tint.service
+        case is Sheet.Type: Design.Tint.sheet
+        case is Transcript.Type: Design.Tint.running
+        case is Space.Type, is Workspace.Type: Design.Tint.success
+        default: Design.Tint.active
+        }
     }
 
     private func app(_ systemName: String, _ tint: Color) -> some View {
@@ -209,6 +273,98 @@ struct ComponentIcon: View {
     }
 }
 
+private struct SpaceIconPreviewModel {
+    struct Item: Identifiable {
+        let ref: Reference
+        let symbol: String
+        let tint: Color
+
+        var id: Reference { ref }
+    }
+
+    let items: [Item]
+    let overflow: Int
+}
+
+private struct SpaceIconPreview: View {
+    let preview: SpaceIconPreviewModel
+    let size: ComponentIcon.Size
+
+    private struct Cell: Identifiable {
+        let id: AnyHashable
+        let symbol: String?
+        let label: String?
+        let tint: Color
+    }
+
+    private var cells: [Cell] {
+        let content = preview.items.map {
+            Cell(id: AnyHashable($0.id), symbol: $0.symbol, label: nil, tint: $0.tint)
+        }
+
+        guard preview.overflow > 0 else { return content }
+        return content + [
+            Cell(
+                id: "overflow",
+                symbol: nil,
+                label: "+\(preview.overflow)",
+                tint: Design.Tint.active
+            )
+        ]
+    }
+
+    private var cellSide: CGFloat { size == .grid ? 18 : 7 }
+    private var gap: CGFloat { size == .grid ? 4 : 2 }
+    private var cornerRadius: CGFloat { size == .grid ? 5 : 2 }
+    private var symbolSize: CGFloat { size == .grid ? 10 : 4.8 }
+    private var labelSize: CGFloat { size == .grid ? 8.5 : 3.8 }
+
+    var body: some View {
+        VStack(spacing: gap) {
+            ForEach(0..<2, id: \.self) { row in
+                HStack(spacing: gap) {
+                    ForEach(0..<2, id: \.self) { column in
+                        let index = row * 2 + column
+                        if index < cells.count {
+                            previewCell(cells[index])
+                        } else {
+                            Color.clear.frame(width: cellSide, height: cellSide)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func previewCell(_ cell: Cell) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        return ZStack {
+            LinearGradient(
+                colors: [cell.tint.opacity(0.52), Color.primary.opacity(0.16)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            if let symbol = cell.symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: symbolSize, weight: .semibold))
+                    .foregroundStyle(.primary.opacity(0.78))
+            } else if let label = cell.label {
+                Text(label)
+                    .font(.system(size: labelSize, weight: .semibold))
+                    .foregroundStyle(.primary.opacity(0.76))
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
+            }
+        }
+        .frame(width: cellSide, height: cellSide)
+        .background(shape.fill(Color.primary.opacity(0.06)))
+        .overlay(shape.strokeBorder(.black.opacity(0.16), lineWidth: 0.5))
+        .clipShape(shape)
+    }
+}
+
 struct ItemIcon: View {
     @Environment(AgencyModel.self) private var agency
     let item: ItemParams
@@ -223,13 +379,21 @@ struct ItemIcon: View {
             ComponentIcon(item: item)
 
             Text(item.name)
-                .frame(maxWidth: 128, maxHeight: 20)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.primary.opacity(0.9))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
+                .truncationMode(.tail)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 112, minHeight: 30, maxHeight: 34, alignment: .top)
         }
-        .frame(width: 96, height: 128)
+        .frame(width: 96, height: 112)
+        .background {
+            shape.fill(selected ? Design.Tint.success.opacity(0.12) : Color.clear)
+        }
+        .overlay {
+            shape.strokeBorder(selected ? Design.Tint.success.opacity(0.34) : Color.clear, lineWidth: 1)
+        }
         .contentShape(shape)
         .gesture(
             TapGesture(count: 2).onEnded { closures.onOpen?(item) }

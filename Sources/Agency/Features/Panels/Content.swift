@@ -18,7 +18,7 @@ struct ContentToolbar: ToolbarContent {
 @Observable final class Content: Panel {
     var model: Model = .space
     var layout: Layout = .grid
-    var position: CGFloat = 280
+    var position: CGFloat = 400
     var presented: Bool = true
     var expanded: Set<AnyHashable> = []
 
@@ -51,8 +51,44 @@ struct ContentToolbar: ToolbarContent {
         }
     }
 
+//    @MainActor func build(_ agency: AgencyModel) -> some View {
+//        @Bindable var console = agency.studio.console
+//        @Bindable var content = self
+//        let closures = closures(agency)
+//        let params = params(agency)
+//    
+//        return HSplitView {
+//            GeometryReader { proxy in
+//                ScrollView {
+//                    Color.clear.frame(height: 80)
+//                    if let _ = agency.session.space {
+//                        Builder.build(self, closures, params)
+//                            .frame(maxWidth: .infinity, minHeight: max(proxy.size.height - 90, 0), alignment: .topLeading)
+//                    } else {
+//                        Builder.build(self, closures, params)
+//                            .frame(maxWidth: .infinity, minHeight: max(proxy.size.height - 90, 0), alignment: .topLeading)
+//                    }
+//                }
+//            }
+//            ScrollView {
+//                Color.clear.frame(height: 80)
+//                if let ref = agency.session.sheet {
+//                    Editor(ref: ref)
+//                        .padding(.top, 20)
+//                        .frame(maxWidth: 720, maxHeight: .infinity, alignment: .top)
+//                }
+//            }
+//        }
+//        .environment(agency)
+//        .ignoresSafeArea(.container, edges: .top)
+//        .scrollEdgeEffectStyle(.soft, for: .top)
+//        .toolbar(removing: .title)
+//        .toolbar { ContentToolbar() }
+//    }
+
     @MainActor func build(_ agency: AgencyModel) -> some View {
         @Bindable var console = agency.studio.console
+        @Bindable var content = self
         let closures = closures(agency)
         let params = params(agency)
 
@@ -67,18 +103,18 @@ struct ContentToolbar: ToolbarContent {
                                 .padding(.top, 20)
                                 .frame(maxWidth: 720, maxHeight: .infinity)
                         }
-
+        
                     case .space:
                         Builder.build(self, closures, params)
                             .frame(maxWidth: .infinity, minHeight: max(proxy.size.height - 90, 0), alignment: .topLeading)
-
+        
                     case .workspace:
                         Builder.build(self, closures, params)
                             .frame(maxWidth: .infinity, minHeight: max(proxy.size.height - 90, 0), alignment: .topLeading)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Design.Background.content)
+                .background(Design.Background.base)
             }
         } bottom: {
             agency.studio.console.build(agency)

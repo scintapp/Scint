@@ -47,7 +47,7 @@
 //   case paragraph = "Paragraph"
 //   case task = "Task"
 //   case tool = "Tool call"
-//   case service = "Service"
+//   case service = "Harness"
 //   case file = "File"
 //   case link = "Link"
 //   case sheet = "Sheet"
@@ -199,7 +199,7 @@
 //           [
 //               ExecutionLibraryItem(kind: .task, title: "Task", subtitle: "todo for agent or user"),
 //               ExecutionLibraryItem(kind: .tool, title: "Tool call", subtitle: "invoke a function"),
-//               ExecutionLibraryItem(kind: .service, title: "Service", subtitle: "third-party connection"),
+//               ExecutionLibraryItem(kind: .service, title: "Harness", subtitle: "third-party connection"),
 //               ExecutionLibraryItem(kind: .file, title: "File", subtitle: "attach a resource"),
 //               ExecutionLibraryItem(kind: .link, title: "Link", subtitle: "external reference"),
 //               ExecutionLibraryItem(kind: .sheet, title: "Sheet", subtitle: "nested document surface")
@@ -216,7 +216,7 @@
 //           ]
 //       ),
 //       (
-//           "Services",
+//           "Harness",
 //           [
 //               ExecutionLibraryItem(kind: .service, title: "OpenAI", subtitle: "models and files"),
 //               ExecutionLibraryItem(kind: .service, title: "GitHub", subtitle: "issues and pull requests"),

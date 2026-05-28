@@ -64,15 +64,15 @@ struct RootSpaceMap: Mapper {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                return agency.session.selected(ref)
+                return agency.session.focused(ref, entry: item.entryId, url: item.path)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
-                agency.select(ref)
+                agency.focus(ref, from: item.origin, entry: item.entryId, url: item.path)
             },
             onOpen: { item in
                 guard let ref = item.ref else { return }
-                agency.select(ref)
+                agency.select(ref, from: item.origin, entry: item.entryId, url: item.path)
             },
             surfaceActions: {
                 Action.surfaceItems(for: agency.session.workspace)
@@ -116,8 +116,8 @@ struct RootSpaceMap: Mapper {
                 tags: [{
                     switch ref.type {
                     case is Artifact.Type: "Artifact"
-                    case is Control.Type: "Control"
-                    case is Service.Type: "Service"
+                    case is Command.Type: "Control"
+                    case is Harness.Type: "Harness"
                     case is Transcript.Type: "Transcript"
                     default: "Component"
                     }
@@ -147,15 +147,15 @@ struct SpaceMap: Mapper {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                return agency.session.selected(ref)
+                return agency.session.focused(ref, entry: item.entryId, url: item.path)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
-                agency.select(ref)
+                agency.focus(ref, from: item.origin, entry: item.entryId, url: item.path)
             },
             onOpen: { item in
                 guard let ref = item.ref else { return }
-                agency.select(ref)
+                agency.select(ref, from: item.origin, entry: item.entryId, url: item.path)
             },
             surfaceActions: {
                 guard let owner = agency.session.space else { return [] }
@@ -202,8 +202,8 @@ struct SpaceMap: Mapper {
                 tags: [{
                     switch ref.type {
                     case is Artifact.Type: "Artifact"
-                    case is Control.Type: "Control"
-                    case is Service.Type: "Service"
+                    case is Command.Type: "Control"
+                    case is Harness.Type: "Harness"
                     case is Transcript.Type: "Transcript"
                     default: "Component"
                     }

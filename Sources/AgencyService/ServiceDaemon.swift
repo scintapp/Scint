@@ -3,7 +3,7 @@ import Foundation
 import Darwin
 
 
-public final class ServiceDaemon: NSObject, ServiceProviding {
+public final class HarnessDaemon: NSObject, HarnessProviding {
     private let connection: NSXPCConnection
     private let ownerID = UUID()
     private let store = ProcessStore.shared
@@ -49,39 +49,39 @@ public final class ServiceDaemon: NSObject, ServiceProviding {
         store.request(ownerID: ownerID, json: json, emit: emit, reply: reply)
     }
 
-    public func registerService(_ json: String, reply: @escaping (String) -> Void) {
-        guard let dict = parseJSONDict(json), let def = ServiceDefinition(params: dict)
+    public func registerHarness(_ json: String, reply: @escaping (String) -> Void) {
+        guard let dict = parseJSONDict(json), let def = HarnessDefinition(params: dict)
         else { reply(#"{"ok":false,"error":"invalid_service_definition"}"#); return }
-        store.registerService(definition: def, reply: reply)
+        store.registerHarness(definition: def, reply: reply)
     }
 
-    public func unregisterService(_ id: String, reply: @escaping (Bool) -> Void) {
-        store.unregisterService(id: id, reply: reply)
+    public func unregisterHarness(_ id: String, reply: @escaping (Bool) -> Void) {
+        store.unregisterHarness(id: id, reply: reply)
     }
 
     public func services(reply: @escaping (String) -> Void) {
         store.services(reply: reply)
     }
 
-    public func startService(_ id: String, reply: @escaping (String) -> Void) {
-        store.startService(id: id, emit: emit, ownerID: ownerID, reply: reply)
+    public func startHarness(_ id: String, reply: @escaping (String) -> Void) {
+        store.startHarness(id: id, emit: emit, ownerID: ownerID, reply: reply)
     }
 
-    public func stopService(_ id: String, reply: @escaping (Bool) -> Void) {
-        store.stopService(id: id, reply: reply)
+    public func stopHarness(_ id: String, reply: @escaping (Bool) -> Void) {
+        store.stopHarness(id: id, reply: reply)
     }
 
-    public func restartService(_ id: String, reply: @escaping (String) -> Void) {
-        store.restartService(id: id, emit: emit, ownerID: ownerID, reply: reply)
+    public func restartHarness(_ id: String, reply: @escaping (String) -> Void) {
+        store.restartHarness(id: id, emit: emit, ownerID: ownerID, reply: reply)
     }
 
     private func emit(pid: Int32, chunk: String) {
         client?.handle(pid: pid, chunk: chunk)
     }
 
-    private var client: ServiceHandling? {
+    private var client: HarnessHandling? {
         connection.remoteObjectProxyWithErrorHandler { error in
             NSLog("agencyd: XPC client error: \(error)")
-        } as? ServiceHandling
+        } as? HarnessHandling
     }
 }

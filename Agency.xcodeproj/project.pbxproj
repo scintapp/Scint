@@ -10,6 +10,7 @@
 		7C444BBC2F686AC400BA95C3 /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C444BBB2F686AC400BA95C3 /* AgencyRuntime */; };
 		7C69AB062F8B46460008D611 /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C69AB052F8B46460008D611 /* AgencyRuntime */; };
 		7CB1B9D42FC5778E00BFEA35 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB1B9D32FC5778E00BFEA35 /* MCP */; };
+		7CB1C5952FC7388A00BBE273 /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C69AB1D2F8B4B730008D611 /* AgencyRuntime */; };
 		7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */; };
 /* End PBXBuildFile section */
 
@@ -91,12 +92,9 @@
 				AgencyConsole/agency.swift,
 				AgencyConsole/Content/CoreCommandsAddon.swift,
 				AgencyConsole/Content/StaticCommandsAddon.swift,
-				AgencyConsole/Core/CommandError.swift,
-				AgencyConsole/Core/CommandModels.swift,
+				AgencyConsole/Core/Command.swift,
 				AgencyConsole/Core/CommandParser.swift,
-				AgencyConsole/Core/CommandRegistry.swift,
 				AgencyConsole/Core/CommandRunner.swift,
-				AgencyConsole/Core/Renderer.swift,
 				AgencyConsole/Extensions/Reminders/Bridge.swift,
 				AgencyConsole/Extensions/Reminders/Documentation.swift,
 				AgencyConsole/Extensions/Reminders/Models.swift,
@@ -114,21 +112,21 @@
 		7C857AD52F05270000D4187D /* Exceptions for "Resources" folder in "AgencyStudio" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Browser.swift,
-				Catalog.swift,
-				Editor.swift,
-				Executor.swift,
+				Developing/Browser.swift,
+				Developing/Catalog.swift,
+				Developing/Editor.swift,
+				Developing/Executor.swift,
+				Developing/Library.swift,
+				Developing/Renderer.swift,
+				Developing/Sheet.swift,
 				Info.plist,
-				Library.swift,
-				Renderer.swift,
-				Sheet.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* AgencyStudio */;
 		};
 		7CB1C4A22FC6813000BBE273 /* Exceptions for "Resources" folder in "agencyd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Renderer.swift,
+				Developing/Renderer.swift,
 			);
 			target = 7C69AAF12F8B45D90008D611 /* agencyd */;
 		};
@@ -138,17 +136,9 @@
 				AgencyConsole/agency.swift,
 				AgencyConsole/Content/CoreCommandsAddon.swift,
 				AgencyConsole/Content/StaticCommandsAddon.swift,
-				AgencyConsole/Core/CommandError.swift,
-				AgencyConsole/Core/CommandModels.swift,
+				AgencyConsole/Core/Command.swift,
 				AgencyConsole/Core/CommandParser.swift,
-				AgencyConsole/Core/CommandRegistry.swift,
 				AgencyConsole/Core/CommandRunner.swift,
-				AgencyConsole/Core/Renderer.swift,
-				AgencyConsole/Extensions/Reminders/Bridge.swift,
-				AgencyConsole/Extensions/Reminders/Documentation.swift,
-				AgencyConsole/Extensions/Reminders/Models.swift,
-				AgencyConsole/Extensions/Reminders/RemindersAddon.swift,
-				AgencyConsole/Extensions/Reminders/Renderer.swift,
 			);
 			target = 7CB1C5532FC7380700BBE273 /* agency */;
 		};
@@ -194,6 +184,7 @@
 		7CB1C5512FC7380700BBE273 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				7CB1C5952FC7388A00BBE273 /* AgencyRuntime in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -279,6 +270,9 @@
 			buildRules = (
 			);
 			name = agency;
+			packageProductDependencies = (
+				7C69AB1D2F8B4B730008D611 /* AgencyRuntime */,
+			);
 			productName = AgencyConsole;
 			productReference = 7CB1C5542FC7380700BBE273 /* agency */;
 			productType = "com.apple.product-type.tool";

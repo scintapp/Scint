@@ -26,11 +26,11 @@ struct CompositionMap: Mapper {
         let closure = Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure })
         let attachedComponents = closure.flatMap { Closure.with($0, { $0.components }) } ?? []
         let attachedSheets = closure.flatMap { Closure.with($0, { $0.sheets }) } ?? []
-        let loadedService = attachedComponents.first { $0.type is Service.Type }
-        let attachedControls = attachedComponents.filter { $0.type is Control.Type }
+        let loadedHarness = attachedComponents.first { $0.type is Harness.Type }
+        let attachedControls = attachedComponents.filter { $0.type is Command.Type }
         let attachedArtifacts = attachedComponents.filter { $0.type is Artifact.Type }
         let attachedFiles = attachedComponents.filter { ref in
-            Artifact.with(ref, { $0.entry.url?.isFileURL == true }) == true
+            Artifact.with(ref, { $0.kind.url?.isFileURL == true }) == true
         }
 
         func libraryItems<T: Resolvable>(_ type: T.Type, image: String, tint: Color) -> [ItemParams] {
@@ -80,13 +80,13 @@ struct CompositionMap: Mapper {
                                   image: "switch.2",
                                   trailingKind: .load,
                                   count: attachedControls.count,
-                                  items: libraryItems(Control.self, image: "switch.2", tint: Design.Tint.control)),
-                            .init(name: "Services",
+                                  items: libraryItems(Command.self, image: "switch.2", tint: Design.Tint.control)),
+                            .init(name: "Harness",
                                   image: "arrow.2.squarepath",
                                   trailingKind: .load,
-                                  count: loadedService == nil ? 0 : 1,
-                                  description: loadedService.map { Runtime.shared.get($0).name } ?? "None",
-                                  items: libraryItems(Service.self, image: "arrow.2.squarepath", tint: Design.Tint.service)),
+                                  count: loadedHarness == nil ? 0 : 1,
+                                  description: loadedHarness.map { Runtime.shared.get($0).name } ?? "None",
+                                  items: libraryItems(Harness.self, image: "arrow.2.squarepath", tint: Design.Tint.service)),
                         ]
                     ),
                 .init(

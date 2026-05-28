@@ -11,7 +11,6 @@ extension UTType {
     nonisolated static let artifact = UTType(exportedAs: "com.kaechle.Agency.artifact")
     nonisolated static let control = UTType(exportedAs: "com.kaechle.Agency.control")
     nonisolated static let service = UTType(exportedAs: "com.kaechle.Agency.service")
-
     nonisolated static var agency: [UTType] { [.workspace, .space, .sheet, .artifact, .control, .service] }
 }
 
@@ -120,8 +119,8 @@ enum ReferenceTransfer {
         case is Sheet.Type: Sheet.with(ref, { _ in true }) == true
         case is Transcript.Type: Transcript.with(ref, { _ in true }) == true
         case is Artifact.Type: Artifact.with(ref, { _ in true }) == true
-        case is Control.Type: Control.with(ref, { _ in true }) == true
-        case is Service.Type: Service.with(ref, { _ in true }) == true
+        case is Command.Type: Command.with(ref, { _ in true }) == true
+        case is Harness.Type: Harness.with(ref, { _ in true }) == true
         default: false
         }
     }
@@ -135,7 +134,7 @@ enum ReferenceTransfer {
         guard let ref = item.ref else { return nil }
         guard let path = item.path else { return ref }
         guard ref.type is Artifact.Type else { return nil }
-        if Artifact.with(ref, { $0.entry.url }) == path { return ref }
+        if Artifact.with(ref, { $0.kind.url }) == path { return ref }
         return create ? Artifact.register(item.name, path) : ref
     }
 
@@ -191,8 +190,8 @@ enum ReferenceTransfer {
         case is Space.Type: .space
         case is Sheet.Type: .sheet
         case is Artifact.Type: .artifact
-        case is Control.Type: .control
-        case is Service.Type: .service
+        case is Command.Type: .control
+        case is Harness.Type: .service
         default: nil
         }
     }

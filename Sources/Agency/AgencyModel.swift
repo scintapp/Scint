@@ -5,6 +5,8 @@ import SwiftUI
 
 @Observable final class Session {
     private(set) var selection: Selection
+    private(set) var focus: Focus?
+    private(set) var open: Open?
     private(set) var history: [Selection] = []
     private(set) var cursor: Int = -1
     private static let maxHistory = 100
@@ -16,11 +18,7 @@ import SwiftUI
     var component: Reference? { selection.component }
     var entry: UUID? { selection.entry }
     var url: URL? { selection.url }
-
-    var sheet: Reference? {
-        guard let component, component.type is Sheet.Type else { return nil }
-        return component
-    }
+    var sheet: Reference? { open?.sheet }
 
     var transcript: Reference? {
         guard let component, component.type is Transcript.Type else { return nil }
@@ -60,6 +58,23 @@ import SwiftUI
     func selected(_ ref: Reference) -> Bool { selection.selected(ref) }
     func selected(_ ref: Reference, _ entry: UUID?) -> Bool { selection.selected(ref, entry) }
     func selected(_ ref: Reference, _ url: URL?) -> Bool { selection.selected(ref, url) }
+    func focused(_ ref: Reference) -> Bool { focus?.focused(ref) ?? false }
+    func focused(_ ref: Reference, _ entry: UUID?) -> Bool { focus?.focused(ref, entry) ?? false }
+    func focused(_ ref: Reference, _ url: URL?) -> Bool { focus?.focused(ref, url) ?? false }
+    func focused(_ ref: Reference, entry: UUID?, url: URL?) -> Bool {
+        focus?.focused(ref, entry: entry, url: url) ?? false
+    }
+
+    func setFocus(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) {
+        focus = Focus.focusing(ref, from: origin, entry: entry, url: url)
+    }
+
+    @discardableResult
+    func setOpen(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil) -> Bool {
+        guard ref.type is Sheet.Type else { return false }
+        open = Open.opening(ref, from: origin, entry: entry)
+        return true
+    }
 
     @discardableResult
     func apply(_ next: Selection, pushHistory: Bool = true) -> Bool {
@@ -92,6 +107,8 @@ import SwiftUI
         selection = initial
         history = [initial]
         cursor = 0
+        focus = nil
+        open = nil
         service = nil
     }
 
@@ -134,20 +151,51 @@ import SwiftUI
         await artifacts.load(runtime: Runtime.shared, space: space)
     }
 
-    func select(_ ref: Reference, entry: UUID?) { session.apply(session.selection.selecting(ref, entry: entry)) }
-
-    func select(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) {
-        session.apply(session.selection.selecting(ref, from: origin, entry: entry, url: url))
-        if ref.type is Sheet.Type, entry == nil, url == nil { studio.content.model = .sheet }
-        else if ref.type is Space.Type || ref.type is Workspace.Type { studio.content.model = .space }
+    func focus(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) {
+        session.setFocus(ref, from: origin, entry: entry, url: url)
     }
 
-    func open(_ ref: Reference) { select(ref) }
-    func forward() { session.forward() }
-    func backward() { session.back() }
-    func clear(_ axis: Selection.Axis) { session.apply(session.selection.clearing(axis)) }
+    func select(_ ref: Reference, entry: UUID?) {
+        guard !(ref.type is Sheet.Type) else {
+            open(ref, entry: entry)
+            return
+        }
+        session.apply(session.selection.selecting(ref, entry: entry))
+        syncContentModel(for: session.selection)
+    }
+
+    func select(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) {
+        guard !(ref.type is Sheet.Type) else {
+            open(ref, from: origin, entry: entry)
+            return
+        }
+        session.apply(session.selection.selecting(ref, from: origin, entry: entry, url: url))
+        syncContentModel(for: session.selection)
+    }
+
+    func open(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil) {
+        if session.setOpen(ref, from: origin, entry: entry) {
+            studio.content.model = .sheet
+        } else {
+            select(ref, from: origin)
+        }
+    }
+    func forward() {
+        if let selection = session.forward() { syncContentModel(for: selection) }
+    }
+    func backward() {
+        if let selection = session.back() { syncContentModel(for: selection) }
+    }
+    func clear(_ axis: Selection.Axis) {
+        session.apply(session.selection.clearing(axis))
+        syncContentModel(for: session.selection)
+    }
     func query(_ query: String, facet: String, limit: Int) -> [QueryResult] {
         Runtime.shared.query("\(query) !\(facet)", limit: limit).all
+    }
+
+    private func syncContentModel(for _: Selection) {
+        studio.content.model = .space
     }
 
     @discardableResult
@@ -167,8 +215,8 @@ import SwiftUI
         else { return nil }
 
         let transcript = latestProcessTranscript(in: composition)
-            ?? Runtime.shared.transcripts(for: origin).first { !existing.contains($0) }
-            ?? composition.transcript
+        ?? Runtime.shared.transcripts(for: origin).first { !existing.contains($0) }
+        ?? composition.transcript
         select(transcript, from: origin)
         studio.inspector.context = .processing
         return composition
@@ -193,7 +241,7 @@ import SwiftUI
 
     private func latestProcessTranscript(in composition: Composition) -> Reference? {
         composition.intention.reversed().compactMap { intention in
-            if case .processor(let ref) = intention { return ref }
+            if case .process(let ref) = intention { return ref }
             return nil
         }.first
     }
@@ -212,11 +260,6 @@ import SwiftUI
         let view = AnyView(BasePanel(SearchView().environment(self)))
         panel(id: "aperture", size: CGSize(width: 640, height: 480), view: view).toggle()
     }
-
-//    @MainActor func toggleComposer() {
-//        let view = AnyView(BasePanel(studio.composer.build(self).environment(self)))
-//        panel(id: "composer", size: CGSize(width: 680, height: 800), view: view).toggle()
-//    }
 
     @MainActor func toggleProcesses() {
         let view = AnyView(BasePanel(EmptyView().environment(self)))

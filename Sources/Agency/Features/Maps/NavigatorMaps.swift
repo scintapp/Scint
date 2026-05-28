@@ -28,7 +28,7 @@ struct DirectoryMap: Mapper {
             }
         }
 
-        func file(for entry: Artifact.Entry, root: Reference, in agency: AgencyModel) -> ItemParams? {
+        func file(for entry: Artifact.Kind, root: Reference, in agency: AgencyModel) -> ItemParams? {
             guard let url = entry.url else { return nil }
             let isDirectory = entry.isDirectory
             let isExpanded = expanded.contains(AnyHashable(url))
@@ -47,7 +47,7 @@ struct DirectoryMap: Mapper {
         }
 
         func folder(for ref: Reference, in agency: AgencyModel) -> ItemParams? {
-            guard let entry = Artifact.with(ref, { $0.entry }), let url = entry.url else { return nil }
+            guard let entry = Artifact.with(ref, { $0.kind }), let url = entry.url else { return nil }
             let isDirectory = entry.isDirectory
             let isExpanded = expanded.contains(AnyHashable(url))
             let children: [ItemParams] = (isDirectory && isExpanded)
@@ -112,12 +112,12 @@ struct LibraryMap: Mapper {
             sections: [
                 .init(name: "Artifacts", items: [
                     .init(name: "Links", image: "link", items: items(for: Artifact.self, image: "link")),
-//                    .init(name: "Skills", image: "sparkles", items: items(for: Service.self, image: "sparkles")),
+//                    .init(name: "Skills", image: "sparkles", items: items(for: Harness.self, image: "sparkles")),
                     .init(name: "Templates", image: "list.bullet.rectangle", items: items(for: Sheet.self, image: "list.bullet.rectangle")),
                 ]),
                 .init(name: "Interfaces", items: [
-                    .init(name: "Controls", image: "switch.2", items: items(for: Control.self, image: "switch.2")),
-                    .init(name: "Services", image: "arrow.2.squarepath", items: items(for: Service.self, image: "arrow.2.squarepath")),
+                    .init(name: "Controls", image: "switch.2", items: items(for: Command.self, image: "switch.2")),
+                    .init(name: "Harness", image: "arrow.2.squarepath", items: items(for: Harness.self, image: "arrow.2.squarepath")),
 
                 ])
             ],

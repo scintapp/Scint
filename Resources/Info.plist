@@ -87,7 +87,7 @@
 				<string>public.data</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Draggable Service</string>
+			<string>Draggable Harness</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.kaechle.Agency.service</string>
 			<key>UTTypeTagSpecification</key>

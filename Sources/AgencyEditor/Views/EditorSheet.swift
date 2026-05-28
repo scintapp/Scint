@@ -193,8 +193,8 @@ struct EditorSheet: View {
             case .content(_, let text): return text.trimmingCharacters(in: .whitespacesAndNewlines)
             case .task(_, let text, let done): return "[\(done ? "x" : " ")] \(text)"
             case .artifact(let ref): return Artifact.with(ref, { $0.name })
-            case .control(let ref): return Control.with(ref, { $0.name })
-            case .service(let ref): return Service.with(ref, { $0.name })
+            case .control(let ref): return Command.with(ref, { $0.name })
+            case .service(let ref): return Harness.with(ref, { $0.name })
             case .sheet(let ref): return Sheet.with(ref, { $0.name })
             }
         }
@@ -220,7 +220,7 @@ struct EditorSheet: View {
         ].compactMap(\.self)
     }
 
-    private func controlFacts(_ params: [Control.Param]) -> (artifacts: Int, arguments: [String]) {
+    private func commandFacts(_ params: [Command.Parameter]) -> (artifacts: Int, arguments: [String]) {
         var artifacts = 0
         var arguments: [String] = []
         for param in params {
@@ -232,13 +232,13 @@ struct EditorSheet: View {
         return (artifacts, arguments)
     }
 
-    private func serviceFacts(_ params: [Service.Param]) -> [String] {
+    private func serviceFacts(_ params: [Harness.Parameter]) -> [String] {
         var controls = 0
         var artifacts = 0
         var arguments = 0
         for param in params {
             switch param {
-            case .control: controls += 1
+            case .command: controls += 1
             case .artifact: artifacts += 1
             case .argument: arguments += 1
             }
@@ -251,11 +251,14 @@ struct EditorSheet: View {
     }
 
     private func control(_ ref: Reference) -> some View {
-        let name = Control.with(ref, { $0.name }) ?? "tool"
-        let description = Control.with(ref, { $0.description }) ?? ""
-        let exec = Control.with(ref, { $0.exec }) ?? ref
-        let executable = Artifact.with(exec, { $0.entry.url?.lastPathComponent ?? $0.name }) ?? ""
-        let facts = Control.with(ref, { controlFacts($0.params) }) ?? (artifacts: 0, arguments: [])
+        let name = Command.with(ref, { $0.name }) ?? "tool"
+        let description = Command.with(ref, { $0.description }) ?? ""
+        let exec = Command.with(ref, { $0.exec }) ?? ref
+        let executable = Artifact.with(exec, { $0.kind.url?.lastPathComponent ?? $0.name }) ?? ""
+        let facts = Command.with(ref, { commandFacts($0.parameters) }) ?? (
+            artifacts: 0,
+            arguments: []
+        )
         let args = facts.arguments.joined(separator: " ")
 
         return componentCard(
@@ -275,11 +278,11 @@ struct EditorSheet: View {
     }
 
     private func service(_ ref: Reference) -> some View {
-        let name = Service.with(ref, { $0.name }) ?? "Service"
-        let description = Service.with(ref, { $0.description }) ?? ""
-        let main = Service.with(ref, { $0.main }) ?? ref
-        let mainName = Control.with(main, { $0.name }) ?? "Control"
-        let facts = Service.with(ref, { serviceFacts($0.entries) }) ?? []
+        let name = Harness.with(ref, { $0.name }) ?? "Harness"
+        let description = Harness.with(ref, { $0.description }) ?? ""
+        let main = Harness.with(ref, { $0.command }) ?? ref
+        let mainName = Command.with(main, { $0.name }) ?? "Command"
+        let facts = Harness.with(ref, { serviceFacts($0.parameters) }) ?? []
 
         return componentCard(
             icon: Design.Component.icon(for: ref),
@@ -297,7 +300,7 @@ struct EditorSheet: View {
     private func file(_ ref: Reference) -> some View {
         let name = Artifact.with(ref, { $0.name }) ?? "file"
         let meta = Artifact.with(ref, { $0.content }) ?? ""
-        let isDirectory = Artifact.with(ref, { $0.entry.isDirectory }) ?? false
+        let isDirectory = Artifact.with(ref, { $0.kind.isDirectory }) ?? false
         let icon = isDirectory ? "folder" : "doc"
 
         return HStack(spacing: 8) {
@@ -324,7 +327,7 @@ struct EditorSheet: View {
 
     private func webLink(_ ref: Reference) -> some View {
         let name = Artifact.with(ref, { $0.name }) ?? "Link"
-        guard let url = Artifact.with(ref, { $0.entry.url }) ?? nil else { return AnyView(link(ref)) }
+        guard let url = Artifact.with(ref, { $0.kind.url }) ?? nil else { return AnyView(link(ref)) }
         return AnyView(LinkMetadataPreview(url: url, fallbackTitle: name))
     }
 
@@ -442,7 +445,7 @@ struct EditorSheet: View {
     var body: some View {
         switch entry {
         case .artifact(let ref):
-            switch Artifact.with(ref, { $0.entry }) {
+            switch Artifact.with(ref, { $0.kind }) {
             case .http: webLink(ref)
             case .app, .script, .skill: link(ref)
             case .exec, .file: file(ref)

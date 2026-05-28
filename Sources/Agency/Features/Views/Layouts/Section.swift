@@ -111,9 +111,7 @@ struct SectionAddItemRow: View {
     @State private var isActive = false
     let onCommit: (_ name: String) -> Void
 
-    init(placeholder: String = "New Item", onCommit: @escaping (_ name: String) -> Void) {
-        self.onCommit = onCommit
-    }
+    init(placeholder: String = "New Item", onCommit: @escaping (_ name: String) -> Void) { self.onCommit = onCommit }
 
     var body: some View {
         Button { isActive = true; isFocused = true } label: { }

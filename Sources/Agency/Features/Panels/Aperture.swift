@@ -485,7 +485,7 @@ struct SearchView: View {
         guard flatItems.indices.contains(agency.aperture.index) else { return }
         let item = flatItems[agency.aperture.index]
 
-        if let ref = item.ref, ref.type is Control.Type {
+        if let ref = item.ref, ref.type is Command.Type {
             agency.aperture.prompt = .init(ref: ref)
             focused = true
             return
@@ -499,7 +499,7 @@ struct SearchView: View {
         guard flatItems.indices.contains(agency.aperture.index) else { return }
         guard let ref = flatItems[agency.aperture.index].ref else { return }
 
-        if ref.type is Control.Type {
+        if ref.type is Command.Type {
             agency.aperture.prompt = .init(ref: ref)
             focused = true
             return

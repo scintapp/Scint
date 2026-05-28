@@ -4,17 +4,17 @@ import Darwin
 import Combine
 
 
-final class ServiceRegistry: @unchecked Sendable {
-    static let shared = ServiceRegistry()
+final class HarnessRegistry: @unchecked Sendable {
+    static let shared = HarnessRegistry()
 
     private let queue = DispatchQueue(label: "com.kaechle.agencyd.registry", attributes: .concurrent)
-    private var definitions: [String: ServiceDefinition] = [:]
+    private var definitions: [String: HarnessDefinition] = [:]
     private var activePIDs: [String: pid_t] = [:]
-    private var pidToService: [pid_t: String] = [:]
+    private var pidToHarness: [pid_t: String] = [:]
 
     private init() {}
 
-    func register(_ def: ServiceDefinition) {
+    func register(_ def: HarnessDefinition) {
         queue.async(flags: .barrier) {
             self.definitions[def.id] = def
         }
@@ -25,34 +25,34 @@ final class ServiceRegistry: @unchecked Sendable {
         queue.sync(flags: .barrier) {
             found = definitions.removeValue(forKey: id) != nil
             if let pid = activePIDs.removeValue(forKey: id) {
-                pidToService.removeValue(forKey: pid)
+                pidToHarness.removeValue(forKey: pid)
             }
         }
         return found
     }
 
-    func definition(for id: String) -> ServiceDefinition? {
+    func definition(for id: String) -> HarnessDefinition? {
         queue.sync { definitions[id] }
     }
 
-    func all() -> [ServiceDefinition] {
+    func all() -> [HarnessDefinition] {
         queue.sync { definitions.values.sorted { $0.id < $1.id } }
     }
 
     func setActivePID(_ pid: pid_t, for serviceID: String) {
         queue.async(flags: .barrier) {
             if let old = self.activePIDs[serviceID] {
-                self.pidToService.removeValue(forKey: old)
+                self.pidToHarness.removeValue(forKey: old)
             }
             self.activePIDs[serviceID] = pid
-            self.pidToService[pid] = serviceID
+            self.pidToHarness[pid] = serviceID
         }
     }
 
     func clearPID(for serviceID: String) {
         queue.async(flags: .barrier) {
             if let pid = self.activePIDs.removeValue(forKey: serviceID) {
-                self.pidToService.removeValue(forKey: pid)
+                self.pidToHarness.removeValue(forKey: pid)
             }
         }
     }
@@ -62,25 +62,25 @@ final class ServiceRegistry: @unchecked Sendable {
     }
 
     func serviceID(for pid: pid_t) -> String? {
-        queue.sync { pidToService[pid] }
+        queue.sync { pidToHarness[pid] }
     }
 }
 
-public enum ServicePolicy: String, Sendable {
+public enum HarnessPolicy: String, Sendable {
     case never
     case onFailure
     case always
 
-    public static func from(_ string: String?) -> ServicePolicy {
-        ServicePolicy(rawValue: string ?? "") ?? .never
+    public static func from(_ string: String?) -> HarnessPolicy {
+        HarnessPolicy(rawValue: string ?? "") ?? .never
     }
 }
 
-public struct ServiceDefinition: Sendable {
+public struct HarnessDefinition: Sendable {
     public let id: String
     public let command: String
     public let arguments: [String]
-    public let policy: ServicePolicy
+    public let policy: HarnessPolicy
 
     public init?(params: [String: Any]) {
         guard
@@ -91,7 +91,7 @@ public struct ServiceDefinition: Sendable {
         self.id = id
         self.command = command
         self.arguments = (params["arguments"] as? [String]) ?? []
-        self.policy = ServicePolicy.from(params["policy"] as? String)
+        self.policy = HarnessPolicy.from(params["policy"] as? String)
     }
 
     public func params() -> [String: Any] {
@@ -129,7 +129,7 @@ public struct Handler: Codable & Sendable {
                 }
 
         case .events:
-            guard let properties = Properties.provider(chunk) else {
+            guard let properties = Properties.load(chunk) else {
                 return [.provider(Properties(.object([
                     "type": .string("raw"),
                     "text": .string(chunk)

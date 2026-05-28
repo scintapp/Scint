@@ -1,6 +1,7 @@
 import SwiftUI
 import AgencyRuntime
 
+
 extension Composition.State {
     var consoleName: String {
         switch self {
@@ -22,6 +23,35 @@ extension Composition.State {
         }
     }
 }
+
+
+enum ConsoleMonitorMap {
+    static func model(filter: ConsoleMonitorFilter = .all) -> ConsoleMonitorModel {
+        let compositions = Runtime.shared.context()
+            .filter { $0.origin.type is Space.Type }
+            .sorted(by: sort)
+
+        return ConsoleMonitorModel(filter: filter, compositions: compositions)
+    }
+
+    private static func sort(_ lhs: Composition, _ rhs: Composition) -> Bool {
+        if rank(lhs.state) != rank(rhs.state) {
+            return rank(lhs.state) > rank(rhs.state)
+        }
+        return lhs.origin.name.localizedCaseInsensitiveCompare(rhs.origin.name) == .orderedAscending
+    }
+
+    private static func rank(_ state: Composition.State) -> Int {
+        switch state {
+        case .failed: 5
+        case .blocked: 4
+        case .running: 3
+        case .active: 2
+        case .idle: 1
+        }
+    }
+}
+
 
 struct ProcessesMap: Mapper {
     static func closures(_ agency: AgencyModel, _ panel: any Panel) -> Closures {

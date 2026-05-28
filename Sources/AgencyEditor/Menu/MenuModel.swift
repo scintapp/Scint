@@ -302,7 +302,7 @@ struct MenuCommit {
             let url = normalizedURL(from: formSecondary)
             let ref = Artifact.register(fallbackTitle, url)
             if url == nil {
-                Artifact.update(ref) { $0.entry = .http(nil) }
+                Artifact.update(ref) { $0.kind = .http(nil) }
             }
             entry = .artifact(ref)
         }

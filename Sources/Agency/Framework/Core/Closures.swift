@@ -24,6 +24,9 @@ struct Closures {
     var wrapHeader: ((_ view: AnyView, _ section: ListParams) -> AnyView)?
     var itemAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)?
     var sectionAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)?
+    var tableExpanded: ((_ item: ItemParams) -> Bool)?
+    var tableDetail: ((_ item: ItemParams) -> AnyView?)?
+    var tableCell: ((_ column: ColumnParams, _ item: ItemParams) -> AnyView?)?
     var addableSections: Set<AnyHashable>?
     var isItemEditable: ((_ item: ItemParams) -> Bool)?
     var canAddChild: ((_ item: ItemParams) -> Bool)?
@@ -54,6 +57,9 @@ struct Closures {
         wrapHeader: ((_ view: AnyView, _ section: ListParams) -> AnyView)? = nil,
         itemAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)? = nil,
         sectionAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)? = nil,
+        tableExpanded: ((_ item: ItemParams) -> Bool)? = nil,
+        tableDetail: ((_ item: ItemParams) -> AnyView?)? = nil,
+        tableCell: ((_ column: ColumnParams, _ item: ItemParams) -> AnyView?)? = nil,
         addableSections: Set<AnyHashable>? = nil,
         isItemEditable: ((_ item: ItemParams) -> Bool)? = nil,
         canAddChild: ((_ item: ItemParams) -> Bool)? = nil,
@@ -83,6 +89,9 @@ struct Closures {
         self.wrapHeader = wrapHeader
         self.itemAccessory = itemAccessory
         self.sectionAccessory = sectionAccessory
+        self.tableExpanded = tableExpanded
+        self.tableDetail = tableDetail
+        self.tableCell = tableCell
         self.addableSections = addableSections
         self.isItemEditable = isItemEditable
         self.canAddChild = canAddChild

@@ -40,15 +40,15 @@ struct InterfacesMap: Mapper {
 
     static func params(_ agency: AgencyModel, _ panel: any Panel) -> Params {
         let artifacts = Runtime.shared.query(agency.aperture.query, limit: 50).all.filter { $0.ref.type is Artifact.Type }
-        let controls = Runtime.shared.query(agency.aperture.query, limit: 50).all.filter { $0.ref.type is Control.Type }
-        let services = Runtime.shared.query(agency.aperture.query, limit: 50).all.filter { $0.ref.type is Service.Type }
+        let controls = Runtime.shared.query(agency.aperture.query, limit: 50).all.filter { $0.ref.type is Command.Type }
+        let services = Runtime.shared.query(agency.aperture.query, limit: 50).all.filter { $0.ref.type is Harness.Type }
 
         return .init(
             nesting: .flat,
             sections: [
                 .init(id: "artifacts", name: "Artifacts", items: artifacts.map(item(from:))),
                 .init(id: "controls", name: "Controls", items: controls.map(item(from:))),
-                .init(id: "services", name: "Services", items: services.map(item(from:))),
+                .init(id: "services", name: "Harness", items: services.map(item(from:))),
             ].filter { !$0.items.isEmpty }
         )
     }
@@ -97,7 +97,7 @@ struct SearchMap: Mapper {
             sections: [
                 .init(id: "components", name: "Sheets", image: "text.alignleft", items: components.map(item(from:))),
                 .init(id: "controls", name: "Controls", image: "switch.2", items: controls.map(item(from:))),
-                .init(id: "services", name: "Services", image: "arrow.2.squarepath", items: services.map(item(from:))),
+                .init(id: "services", name: "Harness", image: "arrow.2.squarepath", items: services.map(item(from:))),
                 .init(id: "spaces", name: "Workspaces", image: "cube.transparent", items: spaces.map(item(from:)))
             ]
         )
@@ -119,7 +119,7 @@ struct MenuMap: Mapper {
             sections: [
                 .init(id: "components", name: "Sheets", image: "text.alignleft", items: components.map(item(from:))),
                 .init(id: "controls", name: "Controls", image: "switch.2", items: controls.map(item(from:))),
-                .init(id: "services", name: "Services", image: "arrow.2.squarepath", items: services.map(item(from:))),
+                .init(id: "services", name: "Harness", image: "arrow.2.squarepath", items: services.map(item(from:))),
                 .init(id: "spaces", name: "Workspaces", image: "cube.transparent", items: spaces.map(item(from:)))
             ]
         )

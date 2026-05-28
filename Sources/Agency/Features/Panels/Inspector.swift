@@ -106,10 +106,9 @@ struct InspectorToolbar: ToolbarContent {
     @Environment(AgencyModel.self) var agency
 
     var body: some ToolbarContent {
-        @Bindable var inspector = agency.studio.inspector
         ToolbarSpacer(.flexible, placement: .automatic)
-        ToolbarItem(placement: .primaryAction) { InspectorTogglePicker() }
-            .sharedBackgroundVisibility(inspector.presented ? .hidden : .visible)
+        ToolbarItemGroup(placement: .primaryAction) { InspectorPickerToggle() }
+            .sharedBackgroundVisibility(agency.studio.inspector.presented ? .hidden : .visible)
     }
 }
 
@@ -172,20 +171,17 @@ struct InspectorToolbar: ToolbarContent {
             case .processing: TranscriptSelector(inspector: self)
             }
             switch context {
-            case .authoring:
-                Builder.build(self, closures(agency), params(agency))
-            case .processing:
-                TranscriptView()
-                    .environment(agency)
+            case .authoring: Builder.build(self, closures(agency), params(agency))
+            case .processing: TranscriptView().environment(agency)
             }
         }
         .ignoresSafeArea(.container, edges: .top)
         .toolbar(removing: .sidebarToggle)
         .toolbar { InspectorToolbar() }
         .inspectorColumnWidth(
-            min: context == .processing ? 380 : 260,
-            ideal: context == .processing ? 440 : 300,
-            max: context == .processing ? 500 : 340
+            min: context == .processing ? 340 : 260,
+            ideal: context == .processing ? 400 : 320,
+            max: context == .processing ? 460 : 380
         )
     }
 }

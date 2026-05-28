@@ -19,8 +19,8 @@ enum MenuSearch {
     static func entry(for ref: Reference) -> Entry? {
         switch ref.type {
         case is Artifact.Type: return .artifact(ref)
-        case is Control.Type: return .control(ref)
-        case is Service.Type: return .service(ref)
+        case is Command.Type: return .control(ref)
+        case is Harness.Type: return .service(ref)
         case is Sheet.Type: return .sheet(ref)
         default: return nil
         }
