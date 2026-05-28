@@ -27,6 +27,7 @@ struct Studio: View {
             agency.studio.inspector.build(agency)
                 .environment(agency)
         }
+        .ignoresSafeArea(.container, edges: .top)
     }
 }
 

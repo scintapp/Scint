@@ -7,7 +7,7 @@ struct OutlineMap: Mapper {
         return .init(
             onSelect: { item in
                 guard let ref = item.ref else { return }
-                agency.select(ref)
+                agency.focus(ref, from: item.origin, entry: item.entryId)
             }
         )
     }
@@ -72,7 +72,7 @@ struct RootSpaceMap: Mapper {
             },
             onOpen: { item in
                 guard let ref = item.ref else { return }
-                agency.select(ref, from: item.origin, entry: item.entryId, url: item.path)
+                agency.open(ref, from: item.origin, entry: item.entryId, url: item.path)
             },
             surfaceActions: {
                 Action.surfaceItems(for: agency.session.workspace)
@@ -155,7 +155,7 @@ struct SpaceMap: Mapper {
             },
             onOpen: { item in
                 guard let ref = item.ref else { return }
-                agency.select(ref, from: item.origin, entry: item.entryId, url: item.path)
+                agency.open(ref, from: item.origin, entry: item.entryId, url: item.path)
             },
             surfaceActions: {
                 guard let owner = agency.session.space else { return [] }

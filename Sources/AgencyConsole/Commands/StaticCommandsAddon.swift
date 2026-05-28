@@ -27,52 +27,52 @@ struct StaticCommandsAddon: CommandAddon {
                 "agency artifacts open \"OpenAI Platform Docs\""
             ]), handler: openArtifact),
 
-            command(["controls"], docs: .root("CONTROLS", summary: "List, inspect, and run runtime controls.", commands: [
-                .init(term: "list:", description: "List runnable controls, including executable artifacts and registered controls"),
-                .init(term: "show:", description: "Inspect an executable artifact or registered control"),
-                .init(term: "run:", description: "Run a control through the Agency service process")
+            command(["commands"], docs: .root("COMMANDS", summary: "List, inspect, and run runtime commands.", commands: [
+                .init(term: "list:", description: "List runtime commands"),
+                .init(term: "show:", description: "Inspect a runtime command"),
+                .init(term: "run:", description: "Run a command through the Agency harness process")
             ], examples: [
-                "agency controls list",
-                "agency controls show curl",
-                "agency controls run curl --arg https://example.com"
+                "agency commands list",
+                "agency commands show curl",
+                "agency commands run curl --arg https://example.com"
             ])),
-            command(["controls", "list"], docs: .leaf("CONTROLS / LIST", usage: "agency controls list [--search <query>]", summary: "List runnable runtime controls.", flags: [
-                .init(term: "--search", description: "Filter controls by name, description, tag, executable, type, or id")
+            command(["commands", "list"], docs: .leaf("COMMANDS / LIST", usage: "agency commands list [--search <query>]", summary: "List runnable runtime commands.", flags: [
+                .init(term: "--search", description: "Filter commands by name, description, tag, executable, type, or id")
             ], examples: [
-                "agency controls list --search curl"
+                "agency commands list --search curl"
             ]), handler: listCommands),
-            command(["controls", "show"], docs: .leaf("CONTROLS / SHOW", usage: "agency controls show <control> [--id <uuid>] [--name <name>]", summary: "Inspect a runtime control, including executable artifacts.", flags: targetFlags, examples: [
-                "agency controls show curl"
+            command(["commands", "show"], docs: .leaf("COMMANDS / SHOW", usage: "agency commands show <command> [--id <uuid>] [--name <name>]", summary: "Inspect a runtime command, including executable artifacts.", flags: targetFlags, examples: [
+                "agency commands show curl"
             ]), handler: showCommand),
-            command(["controls", "run"], docs: .leaf("CONTROLS / RUN", usage: "agency controls run <control> [arguments...] [--arg <value> ...]", summary: "Run a runtime control.", flags: targetFlags + [
+            command(["commands", "run"], docs: .leaf("COMMANDS / RUN", usage: "agency commands run <command> [arguments...] [--arg <value> ...]", summary: "Run a runtime command.", flags: targetFlags + [
                 .init(term: "--arg", description: "Append an argument; can be repeated")
             ], examples: [
-                "agency controls run curl --arg https://example.com",
-                "agency controls run \"GitHub API Fetch\" apple/swift"
+                "agency commands run curl --arg https://example.com",
+                "agency commands run \"GitHub API Fetch\" apple/swift"
             ]), handler: runCommand),
 
-            command(["services"], docs: .root("SERVICES", summary: "List, inspect, and start runtime services.", commands: [
-                .init(term: "list:", description: "List services currently persisted in the runtime library"),
-                .init(term: "show:", description: "Inspect a service and its composed entries"),
-                .init(term: "start:", description: "Start a service through the Agency service process")
+            command(["harness"], docs: .root("HARNESSES", summary: "List, inspect, and start runtime harness.", commands: [
+                .init(term: "list:", description: "List harness currently persisted in the runtime library"),
+                .init(term: "show:", description: "Inspect a harness and its composed entries"),
+                .init(term: "start:", description: "Start a harness through the Agency harness process")
             ], examples: [
-                "agency services list",
-                "agency services show \"Codex Harness\"",
-                "agency services start \"Codex Harness\""
+                "agency harness list",
+                "agency harness show \"Codex Harness\"",
+                "agency harness start \"Codex Harness\""
             ])),
-            command(["services", "list"], docs: .leaf("SERVICES / LIST", usage: "agency services list [--search <query>]", summary: "List runtime services.", flags: [
-                .init(term: "--search", description: "Filter services by name, description, tag, type, or id")
+            command(["harness", "list"], docs: .leaf("HARNESSES / LIST", usage: "agency harness list [--search <query>]", summary: "List runtime harness.", flags: [
+                .init(term: "--search", description: "Filter harness by name, description, tag, type, or id")
             ], examples: [
-                "agency services list --search codex"
-            ]), handler: listHarnesss),
-            command(["services", "show"], docs: .leaf("SERVICES / SHOW", usage: "agency services show <service> [--id <uuid>] [--name <name>]", summary: "Inspect a runtime service.", flags: targetFlags, examples: [
-                "agency services show \"Codex Harness\""
+                "agency harness list --search codex"
+            ]), handler: listHarness),
+            command(["harness", "show"], docs: .leaf("HARNESSES / SHOW", usage: "agency harness show <harness> [--id <uuid>] [--name <name>]", summary: "Inspect a runtime harness.", flags: targetFlags, examples: [
+                "agency harness show \"Codex Harness\""
             ]), handler: showHarness),
-            command(["services", "start"], docs: .leaf("SERVICES / START", usage: "agency services start <service> [arguments...] [--arg <value> ...]", summary: "Start a runtime service.", flags: targetFlags + [
+            command(["harness", "start"], docs: .leaf("HARNESSES / START", usage: "agency harness start <harness> [arguments...] [--arg <value> ...]", summary: "Start a runtime harness.", flags: targetFlags + [
                 .init(term: "--arg", description: "Append an argument; can be repeated")
             ], examples: [
-                "agency services start \"Codex Harness\"",
-                "agency services start \"GitHub Harness\" apple/swift"
+                "agency harness start \"Codex Harness\"",
+                "agency harness start \"GitHub Harness\" apple/swift"
             ]), handler: startHarness)
         ]
     }
@@ -93,7 +93,7 @@ private extension StaticCommandsAddon {
     func listArtifacts(_ context: CommandContext) async throws -> String {
         try await RuntimeConsole.load()
         return RuntimeConsole.renderList(title: "ARTIFACTS", rows: RuntimeConsole.rows(Artifact.self, search: context.invocation.options.value(for: "search")) { ref, artifact, descriptor in
-            RuntimeConsole.Row(ref: ref, name: descriptor.name, type: artifact.entry.type, detail: descriptor.description)
+            RuntimeConsole.Row(ref: ref, name: descriptor.name, type: artifact.kind.type, detail: descriptor.description)
         })
     }
 
@@ -103,8 +103,8 @@ private extension StaticCommandsAddon {
         let artifact = try RuntimeConsole.require(ref, as: Artifact.self)
         let descriptor = Runtime.shared.get(ref)
         return RuntimeConsole.renderDetail(title: "ARTIFACT", ref: ref, descriptor: descriptor, fields: [
-            ("artifact type", artifact.entry.type),
-            ("url", artifact.entry.url?.absoluteString ?? "")
+            ("artifact type", artifact.kind.type),
+            ("url", artifact.kind.url?.absoluteString ?? "")
         ])
     }
 
@@ -112,79 +112,62 @@ private extension StaticCommandsAddon {
         try await RuntimeConsole.load()
         let ref = try RuntimeConsole.resolve(Artifact.self, context: context, label: "artifact")
         let artifact = try RuntimeConsole.require(ref, as: Artifact.self)
-        guard let url = artifact.entry.url else {
-            throw CommandError.execution("Artifact has no URL: \(Runtime.shared.get(ref).name)")
-        }
+        guard let url = artifact.kind.url else { throw CommandError.execution("Artifact has no URL: \(Runtime.shared.get(ref).name)") }
         try RuntimeConsole.open(url)
         return "Opened \(Runtime.shared.get(ref).name)\n\(url.absoluteString)"
     }
 
     func listCommands(_ context: CommandContext) async throws -> String {
         try await RuntimeConsole.load()
-        return RuntimeConsole.renderList(title: "CONTROLS", rows: RuntimeConsole.controlRows(search: context.invocation.options.value(for: "search")))
+        return RuntimeConsole.renderList(title: "COMMANDS", rows: RuntimeConsole.commandRows(search: context.invocation.options.value(for: "search")))
     }
 
     func showCommand(_ context: CommandContext) async throws -> String {
         try await RuntimeConsole.load()
-        let target = try RuntimeConsole.resolveCommandTarget(context: context)
-        return try RuntimeConsole.renderCommandDetail(target)
+        let ref = try RuntimeConsole.resolve(Command.self, context: context, label: "command")
+        return try RuntimeConsole.renderCommandDetail(ref)
     }
 
     func runCommand(_ context: CommandContext) async throws -> String {
         try await RuntimeConsole.load()
-        let target = try RuntimeConsole.resolveCommandTarget(context: context)
+        let ref = try RuntimeConsole.resolve(Command.self, context: context, label: "command")
         let arguments = RuntimeConsole.arguments(afterTargetIn: context)
-        let status = try RuntimeConsole.dispatchAndWait(target, arguments: arguments) { chunk in
+        try await RuntimeConsole.dispatch(ref, arguments: arguments) { chunk in
             FileHandle.standardOutput.write(Data(chunk.utf8))
         }
-        guard status == 0 else { throw CommandError.processExited(status) }
         return ""
     }
 
-    func listHarnesss(_ context: CommandContext) async throws -> String {
+    func listHarness(_ context: CommandContext) async throws -> String {
         try await RuntimeConsole.load()
-        return RuntimeConsole.renderList(title: "SERVICES", rows: RuntimeConsole.rows(Harness.self, search: context.invocation.options.value(for: "search")) { ref, service, descriptor in
-            RuntimeConsole.Row(ref: ref, name: descriptor.name, type: "service", detail: descriptor.description)
+        return RuntimeConsole.renderList(title: "HARNESSES", rows: RuntimeConsole.rows(Harness.self, search: context.invocation.options.value(for: "search")) { ref, harness, descriptor in
+            RuntimeConsole.Row(ref: ref, name: descriptor.name, type: "harness", detail: descriptor.description)
         })
     }
 
     func showHarness(_ context: CommandContext) async throws -> String {
         try await RuntimeConsole.load()
-        let ref = try RuntimeConsole.resolve(Harness.self, context: context, label: "service")
-        let service = try RuntimeConsole.require(ref, as: Harness.self)
+        let ref = try RuntimeConsole.resolve(Harness.self, context: context, label: "harness")
+        let harness = try RuntimeConsole.require(ref, as: Harness.self)
         let descriptor = Runtime.shared.get(ref)
         return RuntimeConsole.renderDetail(title: "SERVICE", ref: ref, descriptor: descriptor, fields: [
-            ("main", RuntimeConsole.describe(service.command)),
-            ("entries", service.parameters.map(RuntimeConsole.describe).joined(separator: " "))
+            ("main", RuntimeConsole.describe(harness.command)),
+            ("entries", harness.parameters.map(RuntimeConsole.describe).joined(separator: " "))
         ])
     }
 
     func startHarness(_ context: CommandContext) async throws -> String {
         try await RuntimeConsole.load()
-        let ref = try RuntimeConsole.resolve(Harness.self, context: context, label: "service")
+        let ref = try RuntimeConsole.resolve(Harness.self, context: context, label: "harness")
         let arguments = RuntimeConsole.arguments(afterTargetIn: context)
-        let status = try RuntimeConsole.startAndWait(ref, arguments: arguments) { chunk in
+        try await RuntimeConsole.process(ref, arguments: arguments) { chunk in
             FileHandle.standardOutput.write(Data(chunk.utf8))
         }
-        guard status == 0 else { throw CommandError.processExited(status) }
         return ""
     }
 }
 
 private enum RuntimeConsole {
-    typealias ProcessStart = (pid: Int32, error: String?)
-
-    enum CommandTarget {
-        case registered(Reference)
-        case executable(Reference)
-
-        var ref: Reference {
-            switch self {
-            case .registered(let ref), .executable(let ref): return ref
-            }
-        }
-    }
-
     struct Row {
         let ref: Reference
         let name: String
@@ -193,11 +176,8 @@ private enum RuntimeConsole {
     }
 
     static func load() async throws {
-        do {
-            try await Runtime.shared.load()
-        } catch {
-            throw CommandError.execution("Failed to load Agency runtime: \(error)")
-        }
+        do { try await Runtime.shared.load() }
+        catch { throw CommandError.execution("Failed to load Agency runtime: \(error)") }
     }
 
     static func rows<T: Resolvable>(_ type: T.Type, search: String?, map: (Reference, T, Descriptor) -> Row) -> [Row] {
@@ -212,19 +192,12 @@ private enum RuntimeConsole {
             .map(\.row)
     }
 
-    static func controlRows(search: String?) -> [Row] {
-        let executableRows = Runtime.shared.all(as: Artifact.self).compactMap { ref, artifact -> (ref: Reference, descriptor: Descriptor, row: Row)? in
-            guard artifact.entry.isExecutable else { return nil }
+    static func commandRows(search: String?) -> [Row] {
+        Runtime.shared.all(as: Command.self)
+            .map { ref, _ -> (ref: Reference, descriptor: Descriptor, row: Row) in
             let descriptor = Runtime.shared.get(ref)
-            return (ref, descriptor, Row(ref: ref, name: descriptor.name, type: "control", detail: descriptor.description))
-        }
-
-        let registeredRows = Runtime.shared.all(as: Command.self).map { ref, control -> (ref: Reference, descriptor: Descriptor, row: Row) in
-            let descriptor = Runtime.shared.get(ref)
-            return (ref, descriptor, Row(ref: ref, name: descriptor.name, type: "control", detail: descriptor.description))
-        }
-
-        return (executableRows + registeredRows)
+            return (ref, descriptor, Row(ref: ref, name: descriptor.name, type: "command", detail: descriptor.description))
+            }
             .sorted { lhs, rhs in lhs.descriptor.name.localizedCaseInsensitiveCompare(rhs.descriptor.name) == .orderedAscending }
             .filter { matches(search, ref: $0.ref, descriptor: $0.descriptor) || matches(search, row: $0.row) }
             .map(\.row)
@@ -237,9 +210,7 @@ private enum RuntimeConsole {
         if let id = UUID(uuidString: query) {
             if let exact = entries.first(where: { ref, _, _ in
                 ref.id == id || ref.storageId == id || ref.descriptorId == id || ref.contextId == id
-            }) {
-                return exact.0
-            }
+            }) {  return exact.0 }
         }
 
         let exactMatches = entries.filter { _, _, descriptor in descriptor.name.caseInsensitiveCompare(query) == .orderedSame }
@@ -253,123 +224,47 @@ private enum RuntimeConsole {
         throw CommandError.execution("Ambiguous \(label): \(query). Matches: \(names)")
     }
 
-    static func resolveCommandTarget(context: CommandContext) throws -> CommandTarget {
-        let query = try targetQuery(context, label: "control")
-        let registered = Runtime.shared.all(as: Command.self).map { ref, _ in
-            (target: CommandTarget.registered(ref), descriptor: Runtime.shared.get(ref))
-        }
-        let executable = Runtime.shared.all(as: Artifact.self).compactMap { ref, artifact -> (target: CommandTarget, descriptor: Descriptor)? in
-            guard artifact.entry.isExecutable else { return nil }
-            return (.executable(ref), Runtime.shared.get(ref))
-        }
-        let entries = registered + executable
+    static func renderCommandDetail(_ ref: Reference) throws -> String {
+        let command = try require(ref, as: Command.self)
+        return renderDetail(title: "CONTROL", ref: ref, descriptor: Runtime.shared.get(ref), fields: [
+            ("exec", describe(command.exec)),
+            ("params", command.parameters.map(describe).joined(separator: " "))
+        ])
+    }
 
-        if let id = UUID(uuidString: query) {
-            if let exact = entries.first(where: { entry in
-                let ref = entry.target.ref
-                return ref.id == id || ref.storageId == id || ref.descriptorId == id || ref.contextId == id
-            }) {
-                return exact.target
+    static func dispatch(_ ref: Reference, arguments: [String], output: @escaping (String) -> Void) async throws {
+        guard let composition = Runtime.shared.compose(.init(Runtime.shared.workspace, [.dispatch(ref, args: arguments)])) else {
+            throw CommandError.execution("Runtime failed to compose dispatch request.")
+        }
+        guard case .dispatch(let transcript)? = composition.intention.last else {
+            throw CommandError.execution("Runtime dispatch request did not produce a dispatch transcript.")
+        }
+        try await render(transcript, output: output)
+    }
+
+    static func process(_ ref: Reference, arguments: [String], output: @escaping (String) -> Void) async throws {
+        guard let composition = Runtime.shared.compose(.init(Runtime.shared.workspace, [.process(ref, args: arguments)])) else {
+            throw CommandError.execution("Runtime failed to compose process request.")
+        }
+        guard case .process(let transcript)? = composition.intention.last else {
+            throw CommandError.execution("Runtime process request did not produce a process transcript.")
+        }
+        try await render(transcript, output: output)
+    }
+
+    static func render(_ transcript: Reference, output: @escaping (String) -> Void) async throws {
+        var rendered = 0
+        while true {
+            let entries = Transcript.with(transcript, { $0.entries }) ?? []
+            for entry in entries.dropFirst(rendered) {
+                if case .event(let event, _, _) = entry, let text = event.provider?.text, !text.isEmpty {
+                    output(text.hasSuffix("\n") ? text : "\(text)\n")
+                }
             }
+            rendered = entries.count
+            if entries.contains(where: \.terminal) { return }
+            try await Task.sleep(nanoseconds: 25_000_000)
         }
-
-        let exactMatches = entries.filter { $0.descriptor.name.caseInsensitiveCompare(query) == .orderedSame }
-        if exactMatches.count == 1 { return exactMatches[0].target }
-
-        let fuzzyMatches = entries.filter { matches(query, ref: $0.target.ref, descriptor: $0.descriptor) }
-        if fuzzyMatches.count == 1 { return fuzzyMatches[0].target }
-        if fuzzyMatches.isEmpty { throw CommandError.notFound("No control found for: \(query)") }
-
-        let names = fuzzyMatches.prefix(8).map { $0.descriptor.name }.joined(separator: ", ")
-        throw CommandError.execution("Ambiguous control: \(query). Matches: \(names)")
-    }
-
-    static func renderCommandDetail(_ target: CommandTarget) throws -> String {
-        switch target {
-        case .registered(let ref):
-            let control = try require(ref, as: Command.self)
-            return renderDetail(title: "CONTROL", ref: ref, descriptor: Runtime.shared.get(ref), fields: [
-                ("control source", "registered"),
-                ("exec", describe(control.exec)),
-                ("params", control.parameters.map(describe).joined(separator: " "))
-            ])
-        case .executable(let ref):
-            let artifact = try require(ref, as: Artifact.self)
-            let executable = artifact.entry.executable ?? artifact.entry.url?.absoluteString ?? ""
-            return renderDetail(title: "CONTROL", ref: ref, descriptor: Runtime.shared.get(ref), fields: [
-                ("control source", "executable artifact"),
-                ("exec", executable)
-            ])
-        }
-    }
-
-    static func dispatchAndWait(_ target: CommandTarget, arguments: [String], output: @escaping (String) -> Void) throws -> Int32 {
-        switch target {
-        case .registered(let ref):
-            return try waitForProcess(output: output) { stream in
-                Command.with(ref) { control -> ProcessStart? in
-                    control.dispatch(arguments, output: stream)
-                } ?? nil
-            }
-        case .executable(let ref):
-            return try waitForProcess(output: output) { stream in
-                Artifact.with(ref) { artifact -> ProcessStart? in
-                    guard artifact.entry.isExecutable else { return nil }
-                    var control = Command()
-                    control.exec = ref
-                    return control.dispatch(arguments, output: stream)
-                } ?? nil
-            }
-        }
-    }
-
-    static func startAndWait(_ ref: Reference, arguments: [String], output: @escaping (String) -> Void) throws -> Int32 {
-        try waitForProcess(output: output) { stream in
-            Harness.with(ref) { service -> ProcessStart? in
-                service.start(arguments, output: stream)
-            } ?? nil
-        }
-    }
-
-    static func waitForProcess(
-        output: @escaping (String) -> Void,
-        start: (@escaping (String) -> Void) -> (pid: Int32, error: String?)?
-    ) throws -> Int32 {
-        let done = DispatchSemaphore(value: 0)
-        let lock = NSLock()
-        var exitCode: Int32?
-
-        let result = start { chunk in
-            if let status = terminationStatus(from: chunk) {
-                lock.withLock { exitCode = status }
-                done.signal()
-                return
-            }
-            output(chunk)
-        }
-
-        guard let result else {
-            throw CommandError.execution("Process start returned no result.")
-        }
-        if let error = result.error, !error.isEmpty {
-            throw CommandError.execution(error)
-        }
-
-        done.wait()
-        return lock.withLock { exitCode ?? 1 }
-    }
-
-    static func terminationStatus(from chunk: String) -> Int32? {
-        for line in chunk.split(whereSeparator: \.isNewline) {
-            guard let data = String(line).data(using: .utf8),
-                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  object["event"] as? String == "terminated"
-            else { continue }
-
-            if let code = object["exitCode"] as? Int { return Int32(code) }
-            if let code = object["exitCode"] as? Int32 { return code }
-        }
-        return nil
     }
 
     static func require<T: Resolvable>(_ ref: Reference, as type: T.Type) throws -> T {
@@ -440,15 +335,9 @@ private enum RuntimeConsole {
             "runtime type: \(ref.type.map { String(describing: $0) } ?? "Unknown")"
         ]
 
-        if !descriptor.description.isEmpty {
-            lines.append("description: \(descriptor.description)")
-        }
-        if !descriptor.tags.isEmpty {
-            lines.append("tags: \(descriptor.tags.sorted().joined(separator: ", "))")
-        }
-        for (key, value) in fields where !value.isEmpty {
-            lines.append("\(key): \(value)")
-        }
+        if !descriptor.description.isEmpty { lines.append("description: \(descriptor.description)") }
+        if !descriptor.tags.isEmpty { lines.append("tags: \(descriptor.tags.sorted().joined(separator: ", "))") }
+        for (key, value) in fields where !value.isEmpty { lines.append("\(key): \(value)") }
         return lines.joined(separator: "\n")
     }
 
@@ -461,12 +350,13 @@ private enum RuntimeConsole {
         switch param {
         case .artifact(let ref): return describe(ref)
         case .argument(let value): return value
+        case .properties(let props): return props.render()
         }
     }
 
     static func describe(_ param: Harness.Parameter) -> String {
         switch param {
-        case .artifact(let ref), .control(let ref): return describe(ref)
+        case .artifact(let ref), .command(let ref): return describe(ref)
         case .argument(let value): return value
         }
     }

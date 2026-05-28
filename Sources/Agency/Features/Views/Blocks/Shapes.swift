@@ -197,7 +197,7 @@ struct ComponentIcon: View {
             .padding(size == .grid ? 4 : 2)
             .frame(width: doc.width, height: doc.height, alignment: .topLeading)
             .glassEffect(.clear, in: page)
-            .background(page.fill(Color.primary.opacity(0.8)))
+            .background(page.fill(Color.primary.opacity(0.93)))
             .overlay(page.strokeBorder(.black.opacity(0.12), lineWidth: 0.5))
             .clipShape(page)
     }

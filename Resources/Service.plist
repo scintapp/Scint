@@ -13,7 +13,7 @@
 		<key>PATH</key>
 		<string>__AGENCY_PATH__</string>
 	</dict>
-	<key>MachService</key>
+	<key>MachServices</key>
 	<dict>
 		<key>com.kaechle.agencyd</key>
 		<true/>

@@ -1,6 +1,8 @@
+#!/bin/bash
+
 LABEL="com.kaechle.agencyd"
 SERVICE_NAME="agencyd"
-PLIST_SRC="$SRCROOT/Resources/Harness.plist"
+PLIST_SRC="$SRCROOT/Resources/Service.plist"
 PLIST_DST=${HOME}/Library/LaunchAgents/${LABEL}.plist
 DAEMON_BIN=${BUILT_PRODUCTS_DIR}/${SERVICE_NAME}.xpc/Contents/MacOS/${SERVICE_NAME}
 

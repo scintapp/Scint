@@ -3,11 +3,7 @@ import Foundation
 @main
 enum agency {
     static func main() async {
-        let registry = CommandRegistry(addons: [
-            CoreCommandsAddon(),
-            StaticCommandsAddon()
-        ])
-
+        let registry = CommandRegistry(addons: [CoreCommandsAddon(), StaticCommandsAddon()])
         let runner = CommandRunner(registry: registry)
 
         do {

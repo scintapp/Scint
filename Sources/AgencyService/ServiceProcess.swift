@@ -589,12 +589,24 @@ final class ProcessStore: @unchecked Sendable {
 
                 let nameStart = value.index(after: next)
                 let name = String(value[nameStart..<close])
-                result.append(environment[name] ?? "")
+                if let replacement = environment[name] {
+                    result.append(replacement)
+                } else {
+                    result.append(contentsOf: value[dollar...close])
+                }
                 index = value.index(after: close)
                 continue
             }
 
             var end = next
+            guard let firstScalar = value[next].unicodeScalars.first,
+                  CharacterSet.letters.contains(firstScalar) || firstScalar == "_"
+            else {
+                result.append("$")
+                index = next
+                continue
+            }
+
             while end < value.endIndex {
                 let scalar = value[end].unicodeScalars.first
                 let isIdentifier = scalar.map { CharacterSet.alphanumerics.contains($0) || $0 == "_" } ?? false
@@ -609,7 +621,11 @@ final class ProcessStore: @unchecked Sendable {
             }
 
             let name = String(value[next..<end])
-            result.append(environment[name] ?? "")
+            if let replacement = environment[name] {
+                result.append(replacement)
+            } else {
+                result.append(contentsOf: value[dollar..<end])
+            }
             index = end
         }
 

@@ -23,20 +23,13 @@ enum CommandError: Error {
             Unknown command: \(name)
             Run `agency --help` to see available commands.
             """
-        case .unsupportedArguments(let message):
-            return message
-        case .missingValue(let flag):
-            return "Missing value for `--\(flag)`."
-        case .invalidValue(let flag, let value, let expected):
-            return "Invalid value for `--\(flag)`: `\(value)`. Expected \(expected)."
-        case .missingArgument(let message):
-            return message
-        case .notFound(let message):
-            return message
-        case .execution(let message):
-            return message
-        case .processExited:
-            return ""
+        case .unsupportedArguments(let message): return message
+        case .missingValue(let flag): return "Missing value for `--\(flag)`."
+        case .invalidValue(let flag, let value, let expected): return "Invalid value for `--\(flag)`: `\(value)`. Expected \(expected)."
+        case .missingArgument(let message): return message
+        case .notFound(let message): return message
+        case .execution(let message): return message
+        case .processExited:  return ""
         }
     }
 

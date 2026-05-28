@@ -55,29 +55,35 @@ import SwiftUI
         self.cursor = 0
     }
 
-    func selected(_ ref: Reference) -> Bool { selection.selected(ref) }
-    func selected(_ ref: Reference, _ entry: UUID?) -> Bool { selection.selected(ref, entry) }
-    func selected(_ ref: Reference, _ url: URL?) -> Bool { selection.selected(ref, url) }
-    func focused(_ ref: Reference) -> Bool { focus?.focused(ref) ?? false }
-    func focused(_ ref: Reference, _ entry: UUID?) -> Bool { focus?.focused(ref, entry) ?? false }
-    func focused(_ ref: Reference, _ url: URL?) -> Bool { focus?.focused(ref, url) ?? false }
-    func focused(_ ref: Reference, entry: UUID?, url: URL?) -> Bool {
-        focus?.focused(ref, entry: entry, url: url) ?? false
-    }
-
-    func setFocus(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) {
+    func focus(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) {
         focus = Focus.focusing(ref, from: origin, entry: entry, url: url)
     }
 
+    func focused(_ ref: Reference, entry: UUID?, url: URL?) -> Bool { focus?.focused(ref, entry: entry, url: url) ?? false }
+    func selected(_ ref: Reference) -> Bool { selection.selected(ref) }
+    func selected(_ ref: Reference, _ entry: UUID?) -> Bool { selection.selected(ref, entry) }
+    func selected(_ ref: Reference, _ url: URL?) -> Bool { selection.selected(ref, url) }
+
     @discardableResult
-    func setOpen(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil) -> Bool {
-        guard ref.type is Sheet.Type else { return false }
+    func select(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) -> Bool {
+        apply(selection.selecting(ref, from: origin, entry: entry, url: url))
+    }
+
+    @discardableResult
+    func open(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) -> Bool {
+        focus(ref, from: origin, entry: entry, url: url)
+        guard ref.type is Sheet.Type else { return select(ref, from: origin, entry: entry, url: url) }
         open = Open.opening(ref, from: origin, entry: entry)
         return true
     }
 
     @discardableResult
-    func apply(_ next: Selection, pushHistory: Bool = true) -> Bool {
+    func clear(_ axis: Selection.Axis) -> Bool {
+        apply(selection.clearing(axis))
+    }
+
+    @discardableResult
+    private func apply(_ next: Selection, pushHistory: Bool = true) -> Bool {
         guard next != selection else { return false }
         selection = next
         if pushHistory { push(next) }
@@ -102,16 +108,6 @@ import SwiftUI
         return target
     }
 
-    func reset(to space: Reference) {
-        let initial = Selection(space: space)
-        selection = initial
-        history = [initial]
-        cursor = 0
-        focus = nil
-        open = nil
-        service = nil
-    }
-
     private func push(_ selection: Selection) {
         if cursor < history.count - 1 { history.removeSubrange((cursor + 1)...) }
         history.append(selection)
@@ -122,6 +118,16 @@ import SwiftUI
             history.removeFirst(drop)
             cursor -= drop
         }
+    }
+
+    func reset(to space: Reference) {
+        let initial = Selection(space: space)
+        selection = initial
+        history = [initial]
+        cursor = 0
+        focus = nil
+        open = nil
+        service = nil
     }
 }
 
@@ -152,51 +158,30 @@ import SwiftUI
     }
 
     func focus(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) {
-        session.setFocus(ref, from: origin, entry: entry, url: url)
+        session.focus(ref, from: origin, entry: entry, url: url)
     }
 
     func select(_ ref: Reference, entry: UUID?) {
-        guard !(ref.type is Sheet.Type) else {
-            open(ref, entry: entry)
-            return
-        }
-        session.apply(session.selection.selecting(ref, entry: entry))
-        syncContentModel(for: session.selection)
+        session.select(ref, entry: entry)
     }
 
     func select(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) {
-        guard !(ref.type is Sheet.Type) else {
-            open(ref, from: origin, entry: entry)
-            return
-        }
-        session.apply(session.selection.selecting(ref, from: origin, entry: entry, url: url))
-        syncContentModel(for: session.selection)
+        session.select(ref, from: origin, entry: entry, url: url)
     }
 
-    func open(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil) {
-        if session.setOpen(ref, from: origin, entry: entry) {
-            studio.content.model = .sheet
-        } else {
-            select(ref, from: origin)
-        }
+    func open(_ ref: Reference, from origin: Reference? = nil, entry: UUID? = nil, url: URL? = nil) {
+        session.open(ref, from: origin, entry: entry, url: url)
     }
-    func forward() {
-        if let selection = session.forward() { syncContentModel(for: selection) }
-    }
-    func backward() {
-        if let selection = session.back() { syncContentModel(for: selection) }
-    }
+
+    func forward() { session.forward() }
+
+    func backward() { session.back() }
+
     func clear(_ axis: Selection.Axis) {
-        session.apply(session.selection.clearing(axis))
-        syncContentModel(for: session.selection)
-    }
-    func query(_ query: String, facet: String, limit: Int) -> [QueryResult] {
-        Runtime.shared.query("\(query) !\(facet)", limit: limit).all
+        session.clear(axis)
     }
 
-    private func syncContentModel(for _: Selection) {
-        studio.content.model = .space
-    }
+    func query(_ query: String, facet: String, limit: Int) -> [QueryResult] { Runtime.shared.query("\(query) !\(facet)", limit: limit).all }
 
     @discardableResult
     func process(service: Reference? = nil, arguments: [String] = []) -> Composition? {

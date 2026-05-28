@@ -64,6 +64,7 @@ struct Editor: View {
     public var body: some View {
         EditorCanvas()
             .environment(state)
+            .ignoresSafeArea(.container, edges: .top)
             .onAppear { state.ensureEditableTextBlock() }
     }
 }

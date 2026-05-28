@@ -220,16 +220,18 @@ struct EditorSheet: View {
         ].compactMap(\.self)
     }
 
-    private func commandFacts(_ params: [Command.Parameter]) -> (artifacts: Int, arguments: [String]) {
+    private func commandFacts(_ params: [Command.Parameter]) -> (artifacts: Int, arguments: [String], properties: [Properties]) {
         var artifacts = 0
         var arguments: [String] = []
+        var properties: [Properties] = []
         for param in params {
             switch param {
             case .artifact: artifacts += 1
             case .argument(let value): arguments.append(value)
+            case .properties(let props): properties.append(props)
             }
         }
-        return (artifacts, arguments)
+        return (artifacts, arguments, properties)
     }
 
     private func serviceFacts(_ params: [Harness.Parameter]) -> [String] {
@@ -255,10 +257,7 @@ struct EditorSheet: View {
         let description = Command.with(ref, { $0.description }) ?? ""
         let exec = Command.with(ref, { $0.exec }) ?? ref
         let executable = Artifact.with(exec, { $0.kind.url?.lastPathComponent ?? $0.name }) ?? ""
-        let facts = Command.with(ref, { commandFacts($0.parameters) }) ?? (
-            artifacts: 0,
-            arguments: []
-        )
+        let facts = Command.with(ref, { commandFacts($0.parameters) }) ?? (artifacts: 0, arguments: [], properties: [])
         let args = facts.arguments.joined(separator: " ")
 
         return componentCard(
