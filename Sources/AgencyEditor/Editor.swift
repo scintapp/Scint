@@ -61,6 +61,14 @@ struct Editor: View {
         )
     }
 
+    static func sheet(for workspace: Reference) -> Reference {
+        guard let closure = Workspace.with(workspace, { $0.closure }) else { return Sheet.new("Workspace Composer", owner: workspace) }
+        if let sheet = Closure.with(closure, { $0.sheets.first }) ?? nil { return sheet }
+        let sheet = Sheet.new("Workspace Composer", owner: closure)
+        Closure.update(closure) { if !$0.sheets.contains(sheet) { $0.sheets.append(sheet) } }
+        return sheet
+    }
+
     public var body: some View {
         EditorCanvas()
             .environment(state)

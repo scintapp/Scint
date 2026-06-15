@@ -1,12 +1,11 @@
 import SwiftUI
-import AppKit
-import AgencyRuntime
-import UniformTypeIdentifiers
-
 
 
 @MainActor public enum Builder {
-    @ViewBuilder static func build<M: Panel>(_ model: M, _ closures: Closures, _ params: Params) -> some View {
+    @ViewBuilder static func build<P: Panel>(_ model: AgencyModel, _ panel: P) -> some View {
+        let params = panel.parameters(model)
+        let controls = panel.controls(model)
+
         let view = AnyView(
             ScrollView {
                 VStack {
@@ -15,7 +14,7 @@ import UniformTypeIdentifiers
                             .frame(maxWidth: .infinity, alignment: .topLeading)
                             .padding(.bottom, 16)
                     }
-                    ForEach(params.sections) { section in build(section, model: model, params: params, closures: closures) }
+                    ForEach(params.sections) { section in build(section, model: panel, params: params, controls: controls) }
                         .padding(.bottom, 8)
                 }
                 .frame(maxWidth: .infinity)
@@ -24,24 +23,24 @@ import UniformTypeIdentifiers
             .padding(.horizontal, 8)
         )
 
-        let transferred = surfaceTransfer(view, closures: closures)
+        let transferred = surfaceTransfer(view, controls: controls)
 
-        if let actions = closures.surfaceActions?(), !actions.isEmpty {
+        if let actions = controls.surfaceActions?(), !actions.isEmpty {
             transferred.contentShape(Rectangle()).contextMenu { ActionMenu(items: actions) }
         } else { transferred }
     }
 
-    @ViewBuilder static func build<M: Panel>(_ section: ListParams, model: M, params: Params, closures: Closures) -> some View {
+    @ViewBuilder static func build<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
         switch section.layout {
-        case .group: buildGroup(section, model: model, closures: closures)
-        case .grid: buildGrid(section, model: model, params: params, closures: closures)
-        case .table: buildTable(section, model: model, params: params, closures: closures)
-        case .list, .column: buildList(section, model: model, params: params, closures: closures)
+        case .group: buildGroup(section, model: model, controls: controls)
+        case .grid: buildGrid(section, model: model, params: params, controls: controls)
+        case .table: buildTable(section, model: model, params: params, controls: controls)
+        case .list, .column: buildList(section, model: model, params: params, controls: controls)
         }
     }
 
     @ViewBuilder static func build<M: Panel>(_ item: ItemParams, model: M, sectionId: AnyHashable,
-                                             nesting: Params.Nesting, depth: Int, closures: Closures) -> some View {
+                                             nesting: Parameters.Nesting, depth: Int, controls: Controls) -> some View {
         let indent = CGFloat(depth) * 16
 
         let canExpand: Bool = {
@@ -61,20 +60,20 @@ import UniformTypeIdentifiers
                     count: item.count,
                     indent: indent,
                     isExpanded: model.isExpanded(item.id),
-                    selected: closures.selected?(item) ?? false,
-                    onSelect: { closures.onSelect?(item) },
+                    selected: controls.selected?(item) ?? false,
+                    onSelect: { controls.onSelect?(item) },
                     onToggleExpanded: { model.setExpanded(item.id) }
                 ) {
                     ForEach(item.items) { child in
-                        build(child, model: model, sectionId: sectionId, nesting: nesting, depth: depth + 1, closures: closures)
+                        build(child, model: model, sectionId: sectionId, nesting: nesting, depth: depth + 1, controls: controls)
                     }
                 }
             )
 
-            let wrapped = closures.wrapSection?(sectionView, item, depth) ?? sectionView
-            let decorated = transfer(wrapped, item: item, closures: closures)
+            let wrapped = controls.wrapSection?(sectionView, item, depth) ?? sectionView
+            let decorated = transfer(wrapped, item: item, controls: controls)
 
-            menu(decorated, item: item, closures: closures)
+            menu(decorated, item: item, controls: controls)
         } else {
             let linkView = AnyView(
                 SectionLink(
@@ -83,27 +82,31 @@ import UniformTypeIdentifiers
                     trailingImage: item.trailingImage,
                     count: item.count,
                     indent: indent,
-                    selected: closures.selected?(item) ?? false,
-                    onSelect: { closures.onSelect?(item) }
+                    selected: controls.selected?(item) ?? false,
+                    onSelect: { controls.onSelect?(item) }
                 )
             )
 
-            let wrapped = closures.wrapLink?(linkView, item, depth) ?? linkView
-            let decorated = transfer(wrapped, item: item, closures: closures)
-            menu(decorated, item: item, closures: closures)
+            let wrapped = controls.wrapLink?(linkView, item, depth) ?? linkView
+            let decorated = transfer(wrapped, item: item, controls: controls)
+            menu(decorated, item: item, controls: controls)
         }
     }
 
-    @ViewBuilder static func buildGrid<M: Panel>(_ section: ListParams, model: M, params: Params, closures: Closures) -> some View {
+    @ViewBuilder static func build(_ params: ControlsParams, _ controls: Controls) -> some View {
+        ZStack(alignment: .bottom) { }
+    }
+
+    @ViewBuilder static func buildGrid<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
         VStack(spacing: 0) {
             if section.header { SectionHeader(name: section.name) }
             let gridItem = GridItem(.adaptive(minimum: 128, maximum: 128), spacing: 8, alignment: .topLeading)
 
             LazyVGrid(columns: [gridItem], alignment: .leading, spacing: 8) {
                 ForEach(section.items) { item in
-                    let view = AnyView(ItemIcon(item: item, closures: closures))
-                    let decorated = transfer(view, item: item, closures: closures)
-                    menu(decorated, item: item, closures: closures)
+                    let view = AnyView(ItemIcon(item: item, controls: controls))
+                    let decorated = transfer(view, item: item, controls: controls)
+                    menu(decorated, item: item, controls: controls)
                 }
             }
         }
@@ -111,23 +114,23 @@ import UniformTypeIdentifiers
         .padding(.horizontal, 8)
     }
 
-    @ViewBuilder static func buildGroup<M: Panel>(_ section: ListParams, model: M, closures: Closures) -> some View {
+    @ViewBuilder static func buildGroup<M: Panel>(_ section: ListParams, model: M, controls: Controls) -> some View {
         GroupLayout(title: section.name, footnote: section.footnote ?? "") {
             ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
                 if index > 0 { GroupDivider() }
-                groupRow(item, closures: closures)
+                groupRow(item, controls: controls)
             }
         }
         .padding(.bottom, 8)
     }
 
-    @ViewBuilder static func groupRow(_ item: ItemParams, closures: Closures) -> some View {
+    @ViewBuilder static func groupRow(_ item: ItemParams, controls: Controls) -> some View {
         if item.ref != nil || item.entryId != nil {
-            Button { closures.onSelect?(item) } label: {
+            Button { controls.onSelect?(item) } label: {
                 GroupRow(label: item.name) {
                     Image(systemName: item.image)
                 } trailing: {
-                    groupRowAccessory(item, closures: closures)
+                    groupRowAccessory(item, controls: controls)
                 }
             }
             .buttonStyle(.plain)
@@ -135,19 +138,19 @@ import UniformTypeIdentifiers
             GroupRow(label: item.name) {
                 Image(systemName: item.image)
             } trailing: {
-                groupRowAccessory(item, closures: closures)
+                groupRowAccessory(item, controls: controls)
             }
         }
     }
 
-    @ViewBuilder static func groupRowAccessory(_ item: ItemParams, closures: Closures) -> some View {
+    @ViewBuilder static func groupRowAccessory(_ item: ItemParams, controls: Controls) -> some View {
         switch item.trailingKind {
         case .toggle:
-            GroupToggle(isOn: false) { closures.onToggle?(item) }
+            GroupToggle(isOn: false) { controls.onToggle?(item) }
         case .load:
-            LoadAccessory(item: item, closures: closures)
+            LoadAccessory(item: item, controls: controls)
         case .action:
-            GroupCountButton(count: item.count) { closures.onSelect?(item) }
+            GroupCountButton(count: item.count) { controls.onSelect?(item) }
         case .value:
             Text(item.description ?? "")
                 .font(.system(size: 11, weight: .medium))
@@ -156,27 +159,27 @@ import UniformTypeIdentifiers
         }
     }
 
-    @ViewBuilder static func buildList<M: Panel>(_ section: ListParams, model: M, params: Params, closures: Closures) -> some View {
+    @ViewBuilder static func buildList<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
         VStack(spacing: 0) {
             if section.header {
                 let header = AnyView(SectionHeader(
                     name: section.name,
-                    onAdd: closures.canAddInline(sectionId: String(describing: section.id)) ? {
-                        closures.onAddItem?(AnyHashable(section.id), "")
+                    onAdd: controls.canAddInline(sectionId: String(describing: section.id)) ? {
+                        controls.onAddItem?(AnyHashable(section.id), "")
                     } : nil
                 ))
 
-                if let wrapHeader = closures.wrapHeader { wrapHeader(header, section) }
+                if let wrapHeader = controls.wrapHeader { wrapHeader(header, section) }
                 else { header }
             }
 
             ForEach(section.items) { item in
-                build(item, model: model, sectionId: section.id, nesting: params.nesting, depth: 0, closures: closures)
+                build(item, model: model, sectionId: section.id, nesting: params.nesting, depth: 0, controls: controls)
             }
 
-            if closures.canAddInline(sectionId: section.id) {
+            if controls.canAddInline(sectionId: section.id) {
                 SectionAddItemRow(placeholder: "New Item") { name in
-                    closures.onAddItem?(AnyHashable(section.id), name)
+                    controls.onAddItem?(AnyHashable(section.id), name)
                 }
             }
         }
@@ -184,36 +187,32 @@ import UniformTypeIdentifiers
         .padding(.bottom, 12)
     }
 
-    @ViewBuilder static func buildTable<M: Panel>(_ section: ListParams, model: M, params: Params, closures: Closures) -> some View {
-        TableLayout(section: section, columns: params.columns, closures: closures)
+    @ViewBuilder static func buildTable<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
+        TableLayout(section: section, columns: params.columns, controls: controls)
     }
 
-    @ViewBuilder static func menu(_ view: AnyView, item: ItemParams, closures: Closures) -> some View {
-        let actions = closures.itemActions?(item) ?? []
-        if closures.isEditable && closures.canEdit(item) {
+    @ViewBuilder static func menu(_ view: AnyView, item: ItemParams, controls: Controls) -> some View {
+        let actions = controls.itemActions?(item) ?? []
+        if controls.isEditable && controls.canEdit(item) {
             view.contextMenu {
                 ActionMenu(items: actions)
-                if !actions.isEmpty && (closures.canRename(item) || closures.canDuplicate(item) || closures.canAddChild(for: item) || closures.canDelete(item)) {
+                if !actions.isEmpty && (controls.canRename(item) || controls.canDuplicate(item) || controls.canAddChild(for: item) || controls.canDelete(item)) {
                     Divider()
                 }
                 ItemContextMenu(
                     item: item,
-                    onRename: closures.canRename(item) ? { closures.onRename?(item.id, item.name) } : nil,
-                    onDuplicate: closures.canDuplicate(item) ? { closures.onDuplicate?(item.id) } : nil,
-                    onDelete: closures.canDelete(item) ? { closures.onDelete?(item.id) } : nil,
-                    onAddChild: closures.canAddChild(for: item) ? { closures.onAddItem?(item.id, "") } : nil
+                    onRename: controls.canRename(item) ? { controls.onRename?(item.id, item.name) } : nil,
+                    onDuplicate: controls.canDuplicate(item) ? { controls.onDuplicate?(item.id) } : nil,
+                    onDelete: controls.canDelete(item) ? { controls.onDelete?(item.id) } : nil,
+                    onAddChild: controls.canAddChild(for: item) ? { controls.onAddItem?(item.id, "") } : nil
                 )
             }
         }
         else { view }
     }
 
-    @ViewBuilder static func build(_ params: ControlsParams, _ closures: Closures) -> some View {
-        ZStack(alignment: .bottom) { }
-    }
-
-    static func transfer(_ view: AnyView, item: ItemParams, closures: Closures) -> AnyView {
-        let canDrag = closures.canDrag?(item) ?? ReferenceTransfer.canDrag(item)
+    static func transfer(_ view: AnyView, item: ItemParams, controls: Controls) -> AnyView {
+        let canDrag = controls.canDrag?(item) ?? ReferenceTransfer.canDrag(item)
         let withDrag: AnyView
 
         if canDrag {
@@ -225,26 +224,26 @@ import UniformTypeIdentifiers
         }
         else { withDrag = view }
 
-        let types = closures.dropTypes?(item) ?? ReferenceTransfer.dropTypes(for: item)
+        let types = controls.dropTypes?(item) ?? ReferenceTransfer.dropTypes(for: item)
         guard !types.isEmpty else { return withDrag }
 
         return AnyView(
             withDrag.onDrop(of: types, isTargeted: nil) { providers in
-                closures.onDrop?(providers, item) ?? ReferenceTransfer.handle(providers, target: item)
+                controls.onDrop?(providers, item) ?? ReferenceTransfer.handle(providers, target: item)
             }
         )
     }
 
-    static func surfaceTransfer(_ view: AnyView, closures: Closures) -> AnyView {
-        guard let target = closures.surfaceDropTarget?() else { return view }
-        let types = closures.dropTypes?(target) ?? ReferenceTransfer.dropTypes(for: target)
+    static func surfaceTransfer(_ view: AnyView, controls: Controls) -> AnyView {
+        guard let target = controls.surfaceDropTarget?() else { return view }
+        let types = controls.dropTypes?(target) ?? ReferenceTransfer.dropTypes(for: target)
         guard !types.isEmpty else { return view }
 
         return AnyView(
             view
                 .contentShape(Rectangle())
                 .onDrop(of: types, isTargeted: nil) { providers in
-                    closures.onDrop?(providers, target) ?? ReferenceTransfer.handle(providers, target: target)
+                    controls.onDrop?(providers, target) ?? ReferenceTransfer.handle(providers, target: target)
                 }
         )
     }

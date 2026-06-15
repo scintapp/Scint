@@ -377,7 +377,7 @@ final class ProcessStore: @unchecked Sendable {
             guard let self else { reply(#"{"ok":false,"error":"service_unavailable"}"#); return }
 
             let items: [[String: Any]] = self.registry.all().map { def in
-                var e = def.params()
+                var e = def.parameters()
                 if let pid = self.registry.activePID(for: def.id), self.processes[pid] != nil {
                     e["state"] = "running"
                     e["pid"] = Int(pid)

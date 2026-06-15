@@ -94,7 +94,7 @@ public struct HarnessDefinition: Sendable {
         self.policy = HarnessPolicy.from(params["policy"] as? String)
     }
 
-    public func params() -> [String: Any] {
+    public func parameters() -> [String: Any] {
         return [
             "id": id,
             "command": command,

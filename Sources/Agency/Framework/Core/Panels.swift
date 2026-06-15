@@ -1,33 +1,6 @@
 import SwiftUI
 import AppKit
-import AgencyRuntime
-import UniformTypeIdentifiers
 
-
-@Observable @MainActor final class PanelModel {
-    var model: Model = .search
-    var position: CGFloat = 0
-    var presented: Bool = true
-
-    enum Model {
-        case composer, dashboard, search
-    }
-
-    func params(_ agency: AgencyModel) -> Params { .init() }
-
-    func closures(_ agency: AgencyModel) -> Closures {
-        .init(
-            selected: { item in
-                guard let ref = item.ref else { return false }
-                return agency.session.selected(ref, item.path)
-            },
-            onSelect: { item in
-                guard let ref = item.ref else { return }
-                agency.select(ref, url: item.path)
-            }
-        )
-    }
-}
 
 final class FloatingPanel: NSPanel {
     var onEscape: (() -> Void)?
@@ -78,5 +51,28 @@ struct BasePanel<Content: View>: View {
             content
         }
         .clipShape(shape)
+    }
+}
+
+@Observable @MainActor final class PanelModel {
+    var model: Model = .search
+    var position: CGFloat = 0
+    var presented: Bool = true
+
+    enum Model { case composer, dashboard, search }
+
+    func parameters(_ agency: AgencyModel) -> Parameters { .init() }
+
+    func controls(_ agency: AgencyModel) -> Controls {
+        .init(
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                return agency.session.selected(ref, item.path)
+            },
+            onSelect: { item in
+                guard let ref = item.ref else { return }
+                agency.select(ref, url: item.path)
+            }
+        )
     }
 }

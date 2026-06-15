@@ -1,58 +1,60 @@
 import SwiftUI
-import AppKit
-import AgencyRuntime
-import UniformTypeIdentifiers
+
 
 enum Layout: CaseIterable { case list, grid, column, group, table }
-protocol Model {}
 
-protocol Mapper {
-    static func closures(_ agency: AgencyModel, _ panel: any Panel) -> Closures
-    static func params(_ agency: AgencyModel, _ panel: any Panel) -> Params
+extension CaseIterable {
+    var image: String { "" }
+    var label: String { "" }
 }
 
-extension Mapper {
-    static func closures(_ agency: AgencyModel, _ panel: any Panel) -> Closures { .init() }
-    static func params(_ agency: AgencyModel, _ panel: any Panel) -> Params { .init() }
-}
-
-protocol Panel: AnyObject {
+@MainActor protocol Panel: AnyObject {
     associatedtype Model = CaseIterable
     var model: Model { get }
     var layout: Layout { get }
     var position: CGFloat { get set }
     var presented: Bool { get set }
     var expanded: Set<AnyHashable> { get set }
-    func closures(_ agency: AgencyModel) -> Closures
-    func params(_ agency: AgencyModel) -> Params
+    func controls(_ agency: AgencyModel) -> Controls
+    func parameters(_ agency: AgencyModel) -> Parameters
 }
+
+@MainActor protocol Mapper {
+    static func controls(_ agency: AgencyModel, _ panel: any Panel) -> Controls
+    static func parameters(_ agency: AgencyModel, _ panel: any Panel) -> Parameters
+}
+
+@MainActor protocol Feature: View {}
 
 extension Panel {
     func isExpanded(_ id: AnyHashable) -> Bool { expanded.contains(id) }
-    func setExpanded(_ id: AnyHashable) {
-        if expanded.contains(id) { expanded.remove(id) }
-        else { expanded.insert(id) }
-    }
-
-    @MainActor func build(_ agency: AgencyModel) -> some View {
-        Builder.build(self, closures(agency), params(agency))
-    }
+    func setExpanded(_ id: AnyHashable) { if expanded.contains(id) { expanded.remove(id) } else { expanded.insert(id) } }
+    func controls(_ agency: AgencyModel) -> Controls { .init() }
+    func parameters(_ agency: AgencyModel) -> Parameters { .init() }
+    func view(_ agency: AgencyModel) -> some View { Builder.build(agency, self) }
 }
 
-protocol Feature: View {}
+extension Mapper {
+    static func controls(_ agency: AgencyModel, _ panel: any Panel) -> Controls { .init() }
+    static func parameters(_ agency: AgencyModel, _ panel: any Panel) -> Parameters { .init() }
+}
 
 @Observable final class EmptyPanel: Panel {
-    var layout: Layout = .grid
+    enum Model: CaseIterable { case empty }
+
     var model: Model = .empty
+    var layout: Layout = .grid
     var position: CGFloat = 0
     var presented: Bool = false
     var expanded: Set<AnyHashable> = []
-    enum Model: CaseIterable { case empty }
-    func closures(_ agency: AgencyModel) -> Closures { .init() }
-    func params(_ agency: AgencyModel) -> Params { .init() }
+
+    func controls(_ agency: AgencyModel) -> Controls { .init() }
+    func parameters(_ agency: AgencyModel) -> Parameters { .init() }
+    func toolbar() -> some ToolbarContent { ToolbarItem { EmptyView() } }
+    func view(_ agency: AgencyModel) -> some View { Builder.build(agency, self).toolbar { self.toolbar() } }
 }
 
-@Observable final class EmptyModel: Model {
+@Observable @MainActor final class EmptyModel {
     let sidebar = EmptyPanel()
     let content = EmptyPanel()
     let detail = EmptyPanel()
@@ -60,21 +62,19 @@ protocol Feature: View {}
 
 struct EmptyFeature: Feature {
     @Environment(AgencyModel.self) var agency
-
-    init() { agency.models["EmptyModel"] = EmptyModel() }
+    @State var model = EmptyModel()
 
     var body: some View {
-        @Bindable var model = agency.models["EmptyModel"] as! EmptyModel
         @Bindable var sidebar = model.sidebar
         @Bindable var content = model.content
         @Bindable var detail = model.detail
 
         NavigationSplitView {
-            sidebar.build(agency)
+            sidebar.view(agency)
         } content: {
-            content.build(agency)
+            content.view(agency)
         } detail: {
-            detail.build(agency)
+            detail.view(agency)
         }
     }
 }

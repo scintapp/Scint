@@ -141,6 +141,7 @@ enum Design {
         static var console: Color { Color(red: 0.09875, green: 0.09875, blue: 0.09875) }
         static var panel: Color { Color(red: 0.09875, green: 0.09875, blue: 0.09875) }
         static var card: Color { Color(red: 0.09875, green: 0.09875, blue: 0.09875) }
+        static var editor: Color { Color(red: 0.1373, green: 0.13601, blue: 0.1385) }
 
     }
 

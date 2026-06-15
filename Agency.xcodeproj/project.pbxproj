@@ -3,14 +3,13 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 90;
+	objectVersion = 110;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		7C444BBC2F686AC400BA95C3 /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C444BBB2F686AC400BA95C3 /* AgencyRuntime */; };
 		7C69AB062F8B46460008D611 /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C69AB052F8B46460008D611 /* AgencyRuntime */; };
 		7CB1B9D42FC5778E00BFEA35 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB1B9D32FC5778E00BFEA35 /* MCP */; };
-		7CB1C5952FC7388A00BBE273 /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C69AB1D2F8B4B730008D611 /* AgencyRuntime */; };
 		7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */; };
 /* End PBXBuildFile section */
 
@@ -57,18 +56,9 @@
 			);
 			name = "Embed XPC Services";
 		};
-		7CB1C5522FC7380700BBE273 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolder = None;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		7CB1C5542FC7380700BBE273 /* agency */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = agency; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CCC98652FB9D11E00F02910 /* AgencyStudio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgencyStudio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CCC98662FB9D11E00F02910 /* agencyd.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = agencyd.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -89,12 +79,6 @@
 		7C7F7AB12F740ADE009FA3B1 /* Exceptions for "Sources" folder in "AgencyStudio" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AgencyConsole/agency.swift,
-				AgencyConsole/Commands/CoreCommands.swift,
-				AgencyConsole/Commands/StaticCommandsAddon.swift,
-				AgencyConsole/Core/Command.swift,
-				AgencyConsole/Core/CommandParser.swift,
-				AgencyConsole/Core/CommandRunner.swift,
 				AgencyService/README.md,
 				AgencyService/Service.swift,
 				AgencyService/ServiceDaemon.swift,
@@ -107,40 +91,9 @@
 		7C857AD52F05270000D4187D /* Exceptions for "Resources" folder in "AgencyStudio" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Developing/Browser.swift,
-				Developing/Catalog.swift,
-				Developing/Editor.swift,
-				Developing/Executor.swift,
-				Developing/Extensions/Reminders/Bridge.swift,
-				Developing/Extensions/Reminders/Documentation.swift,
-				Developing/Extensions/Reminders/Models.swift,
-				Developing/Extensions/Reminders/RemindersAddon.swift,
-				Developing/Extensions/Reminders/Renderer.swift,
-				Developing/Library.swift,
-				Developing/Renderer.swift,
-				Developing/Sheet.swift,
 				Info.plist,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* AgencyStudio */;
-		};
-		7CB1C4A22FC6813000BBE273 /* Exceptions for "Resources" folder in "agencyd" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Developing/Renderer.swift,
-			);
-			target = 7C69AAF12F8B45D90008D611 /* agencyd */;
-		};
-		7CB1C5942FC7388A00BBE273 /* Exceptions for "Sources" folder in "agency" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				AgencyConsole/agency.swift,
-				AgencyConsole/Commands/CoreCommands.swift,
-				AgencyConsole/Commands/StaticCommandsAddon.swift,
-				AgencyConsole/Core/Command.swift,
-				AgencyConsole/Core/CommandParser.swift,
-				AgencyConsole/Core/CommandRunner.swift,
-			);
-			target = 7CB1C5532FC7380700BBE273 /* agency */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -149,7 +102,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				7C7F7AB12F740ADE009FA3B1 /* Exceptions for "Sources" folder in "AgencyStudio" target */,
-				7CB1C5942FC7388A00BBE273 /* Exceptions for "Sources" folder in "agency" target */,
 				7C69AB122F8B46EE0008D611 /* Exceptions for "Sources" folder in "agencyd" target */,
 			);
 			path = Sources;
@@ -159,7 +111,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				7C857AD52F05270000D4187D /* Exceptions for "Resources" folder in "AgencyStudio" target */,
-				7CB1C4A22FC6813000BBE273 /* Exceptions for "Resources" folder in "agencyd" target */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -181,12 +132,6 @@
 				7C69AB062F8B46460008D611 /* AgencyRuntime in Frameworks */,
 			);
 		};
-		7CB1C5512FC7380700BBE273 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			files = (
-				7CB1C5952FC7388A00BBE273 /* AgencyRuntime in Frameworks */,
-			);
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -197,7 +142,6 @@
 				7C4C37A42ED17F2F00D6F1CF /* Sources */,
 				7CCC98652FB9D11E00F02910 /* AgencyStudio.app */,
 				7CCC98662FB9D11E00F02910 /* agencyd.xpc */,
-				7CB1C5542FC7380700BBE273 /* agency */,
 			);
 			sourceTree = "<group>";
 		};
@@ -259,24 +203,6 @@
 			productReference = 7CCC98662FB9D11E00F02910 /* agencyd.xpc */;
 			productType = "com.apple.product-type.xpc-service";
 		};
-		7CB1C5532FC7380700BBE273 /* agency */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 7CB1C55A2FC7380700BBE273 /* Build configuration list for PBXNativeTarget "agency" */;
-			buildPhases = (
-				7CB1C5502FC7380700BBE273 /* Sources */,
-				7CB1C5512FC7380700BBE273 /* Frameworks */,
-				7CB1C5522FC7380700BBE273 /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			name = agency;
-			packageProductDependencies = (
-				7C69AB1D2F8B4B730008D611 /* AgencyRuntime */,
-			);
-			productName = AgencyConsole;
-			productReference = 7CB1C5542FC7380700BBE273 /* agency */;
-			productType = "com.apple.product-type.tool";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -285,15 +211,12 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2630;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					7C4C36E62ED17D5A00D6F1CF = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
 					7C69AAF12F8B45D90008D611 = {
-						CreatedOnToolsVersion = 26.3;
-					};
-					7CB1C5532FC7380700BBE273 = {
 						CreatedOnToolsVersion = 26.3;
 					};
 				};
@@ -312,13 +235,12 @@
 				7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */,
 				7CB1B9D22FC5778E00BFEA35 /* XCRemoteSwiftPackageReference "swift-sdk" */,
 			);
-			preferredProjectObjectVersion = 90;
+			preferredProjectObjectVersion = 110;
 			productRefGroup = 7C4C36DE2ED17D5A00D6F1CF;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				7C4C36E62ED17D5A00D6F1CF /* AgencyStudio */,
-				7CB1C5532FC7380700BBE273 /* agency */,
 				7C69AAF12F8B45D90008D611 /* agencyd */,
 			);
 		};
@@ -371,11 +293,6 @@
 			);
 		};
 		7C69AAEE2F8B45D90008D611 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			files = (
-			);
-		};
-		7CB1C5502FC7380700BBE273 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
 			);
@@ -551,7 +468,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaechle.AgencyStudio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -597,7 +514,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaechle.AgencyStudio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -671,64 +588,6 @@
 			};
 			name = Release;
 		};
-		7CB1C5582FC7380700BBE273 /* Debug configuration for PBXNativeTarget "agency" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				AUTOMATION_APPLE_EVENTS = NO;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 82C89Q2K4T;
-				ENABLE_HARDENED_RUNTIME = NO;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kaechle.AgencyConsole;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
-				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
-				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
-				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
-				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
-				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
-		7CB1C5592FC7380700BBE273 /* Release configuration for PBXNativeTarget "agency" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				AUTOMATION_APPLE_EVENTS = NO;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 82C89Q2K4T;
-				ENABLE_HARDENED_RUNTIME = NO;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kaechle.AgencyConsole;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
-				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
-				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
-				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
-				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
-				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -753,14 +612,6 @@
 			buildConfigurations = (
 				7C69AAFF2F8B45D90008D611 /* Debug configuration for PBXNativeTarget "agencyd" */,
 				7C69AB002F8B45D90008D611 /* Release configuration for PBXNativeTarget "agencyd" */,
-			);
-			defaultConfigurationName = Release;
-		};
-		7CB1C55A2FC7380700BBE273 /* Build configuration list for PBXNativeTarget "agency" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				7CB1C5582FC7380700BBE273 /* Debug configuration for PBXNativeTarget "agency" */,
-				7CB1C5592FC7380700BBE273 /* Release configuration for PBXNativeTarget "agency" */,
 			);
 			defaultConfigurationName = Release;
 		};
