@@ -37,13 +37,13 @@ enum MenuFormKind: Equatable {
 
 enum MenuItem: Identifiable, Equatable {
     case commandItem(id: String, label: String, icon: String?, keywords: [String])
-    case reference(Reference, name: String, description: String, icon: String, tags: [String])
+    case reference(Reference, name: String, description: String, tags: [String])
     case dividerItem(String)
 
     var id: String {
         switch self {
         case .commandItem(let id, _, _, _): return "command:\(id)"
-        case .reference(let ref, _, _, _, _): return "reference:\(ref.id.uuidString)"
+        case .reference(let ref, _, _, _): return "reference:\(ref.id.uuidString)"
         case .dividerItem(let id): return "divider:\(id)"
         }
     }
@@ -56,7 +56,7 @@ enum MenuItem: Identifiable, Equatable {
     var label: String {
         switch self {
         case .commandItem(_, let label, _, _): return label
-        case .reference(_, let name, _, _, _): return name
+        case .reference(_, let name, _, _): return name
         case .dividerItem: return ""
         }
     }
@@ -64,17 +64,22 @@ enum MenuItem: Identifiable, Equatable {
     var detail: String {
         switch self {
         case .commandItem: return ""
-        case .reference(_, _, let description, _, let tags):
+        case .reference(_, _, let description, let tags):
             if !description.isEmpty { return description }
             return tags.joined(separator: " ")
         case .dividerItem: return ""
         }
     }
 
+    var ref: Reference? {
+        guard case .reference(let ref, _, _, _) = self else { return nil }
+        return ref
+    }
+
     var icon: String? {
         switch self {
         case .commandItem(_, _, let icon, _): return icon
-        case .reference(_, _, _, let icon, _): return icon
+        case .reference: return nil
         case .dividerItem: return nil
         }
     }
@@ -91,7 +96,7 @@ enum MenuItem: Identifiable, Equatable {
         case .commandItem(_, let label, _, let keywords):
             return label.localizedCaseInsensitiveContains(query)
                 || keywords.contains { $0.localizedCaseInsensitiveContains(query) }
-        case .reference(_, let name, let description, _, let tags):
+        case .reference(_, let name, let description, let tags):
             return name.localizedCaseInsensitiveContains(query)
                 || description.localizedCaseInsensitiveContains(query)
                 || tags.contains { $0.localizedCaseInsensitiveContains(query) }
@@ -110,13 +115,13 @@ enum MenuItem: Identifiable, Equatable {
 }
 
 struct MenuCommit {
-    let entries: [Entry]
+    let entries: [Block]
     let replacementRange: NSRange
 }
 
 @Observable final class MenuModel {
     private let commandItems: [MenuItem]
-    private let makeEntries: (MenuItem) -> [Entry]?
+    private let makeEntries: (MenuItem) -> [Block]?
 
     var kind: EditorMenuKind = .command
     var query: String = ""
@@ -156,7 +161,7 @@ struct MenuCommit {
         }
     }
 
-    init(items: [MenuItem] = [], makeEntries: @escaping (MenuItem) -> [Entry]? = { _ in nil }) {
+    init(items: [MenuItem] = [], makeEntries: @escaping (MenuItem) -> [Block]? = { _ in nil }) {
         self.commandItems = items
         self.makeEntries = makeEntries
         self.items = items
@@ -270,7 +275,7 @@ struct MenuCommit {
             close()
             return MenuCommit(entries: entries, replacementRange: range)
 
-        case .reference(let ref, _, _, _, _):
+        case .reference(let ref, _, _, _):
             guard let entry = MenuSearch.entry(for: ref) else { return nil }
             let range = replacementRange
             close()
@@ -292,7 +297,7 @@ struct MenuCommit {
 
     private func commitForm(_ kind: MenuFormKind) -> MenuCommit? {
         let title = formPrimary.trimmingCharacters(in: .whitespacesAndNewlines)
-        let entry: Entry
+        let entry: Block
 
         switch kind {
         case .task:
@@ -300,10 +305,8 @@ struct MenuCommit {
         case .link:
             let fallbackTitle = title.isEmpty ? "Link" : title
             let url = normalizedURL(from: formSecondary)
-            let ref = Artifact.register(fallbackTitle, url)
-            if url == nil {
-                Artifact.update(ref) { $0.kind = .http(nil) }
-            }
+            let ref = Artifact.register(fallbackTitle, url!)
+            if url == nil { Artifact.update(ref) { $0.handle = .http(nil) } }
             entry = .artifact(ref)
         }
 

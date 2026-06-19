@@ -59,15 +59,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		7CCC98652FB9D11E00F02910 /* AgencyStudio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgencyStudio.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		7CCC98662FB9D11E00F02910 /* agencyd.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = agencyd.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
+		7CEEDB3A2FE4D94D00297905 /* AgencyStudio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgencyStudio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7CEEDB3B2FE4D94D00297905 /* agencyd.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = agencyd.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		7C69AB122F8B46EE0008D611 /* Exceptions for "Sources" folder in "agencyd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AgencyService/README.md,
 				AgencyService/Service.swift,
 				AgencyService/ServiceDaemon.swift,
 				AgencyService/ServiceProcess.swift,
@@ -79,7 +78,6 @@
 		7C7F7AB12F740ADE009FA3B1 /* Exceptions for "Sources" folder in "AgencyStudio" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AgencyService/README.md,
 				AgencyService/Service.swift,
 				AgencyService/ServiceDaemon.swift,
 				AgencyService/ServiceProcess.swift,
@@ -140,8 +138,8 @@
 			children = (
 				7C4C37A52ED17F3700D6F1CF /* Resources */,
 				7C4C37A42ED17F2F00D6F1CF /* Sources */,
-				7CCC98652FB9D11E00F02910 /* AgencyStudio.app */,
-				7CCC98662FB9D11E00F02910 /* agencyd.xpc */,
+				7CEEDB3A2FE4D94D00297905 /* AgencyStudio.app */,
+				7CEEDB3B2FE4D94D00297905 /* agencyd.xpc */,
 			);
 			sourceTree = "<group>";
 		};
@@ -178,7 +176,7 @@
 				7CB1B9D32FC5778E00BFEA35 /* MCP */,
 			);
 			productName = Agency;
-			productReference = 7CCC98652FB9D11E00F02910 /* AgencyStudio.app */;
+			productReference = 7CEEDB3A2FE4D94D00297905 /* AgencyStudio.app */;
 			productType = "com.apple.product-type.application";
 		};
 		7C69AAF12F8B45D90008D611 /* agencyd */ = {
@@ -200,7 +198,7 @@
 				7C69AB052F8B46460008D611 /* AgencyRuntime */,
 			);
 			productName = agencyd;
-			productReference = 7CCC98662FB9D11E00F02910 /* agencyd.xpc */;
+			productReference = 7CEEDB3B2FE4D94D00297905 /* agencyd.xpc */;
 			productType = "com.apple.product-type.xpc-service";
 		};
 /* End PBXNativeTarget section */
@@ -468,6 +466,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Sources/AgencyRuntime/.build/out/Products/Debug",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaechle.AgencyStudio;
@@ -513,6 +515,10 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Sources/AgencyRuntime/.build/out/Products/Debug",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;

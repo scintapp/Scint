@@ -1,7 +1,117 @@
-import Foundation
-import SwiftUI
 import AgencyRuntime
+import SwiftUI
 
+
+enum Iconography {
+    static func icon(for block: Sheet.Block) -> Icon {
+        switch block {
+            case .artifact(let ref), .command(let ref), .sheet(let ref): return Iconography.icon(for: ref)
+            case .content: return Icon(badge: "text.alignleft", tint: Design.Tint.active)
+            case .task: return Icon(badge: "checkmark.app", tint: Design.Tint.active)
+        }
+    }
+
+    static func icon(for routine: Harness.Routine) -> Icon {
+        switch routine {
+            case .dispatch: return Icon(badge: "function", tint: Design.Tint.dispatcher)
+            case .observe: return Icon(badge: "clock.arrow.trianglehead.clockwise.rotate.90.path.dotted", tint: Design.Tint.observer)
+            case .process: return Icon(badge: "arrow.triangle.2.circlepath", tint: Design.Tint.processor)
+            case .traverse: return Icon(badge: "graph.3d", tint: Design.Tint.traverser)
+            case .compose: return Icon(badge: "rectangle.3.offgrid", tint: Design.Tint.command)
+        }
+    }
+
+    static func icon(for entry: Transcript.Entry) -> Icon {
+        switch entry {
+            case .event: return Icon(badge: "23.calendar", tint: Design.Tint.active)
+            case .sheet(let ref, _): return Iconography.icon(for: ref)
+            case .transcript(let ref, _, _): return Iconography.icon(for: ref)
+        }
+    }
+
+    static func icon(for handle: Artifact.Handle) -> Icon {
+        switch handle {
+            case .app: return Icon(badge: "square.grid.2x2.fill", tint: Design.Tint.active)
+            case .file: return Icon(badge: "folder", tint: Design.Tint.active)
+            case .http: return Icon(badge: "doc.badge.ellipsis", tint: Design.Tint.active)
+            case .image: return Icon(badge: "photo", tint: Design.Tint.active)
+            case .script: return Icon(badge: "chevron.left.forwardslash.chevron.right", tint: Design.Tint.active)
+            case .skill: return Icon(badge: "shippingbox", tint: Design.Tint.active)
+            case .exec: return Icon(badge: "terminal", tint: Design.Tint.active)
+        }
+    }
+
+    static func icon(for ref: Reference) -> Icon {
+        switch ref.type {
+            case is Artifact.Type:
+                guard let handle = Artifact.with(ref, { $0 })?.handle
+                else { return Icon(badge: "", tint: Design.Tint.active) }
+                return Iconography.icon(for: handle)
+            case is Space.Type:
+                guard let harness = Space.with(ref, { $0.harness }).flatMap({ $0 }),
+                      let config = Harness.with(harness, { $0.routine })
+                else { return Icon(badge: "app", tint: Design.Tint.active) }
+                return Iconography.icon(for: config)
+            case is Command.Type:
+                return Icon(badge: "switch.2", tint: Design.Tint.active)
+            case is Route.Type:
+                return Icon(badge: "app.connected.to.app.below.fill", tint: Design.Tint.active)
+            case is Harness.Type:
+                guard let mode = Harness.with(ref, { $0.routine })
+                else { return Icon(badge: "gear", tint: Design.Tint.harness) }
+                return Iconography.icon(for: mode)
+            case is Sheet.Type:
+                for entry in Sheet.with(ref, { $0.blocks }) ?? [] { return Iconography.icon(for: entry) }
+            case is Transcript.Type:
+                for entry in Transcript.with(ref, { $0.entries }) ?? [] { return Iconography.icon(for: entry) }
+            case is Workspace.Type:
+                return Icon(badge: "cube.transparent", tint: Design.Tint.active)
+            default:
+                break
+        }
+        return Icon(badge: "", tint: Design.Tint.active)
+    }
+
+    static func accent(for ref: Reference) -> Color {
+        switch ref.type {
+            case is Artifact.Type: return Design.Tint.artifact
+            case is Command.Type: return Design.Tint.command
+            case is Route.Type: return Design.Tint.space
+            case is Harness.Type: return Iconography.icon(for: ref).tint
+            case is Sheet.Type: return Design.Tint.sheet
+            case is Transcript.Type: return Design.Tint.running
+            case is Space.Type:
+                guard let harness = Space.with(ref, { $0.harness }).flatMap({ $0 }),
+                      let mode = Harness.with(harness, { $0.routine })
+                else { return Design.Tint.success }
+                return Iconography.icon(for: mode).tint
+            case is Workspace.Type: return Design.Tint.success
+            default: return Iconography.icon(for: ref).tint
+        }
+    }
+
+    struct Icon: View {
+        let badge: String
+        let tint: Color
+
+        var symbol: String { badge.isEmpty ? "app.grid" : badge }
+
+        var body: some View {
+            let rectangle = RoundedRectangle(cornerRadius: 6, style: .circular)
+
+            ZStack(alignment: .center) {
+                rectangle
+                    .fill(tint.opacity(0.2))
+                    .stroke(tint.opacity(0.5), lineWidth: 0.75)
+                Image(systemName: symbol)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .foregroundStyle(tint)
+            }
+            .glassEffect(.regular, in: rectangle)
+            .frame(width: 17, height: 17, alignment: .center)
+        }
+    }
+}
 
 enum TypeScale {
     static let avatarMonogram: CGFloat = 16
@@ -62,7 +172,7 @@ enum LayoutScale {
 }
 
 enum Design {
-    enum SheetEntry {
+    enum SheetGlyph {
         static let background = Design.Background.base
         static let card = Design.Background.panel
         static let cardHeader = Color.primary.opacity(0.06)
@@ -76,54 +186,77 @@ enum Design {
     }
 
     enum Library {
+        case app(Artifact)
         case bookmark(Artifact)
         case command(Command)
-        case script(Artifact)
-        case skill(Artifact)
         case harness(Harness)
+        case script(Artifact)
+        case sheet(SheetGlyph)
+        case skill(Artifact)
+        case transcript(Transcript)
     }
 
     enum Component {
         static func icon(for ref: Reference) -> String {
             switch ref.type {
-            case is Artifact.Type: if let entry = Artifact.with(ref, { $0 })?.kind { return Design.Component.icon(for: entry) }
-            case is Command.Type: return "switch.2"
-            case is Route.Type: return "app.connected.to.app.below.fill"
-            case is Harness.Type: return "gear"
-            case is Sheet.Type: for entry in Sheet.with(ref, { $0.entries }) ?? [] { return Design.Component.icon(for: entry) }
-            case is Transcript.Type: for entry in Transcript.with(ref, { $0.entries }) ?? [] { return Design.Component.icon(for: entry) }
-            case is Space.Type: return "app"
-            case is Workspace.Type: return "cube.transparent"
-            default: return "app.grid"
+                case is Artifact.Type: if let handle = Artifact.with(ref, { $0 })?.handle { return Design.Component.icon(for: handle) }
+                case is Command.Type: return "switch.2"
+                case is Route.Type: return "app.connected.to.app.below.fill"
+                case is Harness.Type: return "gear"
+                case is Sheet.Type: for entry in Sheet.with(ref, { $0.blocks }) ?? [] { return Design.Component.icon(for: entry) }
+                case is Transcript.Type: for entry in Transcript.with(ref, { $0.entries }) ?? [] { return Design.Component.icon(for: entry) }
+                case is Space.Type:
+                    if let harness = Space.with(ref, { $0 })?.harness {
+                        switch Harness.with(harness, { $0.routine }) {
+                            case .dispatch: return ""
+                            case .observe: return ""
+                            case .process: return ""
+                            case .traverse: return ""
+                            default: return ""
+                        }
+                    }
+                    return "app"
+                case is Workspace.Type: return "cube.transparent"
+                default: return ""
             }
-            return "app.grid"
+            return ""
         }
 
-        static func icon(for entry: Artifact.Kind) -> String {
-            switch entry {
-            case .app: return "square.grid.2x2.fill"
-            case .file: return "folder"
-            case .http: return "doc.badge.ellipsis"
-            case .image: return "photo"
-            case .script: return "chevron.left.forwardslash.chevron.right"
-            case .skill: return "shippingbox"
-            case .exec: return "terminal"
+        static func icon(for handle: Artifact.Handle) -> String {
+            switch handle {
+                case .app: return "square.grid.2x2.fill"
+                case .file: return "folder"
+                case .http: return "doc.badge.ellipsis"
+                case .image: return "photo"
+                case .script: return "chevron.left.forwardslash.chevron.right"
+                case .skill: return "shippingbox"
+                case .exec: return "terminal"
             }
         }
 
-        static func icon(for entry: Sheet.Entry) -> String {
+        static func icon(for routine: Harness.Routine) -> String {
+            switch routine {
+                case .dispatch: return "app"
+                case .observe: return "app"
+                case .process: return "app"
+                case .traverse: return "app"
+                case .compose: return "app"
+            }
+        }
+
+        static func icon(for entry: Sheet.Block) -> String {
             switch entry {
-            case .artifact(let ref), .control(let ref), .service(let ref), .sheet(let ref): return Component.icon(for: ref)
-            case .content: return "text.alignleft"
-            case .task: return "checkmark.app"
+                case .artifact(let ref), .command(let ref), .sheet(let ref): return Component.icon(for: ref)
+                case .content: return "text.alignleft"
+                case .task: return "checkmark.app"
             }
         }
 
         static func icon(for entry: Transcript.Entry) -> String {
             switch entry {
-            case .event: return "23.calendar"
-            case .sheet(let ref, _): return Self.icon(for: ref)
-            case .transcript(let ref, _, _): return Component.icon(for: ref)
+                case .event: return "23.calendar"
+                case .sheet(let ref, _): return Self.icon(for: ref)
+                case .transcript(let ref, _, _): return Component.icon(for: ref)
             }
         }
     }
@@ -142,20 +275,22 @@ enum Design {
         static var panel: Color { Color(red: 0.09875, green: 0.09875, blue: 0.09875) }
         static var card: Color { Color(red: 0.09875, green: 0.09875, blue: 0.09875) }
         static var editor: Color { Color(red: 0.1373, green: 0.13601, blue: 0.1385) }
-
     }
 
     enum Tint {
         static var input: Color { Color(red: 0.780, green: 0.840, blue: 1.205) }
         static var output: Color { Color(red: 1.03119, green: 0.81027, blue: 1.39988) }
 
+        static var dispatcher: Color { Color(red: 1.15884, green: 1.00799, blue: 1.44741) }
+        static var observer: Color { Color(red: 0.85884, green: 1.00799, blue: 1.34741) }
+        static var processor: Color { Color(red: 1.38884, green: 0.81799, blue: 0.94741) }
+        static var traverser: Color { Color(red: 0.943, green: 1.201, blue: 1.220) }
+
+        static var ready: Color { Color(red: 0.530, green: 0.720, blue: 0.680) }
         static var active: Color { Color(red: 0.620, green: 0.590, blue: 0.640) }
-        static var observing: Color { Color(red: 0.890, green: 0.9, blue: 1.00) }
         static var running: Color { Color(red: 0.743, green: 0.901, blue: 0.920) }
         static var blocked: Color { Color(red: 0.801, green: 0.630, blue: 0.506) }
         static var failed: Color { Color(red: 0.796, green: 0.555, blue: 0.662) }
-
-        static var ready: Color { Color(red: 0.530, green: 0.720, blue: 0.680) }
 
         static var info: Color { Color(red: 0.980, green: 1.040, blue: 1.305) }
         static var request: Color { Color(red: 1.090, green: 0.920, blue: 1.120) }
@@ -166,9 +301,9 @@ enum Design {
         static var failure: Color { Color(red: 0.77637, green: 0.45581, blue: 0.56299) }
 
         static var artifact: Color { Color(red: 0.85884, green: 1.00799, blue: 1.34741) }
-        static var control: Color { Color(red: 1.15884, green: 1.00799, blue: 1.44741) }
-        static var service: Color { Color(red: 0.743, green: 0.901, blue: 0.920) }
-        static var structure: Color { Color(red: 1.27736, green: 1.36706, blue: 1.47239) }
+        static var command: Color { Color(red: 1.15884, green: 1.00799, blue: 1.44741) }
+        static var harness: Color { Color(red: 0.743, green: 0.901, blue: 0.920) }
+        static var space: Color { Color(red: 1.27736, green: 1.36706, blue: 1.47239) }
         static var sheet: Color { Color(red: 1.46963, green: 1.08887, blue: 0.98027) }
         static var task: Color { Color(red: 1.38884, green: 0.81799, blue: 0.94741) }
     }
@@ -225,286 +360,4 @@ enum TranscriptItem {
     var isMessage: Bool { if case .message = self { return true }; return false }
     var isStatus: Bool  { if case .status  = self { return true }; return false }
     var isReasoning: Bool { if case .reasoning = self { return true }; return false }
-}
-
-struct MessageView: View {
-    let text: String
-    var body: some View {
-        Group {
-            if let attributed = try? AttributedString(markdown: text) { Text(attributed) }
-            else { Text(text) }
-        }
-        .font(TranscriptType.message)
-        .foregroundStyle(TranscriptTheme.textPrimary)
-        .lineSpacing(TranscriptMetric.lineSpacingMessage)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .textSelection(.enabled)
-        .padding(.top, 8)
-        .padding(.bottom, 12)
-        .padding(.horizontal, 8)
-    }
-}
-
-struct ReasoningView: View {
-    let text: String
-    var body: some View {
-        Text(text)
-            .font(TranscriptType.body.italic())
-            .foregroundStyle(TranscriptTheme.textQuaternary)
-            .lineSpacing(TranscriptMetric.lineSpacingBody)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
-            .padding(.leading, TranscriptMetric.quoteInset)
-            .padding(.trailing, TranscriptMetric.quoteInset)
-            .overlay(alignment: .leading) {
-                Rectangle()
-                    .offset(x: 12)
-                    .fill(TranscriptTheme.quoteBar)
-                    .frame(width: TranscriptMetric.quoteBarWidth)
-                    .padding(.top, 10)
-                    .padding(.bottom, 14)
-            }
-    }
-}
-
-struct CodeBlock: View {
-    let code: String
-    var body: some View {
-        Text(code)
-            .font(TranscriptType.mono)
-            .foregroundStyle(TranscriptTheme.textSecondary)
-            .lineSpacing(TranscriptMetric.lineSpacingMono)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .textSelection(.enabled)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .glassEffect(.regular, in:
-                RoundedRectangle(cornerRadius: TranscriptMetric.blockRadius)
-            )
-    }
-}
-
-struct ActionRow: View {
-    let verb: String
-    let name: String
-    let output: String
-    @State private var expanded = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button { withAnimation(.easeInOut(duration: 0.15)) { expanded.toggle() } } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 12))
-                        .foregroundStyle(TranscriptTheme.provider)
-                    Text(verb)
-                        .font(TranscriptType.body)
-                        .foregroundStyle(TranscriptTheme.textTertiary)
-                    Text(name)
-                        .font(TranscriptType.monoSmall)
-                        .foregroundStyle(TranscriptTheme.textPrimary)
-                    Spacer(minLength: 8)
-                    if !output.isEmpty {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 11))
-                            .foregroundStyle(TranscriptTheme.textTertiary)
-                            .rotationEffect(.degrees(expanded ? 180 : 0))
-                    }
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(output.isEmpty)
-
-            if expanded && !output.isEmpty {
-                hairline().padding(.vertical, 7)
-                Text(output)
-                    .font(TranscriptType.mono)
-                    .foregroundStyle(TranscriptTheme.textSecondary)
-                    .lineSpacing(TranscriptMetric.lineSpacingMono)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-            }
-        }
-        .eventBlock()
-    }
-}
-
-struct StatusRow: View {
-    let lines: [String]
-    @State private var expanded = false
-
-    private var earlier: [String] { Array(lines.dropLast()) }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if expanded {
-                ForEach(earlier.indices, id: \.self) { i in
-                    statusLine(earlier[i]).opacity(0.85)
-                }
-            }
-            Button {
-                guard lines.count > 1 else { return }
-                withAnimation(.easeInOut(duration: 0.15)) { expanded.toggle() }
-            } label: {
-                HStack(spacing: 7) {
-                    statusDot
-                    Text(lines.last ?? "")
-                        .font(TranscriptType.body)
-                        .foregroundStyle(TranscriptTheme.textTertiary)
-                    if lines.count > 1 {
-                        Text("· +\(lines.count - 1) earlier")
-                            .font(TranscriptType.body)
-                            .foregroundStyle(TranscriptTheme.textTertiary.opacity(0.6))
-                    }
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(lines.count <= 1)
-        }
-        .eventBlock()
-    }
-
-    private var statusDot: some View {
-        Circle().fill(TranscriptTheme.quoteBar).frame(width: 3, height: 3)
-    }
-
-    private func statusLine(_ text: String) -> some View {
-        HStack(spacing: 7) {
-            statusDot
-            Text(text).font(TranscriptType.body).foregroundStyle(TranscriptTheme.textTertiary)
-            Spacer(minLength: 0)
-        }
-    }
-}
-
-struct DomainRollup: View {
-    let label: String
-    let events: [String]
-    @State private var expanded = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) { expanded.toggle() }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "rectangle.stack")
-                        .font(.system(size: 10, weight: .light))
-                        .foregroundStyle(Design.Tint.info)
-                    Text(label)
-                        .font(TranscriptType.body)
-                        .foregroundStyle(TranscriptTheme.textTertiary)
-                    Text("· \(events.count) events")
-                        .font(TranscriptType.body)
-                        .foregroundStyle(TranscriptTheme.textQuaternary)
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 11))
-                        .foregroundStyle(TranscriptTheme.textQuaternary)
-                        .rotationEffect(.degrees(expanded ? 180 : 0))
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if expanded {
-                VStack(alignment: .leading, spacing: 1) {
-                    ForEach(events.indices, id: \.self) { i in
-                        Text(events[i])
-                            .font(TranscriptType.body)
-                            .foregroundStyle(TranscriptTheme.textTertiary)
-                    }
-                }
-                .padding(.leading, 19)
-            }
-        }
-        .eventBlock()
-    }
-}
-
-struct StateRow: View {
-    let state: Composition.State
-    let text: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: state.transcriptIcon)
-                .font(.system(size: 12))
-                .foregroundStyle(Design.Tint.blocked)
-            Text(text)
-                .font(TranscriptType.body)
-                .foregroundStyle(Design.Tint.blocked)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: TranscriptMetric.blockRadius)
-                .fill(Design.Tint.blocked.opacity(0.035))
-            )
-        .overlay(
-            RoundedRectangle(cornerRadius: TranscriptMetric.blockRadius)
-                .stroke(Design.Tint.blocked.opacity(0.42), lineWidth: 0.5)
-        )
-    }
-}
-
-extension Composition.State {
-    var transcriptColor: Color {
-        switch self {
-        case .failed: return TranscriptTheme.stateFailed
-        case .blocked: return TranscriptTheme.stateBlocked
-        default: return TranscriptTheme.textTertiary
-        }
-    }
-    var transcriptIcon: String {
-        switch self {
-        case .failed: return "exclamationmark.triangle"
-        case .blocked: return "hand.raised"
-        default: return "circle"
-        }
-    }
-}
-
-private extension Event {
-    var label: String {
-        switch self {
-        case .request: return "turn.requested"
-        case .composed: return "context.composed"
-        case .dispatching: return "dispatch.started"
-        case .observing: return "observe.started"
-        case .processing: return "process.started"
-        case .traversing: return "traverse.started"
-        case .progress: return "progress"
-        case .completed: return "completed"
-        case .blocked: return "blocked"
-        case .failed: return "failed"
-        case .provider(let properties): return ProviderEvent(properties).text
-        }
-    }
-}
-
-private extension View {
-    func eventBlock() -> some View {
-        self
-            .padding(.vertical, TranscriptMetric.blockPaddingV)
-            .padding(.horizontal, TranscriptMetric.blockPaddingH)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(TranscriptTheme.surface)
-            .clipShape(
-                RoundedRectangle(cornerRadius: TranscriptMetric.blockRadius, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: TranscriptMetric.blockRadius, style: .continuous)
-                    .stroke(TranscriptTheme.border, lineWidth: 1)
-            }
-    }
-
-    func hairline(_ height: CGFloat = 0.5) -> some View {
-        Rectangle().fill(TranscriptTheme.hairline).frame(height: height)
-    }
 }

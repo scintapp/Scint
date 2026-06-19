@@ -19,7 +19,7 @@ enum EditorSurface {
         MenuItem.command(id: "add-files", label: "Files or Folders...", icon: "folder.badge.plus", keywords: ["file", "folder", "directory", "artifact", "open"])
     ]
 
-    @MainActor static func build(for item: MenuItem) -> [Sheet.Entry]? {
+    @MainActor static func build(for item: MenuItem) -> [Sheet.Block]? {
         guard let commandID = item.commandID else { return nil }
 
         switch commandID {
@@ -33,7 +33,7 @@ enum EditorSurface {
             guard panel.runModal() == .OK else { return nil }
             let entries = panel.urls.map { url in
                 let name = url.lastPathComponent.isEmpty ? "Artifact" : url.lastPathComponent
-                return Sheet.Entry.artifact(Artifact.register(name, url))
+                return Sheet.Block.artifact(Artifact.register(name, url))
             }
             return entries.isEmpty ? nil : entries
         case "heading-1": return [.content(UUID(), "# ")]
@@ -51,28 +51,32 @@ enum EditorSurface {
 
 struct Editor: View {
     @State var state: EditorModel
-
-    init(ref: Reference) {
+    let autofocus: Bool
+    
+    init(_ sheet: Reference, autofocus: Bool = false) {
+        self.autofocus = autofocus
         _state = State(
             initialValue: EditorModel(
-                sheet: ref,
-                menu: MenuModel(items: EditorSurface.menu, makeEntries: EditorSurface.build(for:))
+                sheet: sheet,
+                menu: MenuModel(
+                    items: EditorSurface.menu,
+                    makeEntries: EditorSurface.build(for:)
+                )
             )
         )
     }
 
     static func sheet(for workspace: Reference) -> Reference {
         guard let closure = Workspace.with(workspace, { $0.closure }) else { return Sheet.new("Workspace Composer", owner: workspace) }
-        if let sheet = Closure.with(closure, { $0.sheets.first }) ?? nil { return sheet }
+        if let sheet = Closure.with(closure, { $0.state.first }) ?? nil { return sheet }
         let sheet = Sheet.new("Workspace Composer", owner: closure)
-        Closure.update(closure) { if !$0.sheets.contains(sheet) { $0.sheets.append(sheet) } }
+        Closure.update(closure) { if !$0.state.contains(sheet) { $0.state.append(sheet) } }
         return sheet
     }
 
     public var body: some View {
-        EditorCanvas()
+        EditorCanvas(autofocus: autofocus)
             .environment(state)
             .ignoresSafeArea(.container, edges: .top)
-            .onAppear { state.ensureEditableTextBlock() }
     }
 }

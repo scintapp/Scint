@@ -35,6 +35,7 @@ struct Controls {
     var canDrag: ((_ item: ItemParams) -> Bool)?
     var dropTypes: ((_ item: ItemParams) -> [UTType])?
     var onDrop: ((_ providers: [NSItemProvider], _ target: ItemParams) -> Bool)?
+    var onCanvasPosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)?
 
     init(
         onToggle: ((ItemParams) -> Void)? = nil,
@@ -67,7 +68,8 @@ struct Controls {
         isItemDuplicateable: ((_ item: ItemParams) -> Bool)? = nil,
         canDrag: ((_ item: ItemParams) -> Bool)? = nil,
         dropTypes: ((_ item: ItemParams) -> [UTType])? = nil,
-        onDrop: ((_ providers: [NSItemProvider], _ target: ItemParams) -> Bool)? = nil
+        onDrop: ((_ providers: [NSItemProvider], _ target: ItemParams) -> Bool)? = nil,
+        onCanvasPosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)? = nil
     ) {
         self.onToggle = onToggle
         self.setControls = setControls

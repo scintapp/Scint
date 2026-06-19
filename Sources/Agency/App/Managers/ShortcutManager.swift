@@ -3,7 +3,7 @@ import SwiftUI
 
 
 extension KeyboardShortcuts.Name {
-    static let toggleAperture = Self("toggleAperture", default: .init(.a, modifiers: [.command, .shift]))
+//    static let toggleAperture = Self("toggleAperture", default: .init(.a, modifiers: [.command, .shift]))
 }
 
 @MainActor final class ShortcutManager {
@@ -13,11 +13,10 @@ extension KeyboardShortcuts.Name {
 
     func register(agency: AgencyModel) {
         self.agency = agency
-        sync(.toggleAperture)
-
+//        sync(.toggleAperture)
         guard !registered else { return }
         registered = true
-        KeyboardShortcuts.onKeyDown(for: .toggleAperture) { self.agency?.toggleAperture() }
+//        KeyboardShortcuts.onKeyDown(for: .toggleAperture) { self.agency?.toggleAperture() }
 
     }
 

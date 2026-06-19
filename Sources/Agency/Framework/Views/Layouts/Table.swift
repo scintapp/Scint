@@ -68,7 +68,6 @@ struct ProcessesOverview: View {
     private func count(_ state: Composition.State) -> Int { compositions.filter { $0.state == state }.count }
 }
 
-
 struct TableItemIcon: View {
     let item: ItemParams
 
@@ -244,7 +243,6 @@ struct TableRow: View {
         case .name: text(item.name, weight: .semibold)
         case .description: text(item.description ?? "")
         case .child(let i): if item.items.indices.contains(i) { summary(item.items[i]) }
-        case .tags: text(item.tags.joined(separator: ", "))
         case .badge: if let badge = item.badges.first { TableBadge(title: badge.label, color: badge.tint) }
         case .badges: HStack(spacing: 6) { ForEach(item.badges) { TableBadge(title: $0.label, color: $0.tint) } }
         case .count: text(item.count.map(String.init) ?? "")

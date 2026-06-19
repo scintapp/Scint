@@ -7,7 +7,7 @@ struct ComposerToggle: View {
     @Environment(AgencyModel.self) var agency
 
     var body: some View {
-        Button { /*agency.toggleComposer()*/ } label: {
+        Button { } label: {
             ZStack {
                 Image(systemName: "bubble.left.and.text.bubble.right")
                     .foregroundStyle(.primary.opacity(0.8))

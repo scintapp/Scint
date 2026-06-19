@@ -15,11 +15,11 @@ private enum TranscriptBlock: Identifiable {
 
     var id: UUID {
         switch self {
-        case .message(_, let id), .reasoning(_, let id),
-                .action(_, _, _, let id), .status(_, let id),
-                .domain(_, _, let id), .state(_, _, let id),
-                .input(_, let id), .nested(_, let id):
-            return id
+            case .message(_, let id), .reasoning(_, let id),
+                    .action(_, _, _, let id), .status(_, let id),
+                    .domain(_, _, let id), .state(_, _, let id),
+                    .input(_, let id), .nested(_, let id):
+                return id
         }
     }
 
@@ -50,71 +50,71 @@ private enum TranscriptBlock: Identifiable {
 
         for entry in entries {
             switch entry {
-            case .event(let event, let id, _):
-                if let provider = event.provider {
-                    switch provider.kind {
-                    case .response:
-                        flushStatus(); flushDomain()
-                        if deltaID == nil { deltaID = id }
-                        deltas.append(provider.text)
+                case .event(let event, let id, _):
+                    if let provider = event.response {
+                        switch provider.kind {
+                            case .response:
+                                flushStatus(); flushDomain()
+                                if deltaID == nil { deltaID = id }
+                                deltas.append(provider.content)
 
-                    case .message:
-                        flushAll()
-                        let text = provider.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !text.isEmpty { blocks.append(.message(text, id)) }
+                            case .message:
+                                flushAll()
+                                let text = provider.content.trimmingCharacters(in: .whitespacesAndNewlines)
+                                if !text.isEmpty { blocks.append(.message(text, id)) }
 
-                    case .reasoning:
-                        flushAll()
-                        blocks.append(.reasoning(provider.text, id))
+                            case .reasoning:
+                                flushAll()
+                                blocks.append(.reasoning(provider.content, id))
 
-                    case .command:
-                        flushAll()
-                        let output = trimmingLeadingLine(provider.text, equalTo: provider.name)
-                        blocks.append(.action(verb: "ran", name: provider.name, output: output, id))
+                            case .command:
+                                flushAll()
+                                let output = trimmingLeadingLine(provider.content, equalTo: provider.name)
+                                blocks.append(.action(verb: "ran", name: provider.name, output: output, id))
 
-                    case .function:
-                        flushAll()
-                        blocks.append(.action(verb: "called",
-                                              name: provider.name.isEmpty ? "function" : provider.name,
-                                              output: provider.text, id))
+                            case .function:
+                                flushAll()
+                                blocks.append(.action(verb: "called",
+                                                      name: provider.name.isEmpty ? "function" : provider.name,
+                                                      output: provider.content, id))
 
-                    case .other:
-                        flushMessage(); flushDomain()
-                        if statusID == nil { statusID = id }
-                        status.append(provider.text.isEmpty ? "event" : provider.text)
+                            case .other:
+                                flushMessage(); flushDomain()
+                                if statusID == nil { statusID = id }
+                                status.append(provider.content.isEmpty ? "event" : provider.content)
+                        }
+                    } else {
+                        switch event {
+                            case .request, .composing, .completed:
+                                flushMessage(); flushStatus()
+                                if domainID == nil { domainID = id }
+                                domain.append(event.label)
+
+                            case .dispatching, .observing, .processing, .traversing, .updated:
+                                flushMessage(); flushDomain()
+                                if statusID == nil { statusID = id }
+                                status.append(event.label)
+
+                            case .blocked:
+                                flushAll()
+                                blocks.append(.state(.blocked, "blocked · awaiting input", id))
+
+                            case .failed:
+                                flushAll()
+                                blocks.append(.state(.failed, "failed", id))
+
+                            case .properties:
+                                break
+                        }
                     }
-                } else {
-                    switch event {
-                    case .request, .composed, .completed:
-                        flushMessage(); flushStatus()
-                        if domainID == nil { domainID = id }
-                        domain.append(event.transcriptLabel)
 
-                    case .dispatching, .observing, .processing, .traversing, .progress:
-                        flushMessage(); flushDomain()
-                        if statusID == nil { statusID = id }
-                        status.append(event.transcriptLabel)
+                case .sheet(let ref, _):
+                    flushAll()
+                    blocks.append(.input(ref, entry.id))
 
-                    case .blocked:
-                        flushAll()
-                        blocks.append(.state(.blocked, "blocked · awaiting input", id))
-
-                    case .failed:
-                        flushAll()
-                        blocks.append(.state(.failed, "failed", id))
-
-                    case .provider:
-                        break
-                    }
-                }
-
-            case .sheet(let ref, _):
-                flushAll()
-                blocks.append(.input(ref, entry.id))
-
-            case .transcript(let ref, _, _):
-                flushAll()
-                blocks.append(.nested(ref, entry.id))
+                case .transcript(let ref, _, _):
+                    flushAll()
+                    blocks.append(.nested(ref, entry.id))
             }
         }
 
@@ -128,20 +128,20 @@ private enum TranscriptBlock: Identifiable {
     }
 }
 
-private extension Event {
+private extension RuntimeEvent {
     var transcriptLabel: String {
         switch self {
-        case .request:     return "requested"
-        case .composed:    return "composed"
-        case .dispatching: return "dispatching"
-        case .observing:   return "observing"
-        case .processing:  return "processing"
-        case .traversing:  return "traversing"
-        case .progress:    return "working"
-        case .completed:   return "completed"
-        case .blocked:     return "blocked"
-        case .failed:      return "failed"
-        case .provider(let properties): return ProviderEvent(properties).text
+            case .request: return "requested"
+            case .composing: return "composed"
+            case .dispatching: return "dispatching"
+            case .observing: return "observing"
+            case .processing: return "processing"
+            case .traversing: return "traversing"
+            case .updated: return "updated"
+            case .completed: return "completed"
+            case .blocked: return "blocked"
+            case .failed: return "failed"
+            case .properties(let properties): return ModelResponse(properties).content
         }
     }
 }
@@ -162,36 +162,36 @@ struct TranscriptEntriesView: View {
     @ViewBuilder
     private func view(for block: TranscriptBlock) -> some View {
         switch block {
-        case .message(let text, _):
-            MessageView(text: text)
+            case .message(let text, _):
+                MessageView(text: text)
 
-        case .reasoning(let text, _):
-            if showReasoning { ReasoningView(text: text) }
+            case .reasoning(let text, _):
+                if showReasoning { ReasoningView(text: text) }
 
-        case .action(let verb, let name, let output, _):
-            ActionRow(verb: verb, name: name, output: output)
+            case .action(let verb, let name, let output, _):
+                ActionRow(verb: verb, name: name, output: output)
 
-        case .status(let lines, _):
-            if showStatus { StatusRow(lines: lines) }
+            case .status(let lines, _):
+                if showStatus { StatusRow(lines: lines) }
 
-        case .domain(let label, let events, _):
-            DomainRollup(label: label, events: events)
+            case .domain(let label, let events, _):
+                DomainRollup(label: label, events: events)
 
-        case .state(let state, let text, _):
-            StateRow(state: state, text: text)
+            case .state(let state, let text, _):
+                StateRow(state: state, text: text)
 
-        case .input(let ref, _):
-            TranscriptInputView(ref: ref)
+            case .input(let ref, _):
+                TranscriptInputView(ref: ref)
 
-        case .nested(let ref, _):
-            TranscriptNestedView(ref: ref, showStatus: showStatus, showReasoning: showReasoning)
+            case .nested(let ref, _):
+                TranscriptNestedView(ref: ref, showStatus: showStatus, showReasoning: showReasoning)
         }
     }
 }
 
 struct TranscriptInputView: View {
     let ref: Reference
-    private var content: String { Sheet.with(ref, { $0.content }) ?? "" }
+    private var content: String { Sheet.with(ref, { $0.rendered }) ?? "" }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -272,7 +272,11 @@ struct TranscriptStatusIndicator: View {
 
 struct TranscriptView: View {
     @Environment(AgencyModel.self) private var agency
-    private var transcript: Reference? { agency.session.transcript }
+    var ref: Reference? = nil
+    private var transcript: Reference? {
+        guard let selected = agency.session.selected.content, selected.type is Transcript.Type else { return ref }
+        return ref ?? selected
+    }
     var showStatus: Bool = true
     var showReasoning: Bool = true
 
@@ -304,6 +308,249 @@ struct TranscriptView: View {
             }
         }
         .background(TranscriptTheme.base)
+    }
+}
+
+struct MessageView: View {
+    let text: String
+    var body: some View {
+        Group {
+            if let attributed = try? AttributedString(markdown: text) { Text(attributed) }
+            else { Text(text) }
+        }
+        .font(TranscriptType.message)
+        .foregroundStyle(TranscriptTheme.textPrimary)
+        .lineSpacing(TranscriptMetric.lineSpacingMessage)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .textSelection(.enabled)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
+        .padding(.horizontal, 8)
+    }
+}
+
+struct ReasoningView: View {
+    let text: String
+    var body: some View {
+        Text(text)
+            .font(TranscriptType.body.italic())
+            .foregroundStyle(TranscriptTheme.textQuaternary)
+            .lineSpacing(TranscriptMetric.lineSpacingBody)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+            .padding(.leading, TranscriptMetric.quoteInset)
+            .padding(.trailing, TranscriptMetric.quoteInset)
+            .overlay(alignment: .leading) {
+                Rectangle()
+                    .offset(x: 12)
+                    .fill(TranscriptTheme.quoteBar)
+                    .frame(width: TranscriptMetric.quoteBarWidth)
+                    .padding(.top, 10)
+                    .padding(.bottom, 14)
+            }
+    }
+}
+
+struct CodeBlock: View {
+    let code: String
+    var body: some View {
+        Text(code)
+            .font(TranscriptType.mono)
+            .foregroundStyle(TranscriptTheme.textSecondary)
+            .lineSpacing(TranscriptMetric.lineSpacingMono)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .textSelection(.enabled)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .glassEffect(.regular, in:
+                            RoundedRectangle(cornerRadius: TranscriptMetric.blockRadius)
+            )
+    }
+}
+
+struct ActionRow: View {
+    let verb: String
+    let name: String
+    let output: String
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button { withAnimation(.easeInOut(duration: 0.15)) { expanded.toggle() } } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 12))
+                        .foregroundStyle(TranscriptTheme.provider)
+                    Text(verb)
+                        .font(TranscriptType.body)
+                        .foregroundStyle(TranscriptTheme.textTertiary)
+                    Text(name)
+                        .font(TranscriptType.monoSmall)
+                        .foregroundStyle(TranscriptTheme.textPrimary)
+                    Spacer(minLength: 8)
+                    if !output.isEmpty {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 11))
+                            .foregroundStyle(TranscriptTheme.textTertiary)
+                            .rotationEffect(.degrees(expanded ? 180 : 0))
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(output.isEmpty)
+
+            if expanded && !output.isEmpty {
+                hairline().padding(.vertical, 7)
+                Text(output)
+                    .font(TranscriptType.mono)
+                    .foregroundStyle(TranscriptTheme.textSecondary)
+                    .lineSpacing(TranscriptMetric.lineSpacingMono)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
+        }
+        .event()
+    }
+}
+
+struct StatusRow: View {
+    let lines: [String]
+    @State private var expanded = false
+
+    private var earlier: [String] { Array(lines.dropLast()) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if expanded {
+                ForEach(earlier.indices, id: \.self) { i in
+                    statusLine(earlier[i]).opacity(0.85)
+                }
+            }
+            Button {
+                guard lines.count > 1 else { return }
+                withAnimation(.easeInOut(duration: 0.15)) { expanded.toggle() }
+            } label: {
+                HStack(spacing: 7) {
+                    statusDot
+                    Text(lines.last ?? "")
+                        .font(TranscriptType.body)
+                        .foregroundStyle(TranscriptTheme.textTertiary)
+                    if lines.count > 1 {
+                        Text("· +\(lines.count - 1) earlier")
+                            .font(TranscriptType.body)
+                            .foregroundStyle(TranscriptTheme.textTertiary.opacity(0.6))
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(lines.count <= 1)
+        }
+        .event()
+    }
+
+    private var statusDot: some View {
+        Circle().fill(TranscriptTheme.quoteBar).frame(width: 3, height: 3)
+    }
+
+    private func statusLine(_ text: String) -> some View {
+        HStack(spacing: 7) {
+            statusDot
+            Text(text).font(TranscriptType.body).foregroundStyle(TranscriptTheme.textTertiary)
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+struct DomainRollup: View {
+    let label: String
+    let events: [String]
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { expanded.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "rectangle.stack")
+                        .font(.system(size: 10, weight: .light))
+                        .foregroundStyle(Design.Tint.info)
+                    Text(label)
+                        .font(TranscriptType.body)
+                        .foregroundStyle(TranscriptTheme.textTertiary)
+                    Text("· \(events.count) events")
+                        .font(TranscriptType.body)
+                        .foregroundStyle(TranscriptTheme.textQuaternary)
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11))
+                        .foregroundStyle(TranscriptTheme.textQuaternary)
+                        .rotationEffect(.degrees(expanded ? 180 : 0))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if expanded {
+                VStack(alignment: .leading, spacing: 1) {
+                    ForEach(events.indices, id: \.self) { i in
+                        Text(events[i])
+                            .font(TranscriptType.body)
+                            .foregroundStyle(TranscriptTheme.textTertiary)
+                    }
+                }
+                .padding(.leading, 19)
+            }
+        }
+        .event()
+    }
+}
+
+struct StateRow: View {
+    let state: Composition.State
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: state.transcriptIcon)
+                .font(.system(size: 12))
+                .foregroundStyle(Design.Tint.blocked)
+            Text(text)
+                .font(TranscriptType.body)
+                .foregroundStyle(Design.Tint.blocked)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: TranscriptMetric.blockRadius)
+                .fill(Design.Tint.blocked.opacity(0.035))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: TranscriptMetric.blockRadius)
+                .stroke(Design.Tint.blocked.opacity(0.42), lineWidth: 0.5)
+        )
+    }
+}
+
+extension Composition.State {
+    var transcriptColor: Color {
+        switch self {
+            case .failed: return TranscriptTheme.stateFailed
+            case .blocked: return TranscriptTheme.stateBlocked
+            default: return TranscriptTheme.textTertiary
+        }
+    }
+    var transcriptIcon: String {
+        switch self {
+            case .failed: return "exclamationmark.triangle"
+            case .blocked: return "hand.raised"
+            default: return "circle"
+        }
     }
 }
 

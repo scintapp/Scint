@@ -34,7 +34,7 @@ struct LoadPicker: View {
                         ForEach(items) { candidate in
                             Button { onPick(candidate) } label: {
                                 HStack(spacing: 10) {
-                                    EditorMenuIconTile(icon: candidate.image, selected: candidate.active)
+                                    EditorMenuIconTile(icon: candidate.image, selected: candidate.active, ref: candidate.ref)
                                     Text(candidate.name)
                                         .font(.system(size: 13))
                                         .foregroundStyle(.primary.opacity(0.86))
@@ -99,7 +99,7 @@ struct GroupCountButton: View {
 
 struct GroupHeader: View {
     @Environment(AgencyModel.self) var agency
-    var ref: Reference { agency.session.space ?? agency.session.workspace }
+    var ref: Reference { agency.session.selected.structure ?? agency.session.workspace }
     var title: String { Runtime.shared.get(ref).name }
     var description: String { Runtime.shared.get(ref).description }
 
@@ -136,19 +136,6 @@ struct GroupHeader: View {
 struct GroupDivider: View {
     var body: some View {
         Divider().padding(.horizontal, 8)
-    }
-}
-
-struct GroupRowUnavailable: View {
-    let label: String
-    let icon: String
-
-    var body: some View {
-        GroupRow(label: label) { Image(systemName: icon) } trailing: {
-            Text("Unavailable")
-                .font(.system(size: 12))
-                .foregroundStyle(.tertiary)
-        }
     }
 }
 

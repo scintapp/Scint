@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-enum Layout: CaseIterable { case list, grid, column, group, table }
+enum Layout: CaseIterable { case column, content, grid, group, list, table }
 
 extension CaseIterable {
     var image: String { "" }
@@ -41,13 +41,11 @@ extension Mapper {
 
 @Observable final class EmptyPanel: Panel {
     enum Model: CaseIterable { case empty }
-
     var model: Model = .empty
     var layout: Layout = .grid
     var position: CGFloat = 0
     var presented: Bool = false
     var expanded: Set<AnyHashable> = []
-
     func controls(_ agency: AgencyModel) -> Controls { .init() }
     func parameters(_ agency: AgencyModel) -> Parameters { .init() }
     func toolbar() -> some ToolbarContent { ToolbarItem { EmptyView() } }

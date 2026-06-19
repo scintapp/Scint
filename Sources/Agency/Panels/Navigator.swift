@@ -1,6 +1,6 @@
 import AgencyRuntime
-import Foundation
 import SwiftUI
+
 
 @Observable final class Navigator: Panel {
     var model: Model = .workspace
@@ -29,19 +29,19 @@ import SwiftUI
         }
     }
 
-    func parameters(_ agency: AgencyModel) -> Parameters {
-        switch agency.studio.navigator.model {
-        case .workspace: WorkspaceMap.parameters(agency, self)
-        case .library: LibraryMap.parameters(agency, self)
-        case .notifications: NotificationsMap.parameters(agency, self)
+    func controls(_ agency: AgencyModel) -> Controls {
+        switch self.model {
+            case .workspace: ProjectMap.controls(agency, self)
+            case .library: LibraryMap.controls(agency, self)
+            case .notifications: NotificationsMap.controls(agency, self)
         }
     }
 
-    func controls(_ agency: AgencyModel) -> Controls {
-        switch agency.studio.navigator.model {
-        case .workspace: WorkspaceMap.controls(agency, self)
-        case .library: LibraryMap.controls(agency, self)
-        case .notifications: NotificationsMap.controls(agency, self)
+    func parameters(_ agency: AgencyModel) -> Parameters {
+        switch self.model {
+        case .workspace: ProjectMap.parameters(agency, self)
+        case .library: LibraryMap.parameters(agency, self)
+        case .notifications: NotificationsMap.parameters(agency, self)
         }
     }
 
@@ -64,15 +64,12 @@ import SwiftUI
         }
     }
 
-    @MainActor func view(_ agency: AgencyModel) -> some View {
+    func view(_ agency: AgencyModel) -> some View {
         VStack {
-            Color.clear.frame(height: 50)
-            NavigatorTabs()
             Builder.build(agency, self)
+            FilterControls()
         }
-        .ignoresSafeArea(.container, edges: .top)
-        .scrollEdgeEffectStyle(.hard, for: .top)
-        .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 330)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbar(removing: .sidebarToggle)
         .toolbar { toolbar() }
     }

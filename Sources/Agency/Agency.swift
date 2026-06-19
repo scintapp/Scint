@@ -15,7 +15,6 @@ struct Agency: App {
                     .onAppear(perform: { ShortcutManager.shared.register(agency: agency) } )
                     .background(Design.Background.console)
                     .focusable(false)
-
             } else {
                 ProgressView()
                     .task {
@@ -27,10 +26,6 @@ struct Agency: App {
                     }
             }
         }
-
-        MenuBarExtra {
-            EmptyView()
-        } label : { Image(systemName: "rectangle.3.offgrid") }
     }
 }
 

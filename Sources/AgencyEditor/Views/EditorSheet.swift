@@ -1,12 +1,12 @@
 import AgencyRuntime
-@preconcurrency import LinkPresentation
+import LinkPresentation
 import SwiftUI
 
 
 struct SelectableEntry<Content: View>: View {
     @Environment(\.editorFocus) private var focus
     let id: UUID
-    let entry: Entry
+    let block: Block
     let isSelected: Bool
     let onFocusGained: () -> Void
     let onCommand: (Selector) -> Bool
@@ -60,14 +60,14 @@ struct EntryTextBlock: View {
             Text(title)
                 .frame(height: detail == nil || detail == "" ? 28 : 14, alignment: .center)
                 .font(.system(size: TypeScale.cardTitle, weight: .medium))
-                .foregroundStyle(Design.SheetEntry.textPrimary)
+                .foregroundStyle(Design.SheetGlyph.textPrimary)
                 .lineLimit(1)
 
             if let detail, !detail.isEmpty {
                 Text(detail)
                     .frame(height: 14, alignment: .center)
                     .font(.system(size: TypeScale.cardMeta, design: design))
-                    .foregroundStyle(Design.SheetEntry.textTertiary)
+                    .foregroundStyle(Design.SheetGlyph.textTertiary)
                     .lineLimit(1)
                     .truncationMode(truncation)
             }
@@ -77,7 +77,7 @@ struct EntryTextBlock: View {
 
 struct EntryChip: View {
     let label: String
-    var tint: Color = Design.SheetEntry.textTertiary
+    var tint: Color = Design.SheetGlyph.textTertiary
     var design: Font.Design = .default
 
     var body: some View {
@@ -112,7 +112,7 @@ struct LinkMetadataPreview: View {
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             EntryGlyph(icon: "bookmark", tint: Design.Tint.artifact, contained: true)
-            
+
             EntryTextBlock(
                 title: metadata?.title ?? fallbackTitle,
                 detail: metadata?.detail ?? host,
@@ -131,17 +131,18 @@ struct LinkMetadataPreview: View {
         let provider = LPMetadataProvider()
         guard let metadata = try? await provider.startFetchingMetadata(for: url) else { return }
         let title = metadata.title?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let detail = metadata.url?.host(percentEncoded: false) ?? metadata.originalURL?.host(percentEncoded: false) ?? host
+        let detail = metadata.url?.host(percentEncoded: false) ?? metadata.originalURL?.host(
+            percentEncoded: false
+        ) ?? host
         self.metadata = .init(title: title?.isEmpty == false ? title! : fallbackTitle, detail: detail)
     }
 }
 
-
 struct EditorSheet: View {
-    var entry: Sheet.Entry
+    var block: Sheet.Block
 
     private func componentCard<Badges: View>(
-        icon: String,
+        ref: Reference,
         tint: Color,
         title: String,
         detail: String?,
@@ -150,7 +151,9 @@ struct EditorSheet: View {
     ) -> some View {
         EntryCard {
             HStack(alignment: .center, spacing: 8) {
-                EntryGlyph(icon: icon, tint: tint, contained: true)
+                Iconography.icon(for: ref)
+                    .font(.system(size: 11, weight: .medium))
+                    .frame(width: 21, height: 21, alignment: .center)
 
                 HStack(alignment: .center) {
                     EntryTextBlock(title: title, detail: detail)
@@ -170,7 +173,7 @@ struct EditorSheet: View {
 
 
     private func componentCard(
-        icon: String,
+        ref: Reference,
         tint: Color,
         title: String,
         detail: String?,
@@ -178,7 +181,9 @@ struct EditorSheet: View {
     ) -> some View {
         EntryCard {
             HStack(alignment: .top, spacing: 8) {
-                EntryGlyph(icon: icon, tint: tint, contained: true)
+                Iconography.icon(for: ref)
+                    .font(.system(size: 11, weight: .medium))
+                    .frame(width: 21, height: 21, alignment: .center)
                 EntryTextBlock(title: title, detail: detail)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -187,30 +192,25 @@ struct EditorSheet: View {
         }
     }
 
-    private func firstPreview(_ entries: [Sheet.Entry]) -> String {
+    private func firstPreview(_ entries: [Sheet.Block]) -> String {
         entries.compactMap {
             switch $0 {
-            case .content(_, let text): return text.trimmingCharacters(in: .whitespacesAndNewlines)
-            case .task(_, let text, let done): return "[\(done ? "x" : " ")] \(text)"
-            case .artifact(let ref): return Artifact.with(ref, { $0.name })
-            case .control(let ref): return Command.with(ref, { $0.name })
-            case .service(let ref): return Harness.with(ref, { $0.name })
-            case .sheet(let ref): return Sheet.with(ref, { $0.name })
+                case .content(_, let text): return text.trimmingCharacters(in: .whitespacesAndNewlines)
+                case .task(_, let text, let done): return "[\(done ? "x" : " ")] \(text)"
+                case .artifact(let ref): return Artifact.with(ref, { $0.name }) ?? ""
+                case .command(let ref): return Command.with(ref, { $0.name }) ?? ""
+                case .sheet(let ref): return Sheet.with(ref, { $0.name })
             }
         }
         .first(where: { !$0.isEmpty }) ?? ""
     }
 
-    private func sheetFacts(_ entries: [Sheet.Entry]) -> [String] {
+    private func sheetFacts(_ entries: [Sheet.Block]) -> [String] {
         let texts = entries.filter { if case .content = $0 { true } else { false } }.count
         let tasks = entries.filter { if case .task = $0 { true } else { false } }.count
         let done = entries.filter { if case .task(_, _, true) = $0 { true } else { false } }.count
         let artifacts = entries.filter { if case .artifact = $0 { true } else { false } }.count
-        let interfaces = entries.filter {
-            if case .control = $0 { true }
-            else if case .service = $0 { true }
-            else { false }
-        }.count
+        let interfaces = entries.filter { if case .command = $0 { true } else { false } }.count
 
         return [
             texts == 0 ? nil : "\(texts) note\(texts == 1 ? "" : "s")",
@@ -226,9 +226,10 @@ struct EditorSheet: View {
         var properties: [Properties] = []
         for param in params {
             switch param {
-            case .artifact: artifacts += 1
-            case .argument(let value): arguments.append(value)
-            case .properties(let props): properties.append(props)
+                case .artifact: artifacts += 1
+                case .argument(let value): arguments.append(value)
+                case .properties(let props): properties.append(props)
+                case .requirement: break
             }
         }
         return (artifacts, arguments, properties)
@@ -238,40 +239,79 @@ struct EditorSheet: View {
         var controls = 0
         var artifacts = 0
         var arguments = 0
-        for param in params {
+        var properties = 0
+        var sheets = 0
+        var spaces = 0
+        var transcripts = 0
+        var workspaces = 0
+        var requirements = 0
+
+        func count(_ param: Harness.Parameter, required: Bool = false) {
+            if required { requirements += 1 }
             switch param {
-            case .command: controls += 1
-            case .artifact: artifacts += 1
-            case .argument: arguments += 1
+                case .argument:
+                    arguments += 1
+                case .properties: properties += 1
+                case .content(let ref):
+                    switch ref.type {
+                        case is Sheet.Type: sheets += 1
+                        case is Artifact.Type: artifacts += 1
+                        case is Transcript.Type: transcripts += 1
+                        default: break
+                    }
+                case .interface(let ref):
+                    switch ref.type {
+                        case is Command.Type: controls += 1
+                        case is Artifact.Type: artifacts += 1
+                        case is Harness.Type: controls += 1
+                        default: break
+                    }
+                case .structure(let ref):
+                    switch ref.type {
+                        case is Space.Type: spaces += 1
+                        case is Workspace.Type: workspaces += 1
+                        default: break
+                    }
+                case .requirement(let nested):
+                    count(nested, required: true)
             }
         }
+
+        for param in params { count(param) }
+
         return [
             controls == 0 ? nil : "\(controls) control\(controls == 1 ? "" : "s")",
             artifacts == 0 ? nil : "\(artifacts) artifact\(artifacts == 1 ? "" : "s")",
-            arguments == 0 ? nil : "\(arguments) arg\(arguments == 1 ? "" : "s")"
+            arguments == 0 ? nil : "\(arguments) arg\(arguments == 1 ? "" : "s")",
+            properties == 0 ? nil : "\(properties) prop\(properties == 1 ? "" : "s")",
+            sheets == 0 ? nil : "\(sheets) sheet\(sheets == 1 ? "" : "s")",
+            spaces == 0 ? nil : "\(spaces) space\(spaces == 1 ? "" : "s")",
+            transcripts == 0 ? nil : "\(transcripts) transcript\(transcripts == 1 ? "" : "s")",
+            workspaces == 0 ? nil : "\(workspaces) workspace\(workspaces == 1 ? "" : "s")",
+            requirements == 0 ? nil : "\(requirements) req\(requirements == 1 ? "" : "s")"
         ].compactMap(\.self)
     }
 
     private func control(_ ref: Reference) -> some View {
         let name = Command.with(ref, { $0.name }) ?? "tool"
         let description = Command.with(ref, { $0.description }) ?? ""
-        let exec = Command.with(ref, { $0.exec }) ?? ref
-        let executable = Artifact.with(exec, { $0.kind.url?.lastPathComponent ?? $0.name }) ?? ""
+        let exec = Command.with(ref, { $0.artifact }) ?? ref
+        let executable = Artifact.with(exec, { $0.handle.url?.lastPathComponent ?? $0.name }) ?? ""
         let facts = Command.with(ref, { commandFacts($0.parameters) }) ?? (artifacts: 0, arguments: [], properties: [])
         let args = facts.arguments.joined(separator: " ")
 
         return componentCard(
-            icon: Design.Component.icon(for: ref),
-            tint: Design.Tint.control,
+            ref: ref,
+            tint: Design.Tint.command,
             title: name,
             detail: description.isEmpty ? executable : description,
             action: GhostButton(label: "Run", icon: "play.fill")
         ) {
             if facts.artifacts > 0 {
-                EntryChip(label: "\(facts.artifacts) artifact\(facts.artifacts == 1 ? "" : "s")", tint: Design.Tint.control)
+                EntryChip(label: "\(facts.artifacts) artifact\(facts.artifacts == 1 ? "" : "s")", tint: Design.Tint.command)
             }
             if !args.isEmpty {
-                EntryChip(label: args, tint: Design.Tint.control, design: .monospaced)
+                EntryChip(label: args, tint: Design.Tint.command, design: .monospaced)
             }
         }
     }
@@ -284,22 +324,22 @@ struct EditorSheet: View {
         let facts = Harness.with(ref, { serviceFacts($0.parameters) }) ?? []
 
         return componentCard(
-            icon: Design.Component.icon(for: ref),
-            tint: Design.Tint.service,
+            ref: ref,
+            tint: Design.Tint.harness,
             title: name,
             detail: description.isEmpty ? "Main: \(mainName)" : description,
             action: GhostButton(label: "Start", icon: "play.fill")
         ) {
             ForEach(Array(facts.prefix(3)).indices, id: \.self) { index in
-                EntryChip(label: facts[index], tint: Design.Tint.service)
+                EntryChip(label: facts[index], tint: Design.Tint.harness)
             }
         }
     }
 
     private func file(_ ref: Reference) -> some View {
         let name = Artifact.with(ref, { $0.name }) ?? "file"
-        let meta = Artifact.with(ref, { $0.content }) ?? ""
-        let isDirectory = Artifact.with(ref, { $0.kind.isDirectory }) ?? false
+        let meta = Artifact.with(ref, { $0.rendered }) ?? ""
+        let isDirectory = Artifact.with(ref, { $0.handle.directory }) ?? false
         let icon = isDirectory ? "folder" : "doc"
 
         return HStack(spacing: 8) {
@@ -312,11 +352,13 @@ struct EditorSheet: View {
 
     private func link(_ ref: Reference) -> some View {
         let name = Artifact.with(ref, { $0.name }) ?? "Link"
-        let url = Artifact.with(ref, { $0.content }) ?? ""
+        let url = Artifact.with(ref, { $0.rendered }) ?? ""
 
         return EntryCard {
             HStack(spacing: 10) {
-                EntryGlyph(icon: Design.Component.icon(for: ref))
+                Iconography.icon(for: ref)
+                    .font(.system(size: 11, weight: .medium))
+                    .frame(width: 21, height: 21, alignment: .center)
                 EntryTextBlock(title: name, detail: url, design: .default, truncation: .middle)
                 Spacer(minLength: 10)
                 GhostButton(label: "Open", icon: "arrow.up.right")
@@ -326,7 +368,7 @@ struct EditorSheet: View {
 
     private func webLink(_ ref: Reference) -> some View {
         let name = Artifact.with(ref, { $0.name }) ?? "Link"
-        guard let url = Artifact.with(ref, { $0.kind.url }) ?? nil else { return AnyView(link(ref)) }
+        guard let url = Artifact.with(ref, { $0.handle.url }) ?? nil else { return AnyView(link(ref)) }
         return AnyView(LinkMetadataPreview(url: url, fallbackTitle: name))
     }
 
@@ -335,7 +377,9 @@ struct EditorSheet: View {
 
         return EntryCard {
             HStack(spacing: 8) {
-                EntryGlyph(icon: Design.Component.icon(for: ref))
+                Iconography.icon(for: ref)
+                    .font(.system(size: 11, weight: .medium))
+                    .frame(width: 21, height: 21, alignment: .center)
                 EntryTextBlock(title: name, detail: nil)
                 Spacer(minLength: 10)
                 GhostButton(label: "View")
@@ -346,14 +390,14 @@ struct EditorSheet: View {
     private func sheet(_ ref: Reference) -> some View {
         let name = Sheet.with(ref, { $0.name }) ?? "Sheet"
         let description = Sheet.with(ref, { $0.description }) ?? ""
-        let entries = Sheet.with(ref, { $0.entries }) ?? []
-        let facts = sheetFacts(entries)
+        let blocks = Sheet.with(ref, { $0.blocks }) ?? []
+        let facts = sheetFacts(blocks)
 
         return componentCard(
-            icon: Design.Component.icon(for: ref),
+            ref: ref,
             tint: Design.Tint.sheet,
             title: name,
-            detail: description.isEmpty ? firstPreview(entries) : description,
+            detail: description.isEmpty ? firstPreview(blocks) : description,
             action: GhostButton(label: "Open")
         ) {
             ForEach(Array(facts.prefix(3)).indices, id: \.self) { index in
@@ -389,26 +433,26 @@ struct EditorSheet: View {
             if looksLikeBlock {
                 Text(content)
                     .font(.system(size: 11.5, design: .monospaced))
-                    .foregroundStyle(Design.SheetEntry.textPrimary)
+                    .foregroundStyle(Design.SheetGlyph.textPrimary)
                     .lineSpacing(4)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
-                    .background(Design.SheetEntry.codeBlockBg)
+                    .background(Design.SheetGlyph.codeBlockBg)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(Design.SheetEntry.stroke, lineWidth: 1)
+                            .strokeBorder(Design.SheetGlyph.stroke, lineWidth: 1)
                     )
             } else if isQuote {
                 HStack(spacing: 0) {
                     Rectangle()
-                        .fill(Design.SheetEntry.accent)
+                        .fill(Design.SheetGlyph.accent)
                         .frame(width: 3)
-                    
+
                     Text(stripped(quotePrefix))
                         .font(.system(size: 13, weight: .regular))
                         .italic()
-                        .foregroundStyle(Design.SheetEntry.textSecondary)
+                        .foregroundStyle(Design.SheetGlyph.textSecondary)
                         .lineSpacing(4)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.leading, 12)
@@ -416,12 +460,12 @@ struct EditorSheet: View {
             } else if isHeading {
                 Text(stripped("#"))
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Design.SheetEntry.textPrimary)
+                    .foregroundStyle(Design.SheetGlyph.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(attributed)
                     .font(.system(size: 13))
-                    .foregroundStyle(Design.SheetEntry.textPrimary)
+                    .foregroundStyle(Design.SheetGlyph.textPrimary)
                     .lineSpacing(4)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -434,28 +478,27 @@ struct EditorSheet: View {
 
             Text(content)
                 .font(.system(size: TypeScale.cardTitle, weight: .medium))
-                .foregroundStyle(completed ? Design.SheetEntry.textTertiary : Design.SheetEntry.textPrimary)
-                .strikethrough(completed, color: Design.SheetEntry.textTertiary)
+                .foregroundStyle(completed ? Design.SheetGlyph.textTertiary : Design.SheetGlyph.textPrimary)
+                .strikethrough(completed, color: Design.SheetGlyph.textTertiary)
                 .lineLimit(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     var body: some View {
-        switch entry {
-        case .artifact(let ref):
-            switch Artifact.with(ref, { $0.kind }) {
-            case .http: webLink(ref)
-            case .app, .script, .skill: link(ref)
-            case .exec, .file: file(ref)
-            case .image: image(ref)
-            default: link(ref)
-            }
-        case .control(let ref): control(ref)
-        case .service(let ref): service(ref)
-        case .sheet(let ref): sheet(ref)
-        case .content(_, let content): text(content)
-        case .task(_, let content, let completed): todo(content, completed)
+        switch block {
+            case .artifact(let ref):
+                switch Artifact.with(ref, { $0.handle }) {
+                    case .http: webLink(ref)
+                    case .app, .script, .skill: link(ref)
+                    case .exec, .file: file(ref)
+                    case .image: image(ref)
+                    default: link(ref)
+                }
+            case .command(let ref): control(ref)
+            case .sheet(let ref): sheet(ref)
+            case .content(_, let content): text(content)
+            case .task(_, let content, let completed): todo(content, completed)
         }
     }
 }

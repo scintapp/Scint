@@ -1,3 +1,4 @@
+import AgencyRuntime
 import SwiftUI
 
 
@@ -30,16 +31,28 @@ struct EditorMenuEmptyState: View {
 
 struct EditorMenuIconTile: View {
     let icon: String
+    let ref: Reference?
     let selected: Bool
+
+    init(icon: String, selected: Bool, ref: Reference? = nil) {
+        self.icon = icon
+        self.ref = ref
+        self.selected = selected
+    }
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(selected ? Color.white.opacity(0.16) : Color.white.opacity(0.07))
                 .frame(width: 26, height: 26)
-            Image(systemName: icon.isEmpty ? "square.stack.3d.up" : icon)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(selected ? .white : .primary.opacity(0.78))
+            if let ref {
+                Iconography.icon(for: ref)
+                    .font(.system(size: 12, weight: .medium))
+            } else {
+                Image(systemName: icon.isEmpty ? "square.stack.3d.up" : icon)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(selected ? .white : .primary.opacity(0.78))
+            }
         }
     }
 }
@@ -57,7 +70,9 @@ struct EditorMenuRow: View {
             editor.commitMenuSelection()
         } label: {
             HStack(spacing: 10) {
-                if let icon = item.icon {
+                if let ref = item.ref {
+                    EditorMenuIconTile(icon: "", selected: selected, ref: ref)
+                } else if let icon = item.icon {
                     EditorMenuIconTile(icon: icon, selected: selected)
                 }
 

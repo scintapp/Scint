@@ -4,21 +4,14 @@ import Darwin
 import Combine
 
 
-final class HarnessRegistry: @unchecked Sendable {
-    static let shared = HarnessRegistry()
-
+final class ServiceRegistry: @unchecked Sendable {
+    static let shared = ServiceRegistry()
     private let queue = DispatchQueue(label: "com.kaechle.agencyd.registry", attributes: .concurrent)
-    private var definitions: [String: HarnessDefinition] = [:]
+    private var definitions: [String: ServiceDefinition] = [:]
     private var activePIDs: [String: pid_t] = [:]
     private var pidToHarness: [pid_t: String] = [:]
 
-    private init() {}
-
-    func register(_ def: HarnessDefinition) {
-        queue.async(flags: .barrier) {
-            self.definitions[def.id] = def
-        }
-    }
+    func register(_ def: ServiceDefinition) { queue.async(flags: .barrier) { self.definitions[def.id] = def } }
 
     func unregister(_ id: String) -> Bool {
         var found = false
@@ -31,11 +24,11 @@ final class HarnessRegistry: @unchecked Sendable {
         return found
     }
 
-    func definition(for id: String) -> HarnessDefinition? {
+    func definition(for id: String) -> ServiceDefinition? {
         queue.sync { definitions[id] }
     }
 
-    func all() -> [HarnessDefinition] {
+    func all() -> [ServiceDefinition] {
         queue.sync { definitions.values.sorted { $0.id < $1.id } }
     }
 
@@ -76,7 +69,7 @@ public enum HarnessPolicy: String, Sendable {
     }
 }
 
-public struct HarnessDefinition: Sendable {
+public struct ServiceDefinition: Sendable {
     public let id: String
     public let command: String
     public let arguments: [String]
@@ -114,28 +107,28 @@ public struct Handler: Codable & Sendable {
 
     public init(_ format: Format = .events) { self.format = format }
 
-    public func handle(_ chunk: String) -> [Event] {
+    public func handle(_ chunk: String) -> [RuntimeEvent] {
         switch format {
-        case .lines:
-            return chunk
-                .split(whereSeparator: \.isNewline)
-                .map(String.init)
-                .filter { !$0.isEmpty }
-                .map { line in
-                    .provider(Properties(.object([
-                        "type": .string("message"),
-                        "text": .string(line)
-                    ])))
-                }
+            case .lines:
+                return chunk
+                    .split(whereSeparator: \.isNewline)
+                    .map(String.init)
+                    .filter { !$0.isEmpty }
+                    .map { line in
+                            .properties(Properties(.object([
+                                "type": .string("message"),
+                                "text": .string(line)
+                            ])))
+                    }
 
-        case .events:
-            guard let properties = Properties.load(chunk) else {
-                return [.provider(Properties(.object([
-                    "type": .string("raw"),
-                    "text": .string(chunk)
-                ])))]
-            }
-            return [.provider(properties)]
+            case .events:
+                guard let properties = Properties.load(chunk) else {
+                    return [.properties(Properties(.object([
+                        "type": .string("raw"),
+                        "text": .string(chunk)
+                    ])))]
+                }
+                return [.properties(properties)]
         }
     }
 }

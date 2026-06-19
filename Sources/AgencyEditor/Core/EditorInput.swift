@@ -3,6 +3,7 @@ import SwiftUI
 
 
 final class EditorInputView: NSTextView {
+    private static var defocusMonitor: Any?
     private(set) var renderedText = ""
     private let minimumLineHeight: CGFloat = 24
     private let backingContentStorage = NSTextContentStorage()
@@ -43,6 +44,7 @@ final class EditorInputView: NSTextView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     fileprivate func configure(with styler: EditorStyler) {
+        Self.installDefocusMonitorIfNeeded()
         self.styler = styler
         backingTextContainer.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
         backingTextContainer.widthTracksTextView = true
@@ -221,6 +223,23 @@ final class EditorInputView: NSTextView {
         let location = min(max(range.location, 0), length)
         let maxLength = length - location
         return NSRange(location: location, length: min(range.length, maxLength))
+    }
+
+    private static func installDefocusMonitorIfNeeded() {
+        guard defocusMonitor == nil else { return }
+        defocusMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown]) { event in
+            guard let window = event.window,
+                  let current = window.firstResponder as? EditorInputView,
+                  let contentView = window.contentView
+            else { return event }
+
+            let point = contentView.convert(event.locationInWindow, from: nil)
+            let hit = contentView.hitTest(point)
+            if let hit, hit === current || hit.isDescendant(of: current) { return event }
+
+            window.makeFirstResponder(nil)
+            return event
+        }
     }
 }
 

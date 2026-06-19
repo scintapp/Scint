@@ -18,13 +18,12 @@ struct EditorContent: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(editor.entries) { entry in
+            ForEach(editor.blocks) { entry in
                 block(entry: entry)
                     .id(entry.id)
                     .background(frameReader(for: entry.id))
             }
         }
-        .onAppear { editor.ensureEditableTextBlock() }
         .onPreferenceChange(EntryFramesKey.self) { frames in
             for (id, frame) in frames {
                 editor.updateEntryFrame(id: id, frame: frame)
@@ -32,10 +31,10 @@ struct EditorContent: View {
         }
     }
     
-    @ViewBuilder private func block(entry: Entry) -> some View {
+    @ViewBuilder private func block(entry: Block) -> some View {
         switch entry {
         case .content(_, let text): input(id: entry.id, text: text)
-        default: component(id: entry.id, entry: entry)
+        default: component(id: entry.id, block: entry)
         }
     }
 
@@ -56,7 +55,7 @@ struct EditorContent: View {
         if trimmed.hasPrefix(">") {
             HStack(spacing: 0) {
                 RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                    .fill(Design.SheetEntry.accent)
+                    .fill(Design.SheetGlyph.accent)
                     .frame(width: 3)
                 Spacer(minLength: 0)
             }
@@ -80,15 +79,15 @@ struct EditorContent: View {
         .fixedSize(horizontal: false, vertical: true)
     }
     
-    private func component(id: UUID, entry: Entry) -> some View {
+    private func component(id: UUID, block: Block) -> some View {
         SelectableEntry(
             id: id,
-            entry: entry,
+            block: block,
             isSelected: editor.isBlockSelected(id: id),
             onFocusGained: { editor.focusGained(id: id) },
             onCommand: { selector in editor.handleCommand(selector, atTopLine: true, atBottomLine: true) }
         ) {
-            EditorSheet(entry: entry).frame(maxWidth: .infinity, alignment: .leading)
+            EditorSheet(block: block).frame(maxWidth: .infinity, alignment: .leading)
         }
     }
     

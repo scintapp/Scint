@@ -3,20 +3,6 @@ import SwiftUI
 import Foundation
 
 
-func search(_ query: String, facet: String, limit: Int) -> [ItemParams] {
-    Runtime.shared.query("\(query) !\(facet)", limit: limit).all.map(item(from:))
-}
-
-func item(from result: QueryResult) -> ItemParams {
-    ItemParams(
-        ref: result.ref,
-        name: result.name,
-        image: Design.Component.icon(for: result.ref),
-        description: result.description,
-        tags: result.tags.sorted()
-    )
-}
-
 struct ControlPromptBar: View {
     @Binding var prompt: Aperture.ControlPrompt
     let focused: FocusState<Bool>.Binding
@@ -25,11 +11,11 @@ struct ControlPromptBar: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            Image(systemName: Design.Component.icon(for: prompt.ref))
-                .foregroundStyle(.secondary)
-                .font(.system(size: 20))
+            Iconography.icon(for: prompt.ref)
+                .font(.system(size: 13, weight: .medium))
+                .frame(width: 22, height: 22, alignment: .center)
 
-            Text(prompt.ref.name)
+            Text(prompt.ref.descriptor.name)
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
@@ -47,7 +33,6 @@ struct ControlPromptBar: View {
                     .font(.system(size: 14, weight: .semibold))
             }
             .buttonStyle(.glassProminent)
-//            .keyboardShortcut(.return, modifiers: [])
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
@@ -66,9 +51,14 @@ struct SearchRow: View {
                     .fill(isSelected ? Color.accentColor : Color.primary.opacity(0.08))
                     .frame(width: 30, height: 30)
                     .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 2)
-                Image(systemName: item.image.isEmpty ? "square.stack.3d.up" : item.image)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(isSelected ? .white : .primary)
+                if let ref = item.ref {
+                    Iconography.icon(for: ref)
+                        .font(.system(size: 12, weight: .medium))
+                } else {
+                    Image(systemName: item.image.isEmpty ? "square.stack.3d.up" : item.image)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(isSelected ? .white : .primary)
+                }
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -208,18 +198,18 @@ struct SearchContent: View {
 struct SearchView: View {
     @Environment(AgencyModel.self) var agency
     @FocusState private var focused: Bool
-    private var params: Parameters { agency.aperture.parameters(agency) }
+    private var params: Parameters { agency.studio.aperture.parameters(agency) }
     private var flatItems: [ItemParams] { params.sections.flatMap { $0.items } }
 
     var body: some View {
-        @Bindable var search = agency.aperture
+        @Bindable var search = agency.studio.aperture
 
         VStack(alignment: .leading, spacing: 0) {
-            if let _ = agency.aperture.prompt {
+            if let _ = agency.studio.aperture.prompt {
                 ControlPromptBar(
                     prompt: Binding(
-                        get: { agency.aperture.prompt ?? .init(ref: flatItems[agency.aperture.index].ref!) },
-                        set: { agency.aperture.prompt = $0 }
+                        get: { agency.studio.aperture.prompt ?? .init(ref: flatItems[agency.studio.aperture.index].ref!) },
+                        set: { agency.studio.aperture.prompt = $0 }
                     ),
                     focused: $focused,
                     onSubmit: { },
@@ -228,8 +218,8 @@ struct SearchView: View {
             } else {
                 SearchInput(
                     query: $search.query,
-                    image: agency.aperture.model.image,
-                    placeholder: agency.aperture.model.placeholder,
+                    image: agency.studio.aperture.model.image,
+                    placeholder: agency.studio.aperture.model.placeholder,
                     focused: $focused,
                     onUpArrow: { move(-1); return .handled },
                     onDownArrow: { move(+1); return .handled },
@@ -245,19 +235,19 @@ struct SearchView: View {
         }
         .frame(maxWidth: .infinity)
         .onAppear { focused = true }
-        .onChange(of: agency.aperture.query) { _, _ in agency.aperture.index = 0 }
-        .onChange(of: agency.aperture.model) { _, _ in agency.aperture.reset(); focused = true }
+        .onChange(of: agency.studio.aperture.query) { _, _ in agency.studio.aperture.index = 0 }
+        .onChange(of: agency.studio.aperture.model) { _, _ in agency.studio.aperture.reset(); focused = true }
         .background {
             ZStack {
-                Button { agency.aperture.model = .aperture } label: { EmptyView() }
+                Button { agency.studio.aperture.model = .aperture } label: { EmptyView() }
                     .keyboardShortcut("0", modifiers: .command)
-                Button { agency.aperture.model = .commands } label: { EmptyView() }
+                Button { agency.studio.aperture.model = .commands } label: { EmptyView() }
                     .keyboardShortcut("1", modifiers: .command)
-                Button { agency.aperture.model = .interfaces } label: { EmptyView() }
+                Button { agency.studio.aperture.model = .interfaces } label: { EmptyView() }
                     .keyboardShortcut("2", modifiers: .command)
-                Button { agency.aperture.model = .library } label: { EmptyView() }
+                Button { agency.studio.aperture.model = .library } label: { EmptyView() }
                     .keyboardShortcut("3", modifiers: .command)
-                Button { agency.aperture.model = .workspace } label: { EmptyView() }
+                Button { agency.studio.aperture.model = .workspace } label: { EmptyView() }
                     .keyboardShortcut("4", modifiers: .command)
             }
             .frame(width: 0, height: 0)
@@ -268,40 +258,40 @@ struct SearchView: View {
     private func move(_ delta: Int) {
         let count = flatItems.count
         guard count > 0 else { return }
-        agency.aperture.index = (agency.aperture.index + delta + count) % count
+        agency.studio.aperture.index = (agency.studio.aperture.index + delta + count) % count
     }
 
     private func activate() {
-        guard flatItems.indices.contains(agency.aperture.index) else { return }
-        let item = flatItems[agency.aperture.index]
+        guard flatItems.indices.contains(agency.studio.aperture.index) else { return }
+        let item = flatItems[agency.studio.aperture.index]
 
         if let ref = item.ref, ref.type is Command.Type {
-            agency.aperture.prompt = .init(ref: ref)
+            agency.studio.aperture.prompt = .init(ref: ref)
             focused = true
             return
         }
 
-        agency.aperture.controls(agency).onSelect?(item)
+        agency.studio.aperture.controls(agency).onSelect?(item)
         dismiss()
     }
 
     private func showAuxiliary() {
-        guard flatItems.indices.contains(agency.aperture.index) else { return }
-        guard let ref = flatItems[agency.aperture.index].ref else { return }
+        guard flatItems.indices.contains(agency.studio.aperture.index) else { return }
+        guard let ref = flatItems[agency.studio.aperture.index].ref else { return }
 
         if ref.type is Command.Type {
-            agency.aperture.prompt = .init(ref: ref)
+            agency.studio.aperture.prompt = .init(ref: ref)
             focused = true
             return
         }
     }
 
     private func closePrompt() {
-        agency.aperture.prompt = nil; focused = true
+        agency.studio.aperture.prompt = nil; focused = true
     }
 
     private func showDetails() {
-        guard flatItems.indices.contains(agency.aperture.index) else { return }
+        guard flatItems.indices.contains(agency.studio.aperture.index) else { return }
     }
 
     private func closeDetails() {
@@ -309,7 +299,7 @@ struct SearchView: View {
     }
 
     private func dismiss() {
-        agency.aperture.reset(); agency.panels["search"]?.hide()
+        agency.studio.aperture.reset(); agency.panels.panels["search"]?.hide()
     }
 }
 
@@ -365,16 +355,16 @@ struct SearchView: View {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                return agency.session.selected(ref, item.path)
+                return agency.session.selected.selected(ref, item.path)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
-                agency.select(ref, url: item.path)
+                agency.select(ref)
             }
         )
     }
 
-    func parameters(_ agency: AgencyModel) -> Parameters { SearchMap.parameters(agency, self) }
+    func parameters(_ agency: AgencyModel) -> Parameters { .init() }
 
     func reset() {
         query = ""
@@ -382,87 +372,11 @@ struct SearchView: View {
     }
 }
 
-//struct SearchDetails: View {
-//    let details: SearchResultDetails
-//
-//    var body: some View {
-//        VStack(alignment: .leading, spacing: 0) {
-//            HStack(alignment: .center, spacing: 10) {
-//                Image(systemName: Design.Component.icon(for: details.result.ref))
-//                    .font(.system(size: 17, weight: .medium))
-//                    .foregroundStyle(.secondary)
-//
-//                VStack(alignment: .leading, spacing: 2) {
-//                    Text(details.result.name)
-//                        .font(.system(size: 17))
-//                        .lineLimit(1)
-//
-//                    Text(typeName(for: details.result.ref))
-//                        .font(.system(size: 12, weight: .medium))
-//                        .foregroundStyle(.secondary)
-//                }
-//
-//                Spacer()
-//
-//                Text("Tab")
-//                    .font(.system(size: 12))
-//                    .foregroundStyle(.secondary)
-//            }
-//            .frame(height: 80)
-//            .padding(.horizontal, 18)
-//
-//            ScrollView {
-//                VStack(alignment: .leading, spacing: 12) {
-//                    if !details.result.description.isEmpty {
-//                        block("Description", details.result.description)
-//                    }
-//
-//                    block("Specs", details.specs.stringRepresentation)
-//
-//                    if !details.related.isEmpty {
-//                        VStack(alignment: .leading, spacing: 6) {
-//                            Text("Related")
-//                                .font(.system(size: 11, weight: .semibold))
-//                                .foregroundStyle(.secondary)
-//
-//                            ForEach(details.related) { relation in
-//                                HStack(spacing: 10) {
-//                                    Text(relation.role)
-//                                        .font(.system(size: 10, weight: .medium))
-//                                        .foregroundStyle(.secondary)
-//                                        .frame(width: 86, alignment: .leading)
-//
-//                                    Text(relation.name)
-//                                        .font(.system(size: 12.5))
-//                                        .foregroundStyle(.primary.opacity(0.85))
-//                                        .lineLimit(1)
-//                                    Spacer()
-//                                }
-//                                .padding(.vertical, 3)
-//                            }
-//                        }
-//                    }
-//                }
-//                .padding(.horizontal, 16)
-//                .padding(.bottom, 16)
-//            }
-//        }
-//    }
-//
-//    func block(_ title: String, _ text: String) -> some View {
-//        VStack(alignment: .leading, spacing: 6) {
-//            Text(title)
-//                .font(.system(size: 11, weight: .semibold))
-//                .foregroundStyle(.secondary)
-//
-//            Text(text)
-//                .font(.system(size: 12.5))
-//                .foregroundStyle(.primary.opacity(0.85))
-//                .textSelection(.enabled)
-//        }
-//    }
-//
-//    func typeName(for ref: Reference) -> String {
-//        ref.type.map { String(describing: $0) } ?? "Unknown"
-//    }
-//}
+func item(from result: SearchResult) -> ItemParams {
+    ItemParams(
+        ref: result.ref,
+        name: result.name,
+        image: Design.Component.icon(for: result.ref),
+        description: result.description
+    )
+}

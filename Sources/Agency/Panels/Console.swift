@@ -1,5 +1,4 @@
 import AgencyRuntime
-import Foundation
 import SwiftUI
 
 
@@ -29,7 +28,7 @@ import SwiftUI
                 Spacer()
                 ConsoleToggle()
             }
-            .frame(maxWidth: .infinity, minHeight: 28, maxHeight: 28)
+            .frame(maxWidth: .infinity, minHeight: 34, maxHeight: 34)
             .background(Design.Background.console)
             .padding(.horizontal, 16)
             .overlay(alignment: .top) {
@@ -42,9 +41,7 @@ import SwiftUI
                         .frame(height: 1)
                 }
             }
-
-            Builder.build(agency, self)
-                .padding(.horizontal, 12)
+            Processes()
         }
         .background(Design.Background.console)
         .scrollEdgeEffectStyle(.soft, for: .top)

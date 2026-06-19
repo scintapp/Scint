@@ -22,6 +22,7 @@ struct BadgeParams: Identifiable, Hashable {
 
 struct ItemParams: Identifiable, Hashable {
     let ref: Reference?
+    let owner: Reference?
     let origin: Reference?
     let path: URL?
     let entryId: UUID?
@@ -32,12 +33,11 @@ struct ItemParams: Identifiable, Hashable {
     let trailingImage: String?
     let trailingKind: TrailingKind?
     let count: Int?
-    let tags: [String]
     let badges: [BadgeParams]
     let active: Bool
     let items: [ItemParams]
-    private let _isParent: Bool?
 
+    private let _isParent: Bool?
     var isParent: Bool { _isParent ?? !items.isEmpty }
 
     var id: AnyHashable {
@@ -47,13 +47,13 @@ struct ItemParams: Identifiable, Hashable {
         return AnyHashable(name.lowercased().replacingOccurrences(of: " ", with: "-"))
     }
 
-    init(ref: Reference? = nil, origin: Reference? = nil, path: URL? = nil, entryId: UUID? = nil,
-         name: String, image: String = "", tint: Color? = nil,
-         trailingImage: String? = nil, trailingKind: TrailingKind? = nil, count: Int? = nil, description: String? = nil,
-         tags: [String] = [], badges: [BadgeParams] = [], active: Bool = true,
-         items: [ItemParams] = [], isParent: Bool? = nil) {
+    init(ref: Reference? = nil, owner: Reference? = nil, origin: Reference? = nil, path: URL? = nil,
+         entryId: UUID? = nil, name: String, image: String = "", tint: Color? = nil, trailingImage: String? = nil,
+         trailingKind: TrailingKind? = nil, count: Int? = nil, description: String? = nil,
+         badges: [BadgeParams] = [], active: Bool = true,  items: [ItemParams] = [], isParent: Bool? = nil) {
 
         self.ref = ref
+        self.owner = owner
         self.origin = origin
         self.path = path
         self.entryId = entryId
@@ -64,7 +64,6 @@ struct ItemParams: Identifiable, Hashable {
         self.trailingKind = trailingKind
         self.count = count
         self.description = description
-        self.tags = tags
         self.badges = badges
         self.active = active
         self.items = items
@@ -122,7 +121,6 @@ struct ColumnParams: Identifiable, Hashable {
         case name
         case description
         case child(Int)
-        case tags
         case badge
         case badges
         case count

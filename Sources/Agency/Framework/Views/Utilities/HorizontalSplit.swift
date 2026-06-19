@@ -3,30 +3,27 @@ import SwiftUI
 import AppKit
 
 
-struct HorizontalSplit<Leading: View, Trailing: View>: View {
+struct HorizontalSplit<Leading: View, Trailing: View>: NSViewRepresentable {
     @Binding var presented: Bool
     @Binding var position: CGFloat
-    @State private var dragStart: CGFloat?
-    @State private var dragTotal: CGFloat?
 
     let collapsedWidth: CGFloat
     let minLeadingWidth: CGFloat
     let minTrailingWidth: CGFloat
     let leading: Leading
     let trailing: Trailing
-    private let handleWidth: CGFloat = 2
 
     init(
         presented: Binding<Bool>,
         position: Binding<CGFloat>,
         collapsedWidth: CGFloat = 0,
-        minLeadingWidth: CGFloat = 100,
-        minTrailingWidth: CGFloat = 100,
+        minLeadingWidth: CGFloat = 0,
+        minTrailingWidth: CGFloat = 0,
         @ViewBuilder leading: () -> Leading,
         @ViewBuilder trailing: () -> Trailing
     ) {
-        _position = position
         _presented = presented
+        _position = position
         self.collapsedWidth = collapsedWidth
         self.minLeadingWidth = minLeadingWidth
         self.minTrailingWidth = minTrailingWidth
@@ -34,93 +31,107 @@ struct HorizontalSplit<Leading: View, Trailing: View>: View {
         self.trailing = trailing()
     }
 
-    var body: some View {
-        GeometryReader { proxy in
-            let total = proxy.size.width
-            let trailingWidth = trailingWidth(for: total)
-            let trailingVisible = showsTrailing && trailingWidth > 0
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
 
-            HStack(spacing: 0) {
-                leading
-                    .frame(
-                        minWidth: min(minLeadingWidth, total),
-                        maxWidth: .infinity,
-                        maxHeight: .infinity
-                    )
-                    .layoutPriority(1)
+    func makeNSView(context: Context) -> FillSplitView {
+        let split = FillSplitView()
+        split.isVertical = true
+        split.dividerStyle = .thin
+        split.delegate = context.coordinator
+        split.arrangesAllSubviews = true
+        split.addArrangedSubview(SplitHostingView(rootView: leading))
+        split.addArrangedSubview(SplitHostingView(rootView: trailing))
+        return split
+    }
 
-                if trailingVisible {
-                    HorizontalSplitHandle()
-                        .frame(width: handleWidth)
-                        .gesture(resizeGesture(totalWidth: total))
+    func updateNSView(_ split: FillSplitView, context: Context) {
+        (split.arrangedSubviews[0] as? SplitHostingView<Leading>)?.rootView = leading
+        (split.arrangedSubviews[1] as? SplitHostingView<Trailing>)?.rootView = trailing
+        context.coordinator.parent = self
+        context.coordinator.apply(to: split)
+    }
 
-                    trailing
-                        .frame(width: trailingWidth)
-                        .frame(maxHeight: .infinity)
-                        .clipped()
+    @MainActor final class Coordinator: NSObject, NSSplitViewDelegate {
+        var parent: HorizontalSplit
+        private var lastAppliedPresented: Bool?
+        private var lastBounds: CGFloat = 0
+
+        init(_ parent: HorizontalSplit) {
+            self.parent = parent
+        }
+
+        private var isCollapsed: Bool {
+            !parent.presented
+        }
+
+        func apply(to split: NSSplitView) {
+            guard split.bounds.width > 0, split.arrangedSubviews.count == 2 else { return }
+
+            let total = split.bounds.width
+            let presentedChanged = lastAppliedPresented != parent.presented
+            let boundsChanged = abs(lastBounds - total) > 0.5
+            guard presentedChanged || boundsChanged else { return }
+
+            if presentedChanged, isCollapsed, let prev = lastAppliedPresented, prev == true {
+                let liveTrailing = split.arrangedSubviews[1].frame.width
+                if liveTrailing > parent.collapsedWidth + 1 {
+                    let saved = max(liveTrailing, parent.minTrailingWidth)
+                    if abs(parent.position - saved) > 0.5 {
+                        parent.position = saved
+                    }
                 }
             }
-            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .leading)
-        }
-    }
 
-    private var showsTrailing: Bool {
-        presented || collapsedWidth > 0
-    }
+            lastAppliedPresented = parent.presented
+            lastBounds = total
 
-    // Bounds for the trailing pane given a container width.
-    private func trailingBounds(for totalWidth: CGFloat) -> (min: CGFloat, max: CGFloat) {
-        let maxTrailing = max(0, totalWidth - min(minLeadingWidth, totalWidth) - handleWidth)
-        let minTrailing = min(minTrailingWidth, maxTrailing)
-        return (minTrailing, maxTrailing)
-    }
+            let divider = split.dividerThickness
+            let savedOpenWidth = max(parent.position, parent.minTrailingWidth)
+            let trailingWidth = isCollapsed ? parent.collapsedWidth : savedOpenWidth
+            let leadingWidth = max(parent.minLeadingWidth, total - trailingWidth - divider)
 
-    // Single source of truth: render whatever `position` says, clamped once.
-    private func trailingWidth(for totalWidth: CGFloat) -> CGFloat {
-        guard showsTrailing else { return 0 }
-
-        if !presented {
-            return min(max(collapsedWidth, 0), totalWidth)
+            split.setPosition(leadingWidth, ofDividerAt: 0)
         }
 
-        let bounds = trailingBounds(for: totalWidth)
-        return min(max(position, bounds.min), bounds.max)
-    }
-
-    private func resizeGesture(totalWidth: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                // Pin the container width and starting position for the whole drag,
-                // so mid-drag relayout can't feed back into the math.
-                if dragStart == nil {
-                    dragTotal = totalWidth
-                    dragStart = trailingWidth(for: totalWidth)
-                }
-
-                let activeTotal = dragTotal ?? totalWidth
-                let bounds = trailingBounds(for: activeTotal)
-                let nextWidth = (dragStart ?? position) - value.translation.width
-                position = min(max(nextWidth, bounds.min), bounds.max)
-            }
-            .onEnded { _ in
-                dragStart = nil
-                dragTotal = nil
-            }
-    }
-}
-
-private struct HorizontalSplitHandle: View {
-    @State private var hovering = false
-
-    var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(hovering ? Color.primary.opacity(0.00) : Color.clear)
-
-            Rectangle()
-                .fill(Color(nsColor: .separatorColor)).opacity(0.0)
-                .frame(width: 2)
+        func splitViewDidResizeSubviews(_ notification: Notification) {
+            guard let split = notification.object as? NSSplitView else { return }
+            guard split.arrangedSubviews.count == 2 else { return }
+            guard split.bounds.width > 0 else { return }
+            guard parent.presented else { return }
+            let trailingWidth = split.arrangedSubviews[1].frame.width
+            guard trailingWidth > parent.collapsedWidth + 1 else { return }
+            let clampedWidth = max(trailingWidth, parent.minTrailingWidth)
+            if abs(parent.position - clampedWidth) > 0.5 { parent.position = clampedWidth }
         }
-        .contentShape(Rectangle())
+
+        func splitView(_ splitView: NSSplitView, canCollapseSubview subview: NSView) -> Bool {
+            false
+        }
+
+        func splitView(_ splitView: NSSplitView, constrainSplitPosition proposedPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
+            let total = splitView.bounds.width
+            let divider = splitView.dividerThickness
+            let minLeading = min(parent.minLeadingWidth, total)
+            let maxLeading = parent.presented
+                ? total - parent.minTrailingWidth - divider
+                : total - parent.collapsedWidth - divider
+            return min(max(proposedPosition, minLeading), max(minLeading, maxLeading))
+        }
+
+        func splitView(
+            _ splitView: NSSplitView,
+            effectiveRect proposedEffectiveRect: NSRect,
+            forDrawnRect drawnRect: NSRect,
+            ofDividerAt dividerIndex: Int
+        ) -> NSRect {
+            NSRect(
+                x: drawnRect.minX - 8,
+                y: drawnRect.minY,
+                width: drawnRect.width + 16,
+                height: drawnRect.height
+            )
+        }
     }
 }

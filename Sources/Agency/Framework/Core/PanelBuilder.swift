@@ -2,32 +2,31 @@ import SwiftUI
 
 
 @MainActor public enum Builder {
-    @ViewBuilder static func build<P: Panel>(_ model: AgencyModel, _ panel: P) -> some View {
+    static func build<P: Panel>(_ model: AgencyModel, _ panel: P) -> some View {
         let params = panel.parameters(model)
         let controls = panel.controls(model)
-
+        
         let view = AnyView(
             ScrollView {
                 VStack {
                     if params.header == true {
                         GroupHeader()
                             .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .padding(.bottom, 16)
+                            .padding(.bottom, 12)
                     }
-                    ForEach(params.sections) { section in build(section, model: panel, params: params, controls: controls) }
-                        .padding(.bottom, 8)
+                    ForEach(params.sections) { section in
+                        build(section, model: panel, params: params, controls: controls)
+                    }
                 }
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 8)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, 8)
         )
 
-        let transferred = surfaceTransfer(view, controls: controls)
-
+        let transfer = surfaceTransfer(view, controls: controls)
         if let actions = controls.surfaceActions?(), !actions.isEmpty {
-            transferred.contentShape(Rectangle()).contextMenu { ActionMenu(items: actions) }
-        } else { transferred }
+            return AnyView(transfer.contentShape(Rectangle()).contextMenu { ActionMenu(items: actions) })
+        } else { return transfer }
     }
 
     @ViewBuilder static func build<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
@@ -35,7 +34,7 @@ import SwiftUI
         case .group: buildGroup(section, model: model, controls: controls)
         case .grid: buildGrid(section, model: model, params: params, controls: controls)
         case .table: buildTable(section, model: model, params: params, controls: controls)
-        case .list, .column: buildList(section, model: model, params: params, controls: controls)
+        case .content, .list, .column: buildList(section, model: model, params: params, controls: controls)
         }
     }
 
@@ -55,6 +54,7 @@ import SwiftUI
             let sectionView = AnyView(
                 SectionLayout(
                     name: item.name,
+                    ref: item.path == nil && item.entryId == nil ? item.ref : nil,
                     image: item.image,
                     trailingImage: item.trailingImage,
                     count: item.count,
@@ -72,12 +72,12 @@ import SwiftUI
 
             let wrapped = controls.wrapSection?(sectionView, item, depth) ?? sectionView
             let decorated = transfer(wrapped, item: item, controls: controls)
-
             menu(decorated, item: item, controls: controls)
         } else {
             let linkView = AnyView(
                 SectionLink(
                     name: item.name,
+                    ref: item.path == nil && item.entryId == nil ? item.ref : nil,
                     image: item.image,
                     trailingImage: item.trailingImage,
                     count: item.count,
@@ -91,10 +91,6 @@ import SwiftUI
             let decorated = transfer(wrapped, item: item, controls: controls)
             menu(decorated, item: item, controls: controls)
         }
-    }
-
-    @ViewBuilder static func build(_ params: ControlsParams, _ controls: Controls) -> some View {
-        ZStack(alignment: .bottom) { }
     }
 
     @ViewBuilder static func buildGrid<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
@@ -111,7 +107,6 @@ import SwiftUI
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.horizontal, 8)
     }
 
     @ViewBuilder static func buildGroup<M: Panel>(_ section: ListParams, model: M, controls: Controls) -> some View {
@@ -128,7 +123,11 @@ import SwiftUI
         if item.ref != nil || item.entryId != nil {
             Button { controls.onSelect?(item) } label: {
                 GroupRow(label: item.name) {
-                    Image(systemName: item.image)
+                    if let ref = item.ref, item.path == nil && item.entryId == nil {
+                        Iconography.icon(for: ref)
+                    } else {
+                        Image(systemName: item.image)
+                    }
                 } trailing: {
                     groupRowAccessory(item, controls: controls)
                 }
@@ -184,7 +183,6 @@ import SwiftUI
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.bottom, 12)
     }
 
     @ViewBuilder static func buildTable<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
@@ -246,5 +244,48 @@ import SwiftUI
                     controls.onDrop?(providers, target) ?? ReferenceTransfer.handle(providers, target: target)
                 }
         )
+    }
+}
+
+private struct CanvasItem: View {
+    let item: ItemParams
+    let position: CGPoint
+    let controls: Controls
+
+    @State private var dragOrigin: CGPoint?
+
+    var body: some View {
+        let view = AnyView(ItemIcon(item: item, controls: controls))
+        let decorated = Builder.transfer(view, item: item, controls: controls)
+
+        Builder.menu(decorated, item: item, controls: controls)
+            .position(position)
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 2)
+                    .onChanged { value in
+                        if dragOrigin == nil { dragOrigin = position }
+                        guard let dragOrigin else { return }
+                        controls.onCanvasPosition?(item, clamped(
+                            CGPoint(
+                                x: dragOrigin.x + value.translation.width,
+                                y: dragOrigin.y + value.translation.height
+                            )
+                        ))
+                    }
+                    .onEnded { value in
+                        let origin = dragOrigin ?? position
+                        controls.onCanvasPosition?(item, clamped(
+                            CGPoint(
+                                x: origin.x + value.translation.width,
+                                y: origin.y + value.translation.height
+                            )
+                        ))
+                        dragOrigin = nil
+                    }
+            )
+    }
+
+    private func clamped(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: max(48, point.x), y: max(56, point.y))
     }
 }

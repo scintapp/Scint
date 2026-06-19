@@ -4,15 +4,16 @@ import Foundation
 import SwiftUI
 
 
-typealias Entry = Sheet.Entry
+typealias Block = Sheet.Block
 
 @Observable final class EditorModel {
-    let sheet: Reference
     let menu: MenuModel
+    let sheet: Reference
     var selection: Set<UUID> = []
     var editing: UUID?
     var caretSelections: [UUID: NSRange] = [:]
     var entryFrames: [UUID: CGRect] = [:]
+    var blocks: [Block] { Sheet.with(sheet, { $0.blocks }) ?? [] }
 
     private var editingPair: (id: UUID, index: Int)? {
         guard let editing, let index = index(for: editing) else { return nil }
@@ -22,12 +23,7 @@ typealias Entry = Sheet.Entry
     init(sheet: Reference, menu: MenuModel) {
         self.sheet = sheet
         self.menu = menu
-        ensureEditableTextBlock()
         if let id = firstTextID() { enterEditing(id: id, caretAtEndOf: text(id: id) ?? "") }
-    }
-
-    var entries: [Entry] {
-        Sheet.with(sheet, { $0.entries }) ?? []
     }
 
     var hasFocusedTextEntry: Bool {
@@ -51,39 +47,6 @@ typealias Entry = Sheet.Entry
 
     func caretSelection(for id: UUID) -> NSRange? {
         caretSelections[id]
-    }
-
-    @discardableResult
-    func ensureEditableTextBlock() -> UUID? {
-        Sheet.update(sheet) { sheet -> UUID in
-            if sheet.entries.isEmpty {
-                let id = UUID()
-                sheet.entries = [.content(id, "")]
-                return id
-            }
-            if let last = sheet.entries.last, case .content(let id, _) = last { return id }
-            let id = UUID()
-            sheet.entries.append(.content(id, ""))
-            return id
-        } ?? nil
-    }
-
-    private func enterEditing(id: UUID, caret: NSRange? = nil, caretAtEndOf text: String? = nil) {
-        let alreadyEditing = (editing == id && selection == [id])
-        if !alreadyEditing {
-            selection = [id]
-            editing = id
-        }
-        if let caret { if caretSelections[id] != caret { caretSelections[id] = caret } }
-        else if caretSelections[id] == nil {
-            let value = text ?? (self.text(id: id) ?? "")
-            caretSelections[id] = NSRange(location: (value as NSString).length, length: 0)
-        }
-    }
-
-    private func selectBlock(id: UUID) {
-        selection = [id]
-        editing = nil
     }
 
     func escapeEditing() {
@@ -116,9 +79,7 @@ typealias Entry = Sheet.Entry
     }
 
     func updateEntryFrame(id: UUID, frame: CGRect) {
-        if entryFrames[id] != frame {
-            entryFrames[id] = frame
-        }
+        if entryFrames[id] != frame { entryFrames[id] = frame }
     }
 
     func write(id: UUID, text: String, selection: NSRange) {
@@ -129,36 +90,31 @@ typealias Entry = Sheet.Entry
         caretSelections[id] = selection
 
         let didChangeText = Sheet.update(sheet) { sheet -> Bool in
-            guard sheet.entries.indices.contains(index),
-                  case .content(let entryID, let previousText) = sheet.entries[index]
+            guard sheet.blocks.indices.contains(index), case .content(let entryID, let previousText) = sheet.blocks[index]
             else { return false }
             guard previousText != text else { return false }
-            sheet.entries[index] = .content(entryID, text)
+            sheet.blocks[index] = .content(entryID, text)
             return true
         } ?? false
 
-        if didChangeText || menu.isOpen {
-            updateMenu(allowOpen: didChangeText)
-        }
+        if didChangeText || menu.isOpen { updateMenu(allowOpen: didChangeText) }
     }
 
     func splitBlockAtCaret() -> Bool {
-        guard let pair = editingPair,
-              let caret = caretSelections[pair.id]
+        guard let pair = editingPair, let caret = caretSelections[pair.id]
         else { return false }
         let focusedIndex = pair.index
 
         let newID: UUID? = Sheet.update(sheet) { sheet -> UUID? in
-            guard sheet.entries.indices.contains(focusedIndex),
-                  case .content(let id, let text) = sheet.entries[focusedIndex]
+            guard sheet.blocks.indices.contains(focusedIndex), case .content(let id, let text) = sheet.blocks[focusedIndex]
             else { return nil }
             let ns = text as NSString
             let split = min(max(caret.location, 0), ns.length)
             let before = ns.substring(to: split)
             let after = ns.substring(from: split)
             let newID = UUID()
-            sheet.entries[focusedIndex] = .content(id, before)
-            sheet.entries.insert(.content(newID, after), at: focusedIndex + 1)
+            sheet.blocks[focusedIndex] = .content(id, before)
+            sheet.blocks.insert(.content(newID, after), at: focusedIndex + 1)
             return newID
         } ?? nil
 
@@ -251,10 +207,10 @@ typealias Entry = Sheet.Entry
     func selectAbove() -> Bool {
         guard let currentID = editing ?? selection.first,
               let index = index(for: currentID),
-              index > entries.startIndex
+              index > blocks.startIndex
         else { return false }
 
-        let target = entries[entries.index(before: index)]
+        let target = blocks[blocks.index(before: index)]
         moveSelection(to: target, enteringFromBelow: true)
         return true
     }
@@ -265,15 +221,15 @@ typealias Entry = Sheet.Entry
               let index = index(for: currentID)
         else { return false }
 
-        let next = entries.index(after: index)
-        guard next < entries.endIndex else { return false }
+        let next = blocks.index(after: index)
+        guard next < blocks.endIndex else { return false }
 
-        let target = entries[next]
+        let target = blocks[next]
         moveSelection(to: target, enteringFromBelow: false)
         return true
     }
 
-    private func moveSelection(to target: Entry, enteringFromBelow: Bool) {
+    private func moveSelection(to target: Block, enteringFromBelow: Bool) {
         let wasEditing = editing != nil
 
         switch target {
@@ -300,17 +256,17 @@ typealias Entry = Sheet.Entry
         let focusedIndex = pair.index
 
         let result = Sheet.update(sheet) { sheet -> (UUID, NSRange)? in
-            guard sheet.entries.indices.contains(focusedIndex),
-                  focusedIndex > sheet.entries.startIndex,
-                  case .content(_, let text) = sheet.entries[focusedIndex]
+            guard sheet.blocks.indices.contains(focusedIndex),
+                  focusedIndex > sheet.blocks.startIndex,
+                  case .content(_, let text) = sheet.blocks[focusedIndex]
             else { return nil }
 
-            let previousIndex = sheet.entries.index(before: focusedIndex)
+            let previousIndex = sheet.blocks.index(before: focusedIndex)
 
-            if case .content(let previousID, let previousText) = sheet.entries[previousIndex] {
+            if case .content(let previousID, let previousText) = sheet.blocks[previousIndex] {
                 let focusLocation = (previousText as NSString).length
-                sheet.entries[previousIndex] = .content(previousID, previousText + text)
-                sheet.entries.remove(at: focusedIndex)
+                sheet.blocks[previousIndex] = .content(previousID, previousText + text)
+                sheet.blocks.remove(at: focusedIndex)
                 return (previousID, NSRange(location: focusLocation, length: 0))
             }
 
@@ -324,8 +280,8 @@ typealias Entry = Sheet.Entry
         }
 
         let index = pair.index
-        guard index > entries.startIndex else { return false }
-        selectBlock(id: entries[entries.index(before: index)].id)
+        guard index > blocks.startIndex else { return false }
+        selectBlock(id: blocks[blocks.index(before: index)].id)
         return true
     }
 
@@ -335,17 +291,15 @@ typealias Entry = Sheet.Entry
         let doomed = selection
 
         let landingID: UUID? = Sheet.update(sheet) { sheet -> UUID? in
-            guard let firstIndex = sheet.entries.firstIndex(where: { doomed.contains($0.id) })
+            guard let firstIndex = sheet.blocks.firstIndex(where: { doomed.contains($0.id) })
             else { return nil }
 
-            sheet.entries.removeAll { doomed.contains($0.id) }
+            sheet.blocks.removeAll { doomed.contains($0.id) }
 
-            guard !sheet.entries.isEmpty else { return nil }
-            let landingIndex = min(max(firstIndex - 1, 0), sheet.entries.count - 1)
-            return sheet.entries[landingIndex].id
+            guard !sheet.blocks.isEmpty else { return nil }
+            let landingIndex = min(max(firstIndex - 1, 0), sheet.blocks.count - 1)
+            return sheet.blocks[landingIndex].id
         } ?? nil
-
-        ensureEditableTextBlock()
 
         if let landingID, let entry = entry(id: landingID) {
             if case .content = entry {
@@ -360,14 +314,14 @@ typealias Entry = Sheet.Entry
         return true
     }
 
-    private func insert(_ newEntries: [Entry], replacing range: NSRange) {
+    private func insert(_ newEntries: [Block], replacing range: NSRange) {
         guard let pair = editingPair, !newEntries.isEmpty else { return }
         let focusedIndex = pair.index
 
         if newEntries.allSatisfy(\.isText) {
             let spliced: (UUID, NSRange)? = Sheet.update(sheet) { sheet -> (UUID, NSRange)? in
-                guard sheet.entries.indices.contains(focusedIndex),
-                      case .content(let id, let text) = sheet.entries[focusedIndex]
+                guard sheet.blocks.indices.contains(focusedIndex),
+                      case .content(let id, let text) = sheet.blocks[focusedIndex]
                 else { return nil }
                 let ns = text as NSString
                 let replacementRange = clamped(range, in: text)
@@ -377,7 +331,7 @@ typealias Entry = Sheet.Entry
                     location: replacementRange.location + (replacement as NSString).length,
                     length: 0
                 )
-                sheet.entries[focusedIndex] = .content(id, next)
+                sheet.blocks[focusedIndex] = .content(id, next)
                 return (id, caret)
             } ?? nil
 
@@ -386,8 +340,8 @@ typealias Entry = Sheet.Entry
         }
 
         let lastInsertedID: UUID? = Sheet.update(sheet) { sheet -> UUID? in
-            guard sheet.entries.indices.contains(focusedIndex),
-                  case .content(let id, let text) = sheet.entries[focusedIndex]
+            guard sheet.blocks.indices.contains(focusedIndex),
+                  case .content(let id, let text) = sheet.blocks[focusedIndex]
             else { return nil }
 
             let ns = text as NSString
@@ -395,7 +349,7 @@ typealias Entry = Sheet.Entry
             let before = ns.substring(to: replacementRange.location)
             let after = ns.substring(from: replacementRange.location + replacementRange.length)
 
-            var replacementEntries: [Entry] = []
+            var replacementEntries: [Block] = []
             if !before.isEmpty {
                 replacementEntries.append(.content(id, before))
             }
@@ -403,7 +357,7 @@ typealias Entry = Sheet.Entry
             if !after.isEmpty {
                 replacementEntries.append(.content(UUID(), after))
             }
-            sheet.entries.replaceSubrange(focusedIndex...focusedIndex, with: replacementEntries)
+            sheet.blocks.replaceSubrange(focusedIndex...focusedIndex, with: replacementEntries)
             return newEntries.last?.id
         } ?? nil
 
@@ -419,6 +373,24 @@ typealias Entry = Sheet.Entry
         ensureText(afterIndex: index)
     }
 
+    private func enterEditing(id: UUID, caret: NSRange? = nil, caretAtEndOf text: String? = nil) {
+        let alreadyEditing = (editing == id && selection == [id])
+        if !alreadyEditing {
+            selection = [id]
+            editing = id
+        }
+        if let caret { if caretSelections[id] != caret { caretSelections[id] = caret } }
+        else if caretSelections[id] == nil {
+            let value = text ?? (self.text(id: id) ?? "")
+            caretSelections[id] = NSRange(location: (value as NSString).length, length: 0)
+        }
+    }
+
+    private func selectBlock(id: UUID) {
+        selection = [id]
+        editing = nil
+    }
+
     private func ensureText(afterIndex index: Int) {
         if let nextID = nextTextID(after: index) {
             enterEditing(id: nextID, caret: NSRange(location: 0, length: 0))
@@ -426,32 +398,30 @@ typealias Entry = Sheet.Entry
         }
         let newID = UUID()
         Sheet.update(sheet) { sheet in
-            let insertAt = min(index + 1, sheet.entries.count)
-            sheet.entries.insert(.content(newID, ""), at: insertAt)
+            let insertAt = min(index + 1, sheet.blocks.count)
+            sheet.blocks.insert(.content(newID, ""), at: insertAt)
         }
         enterEditing(id: newID, caret: NSRange(location: 0, length: 0))
     }
 
     private func firstTextID() -> UUID? {
-        entries.first { entry in
+        blocks.first { entry in
             if case .content = entry { return true }
             return false
         }?.id
     }
 
     private func nextTextID(after index: Int) -> UUID? {
-        let currentEntries = entries
+        let currentEntries = blocks
         guard index >= currentEntries.startIndex else { return nil }
         let start = currentEntries.index(after: index)
         guard start < currentEntries.endIndex else { return nil }
-        for i in currentEntries.indices[start...] {
-            if case .content(let id, _) = currentEntries[i] { return id }
-        }
+        for i in currentEntries.indices[start...] { if case .content(let id, _) = currentEntries[i] { return id } }
         return nil
     }
 
-    private func entry(id: UUID) -> Entry? {
-        entries.first { $0.id == id }
+    private func entry(id: UUID) -> Block? {
+        blocks.first { $0.id == id }
     }
 
     private func text(id: UUID) -> String? {
@@ -460,7 +430,7 @@ typealias Entry = Sheet.Entry
     }
 
     private func index(for id: UUID) -> Int? {
-        entries.firstIndex { $0.id == id }
+        blocks.firstIndex { $0.id == id }
     }
 
     private func updateMenu(allowOpen: Bool) {
@@ -521,14 +491,14 @@ typealias Entry = Sheet.Entry
     }
 }
 
-private extension Entry {
+private extension Block {
     var isText: Bool {
         if case .content = self { return true }
         return false
     }
 }
 
-private extension Array where Element == Entry {
+private extension Array where Element == Block {
     var textValue: String {
         compactMap { entry in
             if case .content(_, let value) = entry { return value }

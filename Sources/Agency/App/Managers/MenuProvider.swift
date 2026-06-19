@@ -46,7 +46,7 @@ struct Surfaces {
     static func start(_ ref: Reference, in agency: AgencyModel) {}
 
     static func rename(_ ref: Reference, in agency: AgencyModel) {
-        let field = NSTextField(string: ref.name)
+        let field = NSTextField(string: ref.descriptor.name)
         field.frame = NSRect(x: 0, y: 0, width: 260, height: 24)
 
         let alert = NSAlert()
@@ -71,14 +71,14 @@ struct Surfaces {
     }
 
     static func delete(_ ref: Reference, from origin: Reference?, in agency: AgencyModel) {
-        let selected = agency.session.selected(ref)
+//        let selected = agency.session.selected(ref)
         let detached = ReferenceTransfer.detach(ref, from: origin)
         let deleted = Runtime.shared.delete(ref)
         guard detached || deleted else { return }
-        if selected {
-            if ref.type is Space.Type { agency.clear(.space) }
-            else { agency.clear(.component) }
-        }
+//        if selected {
+//            if ref.type is Space.Type { agency.clear(.space) }
+//            else { agency.clear(.component) }
+//        }
         Task { try? await Runtime.shared.save() }
     }
 
@@ -93,7 +93,7 @@ struct Surfaces {
     static func paste(_ owner: Reference, in agency: AgencyModel) {
         guard let payload = clipboard else { return }
         let pasted = ReferenceTransfer.paste(payload.refs, from: payload.origin, move: payload.move, to: owner)
-        if let pasted { agency.select(pasted, from: owner) }
+        if let pasted { agency.select(pasted) }
         if payload.move { clipboard = nil }
         Task { try? await Runtime.shared.save() }
     }
@@ -106,13 +106,13 @@ struct Surfaces {
     static func createSheet(in owner: Reference, agency: AgencyModel) {
         guard let closure = Space.with(owner, { $0.closure }) ?? Workspace.with(owner, { $0.closure }) else { return }
         let ref = Sheet.new("New Sheet", owner: closure)
-        Closure.update(closure) { $0.sheets.append(ref) }
+        Closure.update(closure) { $0.state.append(ref) }
         agency.select(ref)
         Task { try? await Runtime.shared.save() }
     }
 
     static func createSpace(in owner: Reference, agency: AgencyModel) {
-        let ref = owner.type is Space.Type ? Space.new("New Space", in: owner) : Space.new("New Space")
+        let ref = owner.type is Space.Type ? Space.new("New Space", owner: owner) : Space.new("New Space")
         agency.select(ref)
         Task { try? await Runtime.shared.save() }
     }

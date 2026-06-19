@@ -22,7 +22,7 @@ final class ProcessStore: @unchecked Sendable {
     static let shared = ProcessStore()
     private let queue = DispatchQueue(label: "com.kaechle.agencyd.store", attributes: .concurrent)
     private var processes: [pid_t: TrackedProcess] = [:]
-    private let registry = HarnessRegistry.shared
+    private let registry = ServiceRegistry.shared
     private let iso8601 = ISO8601DateFormatter()
     private lazy var userEnvironment: [String: String] = resolveUserEnvironment()
     let started = Date()
@@ -362,12 +362,12 @@ final class ProcessStore: @unchecked Sendable {
         }
     }
 
-    func registerHarness(definition: HarnessDefinition, reply: @escaping (String) -> Void) {
+    func registerService(definition: ServiceDefinition, reply: @escaping (String) -> Void) {
         registry.register(definition)
         reply(jsonString(["ok": true, "id": definition.id]))
     }
 
-    func unregisterHarness(id: String, reply: @escaping (Bool) -> Void) {
+    func unregisterService(id: String, reply: @escaping (Bool) -> Void) {
         if let pid = registry.activePID(for: id) { stop(pid: pid) { _ in } }
         reply(registry.unregister(id))
     }
@@ -391,7 +391,7 @@ final class ProcessStore: @unchecked Sendable {
         }
     }
 
-    func startHarness(id: String, emit: @escaping (Int32, String) -> Void, ownerID: UUID, reply: @escaping (String) -> Void) {
+    func startService(id: String, emit: @escaping (Int32, String) -> Void, ownerID: UUID, reply: @escaping (String) -> Void) {
         guard let def = registry.definition(for: id) else {
             reply(jsonString(["ok": false, "error": "service_not_found", "id": id]))
             return
@@ -424,12 +424,12 @@ final class ProcessStore: @unchecked Sendable {
         }
     }
 
-    func stopHarness(id: String, reply: @escaping (Bool) -> Void) {
+    func stopService(id: String, reply: @escaping (Bool) -> Void) {
         guard let pid = registry.activePID(for: id) else { reply(false); return }
         stop(pid: pid, reply: reply)
     }
 
-    func restartHarness(id: String,emit: @escaping (Int32, String) -> Void,ownerID: UUID,reply: @escaping (String) -> Void) {
+    func restartService(id: String,emit: @escaping (Int32, String) -> Void,ownerID: UUID,reply: @escaping (String) -> Void) {
         guard let def = registry.definition(for: id) else {
             reply(jsonString(["ok": false, "error": "service_not_found", "id": id]))
             return
@@ -518,14 +518,14 @@ final class ProcessStore: @unchecked Sendable {
                 write(pid: pid, input: input, close: close, reply: reply)
 
             case "service/register":
-                guard let def = HarnessDefinition(params: req)
+                guard let def = ServiceDefinition(params: req)
                 else { reply(#"{"ok":false,"error":"invalid_service_definition"}"#); return }
-                registerHarness(definition: def, reply: reply)
+                registerService(definition: def, reply: reply)
 
             case "service/unregister":
                 guard let id = req["id"] as? String
                 else {reply(#"{"ok":false,"error":"missing_id"}"#); return }
-                unregisterHarness(id: id) { ok in reply(jsonString(["ok": ok, "id": id])) }
+                unregisterService(id: id) { ok in reply(jsonString(["ok": ok, "id": id])) }
 
             case "service/list":
                 services(reply: reply)
@@ -533,17 +533,17 @@ final class ProcessStore: @unchecked Sendable {
             case "service/start":
                 guard let id = req["id"] as? String
                 else { reply(#"{"ok":false,"error":"missing_id"}"#); return }
-                startHarness(id: id, emit: emit, ownerID: ownerID, reply: reply)
+                startService(id: id, emit: emit, ownerID: ownerID, reply: reply)
 
             case "service/stop":
                 guard let id = req["id"] as? String
                 else { reply(#"{"ok":false,"error":"missing_id"}"#); return }
-                stopHarness(id: id) { ok in reply(jsonString(["ok": ok, "id": id])) }
+                stopService(id: id) { ok in reply(jsonString(["ok": ok, "id": id])) }
 
             case "service/restart":
                 guard let id = req["id"] as? String
                 else { reply(#"{"ok":false,"error":"missing_id"}"#); return }
-                restartHarness(id: id, emit: emit, ownerID: ownerID, reply: reply)
+                restartService(id: id, emit: emit, ownerID: ownerID, reply: reply)
 
             default:
                 reply(jsonString(["ok": false, "error": "unknown_action", "action": action]))

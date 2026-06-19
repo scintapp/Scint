@@ -123,11 +123,11 @@ enum ReferenceTransfer {
 
         guard let origin, let closure = closure(for: origin) else { return false }
         return Closure.update(closure) {
-            let sheets = $0.sheets.count
+            let sheets = $0.state.count
             let components = $0.components.count
-            $0.sheets.removeAll { $0 == ref }
+            $0.state.removeAll { $0 == ref }
             $0.components.removeAll { $0 == ref }
-            return sheets != $0.sheets.count || components != $0.components.count
+            return sheets != $0.state.count || components != $0.components.count
         } ?? false
     }
 
@@ -135,7 +135,7 @@ enum ReferenceTransfer {
         guard let ref = item.ref else { return nil }
         guard let path = item.path else { return ref }
         guard ref.type is Artifact.Type else { return nil }
-        if Artifact.with(ref, { $0.kind.url }) == path { return ref }
+        if Artifact.with(ref, { $0.handle.url }) == path { return ref }
         return create ? Artifact.register(item.name, path) : ref
     }
 
@@ -154,7 +154,7 @@ enum ReferenceTransfer {
             return true
         case is Sheet.Type:
             guard let closure = closure(for: owner) else { return false }
-            Closure.update(closure) { if !$0.sheets.contains(ref) { $0.sheets.append(ref) } }
+            Closure.update(closure) { if !$0.state.contains(ref) { $0.state.append(ref) } }
             Sheet.update(ref) { $0.owner = closure }
             return true
         case is Transcript.Type:
