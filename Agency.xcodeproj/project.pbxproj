@@ -67,22 +67,22 @@
 		7C69AB122F8B46EE0008D611 /* Exceptions for "Sources" folder in "agencyd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AgencyService/Service.swift,
-				AgencyService/ServiceDaemon.swift,
-				AgencyService/ServiceProcess.swift,
-				AgencyService/ServiceRegistry.swift,
-				AgencyService/ServiceUtilities.swift,
+				Service/Service.swift,
+				Service/ServiceDaemon.swift,
+				Service/ServiceProcess.swift,
+				Service/ServiceRegistry.swift,
+				Service/ServiceUtilities.swift,
 			);
 			target = 7C69AAF12F8B45D90008D611 /* agencyd */;
 		};
 		7C7F7AB12F740ADE009FA3B1 /* Exceptions for "Sources" folder in "AgencyStudio" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AgencyService/Service.swift,
-				AgencyService/ServiceDaemon.swift,
-				AgencyService/ServiceProcess.swift,
-				AgencyService/ServiceRegistry.swift,
-				AgencyService/ServiceUtilities.swift,
+				Service/Service.swift,
+				Service/ServiceDaemon.swift,
+				Service/ServiceProcess.swift,
+				Service/ServiceRegistry.swift,
+				Service/ServiceUtilities.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* AgencyStudio */;
 		};
