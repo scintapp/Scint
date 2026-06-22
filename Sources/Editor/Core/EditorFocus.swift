@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 
 
-private struct EditorFocusKey: @MainActor EnvironmentKey {
-    @MainActor static let defaultValue = EditorFocusCoordinator()
+@MainActor private struct EditorFocusKey: @MainActor EnvironmentKey {
+    static let defaultValue = EditorFocusCoordinator()
 }
 
 @MainActor extension EnvironmentValues {

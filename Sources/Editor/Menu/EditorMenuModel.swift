@@ -122,6 +122,23 @@ struct MenuCommit {
 @Observable final class MenuModel {
     private let commandItems: [MenuItem]
     private let makeEntries: (MenuItem) -> [Block]?
+    private(set) var items: [MenuItem] = []
+    private var normalizedQuery: String { query.lowercased().trimmingCharacters(in: .whitespaces) }
+
+    private var currentItems: [MenuItem] {
+        switch kind {
+            case .command:
+                let filtered = commandItems.filter { item in
+                    if case .dividerItem = item { return normalizedQuery.isEmpty }
+                    return item.matches(normalizedQuery)
+                }
+                return trimmedDividers(in: filtered)
+            case .reference:
+                return MenuSearch.items(for: query)
+            case .form:
+                return []
+        }
+    }
 
     var kind: EditorMenuKind = .command
     var query: String = ""
@@ -131,11 +148,6 @@ struct MenuCommit {
     var isOpen = false
     var formPrimary = ""
     var formSecondary = ""
-    private(set) var items: [MenuItem] = []
-
-    private var normalizedQuery: String {
-        query.lowercased().trimmingCharacters(in: .whitespaces)
-    }
 
     var size: CGSize {
         switch kind {
@@ -143,21 +155,6 @@ struct MenuCommit {
         case .reference: return CGSize(width: 360, height: 320)
         case .form(.task): return CGSize(width: 320, height: 162)
         case .form(.link): return CGSize(width: 320, height: 214)
-        }
-    }
-
-    private var currentItems: [MenuItem] {
-        switch kind {
-        case .command:
-            let filtered = commandItems.filter { item in
-                if case .dividerItem = item { return normalizedQuery.isEmpty }
-                return item.matches(normalizedQuery)
-            }
-            return trimmedDividers(in: filtered)
-        case .reference:
-            return MenuSearch.items(for: query)
-        case .form:
-            return []
         }
     }
 

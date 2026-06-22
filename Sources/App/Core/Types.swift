@@ -1,3 +1,4 @@
+import AgencyRuntime
 import SwiftUI
 
 
@@ -22,6 +23,7 @@ extension CaseIterable {
 @MainActor protocol Mapper {
     static func controls(_ agency: AgencyModel, _ panel: any Panel) -> Controls
     static func parameters(_ agency: AgencyModel, _ panel: any Panel) -> Parameters
+    static func item(from result: SearchResult) -> ItemParams
 }
 
 @MainActor protocol Feature: View {}
@@ -37,6 +39,14 @@ extension Panel {
 extension Mapper {
     static func controls(_ agency: AgencyModel, _ panel: any Panel) -> Controls { .init() }
     static func parameters(_ agency: AgencyModel, _ panel: any Panel) -> Parameters { .init() }
+    static func item(from result: SearchResult) -> ItemParams {
+        .init(
+            ref: result.ref,
+            name: result.name,
+            image: Design.Component.icon(for: result.ref),
+            description: result.description
+        )
+    }
 }
 
 @Observable final class EmptyPanel: Panel {

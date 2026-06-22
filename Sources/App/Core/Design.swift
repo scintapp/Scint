@@ -2,12 +2,12 @@ import AgencyRuntime
 import SwiftUI
 
 
-enum Iconography {
+@MainActor enum Iconography {
     static func icon(for block: Sheet.Block) -> Icon {
         switch block {
             case .artifact(let ref), .command(let ref), .sheet(let ref): return Iconography.icon(for: ref)
             case .content: return Icon(badge: "text.alignleft", tint: Design.Tint.active)
-            case .task: return Icon(badge: "checkmark.app", tint: Design.Tint.active)
+            case .task(_, _, let done): return Icon(badge: done ? "checkmark.app" : "app", tint: Design.Tint.task)
         }
     }
 
@@ -31,12 +31,12 @@ enum Iconography {
 
     static func icon(for handle: Artifact.Handle) -> Icon {
         switch handle {
-            case .app: return Icon(badge: "square.grid.2x2.fill", tint: Design.Tint.active)
-            case .file: return Icon(badge: "folder", tint: Design.Tint.active)
-            case .http: return Icon(badge: "doc.badge.ellipsis", tint: Design.Tint.active)
-            case .image: return Icon(badge: "photo", tint: Design.Tint.active)
-            case .script: return Icon(badge: "chevron.left.forwardslash.chevron.right", tint: Design.Tint.active)
-            case .skill: return Icon(badge: "shippingbox", tint: Design.Tint.active)
+            case .app: return Icon(badge: "square.grid.2x2.fill", tint: Design.Tint.artifact)
+            case .file: return Icon(badge: "folder", tint: Design.Tint.artifact)
+            case .http: return Icon(badge: "doc.badge.ellipsis", tint: Design.Tint.artifact)
+            case .image: return Icon(badge: "photo", tint: Design.Tint.artifact)
+            case .script: return Icon(badge: "chevron.left.forwardslash.chevron.right", tint: Design.Tint.artifact)
+            case .skill: return Icon(badge: "shippingbox", tint: Design.Tint.space)
             case .exec: return Icon(badge: "terminal", tint: Design.Tint.active)
         }
     }
@@ -50,26 +50,47 @@ enum Iconography {
             case is Space.Type:
                 guard let harness = Space.with(ref, { $0.harness }).flatMap({ $0 }),
                       let config = Harness.with(harness, { $0.routine })
-                else { return Icon(badge: "app", tint: Design.Tint.active) }
+                else { return Icon(badge: "app", tint: Design.Tint.success) }
                 return Iconography.icon(for: config)
             case is Command.Type:
-                return Icon(badge: "switch.2", tint: Design.Tint.active)
+                return Icon(badge: "switch.2", tint: Design.Tint.command)
             case is Route.Type:
-                return Icon(badge: "app.connected.to.app.below.fill", tint: Design.Tint.active)
+                return Icon(badge: "app.connected.to.app.below.fill", tint: Design.Tint.space)
             case is Harness.Type:
                 guard let mode = Harness.with(ref, { $0.routine })
                 else { return Icon(badge: "gear", tint: Design.Tint.harness) }
                 return Iconography.icon(for: mode)
             case is Sheet.Type:
-                for entry in Sheet.with(ref, { $0.blocks }) ?? [] { return Iconography.icon(for: entry) }
+                return Icon(badge: "text.alignleft", tint: Design.Tint.sheet)
             case is Transcript.Type:
                 for entry in Transcript.with(ref, { $0.entries }) ?? [] { return Iconography.icon(for: entry) }
+                return Icon(badge: "rectangle.stack", tint: Design.Tint.running)
             case is Workspace.Type:
-                return Icon(badge: "cube.transparent", tint: Design.Tint.active)
+                return Icon(badge: "cube.transparent", tint: Design.Tint.success)
             default:
                 break
         }
         return Icon(badge: "", tint: Design.Tint.active)
+    }
+
+    static func symbol(for ref: Reference) -> String {
+        icon(for: ref).symbol
+    }
+
+    static func symbol(for block: Sheet.Block) -> String {
+        icon(for: block).symbol
+    }
+
+    static func symbol(for entry: Transcript.Entry) -> String {
+        icon(for: entry).symbol
+    }
+
+    static func symbol(for handle: Artifact.Handle) -> String {
+        icon(for: handle).symbol
+    }
+
+    static func symbol(for routine: Harness.Routine) -> String {
+        icon(for: routine).symbol
     }
 
     static func accent(for ref: Reference) -> Color {
@@ -93,8 +114,13 @@ enum Iconography {
     struct Icon: View {
         let badge: String
         let tint: Color
+        let symbol: String
 
-        var symbol: String { badge.isEmpty ? "app.grid" : badge }
+        init(badge: String, tint: Color) {
+            self.badge = badge
+            self.tint = tint
+            self.symbol = badge.isEmpty ? "app.grid" : badge
+        }
 
         var body: some View {
             let rectangle = RoundedRectangle(cornerRadius: 6, style: .circular)
@@ -197,68 +223,25 @@ enum Design {
         case transcript(Transcript)
     }
 
-    enum Component {
+    @MainActor enum Component {
         static func icon(for ref: Reference) -> String {
-            switch ref.type {
-                case is Artifact.Type: if let handle = Artifact.with(ref, { $0 })?.handle { return Design.Component.icon(for: handle) }
-                case is Command.Type: return "switch.2"
-                case is Route.Type: return "app.connected.to.app.below.fill"
-                case is Harness.Type: return "gear"
-                case is Sheet.Type: for entry in Sheet.with(ref, { $0.blocks }) ?? [] { return Design.Component.icon(for: entry) }
-                case is Transcript.Type: for entry in Transcript.with(ref, { $0.entries }) ?? [] { return Design.Component.icon(for: entry) }
-                case is Space.Type:
-                    if let harness = Space.with(ref, { $0 })?.harness {
-                        switch Harness.with(harness, { $0.routine }) {
-                            case .dispatch: return ""
-                            case .observe: return ""
-                            case .process: return ""
-                            case .traverse: return ""
-                            default: return ""
-                        }
-                    }
-                    return "app"
-                case is Workspace.Type: return "cube.transparent"
-                default: return ""
-            }
-            return ""
+            Iconography.symbol(for: ref)
         }
 
         static func icon(for handle: Artifact.Handle) -> String {
-            switch handle {
-                case .app: return "square.grid.2x2.fill"
-                case .file: return "folder"
-                case .http: return "doc.badge.ellipsis"
-                case .image: return "photo"
-                case .script: return "chevron.left.forwardslash.chevron.right"
-                case .skill: return "shippingbox"
-                case .exec: return "terminal"
-            }
+            Iconography.symbol(for: handle)
         }
 
         static func icon(for routine: Harness.Routine) -> String {
-            switch routine {
-                case .dispatch: return "app"
-                case .observe: return "app"
-                case .process: return "app"
-                case .traverse: return "app"
-                case .compose: return "app"
-            }
+            Iconography.symbol(for: routine)
         }
 
         static func icon(for entry: Sheet.Block) -> String {
-            switch entry {
-                case .artifact(let ref), .command(let ref), .sheet(let ref): return Component.icon(for: ref)
-                case .content: return "text.alignleft"
-                case .task: return "checkmark.app"
-            }
+            Iconography.symbol(for: entry)
         }
 
         static func icon(for entry: Transcript.Entry) -> String {
-            switch entry {
-                case .event: return "23.calendar"
-                case .sheet(let ref, _): return Self.icon(for: ref)
-                case .transcript(let ref, _, _): return Component.icon(for: ref)
-            }
+            Iconography.symbol(for: entry)
         }
     }
 
@@ -267,6 +250,56 @@ enum Design {
         var border: Color { color.opacity(0.17) }
         var background: Color { color.opacity(0.06) }
         var foreground: Color { color.opacity(0.88) }
+        var disabledForeground: Color { Color.primary.opacity(0.4) }
+        var tableForeground: Color { color.opacity(0.92) }
+        var tableGlass: Color { color.opacity(0.14) }
+    }
+
+    enum EditorComponent {
+        enum Card {
+            static let cornerRadius: CGFloat = 18
+            static let horizontalPadding: CGFloat = 14
+            static let verticalPadding: CGFloat = 12
+            static let background = Design.SheetGlyph.card
+            static let stroke = Design.SheetGlyph.stroke
+        }
+
+        enum LinkCard {
+            static let cornerRadius: CGFloat = 12
+            static let horizontalPadding: CGFloat = 12
+            static let verticalPadding: CGFloat = 8
+            static let outerHorizontalPadding: CGFloat = 4
+            static let titleFont = Font.system(size: 13, weight: .medium)
+            static let previewFont = Font.system(size: 11.5)
+            static let selectedBackground = Color.accentColor.opacity(0.16)
+            static let hoveredBackground = Color.primary.opacity(0.055)
+            static let clearBorder = Color.primary.opacity(0.0)
+        }
+
+        enum Badge {
+            static let font = Font.system(size: 9.5)
+            static let horizontalPadding: CGFloat = 6
+            static let verticalPadding: CGFloat = 3
+            static let cornerRadius: CGFloat = 6
+            static let foreground = Design.SheetGlyph.textTertiary.opacity(0.9)
+            static let background = Design.SheetGlyph.textTertiary.opacity(0.07)
+            static let stroke = Design.SheetGlyph.textTertiary.opacity(0.16)
+        }
+
+        enum StatusPill {
+            static let font = Font.system(size: 10.5, weight: .medium)
+            static let dotSize: CGFloat = 5
+            static let horizontalPadding: CGFloat = 8
+            static let verticalPadding: CGFloat = 4
+        }
+
+        enum GhostButton {
+            static let labelFont = Font.system(size: 10.5, weight: .medium)
+            static let iconFont = Font.system(size: 10, weight: .medium)
+            static let horizontalPadding: CGFloat = 8
+            static let verticalPadding: CGFloat = 4
+            static let cornerRadius: CGFloat = 7
+        }
     }
 
     enum Background {

@@ -361,12 +361,3 @@ struct SearchView: View {
         index = 0
     }
 }
-
-func item(from result: SearchResult) -> ItemParams {
-    ItemParams(
-        ref: result.ref,
-        name: result.name,
-        image: Design.Component.icon(for: result.ref),
-        description: result.description
-    )
-}

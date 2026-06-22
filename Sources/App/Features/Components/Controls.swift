@@ -30,8 +30,7 @@ struct ProcessControls: View {
         HStack {
             ControlGroup {
                 Button { } label: {
-                    Image(systemName: Design.Component.icon(for: workspace))
-                        .foregroundStyle(.primary.opacity(0.9))
+                    Iconography.icon(for: workspace)
                         .font(.system(size: 11, weight: .semibold))
                         .padding(.trailing, 6)
                     Text(workspace.descriptor.name)
@@ -40,8 +39,7 @@ struct ProcessControls: View {
                 }
                 
                 Button { } label: {
-                    Image(systemName: Design.Component.icon(for: space))
-                        .foregroundStyle(.primary.opacity(0.9))
+                    Iconography.icon(for: space)
                         .font(.system(size: 9, weight: .semibold))
                         .padding(.trailing, 6)
                     Text(space.descriptor.name)

@@ -34,7 +34,11 @@ import Foundation
         navigation.reset(to: initial)
     }
 
-    func focus(_ ref: Reference) {
+    func focus(_ ref: Reference?) {
+        guard let ref else {
+            focused = .nothing
+            return
+        }
         switch ref.type {
             case is Workspace.Type, is Space.Type: focused = .structure(ref)
             case is any Functional.Type: focused = .interface(ref)
@@ -48,10 +52,6 @@ import Foundation
             case .structure(let focused), .interface(let focused), .content(let focused): return focused == ref
             default: return false
         }
-    }
-
-    func clearFocus() {
-        focused = .nothing
     }
 
     @discardableResult

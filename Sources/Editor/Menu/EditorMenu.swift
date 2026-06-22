@@ -30,8 +30,8 @@ struct EditorMenuEmptyState: View {
 }
 
 struct EditorMenuIconTile: View {
-    let icon: String
     let ref: Reference?
+    let icon: String
     let selected: Bool
 
     init(icon: String, selected: Bool, ref: Reference? = nil) {
@@ -114,24 +114,13 @@ struct EditorMenuList: View {
     @Environment(EditorModel.self) private var editor
 
     private var menu: MenuModel { editor.menu }
+
     private var emptyTitle: String {
         switch menu.kind {
-        case .command: return "No commands found"
-        case .reference: return "No references found"
-        case .form: return ""
+            case .command: return "No commands found"
+            case .reference: return "No references found"
+            case .form: return ""
         }
-    }
-
-    var body: some View {
-        Group {
-            if menu.items.isEmpty {
-                EditorMenuEmptyState(title: emptyTitle, width: menu.size.width, height: menu.size.height)
-            } else {
-                list
-            }
-        }
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
     }
 
     private var list: some View {
@@ -161,25 +150,26 @@ struct EditorMenuList: View {
             }
         }
     }
-}
-
-struct MenuForm: View {
-    @Environment(EditorModel.self) private var editor
-
-    let kind: MenuFormKind
-    let focus: FocusState<EditorMenuFocus?>.Binding
-
-    private var menu: MenuModel { editor.menu }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            Divider().overlay(Color.white.opacity(0.08))
-            fields
+        Group {
+            if menu.items.isEmpty {
+                EditorMenuEmptyState(title: emptyTitle, width: menu.size.width, height: menu.size.height)
+            } else {
+                list
+            }
         }
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
     }
+}
+
+struct MenuForm: View {
+    @Environment(EditorModel.self) private var editor
+    let kind: MenuFormKind
+    let focus: FocusState<EditorMenuFocus?>.Binding
+
+    private var menu: MenuModel { editor.menu }
 
     private var header: some View {
         HStack(spacing: 9) {
@@ -269,14 +259,41 @@ struct MenuForm: View {
             editor.commitMenuSelection()
         }
     }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Divider().overlay(Color.white.opacity(0.08))
+            fields
+        }
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
+    }
 }
 
 struct EditorMenu: View {
     @Environment(EditorModel.self) private var editor
     @FocusState private var focus: EditorMenuFocus?
-
     let position: CGPoint
     private var menu: MenuModel { editor.menu }
+
+    @ViewBuilder private var content: some View {
+        switch menu.kind {
+            case .command, .reference:
+                EditorMenuList()
+            case .form(let kind):
+                MenuForm(kind: kind, focus: $focus)
+        }
+    }
+
+    private func focusInitialField(for kind: EditorMenuKind) {
+        switch kind {
+            case .command, .reference:
+                focus = nil
+            case .form:
+                focus = .formPrimary
+        }
+    }
 
     var body: some View {
         content
@@ -284,24 +301,5 @@ struct EditorMenu: View {
             .offset(x: position.x, y: position.y)
             .onChange(of: menu.kind) { _, kind in focusInitialField(for: kind) }
             .onAppear { focusInitialField(for: menu.kind) }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        switch menu.kind {
-        case .command, .reference:
-            EditorMenuList()
-        case .form(let kind):
-            MenuForm(kind: kind, focus: $focus)
-        }
-    }
-
-    private func focusInitialField(for kind: EditorMenuKind) {
-        switch kind {
-        case .command, .reference:
-            focus = nil
-        case .form:
-            focus = .formPrimary
-        }
     }
 }

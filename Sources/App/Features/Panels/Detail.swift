@@ -79,7 +79,7 @@ import SwiftUI
             .background {
                 Color.clear
                     .contentShape(Rectangle())
-                    .onTapGesture { agency.clearFocus() }
+                    .onTapGesture { agency.focus(nil) }
             }
     }
 }

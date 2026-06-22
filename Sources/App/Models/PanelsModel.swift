@@ -46,8 +46,4 @@ struct BasePanel<Content: View>: View {
         panels[id] = new
         return new
     }
-
-    func view(_ agency: AgencyModel, _ panel: some Panel) -> some View {
-        Builder.build(agency, panel)
-    }
 }

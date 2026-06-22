@@ -11,11 +11,11 @@ public struct EditorCanvas: View {
     }
 
     public var body: some View {
-        EditorContent { selector, atTopLine, atBottomLine in
+        DocumentContent { selector, atTopLine, atBottomLine in
             editor.handleCommand(selector, atTopLine: atTopLine, atBottomLine: atBottomLine)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .coordinateSpace(name: EditorContent.canvasSpace)
+        .coordinateSpace(name: DocumentContent.canvasSpace)
         .onChange(of: editor.editing) { _, _ in focus.focus(editor.editing ?? editor.selection.first) }
         .onChange(of: editor.selection) { _, _ in if editor.editing == nil { focus.focus(editor.selection.first) } }
         .onAppear {

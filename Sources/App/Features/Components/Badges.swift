@@ -22,11 +22,11 @@ struct Badge: View {
         HStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(count > 0 ? design.foreground : Color.primary.opacity(0.4))
+                .foregroundStyle(count > 0 ? design.foreground : design.disabledForeground)
 
             Text("\(label) \(count)")
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(count > 0 ? .primary.opacity(0.9) : Color.primary.opacity(0.4))
+                .foregroundStyle(count > 0 ? .primary.opacity(0.9) : design.disabledForeground)
         }
         .pickerStyle(.segmented)
         .padding(.horizontal, padding.0)

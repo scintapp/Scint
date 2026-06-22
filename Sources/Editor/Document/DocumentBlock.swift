@@ -30,21 +30,30 @@ struct SelectableEntry<Content: View>: View {
 }
 
 struct EntryGlyph: View {
-    let icon: String
-    var tint: Color = .secondary
+    let icon: Iconography.Icon
     var contained: Bool = false
+
+    init(icon: Iconography.Icon, contained: Bool = false) {
+        self.icon = icon
+        self.contained = contained
+    }
+
+    init(icon: String, tint: Color = .secondary, contained: Bool = false) {
+        self.icon = Iconography.Icon(badge: icon, tint: tint)
+        self.contained = contained
+    }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
-        Image(systemName: icon)
+        Image(systemName: icon.symbol)
             .font(.system(size: 11))
-            .foregroundStyle(tint)
+            .foregroundStyle(icon.tint)
             .frame(width: 21, height: 21, alignment: .center)
             .background {
-                if contained { shape.fill(tint.opacity(0.15)) }
+                if contained { shape.fill(icon.tint.opacity(0.15)) }
             }
             .overlay {
-                if contained { shape.strokeBorder(tint.opacity(0.28), lineWidth: 1) }
+                if contained { shape.strokeBorder(icon.tint.opacity(0.28), lineWidth: 1) }
             }
     }
 }
@@ -109,9 +118,20 @@ struct LinkMetadataPreview: View {
         url.host(percentEncoded: false) ?? url.absoluteString
     }
 
+    private func load() async {
+        guard metadata == nil else { return }
+        let provider = LPMetadataProvider()
+        guard let metadata = try? await provider.startFetchingMetadata(for: url) else { return }
+        let title = metadata.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let detail = metadata.url?.host(percentEncoded: false) ?? metadata.originalURL?.host(
+            percentEncoded: false
+        ) ?? host
+        self.metadata = .init(title: title?.isEmpty == false ? title! : fallbackTitle, detail: detail)
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
-            EntryGlyph(icon: "bookmark", tint: Design.Tint.artifact, contained: true)
+            EntryGlyph(icon: Iconography.Icon(badge: "bookmark", tint: Design.Tint.artifact), contained: true)
 
             EntryTextBlock(
                 title: metadata?.title ?? fallbackTitle,
@@ -124,17 +144,6 @@ struct LinkMetadataPreview: View {
         }
         .frame(maxWidth: .infinity, maxHeight: 28, alignment: .leading)
         .task(id: url) { await load() }
-    }
-
-    private func load() async {
-        guard metadata == nil else { return }
-        let provider = LPMetadataProvider()
-        guard let metadata = try? await provider.startFetchingMetadata(for: url) else { return }
-        let title = metadata.title?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let detail = metadata.url?.host(percentEncoded: false) ?? metadata.originalURL?.host(
-            percentEncoded: false
-        ) ?? host
-        self.metadata = .init(title: title?.isEmpty == false ? title! : fallbackTitle, detail: detail)
     }
 }
 
@@ -170,7 +179,6 @@ struct EditorSheet: View {
             }
         }
     }
-
 
     private func componentCard(
         ref: Reference,
@@ -343,7 +351,7 @@ struct EditorSheet: View {
         let icon = isDirectory ? "folder" : "doc"
 
         return HStack(spacing: 8) {
-            EntryGlyph(icon: icon, tint: Design.Tint.artifact, contained: true)
+            EntryGlyph(icon: Iconography.Icon(badge: icon, tint: Design.Tint.artifact), contained: true)
             EntryTextBlock(title: name, detail: meta, design: .default)
             Spacer(minLength: 10)
         }
@@ -474,7 +482,7 @@ struct EditorSheet: View {
 
     private func todo(_ content: String, _ completed: Bool) -> some View {
         HStack(alignment: .center, spacing: 8) {
-            EntryGlyph(icon: completed ? "checkmark.app" : "app", tint: Design.Tint.task, contained: true)
+            EntryGlyph(icon: Iconography.icon(for: .task(UUID(), content, completed)), contained: true)
 
             Text(content)
                 .font(.system(size: TypeScale.cardTitle, weight: .medium))

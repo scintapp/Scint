@@ -79,7 +79,7 @@ private struct SpaceIconPreview: View {
                 let icon = Iconography.icon(for: ref)
                 Image(systemName: icon.symbol)
                     .font(.system(size: symbolSize, weight: .semibold))
-                    .foregroundStyle(.primary.opacity(0.78))
+                    .foregroundStyle(icon.tint.opacity(0.92))
             } else if let label = cell.label {
                 Text(label)
                     .font(.system(size: labelSize, weight: .semibold))
@@ -119,14 +119,14 @@ struct ComponentIcon: View {
             switch ref.type {
                 case is Artifact.Type:
                     if let handle = Artifact.with(ref, { $0.handle }) { artifact(handle) }
-                    else { app(Iconography.icon(for: ref), Design.Tint.artifact) }
-                case is Command.Type: app(Iconography.icon(for: ref), Design.Tint.command)
+                    else { app(Iconography.icon(for: ref)) }
+                case is Command.Type: app(Iconography.icon(for: ref))
                 case is Route.Type: route
                 case is Harness.Type: service
                 case is Sheet.Type: sheet
                 case is Transcript.Type: transcript
                 case is Space.Type, is Workspace.Type: space
-                default: app(Iconography.icon(for: ref), Design.Tint.active)
+                default: app(Iconography.icon(for: ref))
             }
         } else {
             app(item.image.isEmpty ? "app.grid" : item.image, item.tint ?? Design.Tint.active)
@@ -136,7 +136,7 @@ struct ComponentIcon: View {
     @ViewBuilder private func artifact(_ entry: Artifact.Handle) -> some View {
         switch entry {
             case .app:
-                app(Iconography.icon(for: entry), Design.Tint.artifact)
+                app(Iconography.icon(for: entry))
             case .file:
                 folder
             case .http: bookmark
@@ -242,11 +242,11 @@ struct ComponentIcon: View {
         }
     }
 
-    private func app(_ icon: Iconography.Icon, _ tint: Color) -> some View {
-        app(tint) {
+    private func app(_ icon: Iconography.Icon) -> some View {
+        app(icon.tint) {
             Image(systemName: icon.symbol)
                 .font(.system(size: appSymbol, weight: .semibold))
-                .foregroundStyle(.primary.opacity(0.76))
+                .foregroundStyle(icon.tint.opacity(0.95))
         }
     }
 
@@ -271,24 +271,25 @@ struct ComponentIcon: View {
     }
 
     @ViewBuilder private var service: some View {
-        if let ref = item.ref { app(Iconography.icon(for: ref), Design.Tint.harness) }
+        if let ref = item.ref { app(Iconography.icon(for: ref)) }
         else { app("app.connected.to.app.below.fill", Design.Tint.harness) }
     }
 
     private var sheet: some View {
         let page = RoundedRectangle(cornerRadius: size == .grid ? 6 : 3, style: .continuous)
+        let icon = item.ref.map { Iconography.icon(for: $0) } ?? Iconography.Icon(badge: "text.alignleft", tint: Design.Tint.sheet)
         var content = ""
         if let ref = item.ref { content = Sheet.with(ref, { $0.rendered }) ?? "" }
 
         return Text(content)
             .font(.system(size: size == .grid ? 3 : 2, weight: .light))
             .lineSpacing(0)
-            .foregroundStyle(.black)
+            .foregroundStyle(icon.tint.opacity(0.88))
             .padding(size == .grid ? 4 : 2)
             .frame(width: doc.width, height: doc.height, alignment: .topLeading)
             .glassEffect(.clear, in: page)
-            .background(page.fill(Color.primary.opacity(0.93)))
-            .overlay(page.strokeBorder(.black.opacity(0.12), lineWidth: 0.5))
+            .background(page.fill(icon.tint.opacity(size == .grid ? 0.18 : 0.24)))
+            .overlay(page.strokeBorder(icon.tint.opacity(0.38), lineWidth: 0.5))
             .clipShape(page)
     }
 
@@ -518,13 +519,13 @@ struct StatusPill: View {
         HStack(spacing: 6) {
             Circle()
                 .fill(color.opacity(0.88))
-                .frame(width: 5, height: 5)
+                .frame(width: Design.EditorComponent.StatusPill.dotSize, height: Design.EditorComponent.StatusPill.dotSize)
             Text(label)
-                .font(.system(size: 10.5, weight: .medium))
+                .font(Design.EditorComponent.StatusPill.font)
         }
         .foregroundStyle(color.opacity(0.88))
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, Design.EditorComponent.StatusPill.horizontalPadding)
+        .padding(.vertical, Design.EditorComponent.StatusPill.verticalPadding)
         .background(color.opacity(0.06))
         .clipShape(Capsule())
         .overlay(
@@ -539,33 +540,33 @@ struct GhostButton: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            if let icon { Image(systemName: icon).font(.system(size: 10, weight: .medium)) }
-            Text(label).font(.system(size: 10.5, weight: .medium))
+            if let icon { Image(systemName: icon).font(Design.EditorComponent.GhostButton.iconFont) }
+            Text(label).font(Design.EditorComponent.GhostButton.labelFont)
         }
         .foregroundStyle(Design.SheetGlyph.textSecondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, Design.EditorComponent.GhostButton.horizontalPadding)
+        .padding(.vertical, Design.EditorComponent.GhostButton.verticalPadding)
         .background(Design.SheetGlyph.accentSoft)
-        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Design.EditorComponent.GhostButton.cornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: Design.EditorComponent.GhostButton.cornerRadius, style: .continuous)
                 .strokeBorder(Design.SheetGlyph.stroke, lineWidth: 1)
         )
     }
 }
 
 struct EntryCard<Body: View>: View {
-    let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 18, style: .continuous)
+    let shape: RoundedRectangle = RoundedRectangle(cornerRadius: Design.EditorComponent.Card.cornerRadius, style: .continuous)
     @ViewBuilder var content: () -> Body
 
     var body: some View {
         VStack(alignment: .leading) { content() }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, Design.EditorComponent.Card.horizontalPadding)
+            .padding(.vertical, Design.EditorComponent.Card.verticalPadding)
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .contentShape(shape)
-            .background { shape.fill(Design.SheetGlyph.card) }
-            .overlay { shape.stroke(lineWidth: 1).fill(Design.SheetGlyph.stroke) }
+            .background { shape.fill(Design.EditorComponent.Card.background) }
+            .overlay { shape.stroke(lineWidth: 1).fill(Design.EditorComponent.Card.stroke) }
     }
 }
 
@@ -574,17 +575,17 @@ private struct CardBadge: View {
 
     var body: some View {
         Text(label)
-            .font(.system(size: 9.5))
-            .foregroundStyle(Design.SheetGlyph.textTertiary.opacity(0.9))
+            .font(Design.EditorComponent.Badge.font)
+            .foregroundStyle(Design.EditorComponent.Badge.foreground)
             .lineLimit(1)
             .truncationMode(.middle)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(Design.SheetGlyph.textTertiary.opacity(0.07))
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .padding(.horizontal, Design.EditorComponent.Badge.horizontalPadding)
+            .padding(.vertical, Design.EditorComponent.Badge.verticalPadding)
+            .background(Design.EditorComponent.Badge.background)
+            .clipShape(RoundedRectangle(cornerRadius: Design.EditorComponent.Badge.cornerRadius, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(Design.SheetGlyph.textTertiary.opacity(0.16), lineWidth: 0.75)
+                RoundedRectangle(cornerRadius: Design.EditorComponent.Badge.cornerRadius, style: .continuous)
+                    .strokeBorder(Design.EditorComponent.Badge.stroke, lineWidth: 0.75)
             }
     }
 }
@@ -609,13 +610,13 @@ struct CardLink: View {
     }
 
     private var background: Color {
-        if selected { return Color.accentColor.opacity(0.16) }
-        if hovered { return Color.primary.opacity(0.055) }
+        if selected { return Design.EditorComponent.LinkCard.selectedBackground }
+        if hovered { return Design.EditorComponent.LinkCard.hoveredBackground }
         return Color.primary.opacity(0.0)
     }
 
     private var border: Color {
-        selected ? Color.accentColor.opacity(0.0) : Color.primary.opacity(0.0)
+        Design.EditorComponent.LinkCard.clearBorder
     }
 
     private func details(_ entries: [Sheet.Block]) -> [String] {
@@ -635,13 +636,13 @@ struct CardLink: View {
         Button(action: onSelect) {
             VStack(alignment: .leading) {
                 Text(title)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(Design.EditorComponent.LinkCard.titleFont)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                     .padding(.bottom, 4)
 
                 Text(preview)
-                    .font(.system(size: 11.5))
+                    .font(Design.EditorComponent.LinkCard.previewFont)
                     .foregroundStyle(.primary.opacity(0.9))
                     .lineLimit(2, reservesSpace: true)
                     .multilineTextAlignment(.leading)
@@ -651,15 +652,15 @@ struct CardLink: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(alignment: .topLeading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, Design.EditorComponent.LinkCard.horizontalPadding)
+            .padding(.vertical, Design.EditorComponent.LinkCard.verticalPadding)
             .background(
                 selected ? background.opacity(0.4) : background.opacity(0.0),
-                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                in: RoundedRectangle(cornerRadius: Design.EditorComponent.LinkCard.cornerRadius, style: .continuous)
             )
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: Design.EditorComponent.LinkCard.cornerRadius, style: .continuous))
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, Design.EditorComponent.LinkCard.outerHorizontalPadding)
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
     }

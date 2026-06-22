@@ -10,7 +10,7 @@ private struct EntryFramesKey: PreferenceKey {
     }
 }
 
-struct EditorContent: View {
+struct DocumentContent: View {
     @Environment(EditorModel.self) private var editor
     static let canvasSpace = "editorCanvas"
     private static let styler = EditorStyler()

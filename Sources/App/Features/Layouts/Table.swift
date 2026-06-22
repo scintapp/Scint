@@ -88,14 +88,15 @@ struct TableItemIcon: View {
 struct TableBadge: View {
     let title: String
     let color: Color
+    var design: Design.Badge { .init(color: color) }
 
     var body: some View {
         Text(title)
             .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(color.opacity(0.92))
+            .foregroundStyle(design.tableForeground)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .glassEffect(.regular.tint(color.opacity(0.14)), in: Capsule(style: .continuous))
+            .glassEffect(.regular.tint(design.tableGlass), in: Capsule(style: .continuous))
     }
 }
 

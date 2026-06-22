@@ -30,39 +30,20 @@ import SwiftUI
         await artifacts.load(runtime: Runtime.shared)
     }
 
-    func focus(_ ref: Reference) {
-        session.focus(ref)
-    }
+    func focus(_ ref: Reference?) { session.focus(ref) }
 
-    func clearFocus() {
-        session.clearFocus()
-    }
+    func select(_ ref: Reference) { session.select(ref) }
 
-    func select(_ ref: Reference) {
-        session.select(ref)
-    }
+    func select(_ ref: Reference, entry: UUID?, url: URL?) { session.select(ref, entry: entry, url: url) }
 
-    func select(_ ref: Reference, entry: UUID?, url: URL?) {
-        session.select(ref, entry: entry, url: url)
-    }
-
-    func open(_ ref: Reference) {
-        session.open(ref)
-    }
+    func open(_ ref: Reference) { session.open(ref) }
 
     @discardableResult func forward() -> Selection? { session.forward() }
     @discardableResult func backward() -> Selection? { session.back() }
 
+    func actions() { }
+
     func compose(_ space: Reference) { }
 
-    func search(_ query: String, facet: String, limit: Int) -> [SearchResult] {
-        Runtime.shared.search("\(query) !\(facet)", limit: limit).all
-    }
-
-    private func panel(id: AnyHashable, size: CGSize, view: @autoclosure () -> AnyView) -> PanelCoordinator {
-        if let existing = panels.panels[id] { return existing }
-        let new = PanelCoordinator.load(agency: self, size: size, view: view())
-        panels.panels[id] = new
-        return new
-    }
+    func search(_ query: String, limit: Int) -> SearchResults { Runtime.shared.search(query, limit: limit) }
 }
