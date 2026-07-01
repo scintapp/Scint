@@ -2,7 +2,7 @@ import AgencyRuntime
 import SwiftUI
 
 
-@Observable final class Navigator: Panel {
+@Observable final class Sidebar: Panel {
     var model: Model = .spaces
     var layout: Layout = .list
     var position: CGFloat = 0
@@ -29,14 +29,14 @@ import SwiftUI
 
     func controls(_ agency: AgencyModel) -> Controls {
         switch self.model {
-            case .spaces: NavigatorMap.controls(agency, self)
+            case .spaces: SidebarMap.controls(agency, self)
             case .library: LibraryMap.controls(agency, self)
         }
     }
 
     func parameters(_ agency: AgencyModel) -> Parameters {
         switch self.model {
-        case .spaces: NavigatorMap.parameters(agency, self)
+        case .spaces: SidebarMap.parameters(agency, self)
         case .library: LibraryMap.parameters(agency, self)
         }
     }
@@ -45,7 +45,7 @@ import SwiftUI
         @Bindable var navigator = self
 
         return Group {
-            ToolbarItem(placement: .primaryAction) { NavigatorToggle(presented: $navigator.presented) }
+            ToolbarItem(placement: .primaryAction) { SidebarToggle(presented: $navigator.presented) }
         }
     }
 

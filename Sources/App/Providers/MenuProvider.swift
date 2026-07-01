@@ -10,7 +10,7 @@ struct Surfaces {
     }
 
     enum Studio {
-        enum Navigator {
+        enum Sidebar {
             enum Workspace {}
             enum Library {}
             enum Notifications {}
@@ -31,7 +31,7 @@ struct Surfaces {
                 enum Composition {}
                 enum Preview {}
             }
-            enum Processing {
+            enum Executing {
                 enum Process {}
             }
         }

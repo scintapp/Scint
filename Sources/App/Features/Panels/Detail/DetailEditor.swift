@@ -103,19 +103,21 @@ import SwiftUI
     func view(_ agency: AgencyModel) -> some View {
         ZStack(alignment: .top) {
             DetailHeader()
-            ScrollView {
-                Color.clear.frame(height: 50)
-                if let sheet = agency.session.opened.sheet {
-                    Editor(sheet)
-                        .id(sheet)
-                        .frame(maxWidth: 710, alignment: .topLeading)
-                        .padding(24)
-                } else {
-                    EmptyState(ref: agency.session.workspace)
-                        .frame(maxWidth: 710, alignment: .topLeading)
+            GeometryReader { geometry in
+                ScrollView {
+                    Color.clear.frame(height: 50)
+                    if let sheet = agency.session.opened.sheet {
+                        Editor(sheet, minimumCanvasHeight: max(120, geometry.size.height - 98))
+                            .id(sheet)
+                            .frame(maxWidth: 710, alignment: .topLeading)
+                            .padding(24)
+                    } else {
+                        EmptyState(ref: agency.session.workspace)
+                            .frame(maxWidth: 710, alignment: .topLeading)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .ignoresSafeArea(.all, edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -159,7 +161,6 @@ import SwiftUI
     func view(_ agency: AgencyModel) -> some View {
         @Bindable var console = agency.studio.console
         return ZStack(alignment: .top) {
-            DetailHeader()
             VerticalSplit($console.presented, position: $console.position) {
                 ScrollView {
                     Color.clear.frame(height: 50)

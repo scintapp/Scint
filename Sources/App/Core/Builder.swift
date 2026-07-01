@@ -32,7 +32,7 @@ import SwiftUI
         switch section.layout {
         case .group: buildGroup(section, model: model, controls: controls)
         case .grid: buildGrid(section, model: model, params: params, controls: controls)
-        case .table: buildTable(section, model: model, params: params, controls: controls)
+        case .table: buildGrid(section, model: model, params: params, controls: controls)
         case .content, .list, .column: buildList(section, model: model, params: params, controls: controls)
         }
     }
@@ -51,7 +51,7 @@ import SwiftUI
 
         if item.isParent && canExpand {
             let sectionView = AnyView(
-                SectionLayout(
+                ListLayout(
                     name: item.name,
                     ref: item.path == nil && item.entryId == nil ? item.ref : nil,
                     image: item.image,
@@ -74,7 +74,7 @@ import SwiftUI
             menu(decorated, item: item, controls: controls)
         } else {
             let linkView = AnyView(
-                SectionLink(
+                ListLink(
                     name: item.name,
                     ref: item.path == nil && item.entryId == nil ? item.ref : nil,
                     image: item.image,
@@ -94,7 +94,7 @@ import SwiftUI
 
     @ViewBuilder static func buildGrid<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
         VStack(spacing: 0) {
-            if section.header { SectionHeader(name: section.name) }
+            if section.header { ListHeader(name: section.name) }
             let gridItem = GridItem(.adaptive(minimum: 128, maximum: 128), spacing: 8, alignment: .topLeading)
 
             LazyVGrid(columns: [gridItem], alignment: .leading, spacing: 8) {
@@ -150,7 +150,7 @@ import SwiftUI
     @ViewBuilder static func buildList<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
         VStack(spacing: 0) {
             if section.header {
-                let header = AnyView(SectionHeader(
+                let header = AnyView(ListHeader(
                     name: section.name,
                     onAdd: controls.canAddInline(sectionId: String(describing: section.id)) ? {
                         controls.onAddItem?(AnyHashable(section.id), "")
@@ -164,19 +164,13 @@ import SwiftUI
             ForEach(section.items) { item in
                 build(item, model: model, sectionId: section.id, nesting: params.nesting, depth: 0, controls: controls)
             }
-
-            if controls.canAddInline(sectionId: section.id) {
-                SectionAddItemRow(placeholder: "New Item") { name in
-                    controls.onAddItem?(AnyHashable(section.id), name)
-                }
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    @ViewBuilder static func buildTable<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
-        TableLayout(section: section, columns: params.columns, controls: controls)
-    }
+//    @ViewBuilder static func buildTable<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
+//        TableLayout(section: section, columns: params.columns, controls: controls)
+//    }
 
     @ViewBuilder static func menu(_ view: AnyView, item: ItemParams, controls: Controls) -> some View {
         let actions = controls.itemActions?(item) ?? []

@@ -1,319 +1,319 @@
 import SwiftUI
-import AgencyRuntime
 
 
-//enum ProcessesFilter: Hashable, CaseIterable {
-//    case all
-//    case state(Composition.State)
-//
-//    static var allCases: [ProcessesFilter] {
-//        [.all, .state(.active), .state(.running), .state(.blocked), .state(.failed), .state(.idle)]
-//    }
-//
-//    var state: Composition.State? {
-//        if case .state(let state) = self { return state }
-//        return nil
-//    }
-//
-//    var title: String { state?.consoleName ?? "All" }
-//}
-//
-//struct ProcessesModel {
-//    var filter: ProcessesFilter
-//    var compositions: [Composition]
-//
-//    var visibleCompositions: [Composition] {
-//        guard let state = filter.state else { return compositions }
-//        return compositions.filter { $0.state == state }
-//    }
-//
-//    func count(for filter: ProcessesFilter) -> Int {
-//        guard let state = filter.state else { return compositions.count }
-//        return compositions.filter { $0.state == state }.count
-//    }
-//}
-//
-//struct ProcessCount: View {
-//    let name: String
-//    let count: Int
-//    let tint: Color
-//
-//    private var foreground: Color {
-//        count == 0 ? Color.secondary.opacity(0.45) : tint
-//    }
-//
-//    var body: some View {
-//        HStack {
-//            Text("\(count)")
-//                .foregroundStyle(count == 0 ? Color.secondary.opacity(0.45) : .primary.opacity(0.9))
-//            Text(name)
-//                .foregroundStyle(foreground)
-//        }
-//    }
-//}
-//
-//struct ProcessesOverview: View {
-//    private let states: [Composition.State] = [.active, .running, .blocked, .failed]
-//    private var compositions: [Composition] { Runtime.shared.context().filter { $0.origin.type is Space.Type } }
-//
-//    var body: some View {
-//        HStack(spacing: 16) {
-//            ForEach(states, id: \.consoleName) { state in
-//                ProcessCount(name: state.consoleName, count: count(state), tint: state.consoleTint)
-//            }
-//        }
-//        .font(.system(size: 11))
-//    }
-//
-//    private func count(_ state: Composition.State) -> Int { compositions.filter { $0.state == state }.count }
-//}
+private enum RunState: String, CaseIterable, Identifiable {
+    case active = "Active"
+    case running = "Running"
+    case blocked = "Blocked"
+    case failed = "Failed"
 
-struct TableItemIcon: View {
-    let item: ItemParams
+    var id: String { rawValue }
+
+    var symbol: String {
+        switch self {
+        case .active:
+            return "circle.fill"
+        case .running:
+            return "progress.indicator"
+        case .blocked:
+            return "pause.circle"
+        case .failed:
+            return "exclamationmark.triangle"
+        }
+    }
+}
+
+private enum RunSampleData {
+    static let runs: [RunSample] = [
+        RunSample(
+            state: .active,
+            title: "Runtime API Migration",
+            latestSummary: "Implemented provider property migration.",
+            time: "4:49",
+            badges: ["2/3 tasks", "1 file"],
+            actions: ["Pause", "Stop", "Transcript"]
+        ),
+        RunSample(
+            state: .active,
+            title: "Testing",
+            latestSummary: "Validated runtime suite progress.",
+            time: "2:17",
+            badges: ["14/22 passed", "3 suites"],
+            actions: ["Pause", "Stop", "Transcript"]
+        ),
+        RunSample(
+            state: .running,
+            title: "Fixture Rewrite",
+            latestSummary: "Rewrote focus mode fixtures.",
+            time: "0:53",
+            badges: ["1 command", "Focus Mode"],
+            actions: ["Pause", "Stop", "Transcript"]
+        ),
+        RunSample(
+            state: .blocked,
+            title: "Model Surface Audit",
+            latestSummary: "Requested write access approval.",
+            time: "2m",
+            badges: ["Approval", "AgencyTools/"],
+            actions: ["Approve", "Stop", "Transcript"]
+        ),
+        RunSample(
+            state: .failed,
+            title: "Preview Validation",
+            latestSummary: "Failed to load the preview skill.",
+            time: "40s",
+            badges: ["Invalid YAML", "1 error"],
+            actions: ["Resume", "Transcript"]
+        )
+    ]
+}
+
+private struct RunSample: Identifiable {
+    let id = UUID()
+    let state: RunState
+    let title: String
+    let latestSummary: String
+    let time: String
+    let badges: [String]
+    let actions: [String]
+}
+
+private struct FilterBar: View {
+    let activeFilter: String
+    let filters: [(String, String)]
+    let onSelect: (String) -> Void
 
     var body: some View {
         HStack(spacing: 8) {
-            ComponentIcon(item: item, size: .table)
+            ForEach(filters.indices, id: \.self) { index in
+                let label = filters[index].0
+                let count = filters[index].1
 
-            Text(item.name)
-                .font(.system(size: 12.5, weight: .medium))
-                .foregroundStyle(.primary.opacity(0.9))
-                .lineLimit(1)
+                Button {
+                    onSelect(label)
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(label)
+                        Text(count)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(activeFilter == label)
+            }
 
-            Spacer(minLength: 0)
+            Spacer()
         }
+        .padding()
     }
 }
 
-struct TableBadge: View {
+private struct StatusBadge: View {
+    let symbol: String
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(width: 24, height: 22)
+            .background(.quaternary, in: Capsule())
+    }
+}
+
+private struct StateBadge: View {
     let title: String
-    let color: Color
-    var design: Design.Badge { .init(color: color) }
 
     var body: some View {
         Text(title)
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(design.tableForeground)
+            .font(.caption)
             .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .glassEffect(.regular.tint(design.tableGlass), in: Capsule(style: .continuous))
+            .padding(.vertical, 3)
+            .background(.quaternary, in: Capsule())
     }
 }
 
-struct TableCell<Content: View>: View {
-    let column: ColumnParams
-    @ViewBuilder let content: () -> Content
-
-    init(column: ColumnParams, @ViewBuilder content: @escaping () -> Content) {
-        self.column = column
-        self.content = content
-    }
+private struct InfoBadge: View {
+    let title: String
 
     var body: some View {
-        content()
-            .frame(maxWidth: .infinity, alignment: column.alignment.frameAlignment)
-            .frame(width: column.width, alignment: column.alignment.frameAlignment)
+        Text(title)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(.quinary, in: Capsule())
     }
 }
 
-struct TableHeader: View {
-    let columns: [ColumnParams]
+private struct ActionButton: View {
+    let title: String
+    var iconOnly = false
+    let onAction: (String) -> Void
 
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(columns) { column in
-                TableCell(column: column) {
-                    Text(column.title)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.tertiary)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(.primary.opacity(0.06)).frame(height: 1)
+    private var symbol: String {
+        switch title {
+        case "Approve":
+            return "checkmark"
+        case "Pause":
+            return "pause"
+        case "Resume":
+            return "play.fill"
+        case "Stop":
+            return "stop"
+        case "Transcript":
+            return "doc.text"
+        default:
+            return "ellipsis"
         }
     }
-}
-
-struct TableSectionHeader: View {
-    let title: String?
-    let detail: String?
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading) {
-                if let title, !title.isEmpty {
+        Button {
+            onAction(title)
+        } label: {
+            if iconOnly {
+                Image(systemName: symbol)
+                    .frame(width: 18, height: 18)
+            } else {
+                HStack(spacing: 6) {
+                    Image(systemName: symbol)
                     Text(title)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.primary.opacity(0.8))
-                }
-
-                if let detail, !detail.isEmpty {
-                    Text(detail)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.tertiary)
                 }
             }
-            .frame(alignment: .leading)
-            Spacer(minLength: 0)
         }
-        .frame(height: 48, alignment: .leading)
-        .padding(8)
+        .buttonStyle(.bordered)
+        .buttonBorderShape(iconOnly ? .circle : .capsule)
+        .controlSize(.small)
+        .help(title)
     }
 }
 
-struct TableRow: View {
-    @State private var isHovered = false
-    let item: ItemParams
-    let columns: [ColumnParams]
-    let controls: Controls
-    let expanded: Bool
-    let selected: Bool
-    let selectAction: (() -> Void)?
-    let openAction: (() -> Void)?
-    let detail: AnyView?
-    let cellContent: ((ColumnParams, ItemParams) -> AnyView?)?
+private struct OpenButton: View {
+    let onAction: (String) -> Void
 
-    init(
-        item: ItemParams,
-        columns: [ColumnParams],
-        controls: Controls,
-        expanded: Bool = false,
-        detail: AnyView? = nil,
-        cellContent: ((ColumnParams, ItemParams) -> AnyView?)? = nil
-    ) {
-        self.item = item
-        self.columns = columns
-        self.controls = controls
-        self.expanded = expanded
-        self.selected = controls.selected?(item) ?? false
-        self.selectAction = controls.onSelect.map { onSelect in { onSelect(item) } }
-        self.openAction = controls.onOpen.map { onOpen in { onOpen(item) } }
-        self.detail = detail
-        self.cellContent = cellContent
+    var body: some View {
+        Button {
+            onAction("Open")
+        } label: {
+            Text("Open")
+                .fontWeight(.medium)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.capsule)
+        .controlSize(.small)
+    }
+}
+
+private struct ProcessRow: View {
+    let statusSymbol: String
+    let title: String
+    let summary: String
+    let time: String
+    let state: String
+    let badges: [String]
+    let actions: [String]
+    let onAction: (String) -> Void
+
+    private var contextActions: [String] {
+        actions.filter { $0 != "Transcript" }
     }
 
-    private var row: some View {
-        HStack(spacing: 0) {
-            ForEach(columns) { column in
-                TableCell(column: column) {
-                    cell(column, item)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                StatusBadge(symbol: statusSymbol)
+                    .alignmentGuide(.firstTextBaseline) { dimensions in
+                        dimensions[VerticalAlignment.center]
+                    }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.headline)
+
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
+
+                Spacer(minLength: 16)
+
+                Text(time)
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.secondary)
+
+                StateBadge(title: state)
+            }
+
+            HStack(spacing: 6) {
+                ActionButton(title: "Transcript", iconOnly: true, onAction: onAction)
+
+                ForEach(badges, id: \.self) { badge in
+                    InfoBadge(title: badge)
+                }
+
+                Spacer()
+
+                ForEach(contextActions, id: \.self) { action in
+                    ActionButton(title: action, onAction: onAction)
+                }
+
+                OpenButton(onAction: onAction)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(minHeight: 44)
-        .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(selected ? Color.white.opacity(0.03) : isHovered ? Color.white.opacity(0.03) : Color.white.opacity(0))
-        }
-        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding()
+    }
+}
+
+struct Processes: View {
+    private let runs = RunSampleData.runs
+    @State private var filter: RunState?
+
+    private var visibleRuns: [RunSample] {
+        guard let filter else { return runs }
+        return runs.filter { $0.state == filter }
+    }
+
+    private var filterLabels: [(String, String)] {
+        [("All", "\(runs.count)")]
+            + RunState.allCases.map { state in
+                (state.rawValue, "\(runs.filter { $0.state == state }.count)")
+            }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            row
-                .gesture(
-                    TapGesture(count: 2).onEnded { openAction?() }
-                        .exclusively(before: TapGesture(count: 1).onEnded { selectAction?() })
-                )
-                .onHover { isHovered = $0 }
+//            FilterBar(
+//                activeFilter: filter?.rawValue ?? "All",
+//                filters: filterLabels,
+//                onSelect: selectFilter
+//            )
 
-            if expanded, let detail {
-                detail
-            }
-        }
-    }
-
-    @ViewBuilder private func cell(_ column: ColumnParams, _ item: ItemParams) -> some View {
-        if let custom = cellContent?(column, item) {
-            custom
-        } else {
-            defaultCell(column.value, item)
-        }
-    }
-
-    @ViewBuilder private func defaultCell(_ value: ColumnParams.ColumnValue, _ item: ItemParams) -> some View {
-        switch value {
-        case .primary: TableItemIcon(item: item)
-        case .name: text(item.name, weight: .semibold)
-        case .description: text(item.description ?? "")
-        case .child(let i): if item.items.indices.contains(i) { summary(item.items[i]) }
-        case .badge: if let badge = item.badges.first { TableBadge(title: badge.label, color: badge.tint) }
-        case .badges: HStack(spacing: 6) { ForEach(item.badges) { TableBadge(title: $0.label, color: $0.tint) } }
-        case .count: text(item.count.map(String.init) ?? "")
-        case .text(let value): text(value)
-        }
-    }
-
-    private func text(_ value: String, weight: Font.Weight = .regular) -> some View {
-        Text(value)
-            .font(.system(size: 12, weight: weight))
-            .foregroundStyle(weight == .regular ? Color.secondary : Color.primary.opacity(0.9))
-            .lineLimit(1)
-    }
-
-    private func summary(_ item: ItemParams) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            text(item.name, weight: .semibold)
-            if let description = item.description, !description.isEmpty { text(description) }
-        }
-    }
-}
-
-struct TableLayout: View {
-    let section: ListParams
-    let columns: [ColumnParams]
-    let controls: Controls
-    let expanded: (ItemParams) -> Bool
-    let detail: (ItemParams) -> AnyView?
-    let cellContent: ((ColumnParams, ItemParams) -> AnyView?)?
-
-    init(
-        section: ListParams,
-        columns: [ColumnParams],
-        controls: Controls,
-        expanded: ((ItemParams) -> Bool)? = nil,
-        detail: ((ItemParams) -> AnyView?)? = nil,
-        cellContent: ((ColumnParams, ItemParams) -> AnyView?)? = nil
-    ) {
-        self.section = section
-        self.columns = columns
-        self.controls = controls
-        self.expanded = expanded ?? controls.tableExpanded ?? { _ in false }
-        self.detail = detail ?? controls.tableDetail ?? { _ in nil }
-        self.cellContent = cellContent ?? controls.tableCell
-    }
-
-    var body: some View { tableContent }
-
-    private var tableContent: some View {
-        VStack(spacing: 0) {
-            if !columns.isEmpty { TableHeader(columns: columns) }
-
-            VStack(spacing: 0) {
-                if section.header || section.footnote != nil {
-                    TableSectionHeader(title: section.header ? section.name : nil, detail: section.footnote)
-                }
-                VStack {
-                    ForEach(section.items) { item in
-                        TableRow(
-                            item: item,
-                            columns: columns,
-                            controls: controls,
-                            expanded: expanded(item),
-                            detail: detail(item),
-                            cellContent: cellContent
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(visibleRuns) { run in
+                        ProcessRow(
+                            statusSymbol: run.state.symbol,
+                            title: run.title,
+                            summary: run.latestSummary,
+                            time: run.time,
+                            state: run.state.rawValue,
+                            badges: run.badges,
+                            actions: run.actions,
+                            onAction: { _ in }
                         )
+
+                        if run.id != visibleRuns.last?.id {
+                            Divider()
+                        }
                     }
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    private func selectFilter(_ label: String) {
+        filter = RunState.allCases.first { $0.rawValue == label }
     }
 }
