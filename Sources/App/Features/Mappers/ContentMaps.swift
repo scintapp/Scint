@@ -75,13 +75,3 @@ struct SheetsMap: Mapper {
         )
     }
 }
-
-struct ContentMap: Mapper {
-    static func controls(_ agency: AgencyModel, _ panel: some Panel) -> Controls {
-        .init()
-    }
-
-    static func parameters(_ agency: AgencyModel, _ panel: some Panel) -> Parameters {
-        .init()
-    }
-}

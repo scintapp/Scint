@@ -43,7 +43,7 @@ import SwiftUI
 
     func view(_ agency: AgencyModel) -> some View {
         VStack {
-            InspectorOutlineTabs()
+            OutlineTabs()
             switch self.model {
                 case .outline: Builder.build(agency, self)
                 case .settings: Builder.build(agency, self)

@@ -2,7 +2,7 @@ import AgencyRuntime
 import SwiftUI
 
 
-@Observable final class Actions: Panel {
+@Observable final class Palette: Panel {
     var model: Model = .commands
     var layout: Layout = .list
     var position: CGFloat = 0

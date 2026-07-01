@@ -79,6 +79,12 @@ struct GroupToggle: View {
     }
 }
 
+struct GroupDivider: View {
+    var body: some View {
+        Divider().padding(.horizontal, 8)
+    }
+}
+
 struct GroupCountButton: View {
     let count: Int?
     let onLoad: () -> Void
@@ -130,12 +136,6 @@ struct GroupHeader: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(.primary.opacity(0.03), lineWidth: 1)
         }
-    }
-}
-
-struct GroupDivider: View {
-    var body: some View {
-        Divider().padding(.horizontal, 8)
     }
 }
 

@@ -52,9 +52,11 @@ enum EditorSurface {
 struct Editor: View {
     @State var state: EditorModel
     let autofocus: Bool
+    let minimumCanvasHeight: CGFloat
     
-    init(_ sheet: Reference, autofocus: Bool = false) {
+    init(_ sheet: Reference, autofocus: Bool = false, minimumCanvasHeight: CGFloat = 120) {
         self.autofocus = autofocus
+        self.minimumCanvasHeight = minimumCanvasHeight
         _state = State(
             initialValue: EditorModel(
                 sheet: sheet,
@@ -75,7 +77,7 @@ struct Editor: View {
     }
 
     public var body: some View {
-        EditorCanvas(autofocus: autofocus)
+        EditorCanvas(autofocus: autofocus, minimumHeight: minimumCanvasHeight)
             .environment(state)
             .ignoresSafeArea(.container, edges: .top)
     }

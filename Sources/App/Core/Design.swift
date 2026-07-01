@@ -389,7 +389,7 @@ enum TranscriptItem {
     case action(verb: String, name: String, output: String)
     case status([String])
     case domain(label: String, events: [String])
-    case state(Composition.State, String)
+    case state(AgencyRuntime.Process.State, String)
 
     var isMessage: Bool { if case .message = self { return true }; return false }
     var isStatus: Bool  { if case .status  = self { return true }; return false }

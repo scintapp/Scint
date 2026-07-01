@@ -11,7 +11,7 @@ struct ComposerMap: Mapper {
     }
 }
 
-struct BrowserMap: Mapper {
+struct SpaceMap: Mapper {
     static func controls(_ agency: AgencyModel, _ panel: some Panel) -> Controls {
         .init(
             selected: { item in
@@ -43,25 +43,25 @@ struct BrowserMap: Mapper {
     }
 
     static func parameters(_ agency: AgencyModel, _ panel: some Panel) -> Parameters {
-        guard let space = agency.session.selected.space else { return WorkspaceMap.parameters(agency, panel) }
-        let closure = Space.with(space, { $0.closure })
+        guard let ref = agency.session.selected.space else { return WorkspaceMap.parameters(agency, panel) }
+        let closure = Space.with(ref, { $0.closure })
         let state = closure.flatMap { Closure.with($0, { $0.state }) } ?? []
-        let spaces = Space.with(space, { $0.spaces }) ?? []
+        let spaces = Space.with(ref, { $0.spaces }) ?? []
 
-        let spaceItems: [ItemParams] = spaces
+        let space: [ItemParams] = spaces
             .filter { $0.type is Space.Type }
             .map { child in
                 return .init(
                     ref: child,
-                    origin: space,
+                    origin: ref,
                     name: child.descriptor.name
                 )
             }
 
-        let stateItems: [ItemParams] = state.map { ref in
+        let content: [ItemParams] = state.map { ref in
             .init(
                 ref: ref,
-                origin: space,
+                origin: ref,
                 name: ref.descriptor.name,
                 image: Design.Component.icon(for: ref)
             )
@@ -73,7 +73,7 @@ struct BrowserMap: Mapper {
                     id: "space",
                     header: false,
                     layout: panel.layout,
-                    items: spaceItems + stateItems
+                    items: space + content
                 ),
             ],
             columns: [

@@ -44,7 +44,7 @@ struct ConsoleToggle: View {
     }
 }
 
-struct NavigatorToggle: View {
+struct SidebarToggle: View {
     @Environment(AgencyModel.self) var agency
     @Binding var presented: Bool
 
@@ -66,10 +66,10 @@ struct InspectorToggle: View {
 
     var body: some View {
         Button {
-            agency.folio.inspector.presented.toggle()
+            agency.studio.inspector.presented.toggle()
             NSApp.sendAction(#selector(NSSplitViewController.toggleInspector(_:)), to: nil, from: nil)
         } label: {
-            Image(systemName: "info.circle")
+            Image(systemName: "sidebar.squares.right")
                 .foregroundStyle(.primary.opacity(0.9))
         }
         .padding(.horizontal, 1)

@@ -1,5 +1,4 @@
 import AgencyRuntime
-import Foundation
 import SwiftUI
 
 
@@ -9,7 +8,7 @@ private enum TranscriptBlock: Identifiable {
     case action(verb: String, name: String, output: String, UUID)
     case status([String], UUID)
     case domain(label: String, events: [String], UUID)
-    case state(Composition.State, String, UUID)
+    case state(AgencyRuntime.Process.State, String, UUID)
     case input(Reference, UUID)
     case nested(Reference, UUID)
 
@@ -511,7 +510,7 @@ struct DomainRollup: View {
 }
 
 struct StateRow: View {
-    let state: Composition.State
+    let state: AgencyRuntime.Process.State
     let text: String
 
     var body: some View {
@@ -537,7 +536,7 @@ struct StateRow: View {
     }
 }
 
-extension Composition.State {
+extension AgencyRuntime.Process.State {
     var transcriptColor: Color {
         switch self {
             case .failed: return TranscriptTheme.stateFailed

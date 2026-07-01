@@ -2,11 +2,13 @@ import SwiftUI
 
 
 @Observable @MainActor final class FolioModel {
-    let actions = Actions()
-    let sidebar = Navigator()
+    let sidebar = Sidebar()
     let content = Content()
-    let detail = EditorDetail()
-    let inspector = Outline()
+    let detail = Detail()
+    let inspector = Inspector()
+    let palette = Palette()
+
+    let outline = InspectorOutline()
 }
 
 struct Folio: Feature {

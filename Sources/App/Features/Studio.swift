@@ -2,17 +2,15 @@ import SwiftUI
 
 
 @Observable @MainActor final class StudioModel {
-    let actions = Actions()
-    let console = Console()
-
-    let sidebar = Navigator()
-    let content = Content()
+    let sidebar = Sidebar()
     let detail = Detail()
+    let console = Console()
     let inspector = Inspector()
+    let palette = Palette()
 
-    let editor = EditorDetail()
-    let browser = BrowserDetail()
-    let composer = ComposerDetail()
+    let editor = DetailEditor()
+    let browser = DetailBrowser()
+    let composer = DetailComposer()
 }
 
 struct Studio: Feature {
@@ -25,11 +23,6 @@ struct Studio: Feature {
             agency.studio.sidebar.view(agency)
                 .environment(agency)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 280, max: 360)
-        } content: {
-            agency.studio.content.view(agency)
-                .environment(agency)
-                .navigationSplitViewColumnWidth(ideal: 0)
-                .navigationSplitViewStyle(.prominentDetail)
         } detail: {
             agency.studio.detail.view(agency)
                 .environment(agency)

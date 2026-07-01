@@ -7,7 +7,7 @@ struct ActionMap: Mapper {
     }
 
     static func parameters(_ agency: AgencyModel, _ panel: any Panel) -> Parameters {
-        let query = agency.studio.actions.query
+        let query = agency.studio.palette.query
         let components = agency.search("\(query) !components", limit: 20).all
         let controls = Runtime.shared.search("\(query) !control", limit: 20).all
         let services = Runtime.shared.search("\(query) !service", limit: 20).all

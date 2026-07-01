@@ -34,19 +34,19 @@ struct InspectorTabs: View {
     }
 }
 
-struct NavigatorTabs: View {
+struct SidebarTabs: View {
     @Environment(AgencyModel.self) var agency
-    var navigator: Navigator { agency.studio.sidebar }
+    var navigator: Sidebar { agency.studio.sidebar }
     let rectangle = RoundedRectangle(cornerRadius: 28, style: .circular)
 
-    @ViewBuilder func effect(_ tab: Navigator.Model) -> some View {
+    @ViewBuilder func effect(_ tab: Sidebar.Model) -> some View {
         RoundedRectangle(cornerRadius: 28, style: .circular)
             .contentShape(rectangle)
             .glassEffect(.clear.tint(.primary.opacity(0.2)), in: rectangle)
             .opacity(navigator.model == tab ? 0.2 : 0.0)
     }
 
-    @ViewBuilder func tab(_ tab: Navigator.Model) -> some View {
+    @ViewBuilder func tab(_ tab: Sidebar.Model) -> some View {
         Button { navigator.model = tab } label: {
             Image(systemName: tab.image)
                 .frame(maxWidth: .infinity, maxHeight: 28)
@@ -60,7 +60,7 @@ struct NavigatorTabs: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) { ForEach(Navigator.Model.allCases, id: \.self) { tab($0) } }
+        HStack(spacing: 0) { ForEach(Sidebar.Model.allCases, id: \.self) { tab($0) } }
             .glassEffect(.regular, in: rectangle)
             .padding(.horizontal, 8)
     }
@@ -68,16 +68,16 @@ struct NavigatorTabs: View {
 
 struct OutlineTabs: View {
     @Environment(AgencyModel.self) var agency
-    var outline: Outline { agency.folio.inspector }
+    var outline: InspectorOutline { agency.folio.outline }
     let rectangle = RoundedRectangle(cornerRadius: 28, style: .circular)
 
-    @ViewBuilder func effect(_ tab: Outline.Model) -> some View {
+    @ViewBuilder func effect(_ tab: InspectorOutline.Model) -> some View {
         RoundedRectangle(cornerRadius: 28, style: .circular)
             .glassEffect(.clear.tint(.primary.opacity(0.2)), in: rectangle)
             .opacity(outline.model == tab ? 0.2 : 0.0)
     }
 
-    @ViewBuilder func tab(_ tab: Outline.Model) -> some View {
+    @ViewBuilder func tab(_ tab: InspectorOutline.Model) -> some View {
         Button { outline.model = tab } label: {
             Image(systemName: tab.image)
                 .frame(maxWidth: .infinity, maxHeight: 28)
@@ -92,7 +92,7 @@ struct OutlineTabs: View {
 
     var body: some View {
         Group {
-            HStack(spacing: 0) { ForEach(Outline.Model.allCases, id: \.self) { tab($0) } }
+            HStack(spacing: 0) { ForEach(InspectorOutline.Model.allCases, id: \.self) { tab($0) } }
                 .glassEffect(.regular, in: rectangle)
                 .padding(.horizontal, 8)
         }

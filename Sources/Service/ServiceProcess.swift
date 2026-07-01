@@ -1,10 +1,9 @@
 import AgencyRuntime
 import Foundation
-import Darwin
 
 
 private struct TrackedProcess {
-    let process: Process
+    let process: Foundation.Process
     let command: String
     let arguments: [String]
     let outputPipe: Pipe

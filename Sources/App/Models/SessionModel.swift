@@ -9,6 +9,8 @@ import Foundation
     private(set) var navigation: Navigation = .init()
     private(set) var workspace: Reference
 
+    var context: AgencyRuntime.Process? { Runtime.shared.context(for: selected.space ?? workspace) }
+
     var focusedSpace: Reference? {
         guard case .structure(let ref) = focused, ref.type is Space.Type else { return nil }
         return ref

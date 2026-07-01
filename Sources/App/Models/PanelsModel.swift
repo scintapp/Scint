@@ -41,7 +41,7 @@ struct BasePanel<Content: View>: View {
 
     func panel(_ agency: AgencyModel, id: AnyHashable, size: CGSize) -> PanelCoordinator {
         if let existing = panels[id] { return existing }
-        let  view = AnyView(BasePanel(SearchView().environment(agency)))
+        let  view = AnyView(BasePanel(Search().environment(agency)))
         let new = PanelCoordinator.load(agency: agency, size: size, view: view)
         panels[id] = new
         return new

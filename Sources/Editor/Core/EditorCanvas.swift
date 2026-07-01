@@ -5,16 +5,26 @@ public struct EditorCanvas: View {
     @Environment(EditorModel.self) private var editor
     @Environment(\.editorFocus) private var focus
     let autofocus: Bool
+    let minimumHeight: CGFloat
 
-    init(autofocus: Bool = true) {
+    init(autofocus: Bool = true, minimumHeight: CGFloat = 120) {
         self.autofocus = autofocus
+        self.minimumHeight = minimumHeight
     }
 
     public var body: some View {
-        DocumentContent { selector, atTopLine, atBottomLine in
-            editor.handleCommand(selector, atTopLine: atTopLine, atBottomLine: atBottomLine)
+        ZStack(alignment: .topLeading) {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture(coordinateSpace: .named(DocumentContent.canvasSpace)) { point in
+                    editor.beginEditingFromCanvasClick(at: point)
+                }
+
+            DocumentContent { selector, atTopLine, atBottomLine in
+                editor.handleCommand(selector, atTopLine: atTopLine, atBottomLine: atBottomLine)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: minimumHeight, alignment: .topLeading)
         .coordinateSpace(name: DocumentContent.canvasSpace)
         .onChange(of: editor.editing) { _, _ in focus.focus(editor.editing ?? editor.selection.first) }
         .onChange(of: editor.selection) { _, _ in if editor.editing == nil { focus.focus(editor.selection.first) } }

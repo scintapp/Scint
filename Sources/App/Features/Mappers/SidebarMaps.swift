@@ -427,7 +427,7 @@ struct SpacesMap: Mapper {
     }
 }
 
-struct NavigatorMap: Mapper {
+struct SidebarMap: Mapper {
     static func controls(_ agency: AgencyModel, _ panel: any Panel) -> Controls {
         return .init(
             selected: { item in

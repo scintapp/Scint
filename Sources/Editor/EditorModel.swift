@@ -100,57 +100,6 @@ typealias Block = Sheet.Block
         if didChangeText || menu.isOpen { updateMenu(allowOpen: didChangeText) }
     }
 
-    func splitBlockAtCaret() -> Bool {
-        guard let pair = editingPair, let caret = caretSelections[pair.id]
-        else { return false }
-        let focusedIndex = pair.index
-
-        let newID: UUID? = Sheet.update(sheet) { sheet -> UUID? in
-            guard sheet.blocks.indices.contains(focusedIndex), case .content(let id, let text) = sheet.blocks[focusedIndex]
-            else { return nil }
-            let ns = text as NSString
-            let split = min(max(caret.location, 0), ns.length)
-            let before = ns.substring(to: split)
-            let after = ns.substring(from: split)
-            let newID = UUID()
-            sheet.blocks[focusedIndex] = .content(id, before)
-            sheet.blocks.insert(.content(newID, after), at: focusedIndex + 1)
-            return newID
-        } ?? nil
-
-        guard let newID else { return false }
-        enterEditing(id: newID, caret: NSRange(location: 0, length: 0))
-        return true
-    }
-
-    private func caretIsInsideFence() -> Bool {
-        guard let editing,
-              case .content(_, let text)? = entry(id: editing),
-              let caret = caretSelections[editing]
-        else { return false }
-
-        let ns = text as NSString
-        let caretLoc = min(caret.location, ns.length)
-
-        var insideFence = false
-        var lineStart = 0
-        while lineStart < ns.length {
-            var lineEnd = 0, contentsEnd = 0
-            ns.getLineStart(nil, end: &lineEnd, contentsEnd: &contentsEnd, for: NSRange(location: lineStart, length: 0))
-            let line = ns.substring(with: NSRange(location: lineStart, length: contentsEnd - lineStart))
-            let isFenceLine = line.hasPrefix("```")
-
-            if caretLoc <= contentsEnd {
-                if isFenceLine && !insideFence { return true }
-                return insideFence
-            }
-
-            if isFenceLine { insideFence.toggle() }
-            lineStart = lineEnd
-        }
-        return insideFence
-    }
-
     func commitMenuSelection() {
         guard let commit = menu.commitSelection() else { return }
         insert(commit.entries, replacing: commit.replacementRange)
@@ -168,10 +117,7 @@ typealias Block = Sheet.Block
         switch selector {
 
         case #selector(NSResponder.insertNewline(_:)):
-            if inTextMode {
-                if caretIsInsideFence() { return false }
-                return splitBlockAtCaret()
-            }
+            if inTextMode { return false }
             if let id = selection.first { ensureText(after: id) }
             return true
 
@@ -373,6 +319,35 @@ typealias Block = Sheet.Block
         ensureText(afterIndex: index)
     }
 
+    @discardableResult
+    func beginEditingFromCanvasClick(at point: CGPoint) -> Bool {
+        if menu.isOpen { menu.close() }
+
+        let currentBlocks = blocks
+        guard !currentBlocks.isEmpty else { return insertTextBlock(at: 0) != nil }
+
+        let framedBlocks = currentBlocks.enumerated().compactMap { index, block -> (index: Int, block: Block, frame: CGRect)? in
+            guard let frame = entryFrames[block.id] else { return nil }
+            return (index, block, frame)
+        }
+        .sorted { $0.frame.minY < $1.frame.minY }
+
+        if let hit = framedBlocks.first(where: { $0.frame.contains(point) }) {
+            return beginEditing(near: hit.block, insertingAfter: hit.index)
+        }
+
+        if let previous = framedBlocks.last(where: { point.y >= $0.frame.maxY }) {
+            ensureText(afterIndex: previous.index)
+            return true
+        }
+
+        if let firstText = currentBlocks.first(where: \.isText) {
+            return beginEditing(near: firstText, insertingAfter: 0, caretAtStart: true)
+        }
+
+        return insertTextBlock(at: 0) != nil
+    }
+
     private func enterEditing(id: UUID, caret: NSRange? = nil, caretAtEndOf text: String? = nil) {
         let alreadyEditing = (editing == id && selection == [id])
         if !alreadyEditing {
@@ -396,12 +371,33 @@ typealias Block = Sheet.Block
             enterEditing(id: nextID, caret: NSRange(location: 0, length: 0))
             return
         }
-        let newID = UUID()
-        Sheet.update(sheet) { sheet in
-            let insertAt = min(index + 1, sheet.blocks.count)
-            sheet.blocks.insert(.content(newID, ""), at: insertAt)
+        _ = insertTextBlock(at: index + 1)
+    }
+
+    @discardableResult
+    private func beginEditing(near block: Block, insertingAfter index: Int, caretAtStart: Bool = false) -> Bool {
+        switch block {
+        case .content(let id, let text):
+            let location = caretAtStart ? 0 : (text as NSString).length
+            enterEditing(id: id, caret: NSRange(location: location, length: 0))
+            return true
+        default:
+            ensureText(afterIndex: index)
+            return true
         }
-        enterEditing(id: newID, caret: NSRange(location: 0, length: 0))
+    }
+
+    @discardableResult
+    private func insertTextBlock(at index: Int) -> UUID? {
+        let newID = UUID()
+        let inserted = Sheet.update(sheet) { sheet -> UUID in
+            let insertAt = min(max(index, 0), sheet.blocks.count)
+            sheet.blocks.insert(.content(newID, ""), at: insertAt)
+            return newID
+        } ?? nil
+
+        if let inserted { enterEditing(id: inserted, caret: NSRange(location: 0, length: 0)) }
+        return inserted
     }
 
     private func firstTextID() -> UUID? {

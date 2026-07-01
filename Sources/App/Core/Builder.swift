@@ -168,10 +168,6 @@ import SwiftUI
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-//    @ViewBuilder static func buildTable<M: Panel>(_ section: ListParams, model: M, params: Parameters, controls: Controls) -> some View {
-//        TableLayout(section: section, columns: params.columns, controls: controls)
-//    }
-
     @ViewBuilder static func menu(_ view: AnyView, item: ItemParams, controls: Controls) -> some View {
         let actions = controls.itemActions?(item) ?? []
         if controls.isEditable && controls.canEdit(item) {

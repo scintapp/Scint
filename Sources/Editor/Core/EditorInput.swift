@@ -36,6 +36,11 @@ final class EditorInputView: NSTextView {
         super.insertNewline(sender)
     }
 
+    override func deleteBackward(_ sender: Any?) {
+        if onCommandFromView?(#selector(NSResponder.deleteBackward(_:))) == true { return }
+        super.deleteBackward(sender)
+    }
+
     override func cancelOperation(_ sender: Any?) {
         if onCommandFromView?(#selector(NSResponder.cancelOperation(_:))) == true { return }
         super.cancelOperation(sender)

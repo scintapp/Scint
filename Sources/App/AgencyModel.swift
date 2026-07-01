@@ -38,9 +38,6 @@ import SwiftUI
 
     func open(_ ref: Reference) { session.open(ref) }
 
-    @discardableResult func forward() -> Selection? { session.forward() }
-    @discardableResult func backward() -> Selection? { session.back() }
-
     func actions() { }
 
     func compose(_ space: Reference) { }

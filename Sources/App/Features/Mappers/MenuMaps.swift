@@ -7,7 +7,7 @@ struct MenuMap: Mapper {
     }
 
     static func parameters(_ agency: AgencyModel, _ panel: any Panel) -> Parameters {
-        let query = agency.studio.actions.query
+        let query = agency.studio.palette.query
         let components = Runtime.shared.search("\(query) !components", limit: 8).all
         let controls = Runtime.shared.search("\(query) !control", limit: 8).all
         let services = Runtime.shared.search("\(query) !service", limit: 8).all

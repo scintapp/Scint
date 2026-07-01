@@ -26,7 +26,16 @@ import SwiftUI
     func unregister(_ id: UUID) { views[id] = nil }
 
     func focus(_ targetID: UUID?, retry: Bool = true) {
-        guard let targetID, let view = views[targetID]?.view else { return }
+        guard let targetID else { return }
+
+        guard let view = views[targetID]?.view else {
+            if retry {
+                DispatchQueue.main.async { [weak self] in
+                    self?.focus(targetID, retry: false)
+                }
+            }
+            return
+        }
 
         guard let window = view.window else {
             if retry {
