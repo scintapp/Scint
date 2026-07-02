@@ -2,7 +2,7 @@ import SwiftUI
 
 
 @Observable @MainActor final class StudioModel {
-    let sidebar = Sidebar()
+    let navigator = Navigator()
     let detail = Detail()
     let console = Console()
     let inspector = Inspector()
@@ -11,6 +11,8 @@ import SwiftUI
     let editor = DetailEditor()
     let browser = DetailBrowser()
     let composer = DetailComposer()
+
+    enum Model { case sidebar, detail, console, inspector, palette }
 }
 
 struct Studio: Feature {
@@ -20,7 +22,7 @@ struct Studio: Feature {
         @Bindable var inspector = agency.studio.inspector
 
         NavigationSplitView {
-            agency.studio.sidebar.view(agency)
+            agency.studio.navigator.view(agency)
                 .environment(agency)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 280, max: 360)
         } detail: {

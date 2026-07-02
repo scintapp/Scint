@@ -29,20 +29,12 @@ import SwiftUI
         guard let targetID else { return }
 
         guard let view = views[targetID]?.view else {
-            if retry {
-                DispatchQueue.main.async { [weak self] in
-                    self?.focus(targetID, retry: false)
-                }
-            }
+            if retry { DispatchQueue.main.async { [weak self] in self?.focus(targetID, retry: false) } }
             return
         }
 
         guard let window = view.window else {
-            if retry {
-                DispatchQueue.main.async { [weak self] in
-                    self?.focus(targetID, retry: false)
-                }
-            }
+            if retry { DispatchQueue.main.async { [weak self] in self?.focus(targetID, retry: false) } }
             return
         }
 

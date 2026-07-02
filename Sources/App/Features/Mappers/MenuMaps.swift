@@ -2,11 +2,7 @@ import AgencyRuntime
 
 
 struct MenuMap: Mapper {
-    static func controls(_ agency: AgencyModel, _ panel: any Panel) -> Controls {
-        .init()
-    }
-
-    static func parameters(_ agency: AgencyModel, _ panel: any Panel) -> Parameters {
+    static func parameters(_ agency: AgencyModel, _ panel: any Panel) -> PanelParams {
         let query = agency.studio.palette.query
         let components = Runtime.shared.search("\(query) !components", limit: 8).all
         let controls = Runtime.shared.search("\(query) !control", limit: 8).all
@@ -15,7 +11,7 @@ struct MenuMap: Mapper {
 
         return .init(
             nesting: .flat,
-            sections: [
+            components: [
                 .init(id: "components", name: "Sheets", image: "text.alignleft", items: components.map(item(from:))),
                 .init(id: "controls", name: "Controls", image: "switch.2", items: controls.map(item(from:))),
                 .init(id: "services", name: "Harness", image: "arrow.2.squarepath", items: services.map(item(from:))),

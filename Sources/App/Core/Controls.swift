@@ -5,10 +5,11 @@ import UniformTypeIdentifiers
 
 struct Controls {
     var onToggle: ((ItemParams) -> Void)?
-    var setControls: ((_ controls: ControlsParams) -> AnyView)?
+    var focused: ((_ item: ItemParams) -> Bool)?
     var selected: ((_ item: ItemParams) -> Bool)?
     var onSelect: ((_ item: ItemParams) -> Void)?
     var onOpen: ((_ item: ItemParams) -> Void)?
+    var onAction: ((_ item: ItemParams) -> Void)?
     var onAddItem: ((_ parentId: AnyHashable, _ name: String) -> Void)?
     var onAddSection: ((_ name: String) -> Void)?
     var onRename: ((_ id: AnyHashable, _ newName: String) -> Void)?
@@ -20,12 +21,11 @@ struct Controls {
     var itemActions: ((_ item: ItemParams) -> [Item])?
     var wrapLink: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)?
     var wrapSection: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)?
-    var wrapHeader: ((_ view: AnyView, _ section: ListParams) -> AnyView)?
+    var wrapHeader: ((_ view: AnyView, _ section: ComponentParams) -> AnyView)?
+    var itemLeadingAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)?
+    var sectionLeadingAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)?
     var itemAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)?
     var sectionAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)?
-    var tableExpanded: ((_ item: ItemParams) -> Bool)?
-    var tableDetail: ((_ item: ItemParams) -> AnyView?)?
-    var tableCell: ((_ column: ColumnParams, _ item: ItemParams) -> AnyView?)?
     var addableSections: Set<AnyHashable>?
     var isItemEditable: ((_ item: ItemParams) -> Bool)?
     var canAddChild: ((_ item: ItemParams) -> Bool)?
@@ -39,10 +39,11 @@ struct Controls {
 
     init(
         onToggle: ((ItemParams) -> Void)? = nil,
-        setControls: ((_ controls: ControlsParams) -> AnyView)? = nil,
+        focused: ((_ item: ItemParams) -> Bool)? = nil,
         selected: ((_ item: ItemParams) -> Bool)? = nil,
         onSelect: ((_ item: ItemParams) -> Void)? = nil,
         onOpen: ((_ item: ItemParams) -> Void)? = nil,
+        onAction: ((_ item: ItemParams) -> Void)? = nil,
         onAddItem: ((_ parentId: AnyHashable, _ name: String) -> Void)? = nil,
         onAddSection: ((_ name: String) -> Void)? = nil,
         onRename: ((_ id: AnyHashable, _ newName: String) -> Void)? = nil,
@@ -54,12 +55,11 @@ struct Controls {
         itemActions: ((_ item: ItemParams) -> [Item])? = nil,
         wrapLink: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)? = nil,
         wrapSection: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)? = nil,
-        wrapHeader: ((_ view: AnyView, _ section: ListParams) -> AnyView)? = nil,
+        wrapHeader: ((_ view: AnyView, _ section: ComponentParams) -> AnyView)? = nil,
+        itemLeadingAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)? = nil,
+        sectionLeadingAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)? = nil,
         itemAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)? = nil,
         sectionAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)? = nil,
-        tableExpanded: ((_ item: ItemParams) -> Bool)? = nil,
-        tableDetail: ((_ item: ItemParams) -> AnyView?)? = nil,
-        tableCell: ((_ column: ColumnParams, _ item: ItemParams) -> AnyView?)? = nil,
         addableSections: Set<AnyHashable>? = nil,
         isItemEditable: ((_ item: ItemParams) -> Bool)? = nil,
         canAddChild: ((_ item: ItemParams) -> Bool)? = nil,
@@ -72,10 +72,11 @@ struct Controls {
         onCanvasPosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)? = nil
     ) {
         self.onToggle = onToggle
-        self.setControls = setControls
+        self.focused = focused
         self.selected = selected
         self.onSelect = onSelect
         self.onOpen = onOpen
+        self.onAction = onAction
         self.onAddItem = onAddItem
         self.onAddSection = onAddSection
         self.onRename = onRename
@@ -88,11 +89,10 @@ struct Controls {
         self.wrapLink = wrapLink
         self.wrapSection = wrapSection
         self.wrapHeader = wrapHeader
+        self.itemLeadingAccessory = itemLeadingAccessory
+        self.sectionLeadingAccessory = sectionLeadingAccessory
         self.itemAccessory = itemAccessory
         self.sectionAccessory = sectionAccessory
-        self.tableExpanded = tableExpanded
-        self.tableDetail = tableDetail
-        self.tableCell = tableCell
         self.addableSections = addableSections
         self.isItemEditable = isItemEditable
         self.canAddChild = canAddChild
@@ -102,6 +102,7 @@ struct Controls {
         self.canDrag = canDrag
         self.dropTypes = dropTypes
         self.onDrop = onDrop
+        self.onCanvasPosition = onCanvasPosition
     }
 
     var isEditable: Bool {

@@ -2,6 +2,107 @@ import AppKit
 import SwiftUI
 
 
+struct EditorInput: NSViewRepresentable {
+    typealias NSViewType = EditorInputView
+    @Environment(\.editorFocus) private var focus
+    let id: UUID
+    let text: String
+    let selection: NSRange?
+    let isEditing: Bool
+    let styler: EditorStyler
+    let onTextChange: (String, NSRange) -> Void
+    let onSelectionChange: (NSRange) -> Void
+    let onFocusGained: () -> Void
+    let onCommand: (Selector, Bool, Bool) -> Bool
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(
+            onTextChange: onTextChange,
+            onSelectionChange: onSelectionChange,
+            onFocusGained: onFocusGained,
+            onCommand: onCommand
+        )
+    }
+
+    func makeNSView(context: Context) -> EditorInputView {
+        let view = EditorInputView()
+        view.delegate = context.coordinator
+        view.configure(with: styler)
+        view.render(text: text, selectedRange: clamp(selection ?? .init(location: 0, length: 0), in: text))
+        context.coordinator.view = view
+
+        view.onCommandFromView = { [weak coordinator = context.coordinator, weak view] selector in
+            guard let coordinator, let view else { return false }
+            return coordinator.onCommand(selector, view.caretIsOnFirstLine, view.caretIsOnLastLine)
+        }
+
+        focus.register(view, for: id)
+        return view
+    }
+
+    func updateNSView(_ view: EditorInputView, context: Context) {
+        let targetSelection = clamp(selection ?? view.plainSelectedRange, in: text)
+        if view.renderedText != text { view.render(text: text, selectedRange: targetSelection) }
+        else if view.plainSelectedRange != targetSelection { view.setPlainSelectedRange(targetSelection) }
+
+        context.coordinator.onTextChange = onTextChange
+        context.coordinator.onSelectionChange = onSelectionChange
+        context.coordinator.onFocusGained = onFocusGained
+        context.coordinator.onCommand = onCommand
+        context.coordinator.lastSelection = view.plainSelectedRange
+        focus.register(view, for: id)
+    }
+
+    static func dismantleNSView(_ view: EditorInputView, coordinator: Coordinator) {}
+
+    private func clamp(_ range: NSRange, in string: String) -> NSRange {
+        let length = (string as NSString).length
+        let location = min(max(range.location, 0), length)
+        let maxLength = length - location
+        return NSRange(location: location, length: min(range.length, maxLength))
+    }
+
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        var onTextChange: (String, NSRange) -> Void
+        var onSelectionChange: (NSRange) -> Void
+        var onFocusGained: () -> Void
+        var onCommand: (Selector, Bool, Bool) -> Bool
+        weak var view: EditorInputView?
+        var lastSelection: NSRange?
+
+        init(onTextChange: @escaping (String, NSRange) -> Void, onSelectionChange: @escaping (NSRange) -> Void,
+             onFocusGained: @escaping () -> Void, onCommand: @escaping (Selector, Bool, Bool) -> Bool) {
+            self.onTextChange = onTextChange
+            self.onSelectionChange = onSelectionChange
+            self.onFocusGained = onFocusGained
+            self.onCommand = onCommand
+        }
+
+        func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+            guard let view = view else { return onCommand(selector, true, true) }
+            return onCommand(selector, view.caretIsOnFirstLine, view.caretIsOnLastLine)
+        }
+
+        func textDidBeginEditing(_ notification: Notification) { onFocusGained() }
+
+        func textDidChange(_ notification: Notification) {
+            guard let view else { return }
+            guard !view.isApplyingTextStorageChange else { return }
+            lastSelection = view.plainSelectedRange
+            onTextChange(view.plainText, view.plainSelectedRange)
+        }
+
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard let view else { return }
+            guard !view.isApplyingTextStorageChange else { return }
+            let selection = view.plainSelectedRange
+            guard selection != lastSelection else { return }
+            lastSelection = selection
+            onSelectionChange(selection)
+        }
+    }
+}
+
 final class EditorInputView: NSTextView {
     private static var defocusMonitor: Any?
     private(set) var renderedText = ""
@@ -244,107 +345,6 @@ final class EditorInputView: NSTextView {
 
             window.makeFirstResponder(nil)
             return event
-        }
-    }
-}
-
-struct EditorInput: NSViewRepresentable {
-    typealias NSViewType = EditorInputView
-    @Environment(\.editorFocus) private var focus
-    let id: UUID
-    let text: String
-    let selection: NSRange?
-    let isEditing: Bool
-    let styler: EditorStyler
-    let onTextChange: (String, NSRange) -> Void
-    let onSelectionChange: (NSRange) -> Void
-    let onFocusGained: () -> Void
-    let onCommand: (Selector, Bool, Bool) -> Bool
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(
-            onTextChange: onTextChange,
-            onSelectionChange: onSelectionChange,
-            onFocusGained: onFocusGained,
-            onCommand: onCommand
-        )
-    }
-
-    func makeNSView(context: Context) -> EditorInputView {
-        let view = EditorInputView()
-        view.delegate = context.coordinator
-        view.configure(with: styler)
-        view.render(text: text, selectedRange: clamp(selection ?? .init(location: 0, length: 0), in: text))
-        context.coordinator.view = view
-
-        view.onCommandFromView = { [weak coordinator = context.coordinator, weak view] selector in
-            guard let coordinator, let view else { return false }
-            return coordinator.onCommand(selector, view.caretIsOnFirstLine, view.caretIsOnLastLine)
-        }
-
-        focus.register(view, for: id)
-        return view
-    }
-
-    func updateNSView(_ view: EditorInputView, context: Context) {
-        let targetSelection = clamp(selection ?? view.plainSelectedRange, in: text)
-        if view.renderedText != text { view.render(text: text, selectedRange: targetSelection) }
-        else if view.plainSelectedRange != targetSelection { view.setPlainSelectedRange(targetSelection) }
-
-        context.coordinator.onTextChange = onTextChange
-        context.coordinator.onSelectionChange = onSelectionChange
-        context.coordinator.onFocusGained = onFocusGained
-        context.coordinator.onCommand = onCommand
-        context.coordinator.lastSelection = view.plainSelectedRange
-        focus.register(view, for: id)
-    }
-
-    static func dismantleNSView(_ view: EditorInputView, coordinator: Coordinator) {}
-
-    private func clamp(_ range: NSRange, in string: String) -> NSRange {
-        let length = (string as NSString).length
-        let location = min(max(range.location, 0), length)
-        let maxLength = length - location
-        return NSRange(location: location, length: min(range.length, maxLength))
-    }
-
-    final class Coordinator: NSObject, NSTextViewDelegate {
-        var onTextChange: (String, NSRange) -> Void
-        var onSelectionChange: (NSRange) -> Void
-        var onFocusGained: () -> Void
-        var onCommand: (Selector, Bool, Bool) -> Bool
-        weak var view: EditorInputView?
-        var lastSelection: NSRange?
-
-        init(onTextChange: @escaping (String, NSRange) -> Void, onSelectionChange: @escaping (NSRange) -> Void,
-             onFocusGained: @escaping () -> Void, onCommand: @escaping (Selector, Bool, Bool) -> Bool) {
-            self.onTextChange = onTextChange
-            self.onSelectionChange = onSelectionChange
-            self.onFocusGained = onFocusGained
-            self.onCommand = onCommand
-        }
-
-        func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
-            guard let view = view else { return onCommand(selector, true, true) }
-            return onCommand(selector, view.caretIsOnFirstLine, view.caretIsOnLastLine)
-        }
-
-        func textDidBeginEditing(_ notification: Notification) { onFocusGained() }
-
-        func textDidChange(_ notification: Notification) {
-            guard let view else { return }
-            guard !view.isApplyingTextStorageChange else { return }
-            lastSelection = view.plainSelectedRange
-            onTextChange(view.plainText, view.plainSelectedRange)
-        }
-
-        func textViewDidChangeSelection(_ notification: Notification) {
-            guard let view else { return }
-            guard !view.isApplyingTextStorageChange else { return }
-            let selection = view.plainSelectedRange
-            guard selection != lastSelection else { return }
-            lastSelection = selection
-            onSelectionChange(selection)
         }
     }
 }

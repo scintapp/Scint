@@ -12,25 +12,10 @@ private struct EntryFramesKey: PreferenceKey {
 
 struct DocumentContent: View {
     @Environment(EditorModel.self) private var editor
-    static let canvasSpace = "editorCanvas"
+    static let canvas = "canvas"
     private static let styler = EditorStyler()
     let onCommand: (Selector, Bool, Bool) -> Bool
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(editor.blocks) { entry in
-                block(entry: entry)
-                    .id(entry.id)
-                    .background(frameReader(for: entry.id))
-            }
-        }
-        .onPreferenceChange(EntryFramesKey.self) { frames in
-            for (id, frame) in frames {
-                editor.updateEntryFrame(id: id, frame: frame)
-            }
-        }
-    }
-    
+
     @ViewBuilder private func block(entry: Block) -> some View {
         switch entry {
         case .content(_, let text): input(id: entry.id, text: text)
@@ -55,7 +40,7 @@ struct DocumentContent: View {
         if trimmed.hasPrefix(">") {
             HStack(spacing: 0) {
                 RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                    .fill(Design.SheetGlyph.accent)
+                    .fill(Design.Foreground.base)
                     .frame(width: 3)
                 Spacer(minLength: 0)
             }
@@ -87,16 +72,32 @@ struct DocumentContent: View {
             onFocusGained: { editor.focusGained(id: id) },
             onCommand: { selector in editor.handleCommand(selector, atTopLine: true, atBottomLine: true) }
         ) {
-            EditorSheet(block: block).frame(maxWidth: .infinity, alignment: .leading)
+            DocumentBlock(block: block).frame(maxWidth: .infinity, alignment: .leading)
         }
     }
     
-    private func frameReader(for id: UUID) -> some View {
+    private func reader(for id: UUID) -> some View {
         GeometryReader { proxy in
             Color.clear.preference(
                 key: EntryFramesKey.self,
-                value: [id: proxy.frame(in: .named(Self.canvasSpace))]
+                value: [id: proxy.frame(in: .named(Self.canvas))]
             )
         }
     }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(editor.blocks) { entry in
+                block(entry: entry)
+                    .id(entry.id)
+                    .background(reader(for: entry.id))
+            }
+        }
+        .onPreferenceChange(EntryFramesKey.self) { frames in
+            for (id, frame) in frames {
+                editor.updateEntryFrame(id: id, frame: frame)
+            }
+        }
+    }
+
 }

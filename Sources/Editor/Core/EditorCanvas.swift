@@ -12,37 +12,8 @@ public struct EditorCanvas: View {
         self.minimumHeight = minimumHeight
     }
 
-    public var body: some View {
-        ZStack(alignment: .topLeading) {
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture(coordinateSpace: .named(DocumentContent.canvasSpace)) { point in
-                    editor.beginEditingFromCanvasClick(at: point)
-                }
-
-            DocumentContent { selector, atTopLine, atBottomLine in
-                editor.handleCommand(selector, atTopLine: atTopLine, atBottomLine: atBottomLine)
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: minimumHeight, alignment: .topLeading)
-        .coordinateSpace(name: DocumentContent.canvasSpace)
-        .onChange(of: editor.editing) { _, _ in focus.focus(editor.editing ?? editor.selection.first) }
-        .onChange(of: editor.selection) { _, _ in if editor.editing == nil { focus.focus(editor.selection.first) } }
-        .onAppear {
-            if autofocus { focus.focus(editor.editing ?? editor.selection.first) }
-        }
-        .overlay(alignment: .topLeading) {
-            if editor.menu.isOpen {
-                GeometryReader { geometry in
-                    menu(in: geometry.size)
-                }
-            }
-        }
-    }
     
-    private func menu(in size: CGSize) -> some View {
-        EditorMenu(position: menuPosition(in: size))
-    }
+    private func menu(in size: CGSize) -> some View { EditorMenu(position: menuPosition(in: size)) }
 
     private func menuPosition(in size: CGSize) -> CGPoint {
         let menuWidth = editor.menu.size.width
@@ -65,5 +36,33 @@ public struct EditorCanvas: View {
         }
 
         return CGPoint(x: x, y: y)
+    }
+
+    public var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture(coordinateSpace: .named(DocumentContent.canvas)) { point in
+                    editor.beginEditingFromCanvasClick(at: point)
+                }
+
+            DocumentContent { selector, atTopLine, atBottomLine in
+                editor.handleCommand(selector, atTopLine: atTopLine, atBottomLine: atBottomLine)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: minimumHeight, alignment: .topLeading)
+        .coordinateSpace(name: DocumentContent.canvas)
+        .onChange(of: editor.editing) { _, _ in focus.focus(editor.editing ?? editor.selection.first) }
+        .onChange(of: editor.selection) { _, _ in if editor.editing == nil { focus.focus(editor.selection.first) } }
+        .onAppear {
+            if autofocus { focus.focus(editor.editing ?? editor.selection.first) }
+        }
+        .overlay(alignment: .topLeading) {
+            if editor.menu.isOpen {
+                GeometryReader { geometry in
+                    menu(in: geometry.size)
+                }
+            }
+        }
     }
 }

@@ -29,7 +29,7 @@ struct EditorMenuEmptyState: View {
     }
 }
 
-struct EditorMenuIconTile: View {
+struct EditorMenuIcon: View {
     let ref: Reference?
     let icon: String
     let selected: Bool
@@ -46,7 +46,7 @@ struct EditorMenuIconTile: View {
                 .fill(selected ? Color.white.opacity(0.16) : Color.white.opacity(0.07))
                 .frame(width: 26, height: 26)
             if let ref {
-                Iconography.icon(for: ref)
+                Iconography.icon(for: ref, size: 15)
                     .font(.system(size: 12, weight: .medium))
             } else {
                 Image(systemName: icon.isEmpty ? "square.stack.3d.up" : icon)
@@ -59,10 +59,10 @@ struct EditorMenuIconTile: View {
 
 struct EditorMenuRow: View {
     @Environment(EditorModel.self) private var editor
-    let item: MenuItem
-
     private var menu: MenuModel { editor.menu }
     private var selected: Bool { item.id == menu.selectedID }
+    let item: MenuItem
+    let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
 
     var body: some View {
         Button {
@@ -70,11 +70,8 @@ struct EditorMenuRow: View {
             editor.commitMenuSelection()
         } label: {
             HStack(spacing: 10) {
-                if let ref = item.ref {
-                    EditorMenuIconTile(icon: "", selected: selected, ref: ref)
-                } else if let icon = item.icon {
-                    EditorMenuIconTile(icon: icon, selected: selected)
-                }
+                if let ref = item.ref { EditorMenuIcon(icon: "", selected: selected, ref: ref) }
+                else if let icon = item.icon { EditorMenuIcon(icon: icon, selected: selected) }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.label)
@@ -104,7 +101,7 @@ struct EditorMenuRow: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(selected ? Color.white.opacity(0.08) : Color.clear)
             )
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .contentShape(shape)
         }
         .buttonStyle(.plain)
     }
@@ -153,13 +150,10 @@ struct EditorMenuList: View {
 
     var body: some View {
         Group {
-            if menu.items.isEmpty {
-                EditorMenuEmptyState(title: emptyTitle, width: menu.size.width, height: menu.size.height)
-            } else {
-                list
-            }
+            if menu.items.isEmpty { EditorMenuEmptyState(title: emptyTitle, width: menu.size.width, height: menu.size.height) }
+            else { list }
         }
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .glassEffect(.regular.tint(Design.Background.menu), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
     }
 }
@@ -222,12 +216,7 @@ struct MenuForm: View {
         }
     }
 
-    private func formField(
-        placeholder: String,
-        text: Binding<String>,
-        focusValue: EditorMenuFocus,
-        commit: @escaping () -> Void
-    ) -> some View {
+    private func formField(placeholder: String, text: Binding<String>, focusValue: EditorMenuFocus, commit: @escaping () -> Void) -> some View {
         TextField(placeholder, text: text)
             .textFieldStyle(.plain)
             .font(.system(size: 13))
@@ -235,7 +224,7 @@ struct MenuForm: View {
             .frame(height: 30)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.white.opacity(0.07))
+                    .fill(Design.Background.menu)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
@@ -266,7 +255,7 @@ struct MenuForm: View {
             Divider().overlay(Color.white.opacity(0.08))
             fields
         }
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .glassEffect(.regular.tint(Design.Background.menu), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
     }
 }

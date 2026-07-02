@@ -9,6 +9,7 @@ import SwiftUI
     var session: SessionModel
     var folio: FolioModel
     var studio: StudioModel
+    var palette: PaletteModel
 
     init(_ space: Reference) {
         self.artifacts = .init(workspace: space)
@@ -16,6 +17,7 @@ import SwiftUI
         self.folio = .init()
         self.studio = .init()
         self.session = .init(space)
+        self.palette = .init()
     }
 
     func load() async {
@@ -37,8 +39,6 @@ import SwiftUI
     func select(_ ref: Reference, entry: UUID?, url: URL?) { session.select(ref, entry: entry, url: url) }
 
     func open(_ ref: Reference) { session.open(ref) }
-
-    func actions() { }
 
     func compose(_ space: Reference) { }
 

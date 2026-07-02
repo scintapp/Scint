@@ -120,9 +120,9 @@ struct MenuCommit {
 }
 
 @Observable final class MenuModel {
+    private(set) var items: [MenuItem] = []
     private let commandItems: [MenuItem]
     private let makeEntries: (MenuItem) -> [Block]?
-    private(set) var items: [MenuItem] = []
     private var normalizedQuery: String { query.lowercased().trimmingCharacters(in: .whitespaces) }
 
     private var currentItems: [MenuItem] {
@@ -151,8 +151,8 @@ struct MenuCommit {
 
     var size: CGSize {
         switch kind {
-        case .command: return CGSize(width: 280, height: 230)
-        case .reference: return CGSize(width: 360, height: 320)
+        case .command: return CGSize(width: 240, height: 280)
+        case .reference: return CGSize(width: 240, height: 280)
         case .form(.task): return CGSize(width: 320, height: 162)
         case .form(.link): return CGSize(width: 320, height: 214)
         }
@@ -208,8 +208,7 @@ struct MenuCommit {
             return
         }
 
-        guard let selectedID,
-              let index = selectable.firstIndex(where: { $0.id == selectedID })
+        guard let selectedID, let index = selectable.firstIndex(where: { $0.id == selectedID })
         else {
             self.selectedID = selectable.first?.id
             return
@@ -314,16 +313,11 @@ struct MenuCommit {
 
     private func ensureValidSelection() {
         let selectable = items.filter(\.isSelectable)
-        if selectable.isEmpty {
-            selectedID = nil
-        } else if !selectable.contains(where: { $0.id == selectedID }) {
-            selectedID = selectable.first?.id
-        }
+        if selectable.isEmpty { selectedID = nil }
+        else if !selectable.contains(where: { $0.id == selectedID }) { selectedID = selectable.first?.id }
     }
 
-    private func refreshItems() {
-        items = currentItems
-    }
+    private func refreshItems() { items = currentItems }
 
     private func trimmedDividers(in items: [MenuItem]) -> [MenuItem] {
         var result: [MenuItem] = []
@@ -340,10 +334,7 @@ struct MenuCommit {
             }
         }
 
-        while result.last?.isSelectable == false {
-            result.removeLast()
-        }
-
+        while result.last?.isSelectable == false { result.removeLast() }
         return result
     }
 

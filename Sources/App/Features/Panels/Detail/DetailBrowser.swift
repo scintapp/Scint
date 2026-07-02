@@ -3,7 +3,7 @@ import SwiftUI
 
 
 @Observable final class DetailBrowser: Panel {
-    var model: Model = .workspace
+    var model: Model = .space
     var layout: Layout = .grid
     var position: CGFloat = 280
     var presented: Bool = true
@@ -18,7 +18,7 @@ import SwiftUI
         }
     }
 
-    func parameters(_ agency: AgencyModel) -> Parameters {
+    func parameters(_ agency: AgencyModel) -> PanelParams {
         switch model {
             case .space: return SpaceMap.parameters(agency, self)
             case .workspace: return WorkspaceMap.parameters(agency, self)
@@ -26,14 +26,19 @@ import SwiftUI
     }
 
     func view(_ agency: AgencyModel) -> some View {
-        ScrollView { Builder.build(agency, self) }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea(.container, edges: .top)
-            .scrollEdgeEffectStyle(.hard, for: .top)
-            .background {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture { agency.focus(nil) }
+        ZStack(alignment: .top) {
+            VStack(alignment: .center) {
+                ScrollView {
+                    Builder.build(agency, self)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .background {
+                            Color.clear
+                                .contentShape(Rectangle())
+                                .onTapGesture { agency.focus(agency.session.selected.structure) }
+                        }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
+        }
     }
 }

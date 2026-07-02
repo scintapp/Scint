@@ -3,7 +3,7 @@ import SwiftUI
 
 
 extension KeyboardShortcuts.Name {
-    static let actions = Self("actionsPanel", default: .init(.k, modifiers: [.command]))
+    static let actions = Self("actions", default: .init(.k, modifiers: [.command]))
 }
 
 @MainActor final class ShortcutManager {
@@ -16,7 +16,7 @@ extension KeyboardShortcuts.Name {
         sync(.actions)
         guard !registered else { return }
         registered = true
-        KeyboardShortcuts.onKeyDown(for: .actions) { self.agency?.actions() }
+        KeyboardShortcuts.onKeyDown(for: .actions) { self.agency?.palette.actions() }
 
     }
 
