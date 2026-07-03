@@ -29,32 +29,42 @@ struct EditorMenuEmptyState: View {
     }
 }
 
-struct EditorMenuIcon: View {
-    let ref: Reference?
-    let icon: String
-    let selected: Bool
-
-    init(icon: String, selected: Bool, ref: Reference? = nil) {
-        self.icon = icon
-        self.ref = ref
-        self.selected = selected
+@MainActor private func editorMenuTint(for symbol: String) -> Color {
+    switch symbol {
+    case "checkmark.circle", "checklist":
+        Design.Tint.task
+    case "link", "folder.badge.plus":
+        Design.Tint.artifact
+    case "textformat.size", "textformat.size.smaller", "textformat":
+        Design.Tint.sheet
+    case "quote.opening":
+        Design.Tint.info
+    case "curlybraces":
+        Design.Tint.command
+    default:
+        Design.Tint.active
     }
+}
 
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(selected ? Color.white.opacity(0.16) : Color.white.opacity(0.07))
-                .frame(width: 26, height: 26)
-            if let ref {
-                Iconography.icon(for: ref, size: 15)
-                    .font(.system(size: 12, weight: .medium))
-            } else {
-                Image(systemName: icon.isEmpty ? "square.stack.3d.up" : icon)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(selected ? .white : .primary.opacity(0.78))
-            }
-        }
-    }
+@MainActor @ViewBuilder func editorMenuIcon(icon: String, selected: Bool, ref: Reference? = nil) -> some View {
+    let symbol = icon.isEmpty ? "square.stack.3d.up" : icon
+    let view = ref.map {
+        Iconography.Icon(
+            symbol: Iconography.symbol(for: $0),
+            tint: Iconography.accent(for: $0),
+            sizing: 18,
+            selected: selected
+        )
+    } ?? Iconography.Icon(
+        symbol: symbol,
+        tint: editorMenuTint(for: symbol),
+        sizing: 18,
+        selected: selected
+    )
+
+    view
+        .frame(width: 38, height: 38)
+        .opacity(selected ? 1 : 0.88)
 }
 
 struct EditorMenuRow: View {
@@ -62,27 +72,27 @@ struct EditorMenuRow: View {
     private var menu: MenuModel { editor.menu }
     private var selected: Bool { item.id == menu.selectedID }
     let item: MenuItem
-    let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+    let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
 
     var body: some View {
         Button {
             menu.select(item)
             editor.commitMenuSelection()
         } label: {
-            HStack(spacing: 10) {
-                if let ref = item.ref { EditorMenuIcon(icon: "", selected: selected, ref: ref) }
-                else if let icon = item.icon { EditorMenuIcon(icon: icon, selected: selected) }
+            HStack(spacing: 14) {
+                if let ref = item.ref { editorMenuIcon(icon: "", selected: selected, ref: ref) }
+                else if let icon = item.icon { editorMenuIcon(icon: icon, selected: selected) }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.label)
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundStyle(selected ? .white : .primary.opacity(0.86))
+                        .font(.system(size: 14.5, weight: selected ? .semibold : .medium))
+                        .foregroundStyle(selected ? Color.white.opacity(0.96) : Design.Foreground.primary)
                         .lineLimit(1)
 
                     if !item.detail.isEmpty {
                         Text(item.detail)
-                            .font(.system(size: 11))
-                            .foregroundStyle(selected ? .white.opacity(0.65) : .secondary)
+                            .font(.system(size: 12))
+                            .foregroundStyle(selected ? Color.white.opacity(0.65) : Design.Foreground.caption)
                             .lineLimit(1)
                     }
                 }
@@ -91,15 +101,14 @@ struct EditorMenuRow: View {
 
                 if selected {
                     Image(systemName: "return")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary.opacity(0.82))
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(selected ? Color.white.opacity(0.08) : Color.clear)
+                shape.fill(selected ? Color.white.opacity(0.09) : Color.clear)
             )
             .contentShape(shape)
         }
@@ -123,21 +132,21 @@ struct EditorMenuList: View {
     private var list: some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     ForEach(menu.items) { item in
                         if case .dividerItem = item {
                             Divider()
                                 .overlay(Color.white.opacity(0.08))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
                         } else {
                             EditorMenuRow(item: item)
                                 .id(item.id)
                         }
                     }
                 }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 10)
             }
             .onChange(of: menu.selectedID) { _, newID in
                 guard let newID else { return }

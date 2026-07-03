@@ -140,24 +140,6 @@ struct ProcessToggle: View {
     }
 }
 
-//struct PanelToggle<Content: View>: View {
-//    @Environment(AgencyModel.self) private var agency
-//    let id: String
-//    let icon: String
-//    @ViewBuilder let content: () -> Content
-//
-//    private var panel: AnyView { AnyView(BasePanel(content().environment(agency))) }
-//
-//    var body: some View {
-//        Button { agency.panel(id: id, size: CGSize(width: 640, height: 480), view: panel).toggle() } label: {
-//            Image(systemName: icon)
-//        }
-//        .buttonBorderShape(.circle)
-//        .buttonBorderShape(.circle)
-//        .labelsHidden()
-//    }
-//}
-
 struct PickerToggleStyle: ButtonStyle {
     @State private var isHovered = false
     let isSelected: Bool
@@ -245,3 +227,21 @@ struct NavigatorPickerToggle: View {
         .frame(width: 74, height: 36)
     }
 }
+
+//struct PanelToggle<Content: View>: View {
+//    @Environment(AgencyModel.self) private var agency
+//    let id: String
+//    let icon: String
+//    @ViewBuilder let content: () -> Content
+//
+//    private var panel: AnyView { AnyView(BasePanel(content().environment(agency))) }
+//
+//    var body: some View {
+//        Button { agency.panel(id: id, size: CGSize(width: 640, height: 480), view: panel).toggle() } label: {
+//            Image(systemName: icon)
+//        }
+//        .buttonBorderShape(.circle)
+//        .buttonBorderShape(.circle)
+//        .labelsHidden()
+//    }
+//}

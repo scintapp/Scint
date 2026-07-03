@@ -61,7 +61,7 @@ struct GroupPicker: View {
                         ForEach(items) { candidate in
                             Button { onPick(candidate.id) } label: {
                                 HStack(spacing: 10) {
-                                    EditorMenuIcon(icon: candidate.image, selected: candidate.active, ref: candidate.ref)
+                                    editorMenuIcon(icon: candidate.image, selected: candidate.active, ref: candidate.ref)
                                     Text(candidate.name)
                                         .font(.system(size: 13))
                                         .foregroundStyle(.primary.opacity(0.86))

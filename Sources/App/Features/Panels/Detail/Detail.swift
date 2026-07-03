@@ -28,7 +28,7 @@ import SwiftUI
     func toolbar() -> some ToolbarContent {
         return Group {
             ToolbarItem(placement: .navigation) { NavigationControls() }
-            ToolbarItem(placement: .principal) { ProcessControls() }
+            ToolbarItem(placement: .principal) { EmptyView() }
             ToolbarItem(placement: .primaryAction) { EmptyView() }
             ToolbarItem(placement: .accessoryBar(id: "pathfinder")) { PathControls() }
         }

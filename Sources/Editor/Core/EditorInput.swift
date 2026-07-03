@@ -106,7 +106,7 @@ struct EditorInput: NSViewRepresentable {
 final class EditorInputView: NSTextView {
     private static var defocusMonitor: Any?
     private(set) var renderedText = ""
-    private let minimumLineHeight: CGFloat = 24
+    private let minimumLineHeight: CGFloat = 28
     private let backingContentStorage = NSTextContentStorage()
     private let backingTextLayoutManager = NSTextLayoutManager()
     private let backingTextContainer = NSTextContainer(size: NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
@@ -167,7 +167,7 @@ final class EditorInputView: NSTextView {
         autoresizingMask = [.width]
         wantsLayer = false
         drawsBackground = false
-        textContainerInset = NSSize(width: 0, height: 4)
+        textContainerInset = NSSize(width: 0, height: 5)
         font = styler.style.baseFont
         textColor = styler.style.textColor
         insertionPointColor = styler.style.textColor

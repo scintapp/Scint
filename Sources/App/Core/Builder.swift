@@ -83,7 +83,7 @@ import SwiftUI
                     GridLayout {
                         ForEach(component.items) { item in
                             let view = AnyView(
-                                ItemIcon(
+                                GridIcon(
                                     name: item.name,
                                     ref: item.ref,
                                     image: item.image,

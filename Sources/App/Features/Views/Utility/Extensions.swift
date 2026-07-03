@@ -26,15 +26,15 @@ extension View {
             .padding(.vertical, Spacing.blockPaddingV)
             .padding(.horizontal, Spacing.blockPaddingH)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface)
+            .background(Design.Background.surface)
             .clipShape(RoundedRectangle(cornerRadius: Spacing.blockRadius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: Spacing.blockRadius, style: .continuous)
-                    .stroke(Theme.border, lineWidth: 1)
+                    .stroke(Design.Border.block, lineWidth: 1)
             }
     }
 
     func hairline(_ height: CGFloat = 0.5) -> some View {
-        Rectangle().fill(Theme.hairline).frame(height: height)
+        Rectangle().fill(Design.Border.hairline).frame(height: height)
     }
 }

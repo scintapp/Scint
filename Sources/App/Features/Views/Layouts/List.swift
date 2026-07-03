@@ -41,7 +41,7 @@ struct ListLabel: View {
 
 struct ListLink: View {
     @State private var isHovered = false
-    private let iconSize: CGFloat = 18
+    private let iconSize: CGFloat = 14
     let ref: Reference?
     let name: String
     let image: String
@@ -73,12 +73,20 @@ struct ListLink: View {
     }
 
     @ViewBuilder private var icon: some View {
-        if let ref { Iconography.icon(for: ref, size: iconSize) }
-        else if let tint { Iconography.Icon(symbol: image, tint: tint, size: iconSize) }
+        if let ref {
+            Iconography.Icon(
+                symbol: Iconography.symbol(for: ref),
+                tint: Iconography.accent(for: ref),
+                sizing: iconSize,
+                selected: selected
+            )
+        } else if let tint {
+            Iconography.Icon(symbol: image, tint: tint, sizing: iconSize, selected: selected)
+        }
         else {
             Image(systemName: image)
-                .font(.system(size: iconSize * 0.8, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .font(.system(size: iconSize, weight: .semibold))
+                .foregroundStyle(selected ? Design.Tint.active : Design.Foreground.tertiary)
                 .frame(width: iconSize, height: iconSize)
         }
     }
@@ -94,7 +102,8 @@ struct ListLink: View {
                     .allowsHitTesting(isHovered)
             }
         }
-        .frame(width: iconSize, height: iconSize)
+        .frame(width: iconSize, height: iconSize, alignment: .center)
+        .padding(.trailing, 4)
     }
 
     var body: some View {
@@ -177,7 +186,7 @@ struct ListRow<Content: View>: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 26)
-        .background(RoundedRectangle(cornerRadius: 7).fill(selected ? Color.secondary.opacity(0.1) : .clear))
+        .background(RoundedRectangle(cornerRadius: 7).fill(selected ? Color.secondary.opacity(0.1) : Color.clear))
         .foregroundStyle(.primary)
         .contentShape(RoundedRectangle(cornerRadius: 7))
     }
@@ -210,7 +219,7 @@ struct ListHeader: View {
 struct ListLayout<Content: View>: View {
     @ViewBuilder let content: () -> Content
     @State private var isHovered = false
-    private let iconSize: CGFloat = 18
+    private let iconSize: CGFloat = 15
     let ref: Reference?
     let name: String
     let image: String
@@ -258,12 +267,20 @@ struct ListLayout<Content: View>: View {
     }
 
     @ViewBuilder private var icon: some View {
-        if let ref { Iconography.icon(for: ref, size: iconSize) }
-        else if let tint { Iconography.Icon(symbol: image, tint: tint, size: iconSize) }
+        if let ref {
+            Iconography.Icon(
+                symbol: Iconography.symbol(for: ref),
+                tint: Iconography.accent(for: ref),
+                sizing: iconSize,
+                selected: selected
+            )
+        } else if let tint {
+            Iconography.Icon(symbol: image, tint: tint, sizing: iconSize, selected: selected)
+        }
         else {
             Image(systemName: image)
-                .font(.system(size: iconSize * 0.75))
-                .foregroundStyle(.secondary)
+                .font(.system(size: iconSize))
+                .foregroundStyle(selected ? Design.Tint.active : Design.Foreground.tertiary)
                 .frame(width: iconSize, height: iconSize)
         }
     }
@@ -276,13 +293,15 @@ struct ListLayout<Content: View>: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(.tertiary.opacity(0.3))
-                        .frame(width: 18, height: 18, alignment: .center)
+                        .frame(width: 14, height: 14, alignment: .center)
 
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .frame(width: 18, height: 18, alignment: .center)
+                        .frame(width: 14, height: 14, alignment: .center)
                         .font(.system(size: 8, weight: .heavy))
                         .foregroundStyle(.secondary.opacity(0.8))
                 }
+                .frame(width: iconSize, height: iconSize, alignment: .center)
+                .padding(.trailing, 4)
             }
             .buttonStyle(.plain)
         }
@@ -299,7 +318,8 @@ struct ListLayout<Content: View>: View {
                     icon
                         .opacity(isHovered ? 0 : 1)
                 }
-                .frame(width: iconSize, height: iconSize)
+                .frame(width: iconSize, height: iconSize, alignment: .center)
+                .padding(.trailing, 4)
             }
         }
         .buttonStyle(.plain)

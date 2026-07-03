@@ -28,6 +28,7 @@ import SwiftUI
 
             ComposerInput()
         }
+        .background(Design.Background.detail)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .padding(8)
     }

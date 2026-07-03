@@ -151,8 +151,8 @@ struct MenuCommit {
 
     var size: CGSize {
         switch kind {
-        case .command: return CGSize(width: 240, height: 280)
-        case .reference: return CGSize(width: 240, height: 280)
+        case .command: return CGSize(width: 300, height: 336)
+        case .reference: return CGSize(width: 300, height: 336)
         case .form(.task): return CGSize(width: 320, height: 162)
         case .form(.link): return CGSize(width: 320, height: 214)
         }

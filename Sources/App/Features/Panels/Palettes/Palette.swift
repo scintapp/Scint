@@ -7,26 +7,33 @@ struct PaletteRow: View {
     let isSelected: Bool
     let onTap: () -> Void
 
+    @ViewBuilder private var icon: some View {
+        if let ref = item.ref {
+            Iconography.Icon(
+                symbol: Iconography.symbol(for: ref),
+                tint: Iconography.accent(for: ref),
+                sizing: 16,
+                selected: isSelected
+            )
+        } else {
+            Iconography.Icon(
+                symbol: item.image.isEmpty ? "square.stack.3d.up" : item.image,
+                tint: Design.Tint.active,
+                sizing: 16,
+                selected: isSelected
+            )
+        }
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isSelected ? Color.accentColor : Color.primary.opacity(0.08))
-                    .frame(width: 30, height: 30)
-                    .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 2)
-                if let ref = item.ref {
-                    Iconography.icon(for: ref, size: 13)
-                } else {
-                    Image(systemName: item.image.isEmpty ? "square.stack.3d.up" : item.image)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(isSelected ? .white : .primary)
-                }
-            }
+            icon
+                .frame(width: 34, height: 34)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
-                    .font(.system(size: 16.5))
-                    .foregroundStyle(isSelected ? Color.primary.opacity(1) : .primary.opacity(0.85))
+                    .font(.system(size: 16, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(isSelected ? Color.primary.opacity(0.96) : Color.primary.opacity(0.84))
                     .lineLimit(1)
 
                 if !item.description.isEmpty {
@@ -52,7 +59,7 @@ struct PaletteRow: View {
         .animation(.easeOut(duration: 0.1), value: isSelected)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+                .fill(isSelected ? Color.primary.opacity(0.1) : Color.clear)
         )
     }
 }

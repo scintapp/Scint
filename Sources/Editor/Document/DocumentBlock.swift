@@ -14,10 +14,19 @@ struct SelectableEntry<Content: View>: View {
 
     var body: some View {
         content()
+            .background {
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .fill(isSelected ? Design.Tint.active.opacity(0.045) : Color.clear)
+            }
+            .overlay(alignment: .leading) {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                        .fill(Design.Tint.active.opacity(0.78))
+                        .frame(width: 2)
+                        .padding(.vertical, 5)
+                }
+            }
             .overlay {
-                RoundedRectangle(cornerRadius: 17, style: .continuous)
-                    .fill(isSelected ? Color.accentColor.opacity(0.08) : .clear)
-                    .stroke(isSelected ? Color.accentColor : .clear, lineWidth: 1)
                 EntryResponder(
                     id: id,
                     focus: focus,
@@ -26,31 +35,6 @@ struct SelectableEntry<Content: View>: View {
                 )
             }
 
-    }
-}
-
-struct EntryGlyph: View {
-    let icon: Iconography.Icon
-    var contained: Bool = false
-
-    init(icon: Iconography.Icon, contained: Bool = false) {
-        self.icon = icon
-        self.contained = contained
-    }
-
-    init(icon: String, tint: Color = .secondary, contained: Bool = false) {
-        self.icon = Iconography.Icon(symbol: icon, tint: tint, size: 17)
-        self.contained = contained
-    }
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
-        Image(systemName: icon.symbol)
-            .font(.system(size: 11))
-            .foregroundStyle(icon.tint)
-            .frame(width: 21, height: 21, alignment: .center)
-            .background { if contained { shape.fill(icon.tint.opacity(0.15)) } }
-            .overlay { if contained { shape.strokeBorder(icon.tint.opacity(0.28), lineWidth: 1) } }
     }
 }
 
@@ -63,39 +47,19 @@ struct EntryTextBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .frame(height: detail == nil || detail == "" ? 28 : 14, alignment: .center)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Design.Foreground.base)
+                .font(.system(size: 13.5, weight: .semibold))
+                .foregroundStyle(Design.Foreground.primary)
                 .lineLimit(1)
+                .truncationMode(truncation)
 
             if let detail, !detail.isEmpty {
                 Text(detail)
-                    .frame(height: 14, alignment: .center)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12.5, weight: .regular, design: design))
                     .foregroundStyle(Design.Foreground.caption)
                     .lineLimit(1)
                     .truncationMode(truncation)
             }
         }
-    }
-}
-
-struct EntryBadge: View {
-    let label: String
-    var tint: Color = Design.Tint.active
-    var design: Font.Design = .default
-
-    var body: some View {
-        Text(label)
-            .font(.system(size: 11, design: design))
-            .foregroundStyle(tint.opacity(0.9))
-            .lineLimit(1)
-            .truncationMode(.middle)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 4)
-            .background(tint.opacity(0.07))
-            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(tint.opacity(0.17), lineWidth: 1))
     }
 }
 
@@ -121,7 +85,10 @@ struct LinkMetadataPreview: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
-            EntryGlyph(icon: Iconography.Icon(symbol: "bookmark", tint: Design.Tint.artifact, size: 17), contained: true)
+            Image(systemName: "bookmark")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Design.Tint.artifact.opacity(0.72))
+                .frame(width: 22, height: 22)
 
             EntryTextBlock(
                 title: metadata?.title ?? fallbackTitle,
@@ -132,7 +99,8 @@ struct LinkMetadataPreview: View {
 
             Spacer(minLength: 10)
         }
-        .frame(maxWidth: .infinity, maxHeight: 28, alignment: .leading)
+        .padding(.vertical, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .task(id: url) { await load() }
     }
 }
@@ -142,43 +110,41 @@ struct DocumentBlock: View {
     let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
 
     func card<Badges: View>(ref: Reference, tint: Color, title: String, detail: String?, @ViewBuilder badges: @escaping () -> Badges) -> some View {
-        VStack(alignment: .leading) {
-            HStack(alignment: .center, spacing: 8) {
-                Iconography.icon(for: ref, size: 17)
-                    .font(.system(size: 11, weight: .medium))
-                    .frame(width: 21, height: 21, alignment: .center)
+        HStack(alignment: .top, spacing: 10) {
+            Iconography.Icon(
+                symbol: Iconography.symbol(for: ref),
+                tint: tint,
+                sizing: 18
+            )
+            .frame(width: 26, height: 26, alignment: .center)
 
-                HStack(alignment: .center) {
-                    EntryTextBlock(title: title, detail: detail)
-                        .frame(alignment: .leading)
-                    Spacer()
-                    HStack(alignment: .center) {
-                        badges()
-                    }
-                    .frame(alignment: .trailing)
+            HStack(alignment: .top, spacing: 12) {
+                EntryTextBlock(title: title, detail: detail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(alignment: .center, spacing: 6) {
+                    badges()
                 }
+                .fixedSize(horizontal: true, vertical: false)
             }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .contentShape(shape)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background { shape.fill(Design.Background.block) }
-        .overlay { shape.stroke(lineWidth: 1).fill(Design.Border.block) }
+        .background { shape.fill(Design.Background.block.opacity(0.72)) }
+        .overlay { shape.strokeBorder(tint.opacity(0.16), lineWidth: 0.75) }
     }
 
     func card(ref: Reference, tint: Color, title: String, detail: String?) -> some View {
-        VStack(alignment: .leading) {
-            HStack(alignment: .top, spacing: 8) {
-                Iconography.icon(for: ref, size: 17)
-                    .font(.system(size: 11, weight: .medium))
-                    .frame(width: 21, height: 21, alignment: .center)
-                EntryTextBlock(title: title, detail: detail)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .contentShape(shape)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background { shape.fill(Design.Background.block) }
-        .overlay { shape.stroke(lineWidth: 1).fill(Design.Border.block) }
+        card(ref: ref, tint: tint, title: title, detail: detail) { EmptyView() }
+    }
+
+    private func inlineIcon(_ symbol: String, tint: Color) -> some View {
+        Image(systemName: symbol)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(tint.opacity(0.72))
+            .frame(width: 22, height: 22)
     }
 
     private func firstPreview(_ entries: [Sheet.Block]) -> String {
@@ -209,10 +175,10 @@ struct DocumentBlock: View {
             detail: description.isEmpty ? executable : description
         ) {
             if facts.artifacts > 0 {
-                EntryBadge(label: "\(facts.artifacts) artifact\(facts.artifacts == 1 ? "" : "s")", tint: Design.Tint.command)
+                Badge("\(facts.artifacts) artifact\(facts.artifacts == 1 ? "" : "s")", tint: Design.Tint.command)
             }
             if !args.isEmpty {
-                EntryBadge(label: args, tint: Design.Tint.command, design: .monospaced)
+                Badge(args, tint: Design.Tint.command, monospaced: true)
             }
         }
     }
@@ -258,41 +224,41 @@ struct DocumentBlock: View {
         return VStack {
             if looksLikeBlock {
                 Text(content)
-                    .font(.system(size: 11.5, design: .monospaced))
-                    .foregroundStyle(Design.Foreground.base)
+                    .font(.system(size: 12.5, design: .monospaced))
+                    .foregroundStyle(Design.Foreground.primary)
                     .lineSpacing(4)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
-                    .background(Design.Background.block)
+                    .background(Color.primary.opacity(0.055))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(Design.Border.block, lineWidth: 1)
+                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
                     )
             } else if isQuote {
                 HStack(spacing: 0) {
                     Rectangle()
-                        .fill(Design.Background.block)
+                        .fill(Design.Tint.info.opacity(0.55))
                         .frame(width: 3)
 
                     Text(stripped(quotePrefix))
-                        .font(.system(size: 13, weight: .regular))
+                        .font(.system(size: 15, weight: .regular))
                         .italic()
                         .foregroundStyle(Design.Foreground.caption)
-                        .lineSpacing(4)
+                        .lineSpacing(5)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.leading, 12)
                 }
             } else if isHeading {
                 Text(stripped("#"))
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Design.Foreground.base)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Design.Foreground.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(attributed)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Design.Foreground.base)
-                    .lineSpacing(4)
+                    .font(.system(size: 15.5))
+                    .foregroundStyle(Design.Foreground.primary)
+                    .lineSpacing(5)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -312,7 +278,7 @@ struct DocumentBlock: View {
             detail: description.isEmpty ? "Main: \(mainName)" : description
         ) {
             ForEach(Array(facts.prefix(3)).indices, id: \.self) { index in
-                EntryBadge(label: facts[index], tint: Design.Tint.harness)
+                Badge(facts[index], tint: Design.Tint.harness)
             }
         }
     }
@@ -380,11 +346,12 @@ struct DocumentBlock: View {
         let isDirectory = Artifact.with(ref, { $0.handle.directory }) ?? false
         let icon = isDirectory ? "folder" : "doc"
 
-        return HStack(spacing: 8) {
-            EntryGlyph(icon: Iconography.Icon(symbol: icon, tint: Design.Tint.artifact), contained: true)
+        return HStack(alignment: .top, spacing: 8) {
+            inlineIcon(icon, tint: Design.Tint.artifact)
             EntryTextBlock(title: name, detail: meta, design: .default)
             Spacer(minLength: 10)
         }
+        .padding(.vertical, 2)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -392,22 +359,18 @@ struct DocumentBlock: View {
         let name = Artifact.with(ref, { $0.name }) ?? "Link"
         guard let url = Artifact.with(ref, { $0.handle.url }) ?? nil else {
             return AnyView(
-                VStack(alignment: .leading) {
-                    HStack(spacing: 10) {
-                        Iconography.icon(for: ref, size: 17)
-                        EntryTextBlock(
-                            title: name,
-                            detail: Artifact.with(ref, { $0.rendered }) ?? "",
-                            design: .default,
-                            truncation: .middle
-                        )
-                        Spacer(minLength: 10)
-                    }
+                HStack(alignment: .top, spacing: 8) {
+                    inlineIcon("bookmark", tint: Design.Tint.artifact)
+                    EntryTextBlock(
+                        title: name,
+                        detail: Artifact.with(ref, { $0.rendered }) ?? "",
+                        design: .default,
+                        truncation: .middle
+                    )
+                    Spacer(minLength: 10)
                 }
-                .contentShape(shape)
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-                .background { shape.fill(Design.Background.block) }
-                .overlay { shape.stroke(lineWidth: 1).fill(Design.Border.block) }
+                .padding(.vertical, 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
             )
         }
         return AnyView(LinkMetadataPreview(fallbackTitle: name, url: url))
@@ -416,17 +379,13 @@ struct DocumentBlock: View {
     private func image(_ ref: Reference) -> some View {
         let name = Artifact.with(ref, { $0.name }) ?? "image"
 
-        return VStack(alignment: .leading) {
-            HStack(spacing: 8) {
-                Iconography.icon(for: ref, size: 17)
-                EntryTextBlock(title: name, detail: nil)
-                Spacer(minLength: 10)
-            }
+        return HStack(alignment: .top, spacing: 8) {
+            inlineIcon("photo", tint: Design.Tint.artifact)
+            EntryTextBlock(title: name, detail: nil)
+            Spacer(minLength: 10)
         }
-        .contentShape(shape)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background { shape.fill(Design.Background.block) }
-        .overlay { shape.stroke(lineWidth: 1).fill(Design.Border.block) }
+        .padding(.vertical, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func sheet(_ ref: Reference) -> some View {
@@ -442,7 +401,7 @@ struct DocumentBlock: View {
             detail: description.isEmpty ? firstPreview(blocks) : description
         ) {
             ForEach(Array(facts.prefix(3)).indices, id: \.self) { index in
-                EntryBadge(label: facts[index], tint: Design.Tint.sheet)
+                Badge(facts[index], tint: Design.Tint.sheet)
             }
         }
     }
@@ -463,14 +422,17 @@ struct DocumentBlock: View {
     }
 
     private func task(_ content: String, _ completed: Bool) -> some View {
-        HStack(alignment: .center, spacing: 8) {
-            EntryGlyph(icon: Iconography.icon(for: .task(UUID(), content, completed), size: 17), contained: true)
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            inlineIcon(completed ? "checkmark.square.fill" : "square", tint: completed ? Design.Foreground.caption : Design.Tint.task)
 
             Text(content)
-                .foregroundStyle(completed ? Design.Foreground.caption : Design.Foreground.base)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(completed ? Design.Foreground.caption : Design.Foreground.primary)
                 .strikethrough(completed, color: Design.Foreground.caption)
+                .lineSpacing(3)
                 .lineLimit(2)
         }
+        .padding(.vertical, 2)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 

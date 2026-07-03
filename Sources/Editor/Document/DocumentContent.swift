@@ -28,19 +28,19 @@ struct DocumentContent: View {
 
         if trimmed.hasPrefix("```") {
             RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(Design.Background.card)
+                .fill(Color.primary.opacity(0.055))
                 .padding(.horizontal, 3)
-                .padding(.vertical, 4)
+                .padding(.vertical, 5)
                 .overlay {
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .strokeBorder(.gray.opacity(0.04), lineWidth: 1)
+                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
                 }
         }
 
         if trimmed.hasPrefix(">") {
             HStack(spacing: 0) {
                 RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                    .fill(Design.Foreground.base)
+                    .fill(Design.Tint.info.opacity(0.55))
                     .frame(width: 3)
                 Spacer(minLength: 0)
             }
@@ -86,7 +86,7 @@ struct DocumentContent: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             ForEach(editor.blocks) { entry in
                 block(entry: entry)
                     .id(entry.id)

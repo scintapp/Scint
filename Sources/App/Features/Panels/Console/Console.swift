@@ -18,35 +18,44 @@ import SwiftUI
                     Button { } label: {
                         HStack {
                             Text("0")
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.system(size: 11))
                             Text("Inactive")
-                                .font(.system(size: 11, weight: .light))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(Design.Tint.inactive)
                         }
                     }
                     Button { } label: {
                         HStack {
                             Text("0")
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.system(size: 11))
                             Text("Active")
-                                .font(.system(size: 11, weight: .light))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(Design.Tint.active)
                         }
                     }
                     Button { } label: {
                         HStack {
                             Text("0")
+                                .font(.system(size: 11))
+                            Text("Running")
                                 .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(Design.Tint.running)
+                        }
+                    }
+                    Button { } label: {
+                        HStack {
+                            Text("0")
+                                .font(.system(size: 11))
                             Text("Blocked")
-                                .font(.system(size: 11, weight: .light))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(Design.Tint.blocked)
                         }
                     }
                     Button { } label: {
                         HStack {
-                            Text("0").font(.system(size: 11, weight: .medium))
+                            Text("0").font(.system(size: 11))
                             Text("Failed")
-                                .font(.system(size: 11, weight: .light))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(Design.Tint.failed)
                         }
                     }

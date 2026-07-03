@@ -39,7 +39,7 @@ private extension AgencyRuntime.Process.State {
         switch self {
             case .failed: return Design.Tint.failed
             case .blocked: return Design.Tint.blocked
-            default: return Theme.textTertiary
+            default: return Design.Foreground.tertiary
         }
     }
     
@@ -230,11 +230,11 @@ struct TranscriptInputView: View {
                 Image(systemName: "square.and.pencil").font(.system(size: 10, weight: .light))
                 Text("Input").font(Typography.label)
             }
-            .foregroundStyle(Theme.textTertiary)
+            .foregroundStyle(Design.Foreground.tertiary)
             
             Text(content)
                 .font(Typography.message)
-                .foregroundStyle(Theme.textSecondary)
+                .foregroundStyle(Design.Foreground.caption)
                 .lineSpacing(Spacing.lineSpacingMessage)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -242,11 +242,11 @@ struct TranscriptInputView: View {
         .padding(.vertical, Spacing.blockPaddingV)
         .padding(.horizontal, Spacing.blockPaddingH)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface)
+        .background(Design.Background.surface)
         .clipShape(RoundedRectangle(cornerRadius: Spacing.blockRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: Spacing.blockRadius, style: .continuous)
-                .stroke(Theme.border, lineWidth: 1)
+                .stroke(Design.Border.block, lineWidth: 1)
         }
     }
 }
@@ -265,12 +265,12 @@ struct TranscriptNestedView: View {
                 Image(systemName: "arrow.turn.down.right").font(.system(size: 10, weight: .light))
                 Text(name).font(Typography.label)
             }
-            .foregroundStyle(Theme.textTertiary)
+            .foregroundStyle(Design.Foreground.tertiary)
             
             TranscriptEntriesView(entries: entries, showStatus: showStatus, showReasoning: showReasoning)
                 .padding(.leading, 12)
                 .overlay(alignment: .leading) {
-                    Rectangle().fill(Theme.border).frame(width: 1)
+                    Rectangle().fill(Design.Border.block).frame(width: 1)
                 }
         }
     }
@@ -283,7 +283,7 @@ struct TranscriptStatusIndicator: View {
         HStack(spacing: 7) {
             ForEach(0..<3, id: \.self) { index in
                 Circle()
-                    .fill(Theme.textTertiary)
+                    .fill(Design.Foreground.tertiary)
                     .frame(width: 6, height: 6)
                     .scaleEffect(phase ? 1.0 : 0.72)
                     .opacity(phase ? 1.0 : 0.45)
@@ -296,7 +296,7 @@ struct TranscriptStatusIndicator: View {
             }
         }
         .padding(10)
-        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .onAppear { phase = true }
     }
 }
@@ -309,7 +309,7 @@ struct MessageView: View {
             else { Text(text) }
         }
         .font(Typography.message)
-        .foregroundStyle(Theme.textPrimary)
+        .foregroundStyle(Design.Foreground.primary)
         .lineSpacing(Spacing.lineSpacingMessage)
         .frame(maxWidth: .infinity, alignment: .leading)
         .textSelection(.enabled)
@@ -324,7 +324,7 @@ struct ReasoningView: View {
     var body: some View {
         Text(text)
             .font(Typography.body.italic())
-            .foregroundStyle(Theme.textQuaternary)
+            .foregroundStyle(Design.Foreground.quaternary)
             .lineSpacing(Spacing.lineSpacingBody)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 8)
@@ -334,7 +334,7 @@ struct ReasoningView: View {
             .overlay(alignment: .leading) {
                 Rectangle()
                     .offset(x: 12)
-                    .fill(Theme.quoteBar)
+                    .fill(Design.Tint.artifact)
                     .frame(width: Spacing.quoteBarWidth)
                     .padding(.top, 10)
                     .padding(.bottom, 14)
@@ -348,7 +348,7 @@ struct CodeBlock: View {
     var body: some View {
         Text(code)
             .font(Typography.mono)
-            .foregroundStyle(Theme.textSecondary)
+            .foregroundStyle(Design.Foreground.caption)
             .lineSpacing(Spacing.lineSpacingMono)
             .frame(maxWidth: .infinity, alignment: .leading)
             .textSelection(.enabled)
@@ -372,18 +372,18 @@ struct ActionRow: View {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.right")
                         .font(.system(size: 12))
-                        .foregroundStyle(Theme.provider)
+                        .foregroundStyle(Design.Tint.artifact)
                     Text(verb)
                         .font(Typography.body)
-                        .foregroundStyle(Theme.textTertiary)
+                        .foregroundStyle(Design.Foreground.tertiary)
                     Text(name)
                         .font(Typography.monoSmall)
-                        .foregroundStyle(Theme.textPrimary)
+                        .foregroundStyle(Design.Foreground.primary)
                     Spacer(minLength: 8)
                     if !output.isEmpty {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 11))
-                            .foregroundStyle(Theme.textTertiary)
+                            .foregroundStyle(Design.Foreground.tertiary)
                             .rotationEffect(.degrees(expanded ? 180 : 0))
                     }
                 }
@@ -396,7 +396,7 @@ struct ActionRow: View {
                 hairline().padding(.vertical, 7)
                 Text(output)
                     .font(Typography.mono)
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(Design.Foreground.caption)
                     .lineSpacing(Spacing.lineSpacingMono)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
@@ -427,11 +427,11 @@ struct StatusRow: View {
                     statusDot
                     Text(lines.last ?? "")
                         .font(Typography.body)
-                        .foregroundStyle(Theme.textTertiary)
+                        .foregroundStyle(Design.Foreground.tertiary)
                     if lines.count > 1 {
                         Text("· +\(lines.count - 1) earlier")
                             .font(Typography.body)
-                            .foregroundStyle(Theme.textTertiary.opacity(0.6))
+                            .foregroundStyle(Design.Foreground.tertiary.opacity(0.6))
                     }
                     Spacer(minLength: 0)
                 }
@@ -444,13 +444,13 @@ struct StatusRow: View {
     }
     
     private var statusDot: some View {
-        Circle().fill(Theme.quoteBar).frame(width: 3, height: 3)
+        Circle().fill(Design.Tint.artifact).frame(width: 3, height: 3)
     }
     
     private func statusLine(_ text: String) -> some View {
         HStack(spacing: 7) {
             statusDot
-            Text(text).font(Typography.body).foregroundStyle(Theme.textTertiary)
+            Text(text).font(Typography.body).foregroundStyle(Design.Foreground.tertiary)
             Spacer(minLength: 0)
         }
     }
@@ -499,14 +499,14 @@ struct DomainRollup: View {
                         .foregroundStyle(Design.Tint.info)
                     Text(label)
                         .font(Typography.body)
-                        .foregroundStyle(Theme.textTertiary)
+                        .foregroundStyle(Design.Foreground.tertiary)
                     Text("· \(events.count) events")
                         .font(Typography.body)
-                        .foregroundStyle(Theme.textQuaternary)
+                        .foregroundStyle(Design.Foreground.quaternary)
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.down")
                         .font(.system(size: 11))
-                        .foregroundStyle(Theme.textQuaternary)
+                        .foregroundStyle(Design.Foreground.quaternary)
                         .rotationEffect(.degrees(expanded ? 180 : 0))
                 }
                 .contentShape(Rectangle())
@@ -518,7 +518,7 @@ struct DomainRollup: View {
                     ForEach(events.indices, id: \.self) { i in
                         Text(events[i])
                             .font(Typography.body)
-                            .foregroundStyle(Theme.textTertiary)
+                            .foregroundStyle(Design.Foreground.tertiary)
                     }
                 }
                 .padding(.leading, 19)
@@ -584,5 +584,5 @@ struct TranscriptView: View {
         .padding(15)
     }
     .frame(width: 480, height: 680)
-    .background(Theme.base)
+    .background(Design.Background.base)
 }

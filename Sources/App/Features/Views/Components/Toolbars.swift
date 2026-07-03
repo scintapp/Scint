@@ -52,7 +52,7 @@ struct ProcessControls: View {
         HStack {
             ControlGroup {
                 Button { } label: {
-                    Iconography.icon(for: workspace, size: 13.5)
+                    Iconography.icon(for: workspace, size: 15)
                         .padding(.trailing, 6)
                 }
                 
@@ -132,8 +132,9 @@ struct PathControls: View {
                         agency.studio.browser.model = .space
                     }
                 } label: {
-                    Iconography.icon(for: ref, size: 16)
+                    Iconography.icon(for: ref, size: 14)
                     Text(ref.descriptor.name)
+                        .font(.system(size: 11, weight: .medium))
                     if index < refs.count - 1 {
                         Image(systemName: "chevron.compact.forward")
                             .font(.system(size: 15, weight: .light))
@@ -141,7 +142,7 @@ struct PathControls: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .frame(maxHeight: 25, alignment: .center)
+                .frame(maxHeight: 32, alignment: .center)
             }
         }
         .padding(.bottom, 6)

@@ -24,19 +24,19 @@ struct Style: @unchecked Sendable {
     var listIndent: CGFloat
 
     static let dark = Style(
-        textColor: .white,
-        baseFont: .systemFont(ofSize: 15, weight: .light),
-        h1Font: .systemFont(ofSize: 24, weight: .bold),
-        h2Font: .systemFont(ofSize: 20, weight: .semibold),
+        textColor: NSColor.white.withAlphaComponent(0.88),
+        baseFont: .systemFont(ofSize: 16, weight: .regular),
+        h1Font: .systemFont(ofSize: 26, weight: .bold),
+        h2Font: .systemFont(ofSize: 21, weight: .semibold),
         h3Font: .systemFont(ofSize: 18, weight: .semibold),
-        codeFont: .monospacedSystemFont(ofSize: 14, weight: .regular),
-        codeBgColor: NSColor.black.withAlphaComponent(0.2),
-        codeFenceColor: NSColor.black.withAlphaComponent(0.3),
-        bulletColor: NSColor.white.withAlphaComponent(0.4),
-        checkboxCheckedColor: .systemGray,
-        checkboxUncheckedColor: NSColor.white.withAlphaComponent(0.3),
+        codeFont: .monospacedSystemFont(ofSize: 14.5, weight: .regular),
+        codeBgColor: NSColor.white.withAlphaComponent(0.055),
+        codeFenceColor: NSColor.white.withAlphaComponent(0.28),
+        bulletColor: NSColor.white.withAlphaComponent(0.34),
+        checkboxCheckedColor: NSColor.systemBlue.withAlphaComponent(0.72),
+        checkboxUncheckedColor: NSColor.white.withAlphaComponent(0.42),
         syntaxHiddenColor: .clear,
-        listIndent: 24
+        listIndent: 28
     )
 }
 
@@ -210,7 +210,8 @@ final class EditorStyler: NSObject {
 
     private var baseAttributes: [NSAttributedString.Key: Any] {
         let paragraph = NSMutableParagraphStyle()
-        paragraph.lineSpacing = 4
+        paragraph.lineSpacing = 5
+        paragraph.paragraphSpacing = 7
         return [
             .font: style.baseFont,
             .foregroundColor: style.textColor,
@@ -244,19 +245,19 @@ final class EditorStyler: NSObject {
         switch level {
         case 1:
             font = style.h1Font
-            spacing = 12
+            spacing = 18
         case 2:
             font = style.h2Font
-            spacing = 8
+            spacing = 16
         default:
             font = style.h3Font
-            spacing = 6
+            spacing = 12
         }
 
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineSpacing = 2
         paragraph.paragraphSpacingBefore = spacing
-        paragraph.paragraphSpacing = 4
+        paragraph.paragraphSpacing = level == 1 ? 9 : 7
         textStorage.addAttributes([.paragraphStyle: paragraph], range: lineRange)
 
         let contentRange = NSRange(
@@ -317,12 +318,13 @@ final class EditorStyler: NSObject {
 
     private func styleQuote(_ textStorage: NSMutableAttributedString, contentStart: Int, lineRange: NSRange) {
         let paragraph = NSMutableParagraphStyle()
-        paragraph.headIndent = 14
+        paragraph.headIndent = 18
         paragraph.firstLineHeadIndent = 0
-        paragraph.lineSpacing = 4
+        paragraph.lineSpacing = 5
+        paragraph.paragraphSpacing = 6
         textStorage.addAttributes([
             .paragraphStyle: paragraph,
-            .foregroundColor: style.textColor.withAlphaComponent(0.75),
+            .foregroundColor: style.textColor.withAlphaComponent(0.72),
         ], range: lineRange)
         textStorage.addAttributes(
             [.foregroundColor: style.bulletColor],
@@ -337,9 +339,9 @@ final class EditorStyler: NSObject {
     private func listParagraphStyle() -> NSParagraphStyle {
         let paragraph = NSMutableParagraphStyle()
         paragraph.headIndent = style.listIndent
-        paragraph.firstLineHeadIndent = 8
-        paragraph.lineSpacing = 3
-        paragraph.paragraphSpacing = 2
+        paragraph.firstLineHeadIndent = 10
+        paragraph.lineSpacing = 4
+        paragraph.paragraphSpacing = 5
         paragraph.tabStops = [NSTextTab(textAlignment: .left, location: style.listIndent)]
         return paragraph
     }

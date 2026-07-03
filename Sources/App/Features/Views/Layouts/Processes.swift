@@ -17,6 +17,15 @@ private enum RunState: String, CaseIterable, Identifiable {
             case .failed: return "exclamationmark.triangle"
         }
     }
+
+    var tint: Color {
+        switch self {
+            case .active: return Design.Tint.active
+            case .running: return Design.Tint.running
+            case .blocked: return Design.Tint.blocked
+            case .failed: return Design.Tint.failed
+        }
+    }
 }
 
 private struct RunSample: Identifiable {
@@ -74,74 +83,6 @@ private enum RunSampleData {
     ]
 }
 
-private struct FilterBar: View {
-    let activeFilter: String
-    let filters: [(String, String)]
-    let onSelect: (String) -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            ForEach(filters.indices, id: \.self) { index in
-                let label = filters[index].0
-                let count = filters[index].1
-
-                Button {
-                    onSelect(label)
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(label)
-                        Text(count)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(activeFilter == label)
-            }
-
-            Spacer()
-        }
-        .padding()
-    }
-}
-
-private struct StatusBadge: View {
-    let symbol: String
-
-    var body: some View {
-        Image(systemName: symbol)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .frame(width: 24, height: 22)
-            .background(.quaternary, in: Capsule())
-    }
-}
-
-private struct StateBadge: View {
-    let title: String
-
-    var body: some View {
-        Text(title)
-            .font(.caption)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(.quaternary, in: Capsule())
-    }
-}
-
-private struct InfoBadge: View {
-    let title: String
-
-    var body: some View {
-        Text(title)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(.quinary, in: Capsule())
-    }
-}
-
 private struct ActionButton: View {
     let title: String
     var iconOnly = false
@@ -196,11 +137,10 @@ private struct OpenButton: View {
 }
 
 private struct ProcessRow: View {
-    let statusSymbol: String
+    let state: RunState
     let title: String
     let summary: String
     let time: String
-    let state: String
     let badges: [String]
     let actions: [String]
     let onAction: (String) -> Void
@@ -212,7 +152,7 @@ private struct ProcessRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
-                StatusBadge(symbol: statusSymbol)
+                Badge(symbol: state.symbol, tint: state.tint)
                     .alignmentGuide(.firstTextBaseline) { dimensions in
                         dimensions[VerticalAlignment.center]
                     }
@@ -233,14 +173,14 @@ private struct ProcessRow: View {
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(.secondary)
 
-                StateBadge(title: state)
+                Badge(state.rawValue, tint: state.tint)
             }
 
             HStack(spacing: 6) {
                 ActionButton(title: "Transcript", iconOnly: true, onAction: onAction)
 
                 ForEach(badges, id: \.self) { badge in
-                    InfoBadge(title: badge)
+                    Badge(badge, style: .neutral)
                 }
 
                 Spacer()
@@ -274,21 +214,14 @@ struct Processes: View {
 
     var body: some View {
         VStack(spacing: 0) {
-//            FilterBar(
-//                activeFilter: filter?.rawValue ?? "All",
-//                filters: filterLabels,
-//                onSelect: selectFilter
-//            )
-
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(visibleRuns) { run in
                         ProcessRow(
-                            statusSymbol: run.state.symbol,
+                            state: run.state,
                             title: run.title,
                             summary: run.latestSummary,
                             time: run.time,
-                            state: run.state.rawValue,
                             badges: run.badges,
                             actions: run.actions,
                             onAction: { _ in }

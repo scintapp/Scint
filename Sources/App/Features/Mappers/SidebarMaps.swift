@@ -717,7 +717,7 @@ struct OutlineMap: Mapper {
         }
 
         func item(for block: Sheet.Block, owner: Reference) -> ItemParams {
-            let icon = Iconography.icon(for: block, size: 13)
+            let icon = Iconography.icon(for: block, size: 16)
 
             switch block {
                 case .artifact(let ref), .command(let ref):
@@ -772,8 +772,9 @@ struct OutlineMap: Mapper {
         }
 
         return .init(
-            layout: .list,
+            layout: .group,
             nesting: .recursive,
+            header: true,
             components: [
                 .init(
                     id: "outline",

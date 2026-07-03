@@ -15,10 +15,10 @@ struct EmptyState: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(Design.Foreground.primary)
                 Text(detail)
                     .font(.system(size: 12.5))
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(Design.Foreground.caption)
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -29,7 +29,7 @@ struct EmptyState: View {
         VStack(alignment: .leading, spacing: 18) {
             Text("Capabilities overview")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
+                .foregroundStyle(Design.Foreground.primary)
 
             VStack(alignment: .leading, spacing: 13) {
                 capability(
