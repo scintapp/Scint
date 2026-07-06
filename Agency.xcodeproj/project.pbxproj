@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7C443ABD2FF956D600FD0398 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABC2FF956D600FD0398 /* Collections */; };
+		7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABE2FF956D600FD0398 /* OrderedCollections */; };
 		7C444BBC2F686AC400BA95C3 /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C444BBB2F686AC400BA95C3 /* AgencyRuntime */; };
 		7C69AB062F8B46460008D611 /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C69AB052F8B46460008D611 /* AgencyRuntime */; };
 		7CB1B9D42FC5778E00BFEA35 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB1B9D32FC5778E00BFEA35 /* MCP */; };
@@ -67,28 +69,29 @@
 		7C69AB122F8B46EE0008D611 /* Exceptions for "Sources" folder in "agencyd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Service/Service.swift,
-				Service/ServiceDaemon.swift,
-				Service/ServiceProcess.swift,
-				Service/ServiceRegistry.swift,
-				Service/ServiceUtilities.swift,
+				AgencyService/Service.swift,
+				AgencyService/ServiceDaemon.swift,
+				AgencyService/ServiceProcess.swift,
+				AgencyService/ServiceRegistry.swift,
+				AgencyService/ServiceUtilities.swift,
 			);
 			target = 7C69AAF12F8B45D90008D611 /* agencyd */;
 		};
 		7C7F7AB12F740ADE009FA3B1 /* Exceptions for "Sources" folder in "AgencyStudio" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Service/Service.swift,
-				Service/ServiceDaemon.swift,
-				Service/ServiceProcess.swift,
-				Service/ServiceRegistry.swift,
-				Service/ServiceUtilities.swift,
+				AgencyService/Service.swift,
+				AgencyService/ServiceDaemon.swift,
+				AgencyService/ServiceProcess.swift,
+				AgencyService/ServiceRegistry.swift,
+				AgencyService/ServiceUtilities.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* AgencyStudio */;
 		};
 		7C857AD52F05270000D4187D /* Exceptions for "Resources" folder in "AgencyStudio" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				DetailContent.swift,
 				Info.plist,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* AgencyStudio */;
@@ -113,14 +116,21 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		7CD3AFC12FFAAAEE0057BB5F /* Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		7C4C36E42ED17D5A00D6F1CF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */,
 				7CB1B9D42FC5778E00BFEA35 /* MCP in Frameworks */,
 				7C444BBC2F686AC400BA95C3 /* AgencyRuntime in Frameworks */,
+				7C443ABD2FF956D600FD0398 /* Collections in Frameworks */,
 				7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */,
 			);
 		};
@@ -138,6 +148,7 @@
 			children = (
 				7C4C37A52ED17F3700D6F1CF /* Resources */,
 				7C4C37A42ED17F2F00D6F1CF /* Sources */,
+				7CD3AFC12FFAAAEE0057BB5F /* Tests */,
 				7CEEDB3A2FE4D94D00297905 /* AgencyStudio.app */,
 				7CEEDB3B2FE4D94D00297905 /* agencyd.xpc */,
 			);
@@ -168,12 +179,15 @@
 			fileSystemSynchronizedGroups = (
 				7C4C37A42ED17F2F00D6F1CF /* Sources */,
 				7C4C37A52ED17F3700D6F1CF /* Resources */,
+				7CD3AFC12FFAAAEE0057BB5F /* Tests */,
 			);
 			name = AgencyStudio;
 			packageProductDependencies = (
 				7C444BBB2F686AC400BA95C3 /* AgencyRuntime */,
 				7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */,
 				7CB1B9D32FC5778E00BFEA35 /* MCP */,
+				7C443ABC2FF956D600FD0398 /* Collections */,
+				7C443ABE2FF956D600FD0398 /* OrderedCollections */,
 			);
 			productName = Agency;
 			productReference = 7CEEDB3A2FE4D94D00297905 /* AgencyStudio.app */;
@@ -232,6 +246,7 @@
 				7C444BBA2F686AC400BA95C3 /* XCLocalSwiftPackageReference "../AgencyRuntime" */,
 				7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */,
 				7CB1B9D22FC5778E00BFEA35 /* XCRemoteSwiftPackageReference "swift-sdk" */,
+				7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */,
 			);
 			preferredProjectObjectVersion = 110;
 			productRefGroup = 7C4C36DE2ED17D5A00D6F1CF;
@@ -545,6 +560,7 @@
 		7C69AAFF2F8B45D90008D611 /* Debug configuration for PBXNativeTarget "agencyd" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Resources/agencyd.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -572,6 +588,7 @@
 		7C69AB002F8B45D90008D611 /* Release configuration for PBXNativeTarget "agencyd" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Resources/agencyd.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -633,6 +650,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-collections.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.0;
+			};
+		};
 		7CB1B9D22FC5778E00BFEA35 /* XCRemoteSwiftPackageReference "swift-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/modelcontextprotocol/swift-sdk";
@@ -652,6 +677,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		7C443ABC2FF956D600FD0398 /* Collections */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = Collections;
+		};
+		7C443ABE2FF956D600FD0398 /* OrderedCollections */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = OrderedCollections;
+		};
 		7C444BBB2F686AC400BA95C3 /* AgencyRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AgencyRuntime;
