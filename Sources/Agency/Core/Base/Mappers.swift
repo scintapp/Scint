@@ -40,11 +40,9 @@ struct SpaceMap: Mapper {
                 if ref.type is Sheet.Type {
                     agency.studio.editor.model = .detail
                 } else if ref.type is Space.Type {
-                    agency.studio.browser.model = .space
-                    agency.studio.browser.model = .space
+                    agency.studio.browser.model = .single
                 } else if ref.type is Workspace.Type {
-                    agency.studio.browser.model = .space
-                    agency.studio.browser.model = .workspace
+                    agency.studio.browser.model = .single
                 }
             },
             surfaceActions: {
@@ -61,7 +59,7 @@ struct SpaceMap: Mapper {
     }
 
     static func parameters(_ agency: AgencyModel, _ panel: any Panel) -> PanelParams {
-        guard let space = agency.session.selected.space else { return WorkspaceMap.parameters(agency, panel) }
+        guard let space = agency.session.selected.space else { return DashboardMap.parameters(agency, panel) }
         let closure = Space.with(space, { $0.closure })
         let state = closure.flatMap { Closure.with($0, { $0.state }) } ?? []
         let spaces = Space.with(space, { $0.spaces }) ?? []
@@ -97,7 +95,7 @@ struct SpaceMap: Mapper {
     }
 }
 
-struct WorkspaceMap: Mapper {
+struct DashboardMap: Mapper {
     static func controls(_ agency: AgencyModel, _ panel: any Panel) -> Controls {
         .init(
             focused: { item in
@@ -124,11 +122,9 @@ struct WorkspaceMap: Mapper {
                 if ref.type is Sheet.Type {
                     agency.studio.editor.model = .detail
                 } else if ref.type is Space.Type {
-                    agency.studio.browser.model = .space
-                    agency.studio.browser.model = .space
+                    agency.studio.browser.model = .single
                 } else if ref.type is Workspace.Type {
-                    agency.studio.browser.model = .space
-                    agency.studio.browser.model = .workspace
+                    agency.studio.browser.model = .single
                 }
             },
             surfaceActions: {
@@ -984,11 +980,9 @@ struct SpacesMap: Mapper {
                 agency.select(ref, entry: item.entryId, url: item.path)
                 agency.focus(ref)
                 if ref.type is Workspace.Type {
-                    agency.studio.browser.model = .space
-                    agency.studio.browser.model = .workspace
+                    agency.studio.browser.model = .single
                 } else if ref.type is Space.Type {
-                    agency.studio.browser.model = .space
-                    agency.studio.browser.model = .space
+                    agency.studio.browser.model = .single
                 }
             },
             surfaceActions: {
@@ -1059,11 +1053,9 @@ struct NavigatorMap: Mapper {
                 agency.select(ref, entry: item.entryId, url: item.path)
                 agency.focus(ref)
                 if ref.type is Workspace.Type {
-                    agency.studio.browser.model = .space
-                    agency.studio.browser.model = .workspace
+                    agency.studio.browser.model = .single
                 } else if ref.type is Space.Type {
-                    agency.studio.browser.model = .space
-                    agency.studio.browser.model = .space
+                    agency.studio.browser.model = .single
                 }
             },
             surfaceActions: {

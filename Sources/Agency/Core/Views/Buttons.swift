@@ -3,27 +3,6 @@ import SwiftUI
 import AgencyRuntime
 
 
-struct LayoutPicker: View {
-    @Environment(AgencyModel.self) var agency
-
-    var body: some View {
-        @Bindable var detail = agency.studio.canvas
-
-        Picker("Layout", selection: $detail.layout) {
-            Group {
-                Image(systemName: "square.grid.2x2").tag(Layout.grid)
-                Image(systemName: "list.bullet").tag(Layout.list)
-                Image(systemName: "tablecells").tag(Layout.table)
-            }
-        }
-        .glassEffect(.regular)
-        .pickerStyle(.segmented)
-        .buttonStyle(.automatic)
-        .buttonSizing(.automatic)
-        .labelsHidden()
-    }
-}
-
 struct ComposerToggle: View {
     @Environment(AgencyModel.self) var agency
 
@@ -47,12 +26,9 @@ struct UtilityToggle: View {
     var body: some View {
         @Bindable var console = agency.studio.utility
 
-        Button {
-            console.presented.toggle()
-            if console.presented, console.position < 30 { console.position = 140 }
-        } label: {
+        Button { console.presented.toggle() } label: {
             Image(systemName: "dock.rectangle")
-                .frame(maxWidth: 28, maxHeight: 28, alignment: .center)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 .font(.system(size: 15, weight: .light))
                 .foregroundStyle(console.presented ? Color.secondary.opacity(0.8) : Color.primary.opacity(0.85))
                 .help(console.presented ? "Hide console." : "Show console.")
@@ -70,9 +46,9 @@ struct NavigatorToggle: View {
         Button {
             agency.studio.navigator.presented.toggle()
             agency.studio.navigator.position = 0
-            NSApp.sendAction(#selector(NSSplitViewController.toggleInspector(_:)), to: nil, from: nil)
+            NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
         } label: {
-            Image(systemName: "sidebar.squares.right")
+            Image(systemName: "sidebar.squares.left")
                 .foregroundStyle(.primary.opacity(0.9))
         }
         .glassEffect(.regular)

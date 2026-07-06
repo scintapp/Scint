@@ -16,7 +16,7 @@ import SwiftUI
             Spacer()
             UtilityToggle()
         }
-        .frame(height: 30, alignment: .bottomLeading)
+        .frame(height: 30)
         .background(Design.Background.console)
         .overlay(alignment: .top) {
             Group {
@@ -31,9 +31,6 @@ import SwiftUI
     }
 
     func view(_ agency: AgencyModel) -> some View {
-        VStack {
-            toolbar()
-            Processes()
-        }
+        Processes()
     }
 }

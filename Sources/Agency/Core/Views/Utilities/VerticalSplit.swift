@@ -4,7 +4,38 @@ import AppKit
 
 
 final class FillSplitView: NSSplitView {
-    override var dividerColor: NSColor { .clear }
+    var fillDividerColor: NSColor = .clear {
+        didSet { needsDisplay = true }
+    }
+
+    var fillDividerInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0) {
+        didSet { needsDisplay = true }
+    }
+
+    var fillDividerThickness: CGFloat? {
+        didSet {
+            needsLayout = true
+            needsDisplay = true
+        }
+    }
+
+    override var dividerColor: NSColor { fillDividerColor }
+    override var dividerThickness: CGFloat { fillDividerThickness ?? super.dividerThickness }
+
+    override func drawDivider(in rect: NSRect) {
+        fillDividerColor.setFill()
+        insetRect(rect, by: fillDividerInsets).fill()
+    }
+
+    func insetRect(_ rect: NSRect, by insets: NSEdgeInsets) -> NSRect {
+        let yInset = isFlipped ? insets.top : insets.bottom
+        return NSRect(
+            x: rect.minX + insets.left,
+            y: rect.minY + yInset,
+            width: max(0, rect.width - insets.left - insets.right),
+            height: max(0, rect.height - insets.top - insets.bottom)
+        )
+    }
 }
 
 final class SplitHostingView<Content: View>: NSHostingView<Content> {

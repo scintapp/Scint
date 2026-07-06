@@ -2,6 +2,26 @@ import SwiftUI
 import AgencyRuntime
 
 
+struct CanvasControls: View {
+    @Environment(AgencyModel.self) var agency
+
+    var body: some View {
+        @Bindable var canvas = agency.studio.canvas
+
+        Picker("Model", selection: $canvas.model) {
+            Group {
+                Image(systemName: "interface.window.stack")
+                Image(systemName: "tablecells")
+            }
+        }
+        .glassEffect(.regular)
+        .pickerStyle(.segmented)
+        .buttonStyle(.automatic)
+        .buttonSizing(.automatic)
+        .labelsHidden()
+    }
+}
+
 struct NavigationControls: View {
     @Environment(AgencyModel.self) var agency
     private var sheet: Reference? { agency.session.selected.content }
@@ -18,7 +38,7 @@ struct NavigationControls: View {
                     } else if let structure = selection.structure {
                         agency.focus(structure)
                         agency.studio.canvas.model = .browser
-                        agency.studio.browser.model = structure.type is Workspace.Type ? .workspace : .space
+                        agency.studio.browser.model = .single
                     }
                 }
             } label: { Image(systemName: "chevron.backward") }
@@ -31,7 +51,7 @@ struct NavigationControls: View {
                     } else if let structure = selection.structure {
                         agency.focus(structure)
                         agency.studio.canvas.model = .browser
-                        agency.studio.browser.model = structure.type is Workspace.Type ? .workspace : .space
+                        agency.studio.browser.model = .single
                     }
                 }
             } label: { Image(systemName: "chevron.forward") }
@@ -81,9 +101,7 @@ struct TranscriptControls: View {
     @Environment(AgencyModel.self) var agency
     let inspector: Inspector
 
-    private var space: Reference? {
-        agency.session.selected.space ?? agency.session.workspace
-    }
+    private var space: Reference? { agency.session.selected.space ?? agency.session.workspace }
 
     private var transcripts: [Reference] { [] }
 
@@ -126,10 +144,10 @@ struct PathControls: View {
                         agency.studio.canvas.model = .editor
                     } else if ref.type is Workspace.Type {
                         agency.studio.canvas.model = .browser
-                        agency.studio.browser.model = .workspace
+                        agency.studio.browser.model = .single
                     } else if ref.type is Space.Type {
                         agency.studio.canvas.model = .browser
-                        agency.studio.browser.model = .space
+                        agency.studio.browser.model = .single
                     }
                 } label: {
                     Iconography.icon(for: ref, size: 15)

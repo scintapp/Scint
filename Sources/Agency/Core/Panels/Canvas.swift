@@ -13,48 +13,36 @@ import SwiftUI
 
     enum Model: CaseIterable { case browser, composer, editor }
 
-    func controls(_ agency: AgencyModel) -> Controls {
-        SpaceMap.controls(agency, self)
-    }
-
-    func parameters(_ agency: AgencyModel) -> PanelParams {
-        SpaceMap.parameters(agency, self)
-    }
+    func controls(_ agency: AgencyModel) -> Controls { SpaceMap.controls(agency, self) }
+    func parameters(_ agency: AgencyModel) -> PanelParams { SpaceMap.parameters(agency, self) }
 
     func toolbar() -> some ToolbarContent {
         Group {
             ToolbarItem(placement: .navigation) { NavigationControls() }
-            ToolbarSpacer(.flexible, placement: .navigation)
             ToolbarItem(placement: .principal) { ProcessControls() }
-            ToolbarSpacer(.flexible, placement: .secondaryAction)
-            ToolbarItem(placement: .primaryAction) { LayoutPicker() }
+            ToolbarSpacer(.flexible, placement: .primaryAction)
+            ToolbarItem(placement: .primaryAction) { CanvasControls() }
             ToolbarItem(placement: .accessoryBar(id: "pathfinder")) { PathControls() }
         }
     }
 
-    func view(_ agency: AgencyModel) -> some View {
-        Group {
-            @Bindable var browser = agency.studio.browser
-            @Bindable var utility = agency.studio.utility
+    func view(_ agency: AgencyModel, _ content: some View) -> some View {
+        @Bindable var utility = agency.studio.utility
+        return VerticalSplit($utility.presented, position: $utility.position) {
+            content
+        } bottom: {
+            agency.studio.utility.view(agency)
+        }
+        .toolbar { toolbar() }
+    }
 
-            VerticalSplit($utility.presented, position: $utility.position) {
-                HorizontalSplit($browser.presented, position: $browser.position) {
-                    agency.studio.browser.view(agency)
-                        .safeAreaInset(edge: .top) { Color.clear.frame(height: 80) }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .scrollEdgeEffectStyle(.hard, for: .top)
-                } trailing: {
-                    agency.studio.editor.view(agency)
-                        .safeAreaInset(edge: .top) { Color.clear.frame(height: 80) }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .scrollEdgeEffectStyle(.hard, for: .top)
-                }
-            } bottom: {
-                agency.studio.utility.view(agency)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .toolbar(removing: .title)
-            .toolbar { toolbar() }
+    func view(_ agency: AgencyModel) -> some View {
+        @Bindable var trailing = agency.studio.editor
+        return HorizontalSplit($trailing.presented, $trailing.position, .init(visibleInsets: NSEdgeInsets(top: 86, left: 0, bottom: 0, right: 0))) {
+            if agency.session.selected.space != nil { agency.studio.browser.view(agency) }
+            else { agency.studio.dashboard.view(agency) }
+        } trailing: {
+            agency.studio.editor.view(agency)
         }
     }
 }

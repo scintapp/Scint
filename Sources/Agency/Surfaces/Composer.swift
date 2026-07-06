@@ -59,9 +59,7 @@ struct ComposerInput: View {
 
     func view(_ agency: AgencyModel) -> some View {
         ZStack(alignment: .bottom) {
-            Builder.build(agency, self)
             ComposerInput()
-                .frame(maxWidth: .infinity, alignment: .bottom)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

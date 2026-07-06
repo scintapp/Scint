@@ -10,6 +10,7 @@ import SwiftUI
     let utility = Utility()
 
     let browser = Browser()
+    let dashboard = Dashboard()
     let composer = Composer()
     let editor = Editor()
 }
@@ -23,18 +24,21 @@ struct Studio: Feature {
         NavigationSplitView {
             agency.studio.navigator.view(agency)
                 .environment(agency)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .navigationSplitViewColumnWidth(ideal: 280)
+                .scrollEdgeEffectStyle(.hard, for: .top)
         } detail: {
             agency.studio.canvas.view(agency)
                 .environment(agency)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .scrollEdgeEffectStyle(.hard, for: .top)
+                .toolbar { agency.studio.canvas.toolbar() }
+                .toolbar(removing: .title)
         }
         .inspector(isPresented: $inspector.presented) {
             agency.studio.inspector.view(agency)
                 .environment(agency)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .scrollEdgeEffectStyle(.hard, for: .top)
                 .inspectorColumnWidth(ideal: 340)
+                .toolbar(removing: .sidebarToggle)
         }
     }
 }

@@ -18,11 +18,18 @@ extension CaseIterable {
 
 @MainActor protocol Panel: AnyObject {
     associatedtype Model = CaseIterable
-    var state: Set<AnyHashable> { get set }
     var model: Model { get }
+    var presented: Bool { get set }
+    func controls(_ agency: AgencyModel) -> Controls
+    func parameters(_ agency: AgencyModel) -> PanelParams
+}
+
+protocol Surface {
+    associatedtype Model = CaseIterable
     var layout: Layout { get }
     var position: CGFloat { get set }
     var presented: Bool { get set }
+    var state: Set<AnyHashable> { get set }
     func controls(_ agency: AgencyModel) -> Controls
     func parameters(_ agency: AgencyModel) -> PanelParams
 }
@@ -33,13 +40,16 @@ extension CaseIterable {
     static func item(from result: SearchResult) -> ItemParams
 }
 
+extension Surface {
+    func isExpanded(_ id: AnyHashable) -> Bool { state.contains(id) }
+    mutating func setExpanded(_ id: AnyHashable) { if state.contains(id) { state.remove(id) } else { state.insert(id) } }
+}
+
 extension Panel {
     func controls(_ agency: AgencyModel) -> Controls { .init() }
     func parameters(_ agency: AgencyModel) -> PanelParams { .init() }
     func toolbar(_ agency: AgencyModel) -> any ToolbarContent { ToolbarItem() { EmptyView() } }
     func view(_ agency: AgencyModel) -> some View { Builder.build(agency, self) }
-    func isExpanded(_ id: AnyHashable) -> Bool { state.contains(id) }
-    func setExpanded(_ id: AnyHashable) { if state.contains(id) { state.remove(id) } else { state.insert(id) } }
 }
 
 extension Mapper {

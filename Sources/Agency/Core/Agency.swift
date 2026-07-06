@@ -2,7 +2,6 @@ import AgencyRuntime
 import SwiftUI
 
 
-
 @main
 struct Agency: App {
     @Environment(\.openWindow) private var openWindow

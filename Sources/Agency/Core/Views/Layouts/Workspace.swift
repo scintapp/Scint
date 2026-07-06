@@ -442,6 +442,5 @@ struct WorkspaceLayout: View {
             WorkspaceStartPanel(lanes: WorkspaceSampleData.lanes)
         }
         .frame(maxWidth: 740)
-        .padding(18)
     }
 }
