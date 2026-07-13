@@ -28,7 +28,6 @@ struct GridIcon: View {
         }
         .frame(width: 96, height: 112)
         .background(shape.fill(focused ? Design.Tint.info.opacity(0.12) : Color.clear))
-        .overlay(shape.strokeBorder(focused ? Design.Tint.info.opacity(0.34) : Color.clear, lineWidth: 1))
         .contentShape(shape)
         .gesture(
             TapGesture(count: 2)

@@ -8,6 +8,10 @@ final class FillSplitView: NSSplitView {
         didSet { needsDisplay = true }
     }
 
+    var clipsVerticalDividerToSafeArea = false {
+        didSet { needsDisplay = true }
+    }
+
     var fillDividerInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0) {
         didSet { needsDisplay = true }
     }
@@ -24,7 +28,11 @@ final class FillSplitView: NSSplitView {
 
     override func drawDivider(in rect: NSRect) {
         fillDividerColor.setFill()
-        insetRect(rect, by: fillDividerInsets).fill()
+        dividerVisibleRect(for: rect).fill()
+    }
+
+    func dividerVisibleRect(for rect: NSRect) -> NSRect {
+        insetRect(rect, by: resolvedDividerInsets)
     }
 
     func insetRect(_ rect: NSRect, by insets: NSEdgeInsets) -> NSRect {
@@ -36,12 +44,20 @@ final class FillSplitView: NSSplitView {
             height: max(0, rect.height - insets.top - insets.bottom)
         )
     }
+
+    private var resolvedDividerInsets: NSEdgeInsets {
+        var insets = fillDividerInsets
+        if clipsVerticalDividerToSafeArea, isVertical {
+            insets.top = max(insets.top, safeAreaInsets.top)
+        }
+        return insets
+    }
 }
 
 final class SplitHostingView<Content: View>: NSHostingView<Content> {
-    override var safeAreaInsets: NSEdgeInsets {
-        NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-    }
+//    override var safeAreaInsets: NSEdgeInsets {
+//        NSEdgeInsetsZero
+//    }
 }
 
 struct VerticalSplit<Top: View, Bottom: View>: NSViewRepresentable {
@@ -56,7 +72,7 @@ struct VerticalSplit<Top: View, Bottom: View>: NSViewRepresentable {
 
     init(
         _ presented: Binding<Bool>,
-        position: Binding<CGFloat>,
+        _ position: Binding<CGFloat>,
         collapsedHeight: CGFloat = 34,
         minTopHeight: CGFloat = 0,
         minBottomHeight: CGFloat = 0,

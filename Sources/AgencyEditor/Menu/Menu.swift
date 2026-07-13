@@ -98,19 +98,19 @@ struct EditorMenuEmptyState: View {
         Iconography.Icon(
             symbol: Iconography.symbol(for: $0),
             tint: Iconography.accent(for: $0),
-            sizing: 18,
-            selected: selected
+            sizing: 20,
+            selected: true
         )
     } ?? Iconography.Icon(
         symbol: symbol,
         tint: editorMenuTint(for: symbol),
-        sizing: 18,
-        selected: selected
+        sizing: 20,
+        selected: true
     )
 
     view
-        .frame(width: 38, height: 38)
-        .opacity(selected ? 1 : 0.88)
+        .frame(width: 32, height: 32)
+        .opacity(selected ? 1 : 0.92)
 }
 
 struct EditorMenuRow: View {
@@ -118,27 +118,27 @@ struct EditorMenuRow: View {
     private var menu: MenuModel { editor.menu }
     private var selected: Bool { item.id == menu.selectedID }
     let item: MenuItem
-    let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+    let shape = RoundedRectangle(cornerRadius: 15, style: .continuous)
 
     var body: some View {
         Button {
             menu.select(item)
             editor.commitMenuSelection()
         } label: {
-            HStack {
+            HStack(alignment: .center) {
                 if let ref = item.ref { editorMenuIcon(icon: "", selected: selected, ref: ref) }
                 else if let icon = item.icon { editorMenuIcon(icon: icon, selected: selected) }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.label)
-                        .font(.system(size: 14.5, weight: selected ? .semibold : .medium))
-                        .foregroundStyle(selected ? Color.white.opacity(0.96) : Design.Foreground.primary)
+                        .font(.system(size: 13.5, weight: selected ? .semibold : .medium))
+                        .foregroundStyle(selected ? Design.Foreground.primary : Design.Foreground.secondary)
                         .lineLimit(1)
 
                     if !item.detail.isEmpty {
                         Text(item.detail)
-                            .font(.system(size: 12))
-                            .foregroundStyle(selected ? Color.white.opacity(0.65) : Design.Foreground.caption)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Design.Foreground.disabled)
                             .lineLimit(1)
                     }
                 }
@@ -147,14 +147,15 @@ struct EditorMenuRow: View {
 
                 if selected {
                     Image(systemName: "return")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary.opacity(0.82))
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(Design.Foreground.tertiary)
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 9)
+            .padding(.vertical, 6)
+            .frame(minHeight: 46)
             .background(
-                shape.fill(selected ? Color.white.opacity(0.09) : Color.clear)
+                shape.fill(selected ? Design.Foreground.quaternary.opacity(0.24) : Color.clear)
             )
             .contentShape(shape)
         }
@@ -178,21 +179,21 @@ struct EditorMenuList: View {
     private var list: some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     ForEach(menu.items) { item in
                         if case .dividerItem = item {
                             Divider()
-                                .overlay(Color.white.opacity(0.08))
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
+                                .opacity(0.34)
+                                .padding(.leading, 54)
+                                .padding(.vertical, 4)
                         } else {
                             EditorMenuRow(item: item)
                                 .id(item.id)
                         }
                     }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 8)
             }
             .onChange(of: menu.selectedID) { _, newID in
                 guard let newID else { return }
@@ -208,8 +209,14 @@ struct EditorMenuList: View {
             if menu.items.isEmpty { EditorMenuEmptyState(title: emptyTitle, width: menu.size.width, height: menu.size.height) }
             else { list }
         }
-        .glassEffect(.regular.tint(Design.Background.menu), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
+        .background(Design.Background.block.opacity(0.44))
+        .glassEffect(.regular.tint(Design.Background.menu), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.75)
+        }
     }
 }
 
@@ -222,22 +229,21 @@ struct MenuForm: View {
 
     private var header: some View {
         HStack {
-            Image(systemName: kind.icon)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 22, height: 22)
+            Iconography.Icon(symbol: kind.icon, tint: editorMenuTint(for: kind.icon), sizing: 16)
+                .frame(width: 26, height: 26)
 
             Text(kind.title)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 13.5, weight: .semibold))
+                .foregroundStyle(Design.Foreground.primary)
 
             Spacer()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
     }
 
     private var fields: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 12) {
             formField(
                 placeholder: kind.primaryPlaceholder,
                 text: Binding(get: { menu.formPrimary }, set: { menu.formPrimary = $0 }),
@@ -247,33 +253,48 @@ struct MenuForm: View {
 
             actions
         }
-        .padding(12)
+        .padding(14)
     }
 
     private var actions: some View {
-        HStack {
+        HStack(spacing: 8) {
             Spacer()
             Button("Cancel") { menu.close() }
                 .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-            Button("Insert") { editor.commitMenuSelection() }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Design.Foreground.disabled)
+            Button {
+                editor.commitMenuSelection()
+            } label: {
+                Text("Insert")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Design.Foreground.tertiary)
+                    .padding(.horizontal, 9)
+                    .frame(height: 27)
+                    .background(Color.primary.opacity(0.04))
+                    .clipShape(Capsule())
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(Color.primary.opacity(0.075), lineWidth: 0.75)
+                    }
+            }
+            .buttonStyle(.plain)
         }
     }
 
     private func formField(placeholder: String, text: Binding<String>, focusValue: EditorMenuFocus, commit: @escaping () -> Void) -> some View {
         TextField(placeholder, text: text)
             .textFieldStyle(.plain)
-            .font(.system(size: 13))
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(Design.Foreground.secondary)
             .padding(.horizontal, 10)
-            .frame(height: 30)
+            .frame(height: 32)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Design.Background.menu)
+                    .fill(Color.primary.opacity(0.04))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                            .stroke(Color.primary.opacity(0.075), lineWidth: 0.75)
                     )
             )
             .focused(focus, equals: focusValue)
@@ -290,11 +311,17 @@ struct MenuForm: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            Divider().overlay(Color.white.opacity(0.08))
+            Divider().opacity(0.42)
             fields
         }
-        .glassEffect(.regular.tint(Design.Background.menu), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
+        .background(Design.Background.block.opacity(0.44))
+        .glassEffect(.regular.tint(Design.Background.menu), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.75)
+        }
     }
 }
 

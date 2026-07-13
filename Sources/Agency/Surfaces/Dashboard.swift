@@ -2,7 +2,7 @@ import AgencyRuntime
 import SwiftUI
 
 
- enum WorkspaceSampleData {
+ enum DashboardSampleData {
     static let suggestions = [
         "What changed since my last session?",
         "Find stale source assumptions",
@@ -10,25 +10,25 @@ import SwiftUI
     ]
 
     static let signals = [
-        WorkspaceSignal(
+        DashboardSignal(
             tone: .blocked,
             title: "Preview validation failed in Operations Utility.",
             detail: "The failing run references one invalid YAML artifact and is safe to inspect from console.",
             action: "Open"
         ),
-        WorkspaceSignal(
+        DashboardSignal(
             tone: .warning,
             title: "Source Reliability Notes has not been touched in 6 days.",
             detail: "Three live sheets depend on it for citation and evidence standards.",
             action: "Review"
         ),
-        WorkspaceSignal(
+        DashboardSignal(
             tone: .ready,
             title: "Client Intake is ready for the next discovery call.",
             detail: "Commands, tasks, and nested briefing sheets are assembled.",
             action: "Continue"
         ),
-        WorkspaceSignal(
+        DashboardSignal(
             tone: .standard,
             title: "Customer Learning Lab is the highest-salience boundary.",
             detail: "Recent edits, an observer harness, and two policy sheets converge there.",
@@ -37,19 +37,19 @@ import SwiftUI
     ]
 
     static let paths = [
-        WorkspacePath(
+        DashboardPath(
             title: "Freelance",
             route: "Client Intake / Discovery Call Prep / Proposal Assembly",
             badge: "8 sheets",
             tint: Design.Tint.sheet
         ),
-        WorkspacePath(
+        DashboardPath(
             title: "Content Practice",
             route: "Repurposing Workflow / Customer Learning Lab / Research Desk",
             badge: "active",
             tint: Design.Tint.observe
         ),
-        WorkspacePath(
+        DashboardPath(
             title: "Operations Utility",
             route: "Runtime migration / Testing / Fixture rewrite / Preview validation",
             badge: "5 runs",
@@ -58,46 +58,46 @@ import SwiftUI
     ]
 
     static let lanes = [
-        WorkspaceLane(
+        DashboardLane(
             title: "Executable Documents",
             symbol: "text.alignleft",
             tint: Design.Tint.sheet,
             items: [
-                WorkspaceLaneItem(
+                DashboardLaneItem(
                     title: "Intake Interview Script",
                     detail: "Call-plan runbook with two commands and three unresolved tasks."
                 ),
-                WorkspaceLaneItem(
+                DashboardLaneItem(
                     title: "Follow-Up Packet Instructions",
                     detail: "Candidate for a dispatch harness and artifact collection."
                 )
             ]
         ),
-        WorkspaceLane(
+        DashboardLane(
             title: "Harness Entry Points",
             symbol: Iconography.Custom.observe.rawValue,
             tint: Design.Tint.harness,
             items: [
-                WorkspaceLaneItem(
+                DashboardLaneItem(
                     title: "Research Briefing Agent",
                     detail: "Observer loaded in Customer Learning Lab with two source sheets."
                 ),
-                WorkspaceLaneItem(
+                DashboardLaneItem(
                     title: "Local Context Indexer",
                     detail: "Can traverse Documents and summarize changed local files."
                 )
             ]
         ),
-        WorkspaceLane(
+        DashboardLane(
             title: "Suggested Moves",
             symbol: Iconography.Custom.traverse.rawValue,
             tint: Design.Tint.traverse,
             items: [
-                WorkspaceLaneItem(
+                DashboardLaneItem(
                     title: "Open the stale reliability sheet",
                     detail: "It anchors several downstream agent prompts and citations."
                 ),
-                WorkspaceLaneItem(
+                DashboardLaneItem(
                     title: "Ask for a workspace delta",
                     detail: "Summarize edits, runs, and blocked context since last session."
                 )
@@ -106,7 +106,7 @@ import SwiftUI
     ]
 }
 
- enum WorkspaceSignalTone {
+ enum DashboardSignalTone {
     case standard
     case warning
     case blocked
@@ -131,15 +131,15 @@ import SwiftUI
     }
 }
 
- struct WorkspaceSignal: Identifiable {
+ struct DashboardSignal: Identifiable {
     let id = UUID()
-    let tone: WorkspaceSignalTone
+    let tone: DashboardSignalTone
     let title: String
     let detail: String
     let action: String
 }
 
- struct WorkspacePath: Identifiable {
+ struct DashboardPath: Identifiable {
     let id = UUID()
     let title: String
     let route: String
@@ -147,27 +147,27 @@ import SwiftUI
     let tint: Color
 }
 
- struct WorkspaceLane: Identifiable {
+ struct DashboardLane: Identifiable {
     let id = UUID()
     let title: String
     let symbol: String
     let tint: Color
-    let items: [WorkspaceLaneItem]
+    let items: [DashboardLaneItem]
 }
 
- struct WorkspaceLaneItem: Identifiable {
+ struct DashboardLaneItem: Identifiable {
     let id = UUID()
     let title: String
     let detail: String
 }
 
- struct WorkspaceBriefingPanel: View {
-    let signals: [WorkspaceSignal]
+ struct DashboardBriefingPanel: View {
+    let signals: [DashboardSignal]
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Workspace Briefing")
+                Text("Dashboard Briefing")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Design.Foreground.primary)
 
@@ -184,7 +184,7 @@ import SwiftUI
 
             VStack(spacing: 0) {
                 ForEach(signals) { signal in
-                    WorkspaceSignalRow(signal: signal)
+                    DashboardSignalRow(signal: signal)
 
                     if signal.id != signals.last?.id {
                         Divider()
@@ -203,8 +203,8 @@ import SwiftUI
     }
 }
 
- struct WorkspaceSignalRow: View {
-    let signal: WorkspaceSignal
+ struct DashboardSignalRow: View {
+    let signal: DashboardSignal
 
     var body: some View {
         HStack {
@@ -247,8 +247,8 @@ import SwiftUI
     }
 }
 
- struct WorkspaceContextPanel: View {
-    let paths: [WorkspacePath]
+ struct DashboardContextPanel: View {
+    let paths: [DashboardPath]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -293,7 +293,7 @@ import SwiftUI
 
                 VStack {
                     ForEach(paths) { path in
-                        WorkspacePathRow(path: path)
+                        DashboardPathRow(path: path)
                     }
                 }
             }
@@ -308,8 +308,8 @@ import SwiftUI
     }
 }
 
- struct WorkspacePathRow: View {
-    let path: WorkspacePath
+ struct DashboardPathRow: View {
+    let path: DashboardPath
 
     var body: some View {
         HStack(alignment: .top) {
@@ -341,47 +341,8 @@ import SwiftUI
     }
 }
 
- struct WorkspaceStartPanel: View {
-    let lanes: [WorkspaceLane]
-
-     let columns = [
-        GridItem(.adaptive(minimum: 240), spacing: 1, alignment: .top)
-    ]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Start From Context")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Design.Foreground.primary)
-
-                Spacer()
-
-                Text("not a grid, not a board")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Design.Foreground.disabled)
-            }
-            .padding(.horizontal, 17)
-            .padding(.vertical, 15)
-
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 1) {
-                ForEach(lanes) { lane in
-                    WorkspaceLaneColumn(lane: lane)
-                }
-            }
-            .background(Color.primary.opacity(0.055))
-        }
-        .background(Design.Background.block.opacity(0.28))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75)
-        }
-    }
-}
-
- struct WorkspaceLaneItemRow: View {
-    let item: WorkspaceLaneItem
+ struct DashboardLaneItemRow: View {
+    let item: DashboardLaneItem
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -400,8 +361,8 @@ import SwiftUI
     }
 }
 
-struct WorkspaceLaneColumn: View {
-    let lane: WorkspaceLane
+struct DashboardLaneColumn: View {
+    let lane: DashboardLane
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -415,7 +376,7 @@ struct WorkspaceLaneColumn: View {
             .padding(.bottom, 11)
 
             ForEach(lane.items) { item in
-                WorkspaceLaneItemRow(item: item)
+                DashboardLaneItemRow(item: item)
 
                 if item.id != lane.items.last?.id {
                     Divider().opacity(0.34)
@@ -428,19 +389,78 @@ struct WorkspaceLaneColumn: View {
     }
 }
 
-struct WorkspaceLayout: View {
+struct DashboardStartPanel: View {
+    let lanes: [DashboardLane]
+
+    let columns = [ GridItem(.adaptive(minimum: 240), spacing: 1, alignment: .top) ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Start From Context")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Design.Foreground.primary)
+
+                Spacer()
+
+                Text("not a grid, not a board")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Design.Foreground.disabled)
+            }
+            .padding(.horizontal, 17)
+            .padding(.vertical, 15)
+
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 1) {
+                ForEach(lanes) { lane in DashboardLaneColumn(lane: lane) }
+            }
+            .background(Color.primary.opacity(0.055))
+        }
+        .background(Design.Background.block.opacity(0.28))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75)
+        }
+    }
+}
+
+struct DashboardContent: View {
     private let columns = [
         GridItem(.adaptive(minimum: 320, maximum: 440), spacing: 24, alignment: .top)
     ]
 
     var body: some View {
-        VStack(alignment: .center, spacing: 18) {
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 18) {
-                WorkspaceContextPanel(paths: WorkspaceSampleData.paths)
-                WorkspaceBriefingPanel(signals: WorkspaceSampleData.signals)
+        HStack {
+            ScrollView {
+                VStack(alignment: .center, spacing: 18) {
+                    Group {
+                        LazyVGrid(columns: columns, alignment: .leading, spacing: 18) {
+                            DashboardContextPanel(paths: DashboardSampleData.paths)
+                            DashboardBriefingPanel(signals: DashboardSampleData.signals)
+                        }
+                        DashboardStartPanel(lanes: DashboardSampleData.lanes)
+                    }
+                    .frame(maxWidth: 320)
+                }
             }
-            WorkspaceStartPanel(lanes: WorkspaceSampleData.lanes)
         }
-        .frame(maxWidth: 740)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .background(Design.Background.console)
     }
+}
+
+struct Dashboard: Surface {
+    @Environment(AgencyModel.self) var agency
+
+    var body: some View {
+        DashboardContent()
+    }
+}
+
+#Preview("Dashboard") {
+    DashboardContent()
+        .frame(width: 860, height: 720)
+        .preferredColorScheme(.dark)
 }

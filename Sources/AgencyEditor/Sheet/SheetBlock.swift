@@ -3,7 +3,7 @@ import LinkPresentation
 import SwiftUI
 
 
-struct SelectableEntry<Content: View>: View {
+struct SelectableBlock<Content: View>: View {
     @Environment(\.editorFocus) private var focus
     @State private var isHovered = false
     let id: UUID
@@ -84,9 +84,15 @@ struct LinkBlock: View {
     }
 
     var body: some View {
-        HStack(alignment: .center) {
-            Iconography.icon(for: Artifact.Handle.http(url), size: 16)
-                .frame(width: 22, height: 22)
+        let shape = Design.Shape.block
+
+        HStack(alignment: .center, spacing: 12) {
+            RoundedRectangle(cornerRadius: 99, style: .continuous)
+                .fill(Design.Tint.artifact.opacity(0.76))
+                .frame(width: 3)
+
+            Iconography.icon(for: Artifact.Handle.http(url), size: 18)
+                .frame(width: 28, height: 28)
 
             TextContent(
                 title: metadata?.title ?? fallbackTitle,
@@ -98,15 +104,12 @@ struct LinkBlock: View {
 
             Spacer(minLength: 10)
         }
-        .padding(.leading, 16)
-        .padding(.vertical, 2)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(Design.Tint.artifact.opacity(0.72))
-                .frame(width: 4)
-                .padding(.vertical, 8)
-        }
+        .padding(.horizontal, 13)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 64, maxHeight: 64, alignment: .leading)
+        .background(Design.Background.block.opacity(0.28))
+        .clipShape(shape)
+        .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
         .task(id: url) { await load() }
     }
 }
@@ -118,10 +121,16 @@ struct ArtifactBlock: View {
         let name = Artifact.with(ref, { $0.name }) ?? "Link"
         let handle = Artifact.with(ref, { $0.handle }) ?? .http(nil)
         guard let url = Artifact.with(ref, { $0.handle.url }) ?? nil else {
+            let shape = Design.Shape.block
+
             return AnyView(
-                HStack(alignment: .center) {
-                    Iconography.icon(for: handle, size: 16)
-                        .frame(width: 22, height: 22)
+                HStack(alignment: .center, spacing: 12) {
+                    RoundedRectangle(cornerRadius: 99, style: .continuous)
+                        .fill(Design.Tint.artifact.opacity(0.76))
+                        .frame(width: 3)
+
+                    Iconography.icon(for: handle, size: 18)
+                        .frame(width: 28, height: 28)
                     TextContent(
                         title: name,
                         detail: Artifact.with(ref, { $0.rendered }) ?? "",
@@ -131,15 +140,12 @@ struct ArtifactBlock: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     Spacer(minLength: 10)
                 }
-                    .padding(.leading, 16)
-                    .padding(.vertical, 2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .overlay(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .fill(Design.Tint.artifact.opacity(0.72))
-                            .frame(width: 4)
-                            .padding(.vertical, 8)
-                    }
+                .padding(.horizontal, 13)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, minHeight: 42, maxHeight: 42, alignment: .leading)
+                .background(Design.Background.block.opacity(0.28))
+                .clipShape(shape)
+                .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
             )
         }
         return AnyView(LinkBlock(fallbackTitle: name, url: url))
@@ -150,22 +156,25 @@ struct ArtifactBlock: View {
         let meta = Artifact.with(ref, { $0.rendered }) ?? ""
         let handle = Artifact.with(ref, { $0.handle }) ?? .file(nil)
 
-        return HStack(alignment: .center) {
-            Iconography.icon(for: handle, size: 16)
-                .frame(width: 22, height: 22)
+        let shape = Design.Shape.block
+
+        return HStack(alignment: .center, spacing: 12) {
+            RoundedRectangle(cornerRadius: 99, style: .continuous)
+                .fill(Design.Tint.artifact.opacity(0.76))
+                .frame(width: 3)
+
+            Iconography.icon(for: handle, size: 18)
+                .frame(width: 28, height: 28)
             TextContent(title: name, detail: meta, design: .default)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 10)
         }
-        .padding(.leading, 16)
-        .padding(.vertical, 2)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(Design.Tint.artifact.opacity(0.72))
-                .frame(width: 4)
-                .padding(.vertical, 8)
-        }
+        .padding(.horizontal, 13)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 64, maxHeight: 64, alignment: .leading)
+        .background(Design.Background.block.opacity(0.28))
+        .clipShape(shape)
+        .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
     }
 
     var body: some View {
@@ -302,15 +311,18 @@ struct SheetBlock: View {
 
                     for line in lines where !line.isEmpty {
                         var isHeading = false
+
                         for level in 1...6 {
                             if line.hasPrefix(String(repeating: "#", count: level) + " ") {
                                 isHeading = true
                                 break
                             }
                         }
+
                         if isHeading { continue }
 
                         var snippet = line
+
                         for prefix in ["> ", "- [ ] ", "- [x] ", "- [X] ", "- "] where snippet.hasPrefix(prefix) {
                             snippet.removeFirst(prefix.count)
                             break
@@ -335,6 +347,7 @@ struct SheetBlock: View {
                 .filter { !$0.isEmpty }
             if snippets.count >= 2 { return snippets.prefix(2).joined(separator: "\n") }
         }
+
         return snippets.prefix(2).joined(separator: "\n")
     }
 
@@ -347,56 +360,46 @@ struct SheetBlock: View {
         let facts = Command.with(ref, { commandFacts($0.parameters) }) ?? (artifacts: 0, args: [], properties: [])
         let args = facts.args.joined(separator: " ")
 
-        return HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 3) {
+        return HStack(alignment: .center, spacing: 12) {
+            RoundedRectangle(cornerRadius: 99, style: .continuous)
+                .fill(Design.Tint.command.opacity(0.76))
+                .frame(width: 3)
+
+            Iconography.Icon(symbol: Iconography.Custom.dispatch.rawValue, tint: Design.Tint.command, sizing: 18)
+                .frame(width: 28, height: 28)
+
+            VStack(alignment: .leading, spacing: 4) {
                 Text(name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Design.Foreground.primary)
+                    .font(.system(size: 13.5, weight: .semibold))
+                    .foregroundStyle(Design.Foreground.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
                 Text(description.isEmpty ? executable : description)
-                    .font(.system(size: 14, weight: .regular, design: description.isEmpty ? .monospaced : .default))
-                    .foregroundStyle(Design.Foreground.caption)
+                    .font(.system(size: 12, weight: .medium, design: description.isEmpty ? .monospaced : .default))
+                    .foregroundStyle(Design.Foreground.disabled)
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(alignment: .center, spacing: 7) {
+            HStack(alignment: .center, spacing: 6) {
                 if facts.artifacts > 0 {
-                    Badge("\(facts.artifacts) artifact\(facts.artifacts == 1 ? "" : "s")", tint: Design.Tint.command)
+                    Badge("\(facts.artifacts) artifact\(facts.artifacts == 1 ? "" : "s")", tint: Design.Tint.command, style: .neutral)
                 }
                 if !args.isEmpty {
-                    Badge(args, tint: Design.Tint.command, monospaced: true)
+                    Badge(args, tint: Design.Tint.command, style: .neutral, monospaced: true)
                 }
             }
             .fixedSize(horizontal: true, vertical: false)
         }
-        .padding(.leading, 40)
-        .padding(.trailing, 20)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 12)
         .contentShape(shape)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background {
-            ZStack(alignment: .leading) {
-                shape.fill(Design.Background.block.opacity(0.62))
-                shape.fill(
-                    LinearGradient(
-                        colors: [Design.Tint.command.opacity(0.105), Design.Tint.command.opacity(0.015), Color.clear],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-            }
-        }
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(Design.Tint.command.opacity(0.86))
-                .frame(width: 4)
-                .padding(.vertical, 16)
-        }
-        .overlay { shape.strokeBorder(Design.Tint.command.opacity(0.24), lineWidth: 0.85) }
+        .frame(maxWidth: .infinity, minHeight: 64, maxHeight: 64, alignment: .topLeading)
+        .background(Design.Background.block.opacity(0.28))
+        .clipShape(shape)
+        .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
     }
 
     func commandFacts(_ params: [Command.Parameter]) -> (artifacts: Int, args: [String], properties: [Properties]) {
@@ -421,54 +424,43 @@ struct SheetBlock: View {
         let blocks = Sheet.with(ref, { $0.blocks }) ?? []
         let facts = sheetFacts(blocks)
 
-        return HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 3) {
+        return HStack(alignment: .center, spacing: 12) {
+            RoundedRectangle(cornerRadius: 99, style: .continuous)
+                .fill(Design.Tint.sheet.opacity(0.76))
+                .frame(width: 3)
+
+            Iconography.Icon(symbol: "text.alignleft", tint: Design.Tint.sheet, sizing: 18)
+                .frame(width: 28, height: 28)
+
+            VStack(alignment: .leading, spacing: 4) {
                 Text(name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Design.Foreground.primary)
+                    .font(.system(size: 13.5, weight: .semibold))
+                    .foregroundStyle(Design.Foreground.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
                 Text(description.isEmpty ? firstPreview(blocks) : description)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(Design.Foreground.caption)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Design.Foreground.disabled)
                     .lineLimit(2)
                     .truncationMode(.tail)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(alignment: .center, spacing: 7) {
+            HStack(alignment: .center, spacing: 6) {
                 ForEach(Array(facts.prefix(3)).indices, id: \.self) { index in
-                    Badge(facts[index], tint: Design.Tint.sheet)
+                    Badge(facts[index], tint: Design.Tint.sheet, style: .neutral)
                 }
             }
             .fixedSize(horizontal: true, vertical: false)
         }
-        .padding(.leading, 40)
-        .padding(.trailing, 20)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 12)
         .contentShape(shape)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background {
-            ZStack(alignment: .leading) {
-                shape.fill(Design.Background.block.opacity(0.62))
-                shape.fill(
-                    LinearGradient(
-                        colors: [Design.Tint.sheet.opacity(0.105), Design.Tint.sheet.opacity(0.015), Color.clear],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-            }
-        }
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(Design.Tint.sheet.opacity(0.86))
-                .frame(width: 4)
-                .padding(.vertical, 16)
-        }
-        .overlay { shape.strokeBorder(Design.Tint.sheet.opacity(0.24), lineWidth: 0.85) }
-        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, minHeight: 64, maxHeight: 64, alignment: .topLeading)
+        .background(Design.Background.block.opacity(0.28))
+        .clipShape(shape)
+        .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
     }
 
     func sheetFacts(_ entries: [Block]) -> [String] {
@@ -497,7 +489,7 @@ struct SheetBlock: View {
     }
 
     var body: some View {
-        SelectableEntry(
+        SelectableBlock(
             id: id,
             isSelected: isSelected,
             onFocusGained: onFocusGained,

@@ -27,10 +27,11 @@ struct GroupCountButton: View {
 
     var body: some View {
         HStack {
-            let n = count ?? 0
-            Text(n == 0 ? "None" : n == 1 ? "1 Loaded" : "\(n) Loaded")
-                .font(.system(size: 12))
-                .foregroundStyle(n == 0 ? .tertiary : .secondary)
+            if let count {
+                Text(count == 0 ? "None" : count == 1 ? "1 Loaded" : "\(count) Loaded")
+                    .font(.system(size: 12))
+                    .foregroundStyle(count == 0 ? .tertiary : .secondary)
+            }
             Button("Load", action: onLoad)
                 .buttonStyle(.plain)
                 .font(.system(size: 12, weight: .medium))
@@ -106,27 +107,41 @@ struct GroupLoader: View {
 
 struct GroupHeader: View {
     let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+    let ref: Reference?
     let title: String
     let description: String
 
+    init(ref: Reference? = nil, title: String, description: String) {
+        self.ref = ref
+        self.title = title
+        self.description = description
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
-                .padding(.horizontal, 12)
-                .font(.system(size: 21, weight: .semibold))
-                .foregroundStyle(Color.primary.opacity(0.9))
-
-            GroupDivider()
-
-            Text(description)
-                .padding(.bottom, 2)
-                .padding(.horizontal, 12)
-                .font(.system(size: 12))
-                .foregroundStyle(Color.secondary.opacity(0.7))
+            HStack(alignment: .center) {
+                if let ref {
+                    Iconography.icon(for: ref, size: 28)
+                        .padding(.trailing, 6)
+                }
+                Text(title)
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(Color.primary.opacity(0.9))
+            }
+            .frame(maxHeight: 64)
+            .padding(.vertical, 12)
+            Divider()
+            Text(description.isEmpty ? "No description." : description)
+                    .padding(.bottom, 12)
+                    .font(.system(size: 12))
+                    .foregroundStyle(
+                        description.isEmpty ?
+                        Design.Foreground.tertiary :
+                        Design.Foreground.secondary
+                    )
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 12)
         .padding(.bottom, 8)
         .background(shape.fill(.primary.opacity(0.08)))
         .overlay(shape.stroke(.primary.opacity(0.03), lineWidth: 1))
@@ -135,29 +150,52 @@ struct GroupHeader: View {
 
 struct GroupRow<Leading: View, Trailing: View>: View {
     let label: String
+    let description: String
     @ViewBuilder let leading: Leading
     @ViewBuilder let trailing: Trailing
+
+    init(
+        label: String,
+        description: String = "",
+        @ViewBuilder leading: () -> Leading,
+        @ViewBuilder trailing: () -> Trailing
+    ) {
+        self.label = label
+        self.description = description
+        self.leading = leading()
+        self.trailing = trailing()
+    }
 
     var body: some View {
         HStack(alignment: .center) {
             leading
-                .frame(width: 38, height: 38)
+                .frame(width: 38, height: description.isEmpty ? 38 : 50)
                 .foregroundStyle(.tertiary)
                 .font(.system(size: 15, weight: .medium))
 
-            Text(label)
-                .frame(height: 38)
-                .font(.system(size: 13))
-                .foregroundStyle(.primary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary.opacity(0.88))
+                    .lineLimit(1)
+
+                if !description.isEmpty {
+                    Text(description)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary.opacity(0.72))
+                        .lineLimit(1)
+                }
+            }
+            .frame(height: description.isEmpty ? 38 : 50, alignment: .center)
 
             Spacer()
 
             trailing
-                .frame(height: 38)
+                .frame(height: description.isEmpty ? 38 : 50)
                 .labelsHidden()
                 .controlSize(.small)
         }
-        .frame(height: 38, alignment: .center)
+        .frame(height: description.isEmpty ? 38 : 50, alignment: .center)
         .padding(.horizontal, 8)
     }
 }

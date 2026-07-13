@@ -26,13 +26,12 @@ struct Library: Feature {
                 .environment(agency)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .ignoresSafeArea(.container, edges: .top)
-
         }
         .inspector(isPresented: $inspector.presented) {
             agency.studio.inspector.view(agency)
                 .environment(agency)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .inspectorColumnWidth(ideal: 340)
+                .inspectorColumnWidth(min: 260, ideal: 340, max: 520)
         }
     }
 }

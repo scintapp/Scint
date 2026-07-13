@@ -5,7 +5,7 @@ import SwiftUI
 struct ListLabel: View {
     let name: String
     let image: String
-    var tint: Color = .secondary
+    var tint: Color
     var detail: String?
 
     init(_ name: String, image: String, tint: Color = .secondary, detail: String? = nil) {
@@ -291,17 +291,18 @@ struct ListLayout<Content: View>: View {
             leadingAccessory
         } else {
             Button(role: nil, action: onToggleExpanded) {
+                let size = iconSize * 1.25
                 ZStack {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(.tertiary.opacity(0.3))
-                        .frame(width: 14, height: 14, alignment: .center)
+                        .frame(width: size, height: size, alignment: .center)
 
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .frame(width: 14, height: 14, alignment: .center)
+                        .frame(width: size, height: size, alignment: .center)
                         .font(.system(size: 8, weight: .heavy))
                         .foregroundStyle(.secondary.opacity(0.8))
                 }
-                .frame(width: iconSize, height: iconSize, alignment: .center)
+                .frame(width: size, height: size, alignment: .center)
                 .padding(.trailing, 4)
             }
             .buttonStyle(.plain)

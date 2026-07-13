@@ -8,7 +8,7 @@ public struct EditorCanvas: View {
     let autofocus: Bool
     let minimumHeight: CGFloat
 
-    init(autofocus: Bool = true, minimumHeight: CGFloat = 120) {
+    init(autofocus: Bool = true, minimumHeight: CGFloat = 100) {
         self.autofocus = autofocus
         self.minimumHeight = minimumHeight
     }

@@ -4,11 +4,9 @@ import SwiftUI
 
 @Observable final class Inspector: Panel {
     var model: Model = .settings
-    var layout: Layout = .group
-    var presented: Bool = true
-    var expanded: Set<AnyHashable> = []
+    var presented: Bool = false
     var position: CGFloat = 280
-    var state: Set<AnyHashable> = []
+    var state = SurfaceState()
 
     enum Model: String, CaseIterable {
         case outline, settings
@@ -27,8 +25,7 @@ import SwiftUI
             }
         }
 
-        @MainActor
-        var icon: Iconography.Icon {
+        @MainActor var icon: Iconography.Icon {
             switch self {
                 case .outline: Iconography.model(.sheet(.sheet))
                 case .settings: Iconography.model(.space)
@@ -38,15 +35,15 @@ import SwiftUI
 
     func controls(_ agency: AgencyModel) -> Controls {
         switch model {
-            case .outline: SheetOutlineMap.controls(agency, self)
-            case .settings: SpaceSettingsMap.controls(agency, self)
+            case .outline: SheetOutlineMap.controls(agency)
+            case .settings: SpaceSettingsMap.controls(agency)
         }
     }
 
-    func parameters(_ agency: AgencyModel) -> PanelParams {
+    func parameters(_ agency: AgencyModel) -> Params {
         switch model {
-            case .outline: SheetOutlineMap.parameters(agency, self)
-            case .settings: SpaceSettingsMap.parameters(agency, self)
+            case .outline: SheetOutlineMap.parameters(agency)
+            case .settings: SpaceSettingsMap.parameters(agency)
         }
     }
 
@@ -59,14 +56,12 @@ import SwiftUI
 
     func view(_ agency: AgencyModel) -> some View {
         VStack(alignment: .leading) {
-            InspectorTabs()
-                .frame(alignment: .top)
-            Builder.build(agency, self)
-                .scrollEdgeEffectStyle(.hard, for: .top)
-                .padding(.top, -8)
+            Builder.build(self, parameters(agency), controls(agency))
+                .scrollEdgeEffectStyle(.soft, for: .top)
         }
-        .frame(maxHeight: .infinity)
+        .frame(maxHeight: .infinity, alignment: .top)
         .toolbar(removing: .sidebarToggle)
         .toolbar { toolbar() }
+        .safeAreaBar(edge: .top) { InspectorTabs() }
     }
 }

@@ -30,25 +30,40 @@ import SwiftUI
         await artifacts.load(runtime: Runtime.shared)
     }
 
+    func compose(_ space: Reference, input: Reference? = nil) -> AgencyRuntime.Process? {
+        let request = ServiceRequest(space, parameters(for: input))
+        guard let process = Runtime.shared.compose(request) else { return nil }
+        return process
+    }
+
+    func context(_ space: Reference) -> AgencyRuntime.Process? {
+        guard let context = Runtime.shared.context(for: space) else { return nil }
+        return context
+    }
+
     func focus(_ ref: Reference?) { session.focus(ref) }
 
-    func select(_ ref: Reference) { session.select(ref) }
+    func select(_ ref: Reference) {
+        session.select(ref)
+        session.focus(ref)
+    }
 
-    func select(_ ref: Reference, entry: UUID?, url: URL?) { session.select(ref, entry: entry, url: url) }
+    func select(_ ref: Reference, entry: UUID?, url: URL?) {
+        session.select(ref, entry: entry, url: url)
+        session.focus(ref)
+    }
 
     func open(_ ref: Reference) {
         guard session.open(ref) else { return }
-
-        if ref.type is Sheet.Type {
-            session.select(ref)
-            session.focus(ref)
-            studio.canvas.model = .editor
-            studio.editor.model = .detail
-        }
+        select(ref)
     }
 
     func search(_ query: String, limit: Int) -> SearchResults { Runtime.shared.search(query, limit: limit) }
 
-    @discardableResult
-    func compose(_ space: Reference) -> AgencyRuntime.Process? { Runtime.shared.context(for: space) }
+    private func parameters(for input: Reference?) -> [AgencyRuntime.Parameter] {
+        guard let input else { return [] }
+        let text = Sheet.with(input, { $0.rendered.trimmingCharacters(in: .whitespacesAndNewlines) }) ?? ""
+        guard !text.isEmpty else { return [] }
+        return [.sheet(input), .argument(text)]
+    }
 }

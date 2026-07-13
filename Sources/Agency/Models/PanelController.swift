@@ -18,7 +18,7 @@ import SwiftUI
     }
 
     func togglePanel(_ agency: AgencyModel, content: some View) {
-        let view = AnyView(Float(content.environment(self)))
+        let view = AnyView(Float(content.environment(agency)))
         panel(agency, id: "panel", size: CGSize(width: 640, height: 480), view: view).toggle()
     }
 

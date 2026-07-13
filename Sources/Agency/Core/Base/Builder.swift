@@ -3,34 +3,44 @@ import Foundation
 
 
 @MainActor public enum Builder {
-    @ViewBuilder static func build<P: Panel>(_ agency: AgencyModel, _ panel: P) -> some View {
-        let controls = panel.controls(agency)
-        let params = panel.parameters(agency)
+    @ViewBuilder static func build(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
         let nesting = params.nesting ?? .flat
+        let layout = params.layout ?? .list
 
-        ScrollView {
-            Spacer().frame(height: 12)
-            VStack(alignment: .leading) {
-                build(panel, params: params)
-                ForEach(params.components) { component in
-                    build(panel, controls: controls, params: component, nesting: nesting)
-                        .padding(.bottom, 16)
+        build(
+            controls,
+            view: AnyView(
+                ScrollView {
+                    Color.clear.frame(height: 8)
+                    VStack(alignment: .leading) {
+                        build(params: params)
+
+                        ForEach(params.components) { component in
+                            build(surface,
+                                  controls: controls,
+                                  params: component,
+                                  layout: layout,
+                                  nesting: nesting
+                            )
+                            .padding(.bottom, 16)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 8)
                 }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, 8)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            )
+        )
     }
 
-    @ViewBuilder static func build<P: Panel>(_ panel: P, params: PanelParams) -> some View {
+    @ViewBuilder static func build(params: Params) -> some View {
         if params.header == true {
             switch params.layout {
                 case .grid:
                     EmptyView()
 
                 case .group:
-                    GroupHeader(title: params.name, description: params.description)
+                    GroupHeader(ref: params.ref, title: params.name, description: params.description)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                         .padding(.bottom, 12)
 
@@ -46,16 +56,18 @@ import Foundation
         }
     }
 
-    @ViewBuilder static func build<P: Panel>(_ panel: P, controls: Controls, params: ComponentParams, nesting: Nesting) -> some View {
-        switch panel.layout {
+    @ViewBuilder static func build(_ surface: some Surface, controls: Controls, params: ComponentParams, layout: Layout, nesting: Nesting) -> some View {
+        switch layout {
             case .group:
-
                 GroupLayout(title: params.name, footer: params.footer) {
                     ForEach(Array(params.items.enumerated()), id: \.element.id) { index, item in
                         if index > 0 { GroupDivider() }
 
                         let row = AnyView(
-                            GroupRow(label: item.name) {
+                            GroupRow(
+                                label: item.name,
+                                description: item.trailingKind == .value && item.value == nil ? "" : item.description
+                            ) {
                                 build(item)
                             } trailing: {
                                 build(controls, params: item)
@@ -121,25 +133,27 @@ import Foundation
             case .list:
                 VStack(spacing: 0) {
                     if params.header {
-                        let header = AnyView(ListHeader(
-                            name: params.name,
-                            onAdd: controls.canAddInline(sectionId: params.id) ? {
-                                controls.onAddItem?(params.id, "")
-                            } : nil
-                        ))
+                        let header = AnyView(
+                            ListHeader(
+                                name: params.name,
+                                onAdd: controls.canAddInline(sectionId: params.id)
+                                ? { controls.onAddItem?(params.id, "") }
+                                : nil
+                            )
+                        )
 
                         if let wrapHeader = controls.wrapHeader { wrapHeader(header, params) }
                         else { header }
                     }
 
                     ForEach(params.items) { item in
-                        build(panel, controls: controls, params: item, nesting: nesting, depth: 0)
+                        build(surface, controls: controls, params: item, nesting: nesting, depth: 0)
                     }
                 }
         }
     }
 
-    @ViewBuilder static func build<P: Panel>(_ panel: P, controls: Controls, params: ItemParams, nesting: Nesting, depth: Int) -> some View {
+    @ViewBuilder static func build(_ surface: some Surface, controls: Controls, params: ItemParams, nesting: Nesting, depth: Int) -> some View {
         let indent = CGFloat(depth) * 16
 
         let canExpand: Bool = {
@@ -162,17 +176,17 @@ import Foundation
                     leadingAccessory: controls.sectionLeadingAccessory?(params, depth),
                     accessory: controls.sectionAccessory?(params, depth),
                     indent: indent,
-                    isExpanded: panel.isExpanded(params.id),
+                    isExpanded: surface.isExpanded(params.id),
                     selected: controls.selected?(params) ?? false,
                     onSelect: { controls.onSelect?(params) },
-                    onToggleExpanded: { panel.setExpanded(params.id) },
+                    onToggleExpanded: { surface.setExpanded(params.id) },
                     rowWrapper: { row in
                         let wrapped = controls.wrapSection?(row, params, depth) ?? row
                         return build(controls, params: params, view: wrapped)
                     }
                 ) {
                     ForEach(params.items) { child in
-                        build(panel, controls: controls, params: child, nesting: nesting, depth: depth + 1)
+                        build(surface, controls: controls, params: child, nesting: nesting, depth: depth + 1)
                     }
                 }
             )
@@ -225,7 +239,7 @@ import Foundation
                 GroupCountButton(count: params.count) { controls.onAction?(params) }
 
             case .value:
-                Text(params.description)
+                Text(params.value ?? params.description)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
 
@@ -295,9 +309,7 @@ extension Builder {
             result = AnyView(
                 result.contextMenu {
                     ActionMenu(items: itemActions)
-                    if !itemActions.isEmpty && (controls.canRename(params) || controls.canDuplicate(params) || controls.canAddChild(for: params) || controls.canDelete(params)) {
-                        Divider()
-                    }
+                    if !itemActions.isEmpty && (controls.canRename(params) || controls.canDuplicate(params) || controls.canAddChild(for: params) || controls.canDelete(params)) { Divider() }
                     ItemContextMenu(
                         params: params,
                         onRename: controls.canRename(params) ? { controls.onRename?(params.id, params.name) } : nil,

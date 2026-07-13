@@ -27,7 +27,7 @@ struct InspectorTabs: View {
 
     var body: some View {
         HStack { ForEach(Inspector.Model.allCases, id: \.self) { tab($0) } }
-            .frame(maxWidth: .infinity, maxHeight: 26)
+            .frame(maxWidth: .infinity, maxHeight: 28)
             .glassEffect(.regular, in: shape)
             .padding(.horizontal, 8)
     }
@@ -48,9 +48,9 @@ struct NavigatorTabs: View {
     func tab(_ model: Navigator.Model) -> some View {
         Button { navigator.model = model } label: {
             Image(systemName: model.image)
-                .frame(maxWidth: .infinity, maxHeight: 28)
-                .foregroundStyle(Color.primary.opacity(0.9))
-                .font(.system(size: 13, weight: .medium))
+                .frame(maxWidth: .infinity, maxHeight: 28, alignment: .center)
+                .foregroundStyle(Design.Foreground.primary)
+                .font(.system(size: 12.5))
                 .contentShape(shape)
         }
         .buttonStyle(.plain)

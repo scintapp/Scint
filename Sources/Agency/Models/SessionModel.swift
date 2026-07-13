@@ -18,7 +18,6 @@ import Foundation
 
     var active: Reference? {
         guard let content = selected.content else { return nil }
-        guard focused == .content(content) else { return nil }
         switch content.type {
             case is Sheet.Type: return opened.sheets.contains(content) ? content : nil
             case is Transcript.Type: return opened.transcripts.contains(content) ? content : nil

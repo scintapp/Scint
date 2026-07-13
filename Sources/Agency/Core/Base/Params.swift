@@ -15,6 +15,7 @@ struct ItemParams: Identifiable, Hashable {
     let trailingImage: String?
     let trailingKind: TrailingKind?
     let count: Int?
+    let value: String?
     let active: Bool
     let items: [ItemParams]
     private let _isParent: Bool?
@@ -35,6 +36,7 @@ struct ItemParams: Identifiable, Hashable {
         trailingImage: String? = nil,
         trailingKind: TrailingKind? = nil,
         count: Int? = nil,
+        value: String? = nil,
         description: String = "",
         active: Bool = true,
         items: [ItemParams] = [],
@@ -51,6 +53,7 @@ struct ItemParams: Identifiable, Hashable {
         self.trailingImage = trailingImage
         self.trailingKind = trailingKind
         self.count = count
+        self.value = value
         self.description = description
         self.active = active
         self.items = items
@@ -92,8 +95,9 @@ struct ComponentParams: Identifiable, Hashable {
     }
 }
 
-struct PanelParams: Identifiable {
+struct Params: Identifiable {
     let id: AnyHashable
+    let ref: Reference?
     let name: String
     let description: String
     let header: Bool?
@@ -103,6 +107,7 @@ struct PanelParams: Identifiable {
 
     init(
         id: AnyHashable? = nil,
+        ref: Reference? = nil,
         name: String = "",
         description: String = "",
         layout: Layout? = nil,
@@ -111,6 +116,7 @@ struct PanelParams: Identifiable {
         components: [ComponentParams] = []
     ) {
         self.id = id ?? AnyHashable("panel")
+        self.ref = ref
         self.name = name
         self.description = description
         self.layout = layout
@@ -120,5 +126,3 @@ struct PanelParams: Identifiable {
 
     }
 }
-
-

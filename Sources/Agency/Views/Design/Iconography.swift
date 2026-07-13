@@ -17,12 +17,12 @@ import SwiftUI
         }
 
         private var custom: Bool { Iconography.Custom(rawValue: symbol) != nil }
-        private var sizing: CGFloat { custom ? size * 1.2 : size }
+        private var sizing: CGFloat { custom ? size * 1.2 : size * 1.3 }
         private var radius: CGFloat { size * 0.3 }
         private var padding: CGFloat { custom ? size * 0.1 : 0 }
         private var primary: Color { selected ? Design.Foreground.primary : Design.Foreground.secondary }
         private var secondary: Color { selected ? tint : Design.Foreground.secondary }
-        private var background: Color { selected ? tint.opacity(0.28) : tint.opacity(0.10) }
+        private var background: Color { selected ? tint.opacity(0.28) : tint.opacity(0.14) }
 
         private var shape: some View {
             RoundedRectangle(cornerRadius: radius, style: .continuous)
@@ -108,7 +108,7 @@ import SwiftUI
     }
 
     enum Custom: String, CaseIterable {
-        case inactive = "space"
+        case inactive = "app"
         case active = "space.badge.sparkles"
         case running = "space.badge.play"
         case request = "space.badge.questionmark"
@@ -125,8 +125,8 @@ import SwiftUI
     static func icon(for block: Sheet.Block, size: CGFloat = 14) -> Icon {
         switch block {
             case .artifact(let ref), .command(let ref), .sheet(let ref): return Iconography.icon(for: ref, size: size)
-            case .content: return Icon(symbol: "text.alignleft", tint: Design.Tint.sheet, sizing: size)
-            case .task(_, _, let done): return Icon(symbol: done ? "checkmark.app" : "app", tint: Design.Tint.task, sizing: size)
+            case .content: return Icon(symbol: "line.3.horizontal", tint: Design.Tint.inactive, sizing: size)
+            case .task(_, _, let done): return Icon(symbol: done ? "checkmark.square" : "square", tint: Design.Tint.task, sizing: size)
         }
     }
 
@@ -212,9 +212,10 @@ import SwiftUI
             case is Transcript.Type:
                 return Design.Tint.running
             case is Space.Type:
-                guard let harness = Space.with(ref, { $0.harness }).flatMap({ $0 }), let mode = Harness.with(harness, { $0.modality })
+                guard let harness = Space.with(ref, { $0.harness }).flatMap({ $0 }),
+                      let m = Harness.with(harness, { $0.modality })
                 else { return Design.Tint.info }
-                return Iconography.icon(for: mode).tint
+                return Iconography.icon(for: m).tint
             case is Workspace.Type:
                 return Design.Tint.info
             default:
@@ -281,5 +282,4 @@ import SwiftUI
                 return Icon(symbol: "cube.transparent", tint: Design.Tint.workspace)
         }
     }
-
 }

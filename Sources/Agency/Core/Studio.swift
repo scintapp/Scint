@@ -2,20 +2,24 @@ import AgencyRuntime
 import SwiftUI
 
 
+@MainActor struct Features {
+    var browser = Browser()
+    var composer = Composer()
+    var dashboard = Dashboard()
+    var editor = Editor()
+    var processes = Processes()
+}
+
 @Observable @MainActor final class StudioModel {
+    let features = Features()
     let actions = Actions()
     let canvas = Canvas()
     let inspector = Inspector()
     let navigator = Navigator()
     let utility = Utility()
-
-    let browser = Browser()
-    let dashboard = Dashboard()
-    let composer = Composer()
-    let editor = Editor()
 }
 
-struct Studio: Feature {
+struct Studio: View {
     @Environment(AgencyModel.self) var agency
 
     var body: some View {
@@ -24,21 +28,19 @@ struct Studio: Feature {
         NavigationSplitView {
             agency.studio.navigator.view(agency)
                 .environment(agency)
-                .navigationSplitViewColumnWidth(ideal: 280)
-                .scrollEdgeEffectStyle(.hard, for: .top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .toolbar(removing: .sidebarToggle)
         } detail: {
             agency.studio.canvas.view(agency)
                 .environment(agency)
-                .scrollEdgeEffectStyle(.hard, for: .top)
-                .toolbar { agency.studio.canvas.toolbar() }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .toolbar(removing: .title)
         }
         .inspector(isPresented: $inspector.presented) {
             agency.studio.inspector.view(agency)
                 .environment(agency)
-                .scrollEdgeEffectStyle(.hard, for: .top)
-                .inspectorColumnWidth(ideal: 340)
-                .toolbar(removing: .sidebarToggle)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .inspectorColumnWidth(ideal: 300)
         }
     }
 }

@@ -25,29 +25,30 @@ enum Typography {
 
 enum Design {
     enum Shape {
-        static var rectangle: RoundedRectangle { RoundedRectangle(cornerRadius: 30, style: .continuous) }
         static var block: RoundedRectangle { RoundedRectangle(cornerRadius: 12, style: .continuous) }
+        static var rectangle: RoundedRectangle { RoundedRectangle(cornerRadius: 30, style: .continuous) }
     }
 
     enum Border {
-        static var block: Color { Color(red: 0.14974, green: 0.14921, blue: 0.15372) }
-        static var card: Color { Color(red: 0.14974, green: 0.14921, blue: 0.15372) }
+        static var block: Color { Color(red: 0.149, green: 0.149, blue: 0.153) }
+        static var card: Color { Color(red: 0.149, green: 0.149, blue: 0.153) }
         static var hairline: Color { block.opacity(0.12) }
     }
 
     enum Background {
-        static var base: Color { Color(red: 0.10375, green: 0.10044, blue: 0.10752) }
-        static var block: Color { Color(red: 0.1273, green: 0.12601, blue: 0.1345) }
-        static var card: Color { Color(red: 0.09875, green: 0.09875, blue: 0.09875) }
-        static var console: Color { Color(red: 0.09875, green: 0.09875, blue: 0.09875) }
-        static var detail: Color { Color(red: 0.09875, green: 0.09875, blue: 0.09875) }
-        static var editor: Color { Color(red: 0.1373, green: 0.13601, blue: 0.1385) }
-        static var menu: Color { Color(red: 0.09875, green: 0.09875, blue: 0.09875).opacity(0.2) }
-        static var actions: Color { Color(red: 0.09875, green: 0.09875, blue: 0.09875) }
-        static var surface: Color { Color(red: 0.12474, green: 0.12521, blue: 0.13072) }
+        static var base: Color { Color(red: 0.103, green: 0.104, blue: 0.107) }
+        static var block: Color { Color(red: 0.123, green: 0.126, blue: 0.135) }
+        static var card: Color { Color(red: 0.095, green: 0.095, blue: 0.095) }
+        static var console: Color { Color(red: 0.095, green: 0.095, blue: 0.095) }
+        static var detail: Color { Color(red: 0.098, green: 0.098, blue: 0.095) }
+        static var editor: Color { Color(red: 0.133, green: 0.131, blue: 0.135) }
+        static var menu: Color { Color(red: 0.098, green: 0.098, blue: 0.098).opacity(0.2) }
+        static var actions: Color { Color(red: 0.098, green: 0.098, blue: 0.098) }
+        static var surface: Color { Color(red: 0.123, green: 0.124, blue: 0.128) }
     }
 
     enum Foreground {
+        static var accent: Color { .accent }
         static var primary: Color { .primary.opacity(0.9) }
         static var secondary: Color { .primary.opacity(0.76) }
         static var tertiary: Color { .secondary.opacity(0.8) }
@@ -57,11 +58,11 @@ enum Design {
     }
 
     enum Tint {
-        static var compose: Color { Color(red: 1.031, green: 0.810, blue: 1.399) }
-        static var dispatch: Color { Color(red: 1.158, green: 1.007, blue: 1.447) }
-        static var execute: Color { Color(red: 1.388, green: 0.817, blue: 0.947) }
-        static var observe: Color { Color(red: 0.848, green: 1.004, blue: 1.207) }
-        static var traverse: Color { Color(red: 0.920, green: 1.221, blue: 1.343) }
+        static var compose: Color { Color(red: 1.131, green: 0.880, blue: 1.499) }
+        static var dispatch: Color { Color(red: 1.258, green: 1.087, blue: 1.547) }
+        static var execute: Color { Color(red: 1.338, green: 0.817, blue: 0.947) }
+        static var observe: Color { Color(red: 0.810, green: 1.191, blue: 1.443) }
+        static var traverse: Color { Color(red: 0.748, green: 1.004, blue: 1.407) }
 
         static var inactive: Color { Color(red: 0.620, green: 0.590, blue: 0.640) }
         static var active: Color { Color(red: 0.888, green: 0.954, blue: 1.127) }
@@ -74,12 +75,12 @@ enum Design {
         static var warning: Color { Color(red: 0.893, green: 0.718, blue: 0.660) }
         static var error: Color { Color(red: 0.776, green: 0.455, blue: 0.562) }
 
-        static var artifact: Color { Color(red: 0.85884, green: 1.00799, blue: 1.34741) }
-        static var command: Color { Color(red: 1.15884, green: 1.00799, blue: 1.44741) }
+        static var artifact: Color { Color(red: 0.858, green: 1.007, blue: 1.347) }
+        static var command: Color { Color(red: 1.158, green: 1.009, blue: 1.447) }
         static var harness: Color { Color(red: 0.743, green: 0.901, blue: 0.920) }
-        static var sheet: Color { Color(red: 1.46963, green: 1.08887, blue: 0.98027) }
-        static var space: Color { Color(red: 1.27736, green: 1.36706, blue: 1.47239) }
-        static var task: Color { Color(red: 1.38884, green: 0.81799, blue: 0.94741) }
-        static var workspace: Color { Color(red: 1.27736, green: 1.36706, blue: 1.47239) }
+        static var sheet: Color { Color(red: 1.463, green: 1.08887, blue: 0.980) }
+        static var space: Color { Color(red: 1.276, green: 1.36706, blue: 1.472) }
+        static var task: Color { Color(red: 1.384, green: 0.817, blue: 0.947) }
+        static var workspace: Color { Color(red: 1.277, green: 1.367, blue: 1.472) }
     }
 }
