@@ -25,16 +25,6 @@ struct Agency: App {
                     .focusable(false)
             } else { ProgressView().task { await load() } }
         }
-
-        Window("Library", id: "library") {
-            if let agency {
-                Library()
-                    .environment(agency)
-                    .onAppear(perform: { ShortcutManager.shared.register(agency: agency) } )
-                    .background(Design.Background.console)
-                    .focusable(false)
-            } else { ProgressView().task { await load() } }
-        }
     }
 }
 

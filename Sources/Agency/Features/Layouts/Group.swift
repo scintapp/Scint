@@ -23,6 +23,7 @@ struct GroupToggle: View {
 
 struct GroupCountButton: View {
     let count: Int?
+    var label = "Load"
     let onLoad: () -> Void
 
     var body: some View {
@@ -32,76 +33,11 @@ struct GroupCountButton: View {
                     .font(.system(size: 12))
                     .foregroundStyle(count == 0 ? .tertiary : .secondary)
             }
-            Button("Load", action: onLoad)
+            Button(label, action: onLoad)
                 .buttonStyle(.plain)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.secondary)
         }
-    }
-}
-
-struct GroupPickerItem: Identifiable {
-    let id: AnyHashable
-    let name: String
-    let image: String
-    let ref: Reference?
-    let active: Bool
-}
-
-struct GroupPicker: View {
-    let items: [GroupPickerItem]
-    let onPick: (AnyHashable) -> Void
-
-    var body: some View {
-        Group {
-            if items.isEmpty {
-                EditorMenuEmptyState(title: "Nothing in library", width: 260, height: 120)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(items) { candidate in
-                            Button { onPick(candidate.id) } label: {
-                                HStack {
-                                    editorMenuIcon(icon: candidate.image, selected: candidate.active, ref: candidate.ref)
-                                    Text(candidate.name)
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(.primary.opacity(0.86))
-                                        .lineLimit(1)
-                                    Spacer(minLength: 0)
-                                    if candidate.active {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 11))
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                                .padding(.horizontal, 8)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(6)
-                }
-                .frame(width: 260, height: min(CGFloat(items.count) * 40, 320), alignment: .center)
-            }
-        }
-    }
-}
-
-struct GroupLoader: View {
-    @State private var presented = false
-    let count: Int?
-    let items: [GroupPickerItem]
-    let onPick: (AnyHashable) -> Void
-
-    var body: some View {
-        GroupCountButton(count: count) { presented = true }
-            .popover(isPresented: $presented) {
-                GroupPicker(items: items) { id in
-                    onPick(id)
-                    presented = false
-                }
-            }
     }
 }
 

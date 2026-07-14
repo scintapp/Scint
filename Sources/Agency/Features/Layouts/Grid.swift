@@ -153,7 +153,7 @@ struct GridIcon: View {
                 return []
         }
 
-        let sheets = contents.1.flatMap { Closure.with($0, { $0.state.filter { $0.type is Sheet.Type } }) } ?? []
+        let sheets = contents.1.flatMap { Closure.with($0, { $0.content.filter { $0.type is Sheet.Type } }) } ?? []
         return contents.0 + sheets
     }
 }

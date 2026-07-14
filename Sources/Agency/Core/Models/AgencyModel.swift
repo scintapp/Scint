@@ -7,12 +7,10 @@ import SwiftUI
     var artifacts: ArtifactManager
     var session: SessionModel
     var studio: StudioModel
-    var library: LibraryModel
     var panels: PanelController
 
     init(_ space: Reference) {
         self.artifacts = .init(workspace: space)
-        self.library = .init()
         self.studio = .init()
         self.session = .init(space)
         self.panels = .init()

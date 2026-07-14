@@ -85,8 +85,8 @@ struct Item: Identifiable {
 
     static func createSheet(in owner: Reference, agency: AgencyModel) {
         guard let closure = Space.with(owner, { $0.closure }) ?? Workspace.with(owner, { $0.closure }) else { return }
-        let ref = Sheet.new("New Sheet", owner: closure)
-        Closure.update(closure) { $0.state.append(ref) }
+        let ref = Sheet.new(closure, name: "New Sheet")
+        Closure.update(closure) { $0.content.append(ref) }
         agency.open(ref)
         Task { try? await Runtime.shared.save() }
     }

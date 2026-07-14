@@ -127,7 +127,7 @@ struct ProcessSnapshot: Identifiable {
         return entries.flatMap { entry -> [RuntimeEvent] in
             switch entry {
             case .event(let event, _, _): return [event]
-            case .sheet: return []
+            case .input(_, _): return []
             case .transcript(let ref, _, _): return events(in: ref)
             }
         }
@@ -253,13 +253,13 @@ struct Processes: View {
                             onSelect: {
                                 selected = process.id
                                 agency.select(process.process.origin)
-                                agency.studio.canvas.model = .composer
+//                                agency.studio.canvas.model = .composer
                             },
                             onAction: { action in
                                 guard action == "Open" else { return }
                                 selected = process.id
-                                agency.select(process.process.origin)
-                                agency.studio.canvas.model = .composer
+//                                agency.select(process.process.origin)
+//                                agency.studio.canvas.model = .composer
                             }
                         )
                     }

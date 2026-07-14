@@ -8,19 +8,19 @@ public struct EditorCanvas: View {
     let autofocus: Bool
     let minimumHeight: CGFloat
 
-    init(autofocus: Bool = true, minimumHeight: CGFloat = 100) {
+    init(autofocus: Bool = true, minimumHeight: CGFloat = 0) {
         self.autofocus = autofocus
         self.minimumHeight = minimumHeight
     }
 
-    private func menu(in size: CGSize) -> some View { EditorMenu(position: menuPosition(in: size)) }
+    private func menu(in size: CGSize) -> some View { Menu(position: menuPosition(in: size)) }
 
     private func menuPosition(in size: CGSize) -> CGPoint {
+        let padding: CGFloat = 0
         let menuWidth = editor.menu.size.width
         let menuHeight = editor.menu.size.height
-        let padding: CGFloat = 16
         let anchorRect = editor.menu.anchorRect
-        let anchor = CGPoint(x: anchorRect.minX, y: anchorRect.maxY)
+        let anchor = CGPoint(x: anchorRect.minX - 16, y: anchorRect.maxY)
         let anchorTopY = anchorRect.minY
         let x = min(max(anchor.x, padding), max(padding, size.width - menuWidth - padding))
         let placeAbove = size.height - anchor.y < menuHeight + padding
@@ -47,20 +47,27 @@ public struct EditorCanvas: View {
                 }
 
             SheetView(
+                editing: editor.editing,
+                selection: editor.caretSelection(for:),
                 onTextChange: editor.write,
                 onSelectionChange: editor.setCaret,
+                onCaretRectChange: editor.updateCaretRect,
                 onFocusGained: editor.focusGained,
-                onCommand: editor.handleCommand
+                onEdit: editor.editBlock,
+                onCommand: editor.handleInput,
+                onFrameChange: editor.updateEntryFrame
             )
             .environment(sheet)
         }
         .frame(maxWidth: .infinity, minHeight: minimumHeight, alignment: .topLeading)
         .coordinateSpace(name: "canvas")
-        .onChange(of: sheet.editing) { _, _ in focus.focus(sheet.editing ?? sheet.selection.first) }
-        .onChange(of: sheet.selection) { _, _ in if sheet.editing == nil { focus.focus(sheet.selection.first) } }
+        .onChange(of: editor.editing) { _, _ in focus.focus(editor.editing ?? sheet.selection.first) }
+        .onChange(of: sheet.selection) { _, _ in if editor.editing == nil { focus.focus(sheet.selection.first) } }
         .onAppear {
-            if autofocus { focus.focus(sheet.editing ?? sheet.selection.first) }
+            editor.activateTrailingText()
+            if autofocus { focus.focus(editor.editing ?? sheet.selection.first) }
         }
+        .onDisappear { editor.deactivate() }
         .overlay(alignment: .topLeading) {
             if editor.menu.isOpen {
                 GeometryReader { geometry in

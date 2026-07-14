@@ -9,7 +9,8 @@ struct AgencyEditor: View {
         _state = State(
             initialValue: EditorState(
                 sheet: sheet,
-                menu: MenuModel(items: MenuSurface.menu, makeEntries: MenuSurface.build(for:))
+                menuItems: MenuSurface.menu,
+                makeBlocks: MenuSurface.build(for:)
             )
         )
     }

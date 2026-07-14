@@ -5,20 +5,25 @@ import SwiftUI
 struct EditorInput: NSViewRepresentable {
     @Environment(EditorState.self) private var editor
     @Environment(\.editorFocus) private var focus
-    let id: UUID
+    let id: AnyHashable
     let text: String
     let selection: NSRange?
     let isEditing: Bool
     let onTextChange: (String, NSRange) -> Void
     let onSelectionChange: (NSRange) -> Void
+    let onCaretRectChange: (CGRect) -> Void
     let onFocusGained: () -> Void
-    let onCommand: (Selector, Bool, Bool) -> Bool
+    let onCommand: (Selector, NSRange, Int) -> Bool
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
             onTextChange: onTextChange,
             onSelectionChange: onSelectionChange,
-            onFocusGained: onFocusGained,
+            onCaretRectChange: onCaretRectChange,
+            onFocusGained: {
+                focus.claim(id)
+                onFocusGained()
+            },
             onCommand: onCommand
         )
     }
@@ -32,10 +37,11 @@ struct EditorInput: NSViewRepresentable {
 
         view.onCommandFromView = { [weak coordinator = context.coordinator, weak view] selector in
             guard let coordinator, let view else { return false }
-            return coordinator.onCommand(selector, view.caretIsOnFirstLine, view.caretIsOnLastLine)
+            return coordinator.onCommand(selector, view.plainSelectedRange, (view.plainText as NSString).length)
         }
 
         focus.register(view, for: id)
+        if isEditing { DispatchQueue.main.async { [weak coordinator = context.coordinator] in coordinator?.reportCaretRect() } }
         return view
     }
 
@@ -47,10 +53,19 @@ struct EditorInput: NSViewRepresentable {
 
         context.coordinator.onTextChange = onTextChange
         context.coordinator.onSelectionChange = onSelectionChange
-        context.coordinator.onFocusGained = onFocusGained
+        context.coordinator.onCaretRectChange = onCaretRectChange
+        context.coordinator.onFocusGained = {
+            focus.claim(id)
+            onFocusGained()
+        }
         context.coordinator.onCommand = onCommand
         context.coordinator.lastSelection = view.plainSelectedRange
         focus.register(view, for: id)
+        if isEditing {
+            DispatchQueue.main.async { [weak coordinator = context.coordinator] in coordinator?.reportCaretRect() }
+        } else if view.window?.firstResponder === view {
+            view.window?.makeFirstResponder(nil)
+        }
     }
 
     static func dismantleNSView(_ view: EditorInputView, coordinator: Coordinator) {}
@@ -65,30 +80,37 @@ struct EditorInput: NSViewRepresentable {
     final class Coordinator: NSObject, NSTextViewDelegate {
         var onTextChange: (String, NSRange) -> Void
         var onSelectionChange: (NSRange) -> Void
+        var onCaretRectChange: (CGRect) -> Void
         var onFocusGained: () -> Void
-        var onCommand: (Selector, Bool, Bool) -> Bool
+        var onCommand: (Selector, NSRange, Int) -> Bool
         weak var view: EditorInputView?
         var lastSelection: NSRange?
 
         init(onTextChange: @escaping (String, NSRange) -> Void, onSelectionChange: @escaping (NSRange) -> Void,
-             onFocusGained: @escaping () -> Void, onCommand: @escaping (Selector, Bool, Bool) -> Bool) {
+             onCaretRectChange: @escaping (CGRect) -> Void,
+             onFocusGained: @escaping () -> Void, onCommand: @escaping (Selector, NSRange, Int) -> Bool) {
             self.onTextChange = onTextChange
             self.onSelectionChange = onSelectionChange
+            self.onCaretRectChange = onCaretRectChange
             self.onFocusGained = onFocusGained
             self.onCommand = onCommand
         }
 
         func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
-            guard let view = view else { return onCommand(selector, true, true) }
-            return onCommand(selector, view.caretIsOnFirstLine, view.caretIsOnLastLine)
+            guard let view else { return false }
+            return onCommand(selector, view.plainSelectedRange, (view.plainText as NSString).length)
         }
 
-        func textDidBeginEditing(_ notification: Notification) { onFocusGained() }
+        func textDidBeginEditing(_ notification: Notification) {
+            reportCaretRect()
+            onFocusGained()
+        }
 
         func textDidChange(_ notification: Notification) {
             guard let view else { return }
             guard !view.isApplyingTextStorageChange else { return }
             lastSelection = view.plainSelectedRange
+            reportCaretRect()
             onTextChange(view.plainText, view.plainSelectedRange)
         }
 
@@ -98,7 +120,13 @@ struct EditorInput: NSViewRepresentable {
             let selection = view.plainSelectedRange
             guard selection != lastSelection else { return }
             lastSelection = selection
+            reportCaretRect()
             onSelectionChange(selection)
+        }
+
+        func reportCaretRect() {
+            guard let rect = view?.plainCaretRect else { return }
+            onCaretRectChange(rect)
         }
     }
 }
@@ -123,6 +151,17 @@ final class EditorInputView: NSTextView {
 
     var plainText: String { currentAttributedString.string }
     var plainSelectedRange: NSRange { selectedRange() }
+    fileprivate var plainCaretRect: CGRect? {
+        guard let window else { return nil }
+        let location = min(plainSelectedRange.location, (plainText as NSString).length)
+        var actualRange = NSRange(location: NSNotFound, length: 0)
+        let screenRect = firstRect(
+            forCharacterRange: NSRange(location: location, length: 0),
+            actualRange: &actualRange
+        )
+        guard !screenRect.isNull, !screenRect.isInfinite else { return nil }
+        return convert(window.convertFromScreen(screenRect), from: nil)
+    }
     var onCommandFromView: ((Selector) -> Bool)?
 
     convenience init() { self.init(frame: .zero) }
@@ -189,43 +228,6 @@ final class EditorInputView: NSTextView {
         textColor = themer.theme.textColor
         resetTypingAttributes()
         if !renderedText.isEmpty { restylePreservingSelection() }
-    }
-
-    var caretIsOnFirstLine: Bool {
-        let ns = plainText as NSString
-        let caret = min(selectedRange().location, ns.length)
-        return ns.substring(to: caret).range(of: "\n", options: .backwards) == nil
-    }
-
-    var caretIsOnLastLine: Bool {
-        let ns = plainText as NSString
-        let caret = min(selectedRange().location, ns.length)
-        return ns.substring(from: caret).range(of: "\n") == nil
-    }
-
-    private func caretLineFragmentRect(at location: Int) -> CGRect? {
-        var result: CGRect?
-        let target = min(max(location, 0), (plainText as NSString).length)
-        backingTextLayoutManager.enumerateTextLayoutFragments(
-            from: backingTextLayoutManager.documentRange.location,
-            options: [.ensuresLayout]
-        ) { fragment in
-            let range = fragment.rangeInElement
-            let start = backingTextLayoutManager.offset(
-                from: backingTextLayoutManager.documentRange.location,
-                to: range.location
-            )
-            let end = backingTextLayoutManager.offset(
-                from: backingTextLayoutManager.documentRange.location,
-                to: range.endLocation
-            )
-            if target >= start && target <= end {
-                result = fragment.layoutFragmentFrame
-                return false
-            }
-            return true
-        }
-        return result
     }
 
     fileprivate func setPlainSelectedRange(_ range: NSRange) { setSelectedRange(clamp(range, in: plainText)) }

@@ -108,7 +108,7 @@ import SwiftUI
     }
 
     enum Custom: String, CaseIterable {
-        case inactive = "app"
+        case inactive = "space.custom"
         case active = "space.badge.sparkles"
         case running = "space.badge.play"
         case request = "space.badge.questionmark"
@@ -125,7 +125,7 @@ import SwiftUI
     static func icon(for block: Sheet.Block, size: CGFloat = 14) -> Icon {
         switch block {
             case .artifact(let ref), .command(let ref), .sheet(let ref): return Iconography.icon(for: ref, size: size)
-            case .content: return Icon(symbol: "line.3.horizontal", tint: Design.Tint.inactive, sizing: size)
+            case .text: return Icon(symbol: "line.3.horizontal", tint: Design.Tint.inactive, sizing: size)
             case .task(_, _, let done): return Icon(symbol: done ? "checkmark.square" : "square", tint: Design.Tint.task, sizing: size)
         }
     }
@@ -143,7 +143,7 @@ import SwiftUI
     static func icon(for entry: Transcript.Entry, size: CGFloat = 14) -> Icon {
         switch entry {
             case .event: return Icon(symbol: "calendar", tint: Design.Tint.active, sizing: size)
-            case .sheet(let ref, _): return Iconography.icon(for: ref, size: size)
+            case .input(let ref, _): return Iconography.icon(for: ref, size: size)
             case .transcript(let ref, _, _): return Iconography.icon(for: ref, size: size)
         }
     }
@@ -168,7 +168,7 @@ import SwiftUI
                 return Iconography.icon(for: handle, size: size)
             case is Space.Type:
                 guard let space = Space.with(ref, { $0.harness }).flatMap({ $0 }), let harness = Harness.with(space, { $0.modality })
-                else { return Icon(symbol: "space", tint: Design.Tint.info, sizing: size) }
+                else { return Icon(symbol: "space.custom", tint: Design.Tint.info, sizing: size) }
                 return Iconography.icon(for: harness, size: size)
             case is Command.Type:
                 return Icon(symbol: "switch.2", tint: Design.Tint.command, sizing: size)
@@ -188,7 +188,7 @@ import SwiftUI
             default:
                 break
         }
-        return Icon(symbol: "space", tint: Design.Tint.active)
+        return Icon(symbol: "space.custom", tint: Design.Tint.active)
     }
 
     static func symbol(for ref: Reference) -> String { icon(for: ref).symbol }
@@ -271,7 +271,7 @@ import SwiftUI
                     case .task: return Icon(symbol: "app", tint: Design.Tint.task)
                 }
             case .space:
-                return Icon(symbol: "space", tint: Design.Tint.space)
+                return Icon(symbol: "space.custom", tint: Design.Tint.space)
             case .transcript(let entry):
                 switch entry {
                     case .event: return Icon(symbol: "calendar", tint: Design.Tint.active)

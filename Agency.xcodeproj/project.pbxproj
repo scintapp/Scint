@@ -93,6 +93,7 @@
 			membershipExceptions = (
 				DetailContent.swift,
 				Info.plist,
+				Library.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* AgencyStudio */;
 		};

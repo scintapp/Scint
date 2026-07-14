@@ -14,27 +14,40 @@ import SwiftUI
 }
 
 @MainActor final class EditorFocusCoordinator {
-    private var views: [UUID: WeakBox] = [:]
+    private var views: [AnyHashable: WeakBox] = [:]
+    private var targetID: AnyHashable?
 
     private final class WeakBox {
         weak var view: NSView?
         init(_ view: NSView) { self.view = view }
     }
 
-    func register(_ view: NSView, for id: UUID) { views[id] = WeakBox(view) }
+    func register(_ view: NSView, for id: AnyHashable) { views[id] = WeakBox(view) }
 
-    func unregister(_ id: UUID) { views[id] = nil }
+    func unregister(_ id: AnyHashable) { views[id] = nil }
 
-    func focus(_ targetID: UUID?, retry: Bool = true) {
+    func claim(_ id: AnyHashable) { targetID = id }
+
+    func focus(_ targetID: AnyHashable?) {
+        self.targetID = targetID
+        for (id, box) in views where id != targetID {
+            guard let view = box.view, view.window?.firstResponder === view else { continue }
+            view.window?.makeFirstResponder(nil)
+        }
         guard let targetID else { return }
+        focus(targetID, attempts: 3)
+    }
+
+    private func focus(_ targetID: AnyHashable, attempts: Int) {
+        guard self.targetID == targetID else { return }
 
         guard let view = views[targetID]?.view else {
-            if retry { DispatchQueue.main.async { [weak self] in self?.focus(targetID, retry: false) } }
+            if attempts > 0 { DispatchQueue.main.async { [weak self] in self?.focus(targetID, attempts: attempts - 1) } }
             return
         }
 
         guard let window = view.window else {
-            if retry { DispatchQueue.main.async { [weak self] in self?.focus(targetID, retry: false) } }
+            if attempts > 0 { DispatchQueue.main.async { [weak self] in self?.focus(targetID, attempts: attempts - 1) } }
             return
         }
 
@@ -44,21 +57,30 @@ import SwiftUI
 }
 
 struct EntryResponder: NSViewRepresentable {
-    let id: UUID
+    let id: AnyHashable
     let focus: EditorFocusCoordinator
     let onFocusGained: () -> Void
+    let onEdit: () -> Void
     let onCommand: (Selector) -> Bool
 
     func makeNSView(context: Context) -> EntryResponderView {
         let view = EntryResponderView()
-        view.onFocusGained = onFocusGained
+        view.onFocusGained = {
+            focus.claim(id)
+            onFocusGained()
+        }
+        view.onEdit = onEdit
         view.onCommand = onCommand
         focus.register(view, for: id)
         return view
     }
 
     func updateNSView(_ view: EntryResponderView, context: Context) {
-        view.onFocusGained = onFocusGained
+        view.onFocusGained = {
+            focus.claim(id)
+            onFocusGained()
+        }
+        view.onEdit = onEdit
         view.onCommand = onCommand
         focus.register(view, for: id)
     }
@@ -66,6 +88,7 @@ struct EntryResponder: NSViewRepresentable {
 
 final class EntryResponderView: NSView {
     var onFocusGained: (() -> Void)?
+    var onEdit: (() -> Void)?
     var onCommand: ((Selector) -> Bool)?
 
     override var acceptsFirstResponder: Bool { true }
@@ -86,6 +109,11 @@ final class EntryResponderView: NSView {
     }
 
     override func keyDown(with event: NSEvent) {
+        if event.charactersIgnoringModifiers == " ",
+           event.modifierFlags.intersection([.command, .control, .option]).isEmpty {
+            onEdit?()
+            return
+        }
         interpretKeyEvents([event])
     }
 

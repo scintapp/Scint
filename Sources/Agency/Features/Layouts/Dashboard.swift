@@ -161,7 +161,7 @@ import SwiftUI
     let detail: String
 }
 
- struct DashboardBriefingPanel: View {
+ struct DashboardBriefing: View {
     let signals: [DashboardSignal]
 
     var body: some View {
@@ -247,7 +247,7 @@ import SwiftUI
     }
 }
 
- struct DashboardContextPanel: View {
+ struct DashboardContext: View {
     let paths: [DashboardPath]
 
     var body: some View {
@@ -389,7 +389,7 @@ struct DashboardLaneColumn: View {
     }
 }
 
-struct DashboardStartPanel: View {
+struct DashboardStart: View {
     let lanes: [DashboardLane]
 
     let columns = [ GridItem(.adaptive(minimum: 240), spacing: 1, alignment: .top) ]
@@ -424,7 +424,7 @@ struct DashboardStartPanel: View {
     }
 }
 
-struct DashboardContent: View {
+struct DashboardLayout: View {
     private let columns = [
         GridItem(.adaptive(minimum: 320, maximum: 440), spacing: 24, alignment: .top)
     ]
@@ -435,10 +435,10 @@ struct DashboardContent: View {
                 VStack(alignment: .center, spacing: 18) {
                     Group {
                         LazyVGrid(columns: columns, alignment: .leading, spacing: 18) {
-                            DashboardContextPanel(paths: DashboardSampleData.paths)
-                            DashboardBriefingPanel(signals: DashboardSampleData.signals)
+                            DashboardContext(paths: DashboardSampleData.paths)
+                            DashboardBriefing(signals: DashboardSampleData.signals)
                         }
-                        DashboardStartPanel(lanes: DashboardSampleData.lanes)
+                        DashboardStart(lanes: DashboardSampleData.lanes)
                     }
                     .frame(maxWidth: 320)
                 }
@@ -449,18 +449,4 @@ struct DashboardContent: View {
         .padding(.vertical, 16)
         .background(Design.Background.console)
     }
-}
-
-struct Dashboard: Surface {
-    @Environment(AgencyModel.self) var agency
-
-    var body: some View {
-        DashboardContent()
-    }
-}
-
-#Preview("Dashboard") {
-    DashboardContent()
-        .frame(width: 860, height: 720)
-        .preferredColorScheme(.dark)
 }

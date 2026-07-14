@@ -7,8 +7,8 @@ import AgencyRuntime
     var showHidden: Bool = false
     var workspace: Reference
     var artifacts: [Reference] {
-        return Workspace.with(workspace) { workspace in
-            workspace.components.compactMap { ref in
+        Workspace.with(workspace) { workspace in
+            workspace.artifacts.compactMap { ref in
                 guard Artifact.with(ref, {
                     if case .file(let url) = $0.handle { return url?.isFileURL == true }
                     return false

@@ -30,7 +30,6 @@ import SwiftUI
     }
 
     struct Float<Content: View>: View {
-        let shape = RoundedRectangle(cornerRadius: 30, style: .continuous)
         let content: Content
 
         init(_ content: Content) { self.content = content }
@@ -38,12 +37,12 @@ import SwiftUI
         var body: some View {
             ZStack {
                 VisualEffectView(material: .hudWindow, blendingMode: .behindWindow, state: .active)
-                    .glassEffect(.regular.tint(.black.opacity(0.25)), in: shape)
-                    .overlay(shape.stroke(.black.opacity(0.75), lineWidth: 0.75))
+                    .glassEffect(.regular/*.tint(.black.opacity(0.25))*/, in: Design.Shape.panel)
+                    .overlay(Design.Shape.panel.stroke(.black.opacity(0.75), lineWidth: 0.75))
                     .blur(radius: 1)
                 content
             }
-            .clipShape(shape)
+            .clipShape(Design.Shape.panel)
         }
     }
 }

@@ -3,41 +3,6 @@ import LinkPresentation
 import SwiftUI
 
 
-struct SelectableBlock<Content: View>: View {
-    @Environment(\.editorFocus) private var focus
-    @State private var isHovered = false
-    let id: UUID
-    let isSelected: Bool
-    let onFocusGained: () -> Void
-    let onCommand: (Selector) -> Bool
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        content()
-            .background {
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .fill(Color.primary.opacity(isSelected ? 0.04 : (isHovered ? 0.025 : 0)))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .strokeBorder(
-                        isSelected ? Design.Tint.active.opacity(0.18) : (isHovered ? Color.primary.opacity(0.07) : .clear),
-                        lineWidth: isSelected ? 0.8 : 0.6
-                    )
-            }
-            .onHover { isHovered = $0 }
-            .overlay {
-                EntryResponder(
-                    id: id,
-                    focus: focus,
-                    onFocusGained: onFocusGained,
-                    onCommand: onCommand
-                )
-            }
-
-    }
-}
-
 struct TextContent: View {
     let title: String
     let detail: String?
@@ -117,40 +82,6 @@ struct LinkBlock: View {
 struct ArtifactBlock: View {
     let ref: Reference
 
-    func link(_ ref: Reference) -> some View {
-        let name = Artifact.with(ref, { $0.name }) ?? "Link"
-        let handle = Artifact.with(ref, { $0.handle }) ?? .http(nil)
-        guard let url = Artifact.with(ref, { $0.handle.url }) ?? nil else {
-            let shape = Design.Shape.block
-
-            return AnyView(
-                HStack(alignment: .center, spacing: 12) {
-                    RoundedRectangle(cornerRadius: 99, style: .continuous)
-                        .fill(Design.Tint.artifact.opacity(0.76))
-                        .frame(width: 3)
-
-                    Iconography.icon(for: handle, size: 18)
-                        .frame(width: 28, height: 28)
-                    TextContent(
-                        title: name,
-                        detail: Artifact.with(ref, { $0.rendered }) ?? "",
-                        design: .default,
-                        truncation: .middle
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    Spacer(minLength: 10)
-                }
-                .padding(.horizontal, 13)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity, minHeight: 42, maxHeight: 42, alignment: .leading)
-                .background(Design.Background.block.opacity(0.28))
-                .clipShape(shape)
-                .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
-            )
-        }
-        return AnyView(LinkBlock(fallbackTitle: name, url: url))
-    }
-
     func file(_ ref: Reference) -> some View {
         let name = Artifact.with(ref, { $0.name }) ?? "file"
         let meta = Artifact.with(ref, { $0.rendered }) ?? ""
@@ -177,6 +108,40 @@ struct ArtifactBlock: View {
         .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
     }
 
+    func link(_ ref: Reference) -> some View {
+        let name = Artifact.with(ref, { $0.name }) ?? "Link"
+        let handle = Artifact.with(ref, { $0.handle }) ?? .http(nil)
+        guard let url = Artifact.with(ref, { $0.handle.url }) ?? nil else {
+            let shape = Design.Shape.block
+
+            return AnyView(
+                HStack(alignment: .center, spacing: 12) {
+                    RoundedRectangle(cornerRadius: 99, style: .continuous)
+                        .fill(Design.Tint.artifact.opacity(0.76))
+                        .frame(width: 3)
+
+                    Iconography.icon(for: handle, size: 18)
+                        .frame(width: 28, height: 28)
+                    TextContent(
+                        title: name,
+                        detail: Artifact.with(ref, { $0.rendered }) ?? "",
+                        design: .default,
+                        truncation: .middle
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer(minLength: 10)
+                }
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, minHeight: 42, maxHeight: 42, alignment: .leading)
+                    .background(Design.Background.block.opacity(0.28))
+                    .clipShape(shape)
+                    .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
+            )
+        }
+        return AnyView(LinkBlock(fallbackTitle: name, url: url))
+    }
+
     var body: some View {
         switch Artifact.with(ref, { $0.handle }) {
             case .app, .script, .skill, .http: link(ref)
@@ -186,7 +151,7 @@ struct ArtifactBlock: View {
     }
 }
 
-struct ContentBlock: View {
+struct TextBlock: View {
     let content: String
 
     var body: some View {
@@ -286,25 +251,32 @@ struct TaskBlock: View {
                 .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.leading, 18)
+        .padding(.leading, 8)
         .padding(.vertical, 2)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
 struct SheetBlock: View {
-    let id: UUID
-    var block: Block
+    @Environment(\.editorFocus) private var focus
+    @State private var isHovered = false
+    let block: Sheet.Block
+    let selection: NSRange?
+    let isEditing: Bool
     let isSelected: Bool
+    let onTextChange: (String, NSRange) -> Void
+    let onSelectionChange: (NSRange) -> Void
+    let onCaretRectChange: (CGRect) -> Void
     let onFocusGained: () -> Void
-    let onCommand: (Selector) -> Bool
+    let onEdit: () -> Void
+    let onCommand: (Selector, NSRange, Int) -> Bool
 
-    func firstPreview(_ entries: [Block]) -> String {
+    func firstPreview(_ entries: [Sheet.Block]) -> String {
         var snippets: [String] = []
 
         for entry in entries {
             switch entry {
-                case .content(_, let text):
+                case .text(_, let text):
                     let lines = text
                         .components(separatedBy: .newlines)
                         .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -463,8 +435,8 @@ struct SheetBlock: View {
         .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
     }
 
-    func sheetFacts(_ entries: [Block]) -> [String] {
-        let texts = entries.filter { if case .content = $0 { true } else { false } }.count
+    func sheetFacts(_ entries: [Sheet.Block]) -> [String] {
+        let texts = entries.filter { if case .text = $0 { true } else { false } }.count
         let tasks = entries.filter { if case .task = $0 { true } else { false } }.count
         let done = entries.filter { if case .task(_, _, true) = $0 { true } else { false } }.count
         let artifacts = entries.filter { if case .artifact = $0 { true } else { false } }.count
@@ -482,20 +454,51 @@ struct SheetBlock: View {
         switch block {
         case .artifact(let ref): ArtifactBlock(ref: ref)
         case .command(let ref): command(ref)
-        case .content(_, let content): ContentBlock(content: content)
+        case .text(_, let content): TextBlock(content: content)
         case .sheet(let ref): sheet(ref)
         case .task(_, let content, let completed): TaskBlock(content: content, completed: completed)
         }
     }
 
-    var body: some View {
-        SelectableBlock(
-            id: id,
-            isSelected: isSelected,
-            onFocusGained: onFocusGained,
-            onCommand: onCommand
-        ) {
-            content
+    @ViewBuilder var body: some View {
+        switch block {
+            case .text(_, let text):
+                EditorInput(
+                    id: block.id,
+                    text: text,
+                    selection: selection,
+                    isEditing: isEditing,
+                    onTextChange: onTextChange,
+                    onSelectionChange: onSelectionChange,
+                    onCaretRectChange: onCaretRectChange,
+                    onFocusGained: onFocusGained,
+                    onCommand: onCommand
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+            default:
+                content
+                    .background {
+                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                            .fill(Color.primary.opacity(isSelected ? 0.04 : (isHovered ? 0.025 : 0)))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                            .strokeBorder(
+                                isSelected ? Design.Tint.active.opacity(0.18) : (isHovered ? Color.primary.opacity(0.07) : .clear),
+                                lineWidth: isSelected ? 0.8 : 0.6
+                            )
+                    }
+                    .onHover { isHovered = $0 }
+                    .overlay {
+                        EntryResponder(
+                            id: block.id,
+                            focus: focus,
+                            onFocusGained: onFocusGained,
+                            onEdit: onEdit,
+                            onCommand: { onCommand($0, NSRange(location: 0, length: 0), 0) }
+                        )
+                    }
         }
     }
 }

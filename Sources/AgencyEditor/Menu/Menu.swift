@@ -2,7 +2,45 @@ import AgencyRuntime
 import SwiftUI
 
 
-enum EditorMenuFocus: Hashable {
+@MainActor private func menuTint(for symbol: String) -> Color {
+    switch symbol {
+        case "checkmark.circle", "checklist":
+            Design.Tint.task
+        case "link", "folder.badge.plus":
+            Design.Tint.artifact
+        case "textformat.size", "textformat.size.smaller", "textformat":
+            Design.Tint.sheet
+        case "quote.opening":
+            Design.Tint.info
+        case "curlybraces":
+            Design.Tint.command
+        default:
+            Design.Tint.active
+    }
+}
+
+@MainActor @ViewBuilder func menuIcon(icon: String, selected: Bool, ref: Reference? = nil) -> some View {
+    let symbol = icon.isEmpty ? "square.stack.3d.up" : icon
+    let view = ref.map {
+        Iconography.Icon(
+            symbol: Iconography.symbol(for: $0),
+            tint: Iconography.accent(for: $0),
+            sizing: 20,
+            selected: true
+        )
+    } ?? Iconography.Icon(
+        symbol: symbol,
+        tint: menuTint(for: symbol),
+        sizing: 20,
+        selected: true
+    )
+
+    view
+        .frame(width: 32, height: 32)
+        .opacity(selected ? 1 : 0.92)
+}
+
+enum MenuFocus: Hashable {
     case formPrimary
 }
 
@@ -40,20 +78,20 @@ enum MenuSurface {
                     return Sheet.Block.artifact(Artifact.register(name, url))
                 }
                 return entries.isEmpty ? nil : entries
-            case "heading-1": return [.content(UUID(), "# ")]
-            case "heading-2": return [.content(UUID(), "## ")]
-            case "heading-3": return [.content(UUID(), "### ")]
-            case "bulleted-list": return [.content(UUID(), "- ")]
-            case "numbered-list": return [.content(UUID(), "1. ")]
-            case "checklist": return [.content(UUID(), "- [ ] ")]
-            case "quote": return [.content(UUID(), "> ")]
-            case "code-block": return [.content(UUID(), "```\n\n```")]
+            case "heading-1": return [.text(UUID(), "# ")]
+            case "heading-2": return [.text(UUID(), "## ")]
+            case "heading-3": return [.text(UUID(), "### ")]
+            case "bulleted-list": return [.text(UUID(), "- ")]
+            case "numbered-list": return [.text(UUID(), "1. ")]
+            case "checklist": return [.text(UUID(), "- [ ] ")]
+            case "quote": return [.text(UUID(), "> ")]
+            case "code-block": return [.text(UUID(), "```\n\n```")]
             default: return nil
         }
     }
 }
 
-struct EditorMenuEmptyState: View {
+struct MenuEmptyState: View {
     let title: String
     let width: CGFloat
     let height: CGFloat
@@ -75,45 +113,7 @@ struct EditorMenuEmptyState: View {
     }
 }
 
-@MainActor private func editorMenuTint(for symbol: String) -> Color {
-    switch symbol {
-    case "checkmark.circle", "checklist":
-        Design.Tint.task
-    case "link", "folder.badge.plus":
-        Design.Tint.artifact
-    case "textformat.size", "textformat.size.smaller", "textformat":
-        Design.Tint.sheet
-    case "quote.opening":
-        Design.Tint.info
-    case "curlybraces":
-        Design.Tint.command
-    default:
-        Design.Tint.active
-    }
-}
-
-@MainActor @ViewBuilder func editorMenuIcon(icon: String, selected: Bool, ref: Reference? = nil) -> some View {
-    let symbol = icon.isEmpty ? "square.stack.3d.up" : icon
-    let view = ref.map {
-        Iconography.Icon(
-            symbol: Iconography.symbol(for: $0),
-            tint: Iconography.accent(for: $0),
-            sizing: 20,
-            selected: true
-        )
-    } ?? Iconography.Icon(
-        symbol: symbol,
-        tint: editorMenuTint(for: symbol),
-        sizing: 20,
-        selected: true
-    )
-
-    view
-        .frame(width: 32, height: 32)
-        .opacity(selected ? 1 : 0.92)
-}
-
-struct EditorMenuRow: View {
+struct MenuRow: View {
     @Environment(EditorState.self) private var editor
     private var menu: MenuModel { editor.menu }
     private var selected: Bool { item.id == menu.selectedID }
@@ -126,8 +126,8 @@ struct EditorMenuRow: View {
             editor.commitMenuSelection()
         } label: {
             HStack(alignment: .center) {
-                if let ref = item.ref { editorMenuIcon(icon: "", selected: selected, ref: ref) }
-                else if let icon = item.icon { editorMenuIcon(icon: icon, selected: selected) }
+                if let ref = item.ref { menuIcon(icon: "", selected: selected, ref: ref) }
+                else if let icon = item.icon { menuIcon(icon: icon, selected: selected) }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.label)
@@ -163,16 +163,16 @@ struct EditorMenuRow: View {
     }
 }
 
-struct EditorMenuList: View {
+struct MenuList: View {
     @Environment(EditorState.self) private var editor
 
     private var menu: MenuModel { editor.menu }
 
     private var emptyTitle: String {
         switch menu.kind {
-            case .command: return "No commands found"
-            case .reference: return "No references found"
-            case .form: return ""
+            case .fixed: return "No commands found"
+            case .dynamic, .update(.artifact), .update(.command), .update(.sheet): return "No references found"
+            case .create, .update: return ""
         }
     }
 
@@ -187,7 +187,7 @@ struct EditorMenuList: View {
                                 .padding(.leading, 54)
                                 .padding(.vertical, 4)
                         } else {
-                            EditorMenuRow(item: item)
+                            MenuRow(item: item)
                                 .id(item.id)
                         }
                     }
@@ -206,12 +206,13 @@ struct EditorMenuList: View {
 
     var body: some View {
         Group {
-            if menu.items.isEmpty { EditorMenuEmptyState(title: emptyTitle, width: menu.size.width, height: menu.size.height) }
+            if menu.items.isEmpty { MenuEmptyState(title: emptyTitle, width: menu.size.width, height: menu.size.height) }
             else { list }
         }
         .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
-        .background(Design.Background.block.opacity(0.44))
-        .glassEffect(.regular.tint(Design.Background.menu), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+//        .background(Design.Background.block.opacity(0.44))
+//        .glassEffect(.regular.tint(Design.Background.menu), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .glassEffect(.regular, in: Design.Shape.card)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -223,16 +224,17 @@ struct EditorMenuList: View {
 struct MenuForm: View {
     @Environment(EditorState.self) private var editor
     let kind: MenuFormKind
-    let focus: FocusState<EditorMenuFocus?>.Binding
+    let updating: Bool
+    let focus: FocusState<MenuFocus?>.Binding
 
     private var menu: MenuModel { editor.menu }
 
     private var header: some View {
         HStack {
-            Iconography.Icon(symbol: kind.icon, tint: editorMenuTint(for: kind.icon), sizing: 16)
+            Iconography.Icon(symbol: kind.icon, tint: menuTint(for: kind.icon), sizing: 16)
                 .frame(width: 26, height: 26)
 
-            Text(kind.title)
+            Text(kind.title(updating: updating))
                 .font(.system(size: 13.5, weight: .semibold))
                 .foregroundStyle(Design.Foreground.primary)
 
@@ -266,7 +268,7 @@ struct MenuForm: View {
             Button {
                 editor.commitMenuSelection()
             } label: {
-                Text("Insert")
+                Text(updating ? "Update" : "Insert")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Design.Foreground.tertiary)
                     .padding(.horizontal, 9)
@@ -282,7 +284,7 @@ struct MenuForm: View {
         }
     }
 
-    private func formField(placeholder: String, text: Binding<String>, focusValue: EditorMenuFocus, commit: @escaping () -> Void) -> some View {
+    private func formField(placeholder: String, text: Binding<String>, focusValue: MenuFocus, commit: @escaping () -> Void) -> some View {
         TextField(placeholder, text: text)
             .textFieldStyle(.plain)
             .font(.system(size: 13, weight: .medium))
@@ -315,36 +317,38 @@ struct MenuForm: View {
             fields
         }
         .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
-        .background(Design.Background.block.opacity(0.44))
-        .glassEffect(.regular.tint(Design.Background.menu), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+//        .background(Design.Background.block.opacity(0.44))
+        .glassEffect(.regular, in: Design.Shape.card)
+        .clipShape(Design.Shape.card)
         .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            Design.Shape.card
                 .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.75)
         }
     }
 }
 
-struct EditorMenu: View {
+struct Menu: View {
     @Environment(EditorState.self) private var editor
-    @FocusState private var focus: EditorMenuFocus?
+    @FocusState private var focus: MenuFocus?
     let position: CGPoint
     private var menu: MenuModel { editor.menu }
 
     @ViewBuilder private var content: some View {
         switch menu.kind {
-            case .command, .reference:
-                EditorMenuList()
-            case .form(let kind):
-                MenuForm(kind: kind, focus: $focus)
+            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.sheet):
+                MenuList()
+            case .create(let kind):
+                MenuForm(kind: kind, updating: false, focus: $focus)
+            case .update(let kind):
+                MenuForm(kind: kind, updating: true, focus: $focus)
         }
     }
 
     private func focusInitialField(for kind: MenuKind) {
         switch kind {
-            case .command, .reference:
+            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.sheet):
                 focus = nil
-            case .form:
+            case .create, .update:
                 focus = .formPrimary
         }
     }

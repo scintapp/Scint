@@ -25,8 +25,12 @@ enum Typography {
 
 enum Design {
     enum Shape {
+        static var tab: RoundedRectangle { RoundedRectangle(cornerRadius: 28, style: .continuous) }
         static var block: RoundedRectangle { RoundedRectangle(cornerRadius: 12, style: .continuous) }
-        static var rectangle: RoundedRectangle { RoundedRectangle(cornerRadius: 30, style: .continuous) }
+        static var card: RoundedRectangle { RoundedRectangle(cornerRadius: 23, style: .continuous) }
+        static var menu: RoundedRectangle { RoundedRectangle(cornerRadius: 20, style: .continuous) }
+        static var input: RoundedRectangle { RoundedRectangle(cornerRadius: 28, style: .circular) }
+        static var panel: RoundedRectangle { RoundedRectangle(cornerRadius: 30, style: .continuous) }
     }
 
     enum Border {
@@ -42,7 +46,7 @@ enum Design {
         static var console: Color { Color(red: 0.095, green: 0.095, blue: 0.095) }
         static var detail: Color { Color(red: 0.098, green: 0.098, blue: 0.095) }
         static var editor: Color { Color(red: 0.133, green: 0.131, blue: 0.135) }
-        static var menu: Color { Color(red: 0.098, green: 0.098, blue: 0.098).opacity(0.2) }
+        static var menu: Color { Color(red: 0.098, green: 0.098, blue: 0.098) }
         static var actions: Color { Color(red: 0.098, green: 0.098, blue: 0.098) }
         static var surface: Color { Color(red: 0.123, green: 0.124, blue: 0.128) }
     }

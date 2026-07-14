@@ -14,18 +14,13 @@ struct Navigation: Equatable, Sendable {
     func path(for selection: Selection, in workspace: Reference? = nil) -> [Reference] {
         var refs: [Reference] = workspace.map { [$0] } ?? []
         guard let structure = selection.structure else { return refs }
-
-        if structure.type is Workspace.Type {
-            if refs.last != structure { refs.append(structure) }
-        } else {
-            refs.append(contentsOf: spaces(to: structure))
-        }
-
+        if structure.type is Workspace.Type { if refs.last != structure { refs.append(structure) } }
+        else { refs.append(contentsOf: spaces(to: structure)) }
         if let component = selection.content, pathable(component) { refs.append(component) }
         return refs
     }
 
-    private func spaces(to space: Reference) -> [Reference] {
+    func spaces(to space: Reference) -> [Reference] {
         var chain: [Reference] = []
         var cursor: Reference? = space
         var depth = 0
@@ -35,6 +30,7 @@ struct Navigation: Equatable, Sendable {
             cursor = Space.with(current) { $0.space } ?? nil
             depth += 1
         }
+
         return chain.reversed()
     }
 

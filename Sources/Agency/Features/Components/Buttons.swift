@@ -3,6 +3,25 @@ import SwiftUI
 import AgencyRuntime
 
 
+struct CanvasButton: View {
+    var body: some View {
+        SwiftUI.Menu {
+//            ForEach(models, id: \.self) { model in
+            Button {  } label: { Label("Space", systemImage: "square.grid.2x2") }
+            Button {  } label: { Label("Sheet", systemImage: "square.grid.2x2") }
+//                .disabled(selection == model)
+        } label: {
+            Image(systemName: "square.grid.2x2")
+                .frame(height: 30, alignment: .center)
+                .foregroundStyle(Design.Foreground.secondary)
+                .font(.system(size: 13))
+        }
+        .menuIndicator(.hidden)
+        .frame(height: 30, alignment: .center)
+        .buttonStyle(.plain)
+    }
+}
+
 struct ActionButton: View {
     let title: String
     let onAction: (String) -> Void
@@ -46,7 +65,7 @@ struct UtilityToggle: View {
     @Environment(AgencyModel.self) var agency
 
     var body: some View {
-        @Bindable var console = agency.studio.utility
+        @Bindable var console = agency.studio.console
 
         Button { console.presented.toggle() } label: {
             Image(systemName: "dock.rectangle")

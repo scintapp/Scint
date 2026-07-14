@@ -3,11 +3,9 @@ import SwiftUI
 
 
 @MainActor struct Features {
-    var browser = Browser()
-    var composer = Composer()
-    var dashboard = Dashboard()
-    var editor = Editor()
-    var processes = Processes()
+    let browser = Browser()
+    let editor = Editor()
+    let composer = Composer()
 }
 
 @Observable @MainActor final class StudioModel {
@@ -16,7 +14,7 @@ import SwiftUI
     let canvas = Canvas()
     let inspector = Inspector()
     let navigator = Navigator()
-    let utility = Utility()
+    let console = Console()
 }
 
 struct Studio: View {

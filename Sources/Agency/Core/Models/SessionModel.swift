@@ -25,7 +25,10 @@ import Foundation
         }
     }
 
-    var context: AgencyRuntime.Process? { Runtime.shared.context(for: selected.space ?? workspace) }
+    var space: Reference? {
+        guard let structure = selected.structure, structure.type is Space.Type else { return nil }
+        return selected.structure
+    }
 
     func load(_ workspace: Reference) {
         self.workspace = workspace

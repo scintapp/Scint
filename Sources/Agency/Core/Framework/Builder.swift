@@ -74,9 +74,11 @@ import Foundation
                             }
                         )
 
-                        let view = item.ref != nil || item.entryId != nil
-                        ? AnyView(Button { controls.onSelect?(item) } label: { row }.buttonStyle(.plain))
-                        : row
+                        let selectable = (item.ref != nil || item.entryId != nil)
+                            && item.trailingKind == nil
+                        let view = selectable
+                            ? AnyView(Button { controls.onSelect?(item) } label: { row }.buttonStyle(.plain))
+                            : row
 
                         build(controls, params: item, view: view)
                     }
@@ -219,24 +221,16 @@ import Foundation
                 GroupToggle(isOn: false) { controls.onToggle?(params) }
 
             case .load:
-                GroupLoader(
+                LoaderMenu(
                     count: params.count,
-                    items: params.items.map {
-                        GroupPickerItem(
-                            id: $0.id,
-                            name: $0.name,
-                            image: $0.image,
-                            ref: $0.ref,
-                            active: $0.active
-                        )
-                    },
-                    onPick: { id in
-                        if let candidate = params.items.first(where: { $0.id == id }) { controls.onSelect?(candidate) }
-                    }
+                    items: params.items,
+                    onPick: { controls.onSelect?($0) }
                 )
 
             case .action:
-                GroupCountButton(count: params.count) { controls.onAction?(params) }
+                GroupCountButton(count: params.count, label: params.value ?? "Load") {
+                    controls.onAction?(params)
+                }
 
             case .value:
                 Text(params.value ?? params.description)

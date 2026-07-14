@@ -123,11 +123,11 @@ enum ReferenceTransfer {
 
         guard let origin, let closure = closure(for: origin) else { return false }
         return Closure.update(closure) {
-            let sheets = $0.state.count
-            let components = $0.components.count
-            $0.state.removeAll { $0 == ref }
-            $0.components.removeAll { $0 == ref }
-            return sheets != $0.state.count || components != $0.components.count
+            let sheets = $0.content.count
+            let components = $0.interfaces.count
+            $0.content.removeAll { $0 == ref }
+            $0.interfaces.removeAll { $0 == ref }
+            return sheets != $0.content.count || components != $0.interfaces.count
         } ?? false
     }
 
@@ -154,7 +154,7 @@ enum ReferenceTransfer {
             return true
         case is Sheet.Type:
             guard let closure = closure(for: owner) else { return false }
-            Closure.update(closure) { if !$0.state.contains(ref) { $0.state.append(ref) } }
+            Closure.update(closure) { if !$0.content.contains(ref) { $0.content.append(ref) } }
             Sheet.update(ref) { $0.owner = closure }
             return true
         case is Transcript.Type:
@@ -168,7 +168,7 @@ enum ReferenceTransfer {
 
     private static func attachComponent(_ ref: Reference, to owner: Reference) -> Bool {
         guard let closure = closure(for: owner) else { return false }
-        Closure.update(closure) { if !$0.components.contains(ref) { $0.components.append(ref) } }
+        Closure.update(closure) { if !$0.interfaces.contains(ref) { $0.interfaces.append(ref) } }
         return true
     }
 

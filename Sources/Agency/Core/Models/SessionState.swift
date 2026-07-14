@@ -20,11 +20,6 @@ struct Selection: Equatable, Sendable {
 
     enum Axis: Sendable { case structure, interface, content, entry, path }
 
-    var workspace: Reference? {
-        guard let structure, structure.type is Workspace.Type else { return nil }
-        return structure
-    }
-
     var space: Reference? {
         guard let structure, structure.type is Space.Type else { return nil }
         return structure
