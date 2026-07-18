@@ -18,7 +18,7 @@ struct EditorComponent: View {
     }
 
     var body: some View {
-        EditorCanvas(menuPlacement: menuPlacement)
+        TextEditor(menuPlacement: menuPlacement)
             .environment(state)
     }
 }

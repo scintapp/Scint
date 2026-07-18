@@ -6,7 +6,7 @@ enum EditorMenuPlacement: Equatable {
     case centerTop
 }
 
-public struct EditorCanvas: View {
+public struct TextEditor: View {
     @Environment(EditorState.self) private var editor
     @Environment(\.editorFocus) private var focus
     private var sheet: SheetModel { editor.sheet }
@@ -14,11 +14,7 @@ public struct EditorCanvas: View {
     let minimumHeight: CGFloat
     let menuPlacement: EditorMenuPlacement
 
-    init(
-        autofocus: Bool = true,
-        minimumHeight: CGFloat = 0,
-        menuPlacement: EditorMenuPlacement = .caret
-    ) {
+    init(autofocus: Bool = true, minimumHeight: CGFloat = 0, menuPlacement: EditorMenuPlacement = .caret) {
         self.autofocus = autofocus
         self.minimumHeight = minimumHeight
         self.menuPlacement = menuPlacement

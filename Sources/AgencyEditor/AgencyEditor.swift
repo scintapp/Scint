@@ -4,26 +4,24 @@ import AgencyRuntime
 
 @main
 struct AgencyEditor: App {
-    @State private var agency: AgencyModel?
-    @State private var sheet: Reference?
+    @State private var editor: EditorModel?
 
     func load() async {
-        guard agency == nil else { return }
+        guard editor == nil else { return }
         do { try await Runtime.shared.load() } catch { print(error) }
-        let model = AgencyModel(Runtime.shared.workspace)
-        await model.load()
+        guard let workspace = Runtime.shared.workspaces.first(where: { $0.descriptor.framing == .editor })
+            ?? Runtime.shared.workspaces.first else { return }
+        let model = EditorModel(workspace)
         let ref = Sheet.new(model.session.workspace, name: "Untitled")
         model.open(ref)
-        agency = model
-        sheet = ref
+        editor = model
     }
 
     var body: some Scene {
         WindowGroup("Untitled", id: "editor") {
-            if let agency, let sheet {
-                EditorFrame(sheet: sheet)
-                    .environment(agency)
-                    .onAppear(perform: { ShortcutManager.shared.register(agency: agency) } )
+            if let editor {
+                EditorFrame()
+                    .environment(editor)
                     .focusable(false)
             } else { ProgressView().task { await load() } }
         }
