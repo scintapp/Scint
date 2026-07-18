@@ -107,7 +107,7 @@ public struct Handler: Codable & Sendable {
 
     public init(_ format: Format = .events) { self.format = format }
 
-    public func handle(_ chunk: String) -> [RuntimeEvent] {
+    public func handle(_ chunk: String) -> [Signal] {
         switch format {
             case .lines:
                 return chunk
@@ -115,21 +115,17 @@ public struct Handler: Codable & Sendable {
                     .map(String.init)
                     .filter { !$0.isEmpty }
                     .map { line in
-                            .properties(Properties(.object([
-                                "type": .string("message"),
-                                "text": .string(line)
-                            ])))
+                        .updated(.collection([
+                            "type": .string("message"),
+                            "text": .string(line)
+                        ]))
                     }
 
             case .events:
-                guard let properties = Properties.load(chunk) else {
-                    return [.properties(Properties(.object([
-                        "type": .string("raw"),
-                        "text": .string(chunk)
-                    ])))]
+                guard let properties = Properties.load(chunk), let value = Value(properties.property) else {
+                    return [.updated(.string(chunk))]
                 }
-                return [.properties(properties)]
+                return [.updated(value)]
         }
     }
 }
-

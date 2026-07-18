@@ -25,22 +25,23 @@ import SwiftUI
         Iconography.Icon(
             symbol: Iconography.symbol(for: $0),
             tint: Iconography.accent(for: $0),
-            sizing: 20,
+            sizing: 16,
             selected: true
         )
     } ?? Iconography.Icon(
         symbol: symbol,
         tint: menuTint(for: symbol),
-        sizing: 20,
+        sizing: 16,
         selected: true
     )
 
     view
-        .frame(width: 32, height: 32)
+        .frame(width: 24, height: 24)
         .opacity(selected ? 1 : 0.92)
 }
 
 enum MenuFocus: Hashable {
+    case filter
     case formPrimary
 }
 
@@ -109,7 +110,7 @@ struct MenuEmptyState: View {
             }
             Spacer()
         }
-        .frame(width: width, height: height)
+        .frame(maxWidth: width, maxHeight: height)
     }
 }
 
@@ -131,13 +132,13 @@ struct MenuRow: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.label)
-                        .font(.system(size: 13.5, weight: selected ? .semibold : .medium))
+                        .font(.system(size: 13, weight: selected ? .medium : .regular))
                         .foregroundStyle(selected ? Design.Foreground.primary : Design.Foreground.secondary)
                         .lineLimit(1)
 
                     if !item.detail.isEmpty {
                         Text(item.detail)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(Design.Foreground.disabled)
                             .lineLimit(1)
                     }
@@ -152,11 +153,9 @@ struct MenuRow: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .frame(minHeight: 46)
-            .background(
-                shape.fill(selected ? Design.Foreground.quaternary.opacity(0.24) : Color.clear)
-            )
+            .padding(.vertical, 8)
+            .frame(minHeight: 36)
+            .background(shape.fill(selected ? .accent.opacity(0.6) : Color.clear))
             .contentShape(shape)
         }
         .buttonStyle(.plain)
@@ -165,10 +164,19 @@ struct MenuRow: View {
 
 struct MenuList: View {
     @Environment(EditorState.self) private var editor
+    let focus: FocusState<MenuFocus?>.Binding
 
-    private var menu: MenuModel { editor.menu }
+    var menu: MenuModel { editor.menu }
 
-    private var emptyTitle: String {
+    private var query: Binding<String> {
+        Binding(get: { menu.query }, set: { menu.query = $0 })
+    }
+
+    private var filter: some View {
+        MenuFilter(text: query, focus: focus)
+    }
+
+    var emptyTitle: String {
         switch menu.kind {
             case .fixed: return "No commands found"
             case .dynamic, .update(.artifact), .update(.command), .update(.sheet): return "No references found"
@@ -176,15 +184,15 @@ struct MenuList: View {
         }
     }
 
-    private var list: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical) {
+    var list: some View {
+        ScrollView(.vertical) {
+            ScrollViewReader { proxy in
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(menu.items) { item in
                         if case .dividerItem = item {
                             Divider()
-                                .opacity(0.34)
-                                .padding(.leading, 54)
+                                .opacity(0.5)
+                                .padding(.horizontal, 12)
                                 .padding(.vertical, 4)
                         } else {
                             MenuRow(item: item)
@@ -192,32 +200,37 @@ struct MenuList: View {
                         }
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 8)
-            }
-            .onChange(of: menu.selectedID) { _, newID in
-                guard let newID else { return }
-                withAnimation(.easeOut(duration: 0.1)) {
-                    proxy.scrollTo(newID, anchor: .center)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onChange(of: menu.selectedID) { _, newID in
+                    guard let newID else { return }
+                    withAnimation(.easeOut(duration: 0.1)) {
+                        proxy.scrollTo(newID, anchor: .center)
+                    }
                 }
             }
         }
     }
 
     var body: some View {
-        Group {
-            if menu.items.isEmpty { MenuEmptyState(title: emptyTitle, width: menu.size.width, height: menu.size.height) }
-            else { list }
+        VStack {
+            filter
+
+            Group {
+                if menu.items.isEmpty {
+                    MenuEmptyState(title: emptyTitle, width: menu.size.width, height: menu.size.height)
+                } else {
+                    list
+                }
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(8)
+        .background(Design.Background.menu)
+        .overlay(Design.Shape.menu.stroke(.black.opacity(0.5), lineWidth: 0.5))
         .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
-//        .background(Design.Background.block.opacity(0.44))
-//        .glassEffect(.regular.tint(Design.Background.menu), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .glassEffect(.regular, in: Design.Shape.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.75)
-        }
+        .shadow(color: .black.opacity(0.15), radius: 16, y: 8)
+        .glassEffect(.regular, in: Design.Shape.menu)
+        .scrollIndicators(.hidden)
     }
 }
 
@@ -232,16 +245,16 @@ struct MenuForm: View {
     private var header: some View {
         HStack {
             Iconography.Icon(symbol: kind.icon, tint: menuTint(for: kind.icon), sizing: 16)
-                .frame(width: 26, height: 26)
+                .frame(width: 24, height: 24)
 
             Text(kind.title(updating: updating))
-                .font(.system(size: 13.5, weight: .semibold))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Design.Foreground.primary)
 
             Spacer()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
     }
 
     private var fields: some View {
@@ -317,13 +330,54 @@ struct MenuForm: View {
             fields
         }
         .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
-//        .background(Design.Background.block.opacity(0.44))
-        .glassEffect(.regular, in: Design.Shape.card)
-        .clipShape(Design.Shape.card)
-        .overlay {
-            Design.Shape.card
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.75)
+        .glassEffect(.regular, in: Design.Shape.menu)
+        .background(Design.Background.menu)
+        .overlay(Design.Shape.menu.stroke(.black.opacity(0.5), lineWidth: 0.5))
+        .clipShape(Design.Shape.menu)
+    }
+}
+
+struct MenuFilter: View {
+    @Environment(EditorState.self) private var editor
+    @Binding var text: String
+    let focus: FocusState<MenuFocus?>.Binding
+
+    private var menu: MenuModel { editor.menu }
+
+    var body: some View {
+        VStack {
+            HStack(alignment: .center) {
+                TextField("Filter", text: $text)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .foregroundStyle(Design.Foreground.tertiary)
+                    .font(.system(size: 13))
+                    .textFieldStyle(.plain)
+                    .lineLimit(1)
+                    .focused(focus, equals: .filter)
+                    .onKeyPress(.downArrow) {
+                        menu.moveSelection(1)
+                        return .handled
+                    }
+                    .onKeyPress(.upArrow) {
+                        menu.moveSelection(-1)
+                        return .handled
+                    }
+                    .onKeyPress(.return) {
+                        editor.commitMenuSelection()
+                        return .handled
+                    }
+                    .onKeyPress(.escape) {
+                        menu.close()
+                        return .handled
+                    }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .background(Design.Background.raised)
+            .clipShape(Design.Shape.block)
         }
+        .frame(maxWidth: .infinity, maxHeight: 38)
     }
 }
 
@@ -336,7 +390,7 @@ struct Menu: View {
     @ViewBuilder private var content: some View {
         switch menu.kind {
             case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.sheet):
-                MenuList()
+                MenuList(focus: $focus)
             case .create(let kind):
                 MenuForm(kind: kind, updating: false, focus: $focus)
             case .update(let kind):
@@ -345,11 +399,18 @@ struct Menu: View {
     }
 
     private func focusInitialField(for kind: MenuKind) {
+        let target: MenuFocus?
         switch kind {
             case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.sheet):
-                focus = nil
+                target = .filter
             case .create, .update:
-                focus = .formPrimary
+                target = .formPrimary
+        }
+
+        Task { @MainActor in
+            await Task.yield()
+            guard menu.kind == kind else { return }
+            focus = target
         }
     }
 

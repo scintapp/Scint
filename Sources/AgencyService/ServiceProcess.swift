@@ -3,7 +3,7 @@ import Foundation
 
 
 private struct TrackedProcess {
-    let process: Foundation.Process
+    let process: Process
     let command: String
     let arguments: [String]
     let outputPipe: Pipe

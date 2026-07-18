@@ -130,6 +130,7 @@ struct SheetView: View {
     let onTextChange: (AnyHashable, String, NSRange) -> Void
     let onSelectionChange: (AnyHashable, NSRange) -> Void
     let onCaretRectChange: (AnyHashable, CGRect) -> Void
+    let onViewportRectChange: (AnyHashable, CGRect) -> Void
     let onFocusGained: (AnyHashable) -> Void
     let onEdit: (AnyHashable) -> Void
     let onCommand: (Selector, NSRange, Int) -> Bool
@@ -146,6 +147,7 @@ struct SheetView: View {
                     onTextChange: { onTextChange(block.id, $0, $1) },
                     onSelectionChange: { onSelectionChange(block.id, $0) },
                     onCaretRectChange: { onCaretRectChange(block.id, $0) },
+                    onViewportRectChange: { onViewportRectChange(block.id, $0) },
                     onFocusGained: { onFocusGained(block.id) },
                     onEdit: { onEdit(block.id) },
                     onCommand: onCommand

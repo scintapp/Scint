@@ -56,7 +56,7 @@ struct LinkBlock: View {
                 .fill(Design.Tint.artifact.opacity(0.76))
                 .frame(width: 3)
 
-            Iconography.icon(for: Artifact.Handle.http(url), size: 18)
+            Iconography.icon(for: Artifact.Handler.http(url), size: 18)
                 .frame(width: 28, height: 28)
 
             TextContent(
@@ -85,7 +85,7 @@ struct ArtifactBlock: View {
     func file(_ ref: Reference) -> some View {
         let name = Artifact.with(ref, { $0.name }) ?? "file"
         let meta = Artifact.with(ref, { $0.rendered }) ?? ""
-        let handle = Artifact.with(ref, { $0.handle }) ?? .file(nil)
+        let handle = Artifact.with(ref, { $0.handler }) ?? .file(nil)
 
         let shape = Design.Shape.block
 
@@ -110,8 +110,8 @@ struct ArtifactBlock: View {
 
     func link(_ ref: Reference) -> some View {
         let name = Artifact.with(ref, { $0.name }) ?? "Link"
-        let handle = Artifact.with(ref, { $0.handle }) ?? .http(nil)
-        guard let url = Artifact.with(ref, { $0.handle.url }) ?? nil else {
+        let handle = Artifact.with(ref, { $0.handler }) ?? .http(nil)
+        guard let url = Artifact.with(ref, { $0.handler.url }) ?? nil else {
             let shape = Design.Shape.block
 
             return AnyView(
@@ -143,7 +143,7 @@ struct ArtifactBlock: View {
     }
 
     var body: some View {
-        switch Artifact.with(ref, { $0.handle }) {
+        switch Artifact.with(ref, { $0.handler }) {
             case .app, .script, .skill, .http: link(ref)
             case .exec, .file: file(ref)
             default: link(ref)
@@ -267,6 +267,7 @@ struct SheetBlock: View {
     let onTextChange: (String, NSRange) -> Void
     let onSelectionChange: (NSRange) -> Void
     let onCaretRectChange: (CGRect) -> Void
+    let onViewportRectChange: (CGRect) -> Void
     let onFocusGained: () -> Void
     let onEdit: () -> Void
     let onCommand: (Selector, NSRange, Int) -> Bool
@@ -328,8 +329,8 @@ struct SheetBlock: View {
         let name = Command.with(ref, { $0.name }) ?? "tool"
         let description = Command.with(ref, { $0.description }) ?? ""
         let exec = Command.with(ref, { $0.artifact }) ?? ref
-        let executable = Artifact.with(exec, { $0.handle.url?.lastPathComponent ?? $0.name }) ?? ""
-        let facts = Command.with(ref, { commandFacts($0.parameters) }) ?? (artifacts: 0, args: [], properties: [])
+        let executable = Artifact.with(exec, { $0.handler.url?.lastPathComponent ?? $0.name }) ?? ""
+        let facts = Command.with(ref, { commandFacts($0.parameters) })!
         let args = facts.args.joined(separator: " ")
 
         return HStack(alignment: .center, spacing: 12) {
@@ -374,19 +375,18 @@ struct SheetBlock: View {
         .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
     }
 
-    func commandFacts(_ params: [Command.Parameter]) -> (artifacts: Int, args: [String], properties: [Properties]) {
+    func commandFacts(_ params: [Command.Parameter]) -> (artifacts: Int, args: [String]) {
         var artifacts = 0
         var arguments: [String] = []
-        var properties: [Properties] = []
         for param in params {
             switch param {
-                case .artifact: artifacts += 1
-                case .argument(let value): arguments.append(value)
-                case .properties(let props): properties.append(props)
+                case .argument(let name, _, _, _): arguments.append("<\(name)>")
+                case .fixed(.reference(let ref)) where ref.type is Artifact.Type: artifacts += 1
+                case .fixed(let value): arguments.append(contentsOf: value.rendered)
                 case .requirement: break
             }
         }
-        return (artifacts, arguments, properties)
+        return (artifacts, arguments)
     }
 
     func sheet(_ ref: Reference) -> some View {
@@ -471,6 +471,7 @@ struct SheetBlock: View {
                     onTextChange: onTextChange,
                     onSelectionChange: onSelectionChange,
                     onCaretRectChange: onCaretRectChange,
+                    onViewportRectChange: onViewportRectChange,
                     onFocusGained: onFocusGained,
                     onCommand: onCommand
                 )

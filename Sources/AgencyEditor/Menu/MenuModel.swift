@@ -174,9 +174,9 @@ enum MenuItem: Identifiable, Equatable {
 
     var size: CGSize {
         switch kind {
-            case .fixed, .dynamic: return CGSize(width: 300, height: 336)
-            case .create, .update(.task), .update(.link): return CGSize(width: 320, height: 162)
-            case .update: return CGSize(width: 300, height: 336)
+            case .fixed, .dynamic: return CGSize(width: 256, height: 336)
+            case .create, .update(.task), .update(.link): return CGSize(width: 256, height: 160)
+            case .update: return CGSize(width: 256, height: 160)
         }
     }
 
@@ -218,7 +218,7 @@ enum MenuItem: Identifiable, Equatable {
                 formCompleted = completed
             case .artifact(let ref):
                 let link = Artifact.with(ref) { artifact -> (Bool, String) in
-                    if case .http(let url) = artifact.handle { return (true, url?.absoluteString ?? "") }
+                    if case .http(let url) = artifact.handler { return (true, url?.absoluteString ?? "") }
                     return (false, "")
                 } ?? (false, "")
                 kind = .update(link.0 ? .link : .artifact)
