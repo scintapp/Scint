@@ -25,7 +25,7 @@ struct Navigation: Equatable, Sendable {
         var cursor: Reference? = space
         var depth = 0
 
-        while let current = cursor, depth < Self.maxPathDepth {
+        while let current = cursor, current.type is Space.Type, depth < Self.maxPathDepth {
             chain.append(current)
             cursor = Space.with(current) { $0.space } ?? nil
             depth += 1
@@ -38,8 +38,8 @@ struct Navigation: Equatable, Sendable {
         guard ref.type is Artifact.Type else { return true }
         return Artifact.with(ref) { artifact in
             switch artifact.handler {
-                case .http: return true
-                case .app, .file, .image, .script, .skill, .exec: return false
+                case .bookmark: return true
+                case .app, .directory, .executable, .file, .image, .script, .skill: return false
             }
         } ?? true
     }

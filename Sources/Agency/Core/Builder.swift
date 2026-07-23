@@ -7,36 +7,23 @@ import Foundation
         let nesting = params.nesting ?? .flat
         let layout = params.layout ?? .list
 
-        if let float = params.panel {
-            ActionsSurface(surface: surface, params: params, panel: float, controls: controls)
+        let view = ScrollView {
+            Color.clear.frame(height: 8)
+            VStack(alignment: .leading) {
+                build(params)
+                ForEach(params.components) { component in
+                    build(surface, controls: controls, params: component, layout: layout, nesting: nesting)
+                        .padding(.bottom, 16)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 8)
         }
-        else {
-            build(
-                surface,
-                controls,
-                view: AnyView(
-                    ScrollView {
-                        Color.clear.frame(height: 8)
-                        VStack(alignment: .leading) {
-                            build(params)
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                            ForEach(params.components) { component in
-                                build(surface,
-                                      controls: controls,
-                                      params: component,
-                                      layout: layout,
-                                      nesting: nesting
-                                )
-                                .padding(.bottom, 16)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.horizontal, 8)
-                    }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                )
-            )
-        }
+        if let float = params.panel { ActionsSurface(surface: surface, params: params, panel: float, controls: controls) }
+        else { build(surface, controls, view: AnyView(view)) }
     }
 
     @ViewBuilder static func build(_ surface: some Surface, controls: Controls, params: ComponentParams, layout: Layout, nesting: Nesting) -> some View {
@@ -270,6 +257,7 @@ import Foundation
         else if let tint = item.tint { Iconography.Icon(symbol: item.image, tint: tint) }
         else { Image(systemName: item.image) .foregroundStyle(.secondary) }
     }
+
 }
 
 extension Builder {

@@ -53,6 +53,44 @@ import SwiftUI
         }
     }
 
+    struct Glyph: View {
+        var active = false
+        let size: CGFloat
+        let tint: Color
+
+        init(sizing: CGFloat = 14, active: Bool = false) {
+            self.size = sizing
+            self.tint = .accent
+            self.active = active
+        }
+
+        private var primary: Color { active ? Design.Foreground.primary : Design.Foreground.secondary }
+        private var secondary: Color { active ? tint : Design.Foreground.secondary }
+        private var background: Color { active ? tint : tint.opacity(0.66) }
+
+        var body: some View {
+            ZStack(alignment: .center) {
+                Image(systemName: "cube.fill")
+                    .foregroundStyle(background)
+                    .font(.system(size: size, weight: .light))
+                Image(systemName: "cube.transparent")
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: size, weight: .light))
+                Image(systemName: "cube")
+                    .foregroundStyle(primary)
+                    .font(.system(size: size, weight: .light))
+
+//                    .padding(padding)
+//                    .padding(.bottom, padding)
+//                Image(systemName: "cube.transparent")
+//                    .font(.system(size: sizing, weight: .light))
+//                    .symbolRenderingMode(.monochrome)
+//                    .foregroundStyle(primary, secondary)
+//                    .padding(.top, padding)
+            }
+        }
+    }
+
     enum Model {
         case artifact(Handle)
         case context(Intent)
@@ -98,9 +136,10 @@ import SwiftUI
 
         enum Handle {
             case app
-            case exec
+            case bookmark
+            case directory
+            case executable
             case file
-            case http
             case image
             case script
             case skill
@@ -132,11 +171,11 @@ import SwiftUI
 
     static func icon(for intent: Harness.Intent, size: CGFloat = 14) -> Icon {
         switch intent {
-            case .compose: return Icon(symbol: "space.badge.ellipsis", tint: Design.Tint.compose, sizing: size)
-            case .dispatch: return Icon(symbol: "space.badge.play", tint: Design.Tint.dispatch, sizing: size)
-            case .observe: return Icon(symbol: "space.badge.eye", tint: Design.Tint.observe, sizing: size)
-            case .execute: return Icon(symbol: "space.badge.sparkles", tint: Design.Tint.execute, sizing: size)
-            case .traverse: return Icon(symbol: "space.badge.magnifyingglass", tint: Design.Tint.traverse, sizing: size)
+            case .compose: return Icon(symbol: "space.custom", tint: Design.Tint.compose, sizing: size)
+            case .dispatch: return Icon(symbol: "space.custom", tint: Design.Tint.dispatch, sizing: size)
+            case .observe: return Icon(symbol: "space.custom", tint: Design.Tint.observe, sizing: size)
+            case .execute: return Icon(symbol: "space.custom", tint: Design.Tint.execute, sizing: size)
+            case .traverse: return Icon(symbol: "space.custom", tint: Design.Tint.traverse, sizing: size)
         }
     }
 
@@ -145,18 +184,20 @@ import SwiftUI
             case .signal: return Icon(symbol: "calendar", tint: Design.Tint.active, sizing: size)
             case .input(let ref, _): return Iconography.icon(for: ref, size: size)
             case .transcript(let ref, _, _): return Iconography.icon(for: ref, size: size)
+            case .property: return Icon(symbol: "info.circle", tint: Design.Foreground.tertiary, sizing: size)
         }
     }
 
     static func icon(for handle: Artifact.Handler, size: CGFloat = 14) -> Icon {
         switch handle {
             case .app: return Icon(symbol: "square.grid.2x2.fill", tint: Design.Tint.artifact, sizing: size)
-            case .file: return Icon(symbol: "folder", tint: Design.Tint.artifact, sizing: size)
-            case .http: return Icon(symbol: "bookmark", tint: Design.Tint.artifact, sizing: size)
+            case .bookmark: return Icon(symbol: "bookmark", tint: Design.Tint.artifact, sizing: size)
+            case .directory: return Icon(symbol: "folder", tint: Design.Tint.artifact, sizing: size)
+            case .executable: return Icon(symbol: "terminal", tint: Design.Tint.artifact, sizing: size)
+            case .file: return Icon(symbol: "doc", tint: Design.Tint.artifact, sizing: size)
             case .image: return Icon(symbol: "photo", tint: Design.Tint.artifact, sizing: size)
             case .script: return Icon(symbol: "scroll", tint: Design.Tint.artifact, sizing: size)
             case .skill: return Icon(symbol: "brain.head.profile", tint: Design.Tint.artifact, sizing: size)
-            case .exec: return Icon(symbol: "terminal", tint: Design.Tint.artifact, sizing: size)
         }
     }
 
@@ -165,13 +206,6 @@ import SwiftUI
             case is Artifact.Type:
                 guard let artifact = Artifact.with(ref, { $0 })
                 else { return Icon(symbol: "", tint: Design.Tint.active, sizing: size) }
-                if case .file = artifact.handler {
-                    return Icon(
-                        symbol: artifact.handler.directory ? "folder" : "doc",
-                        tint: Design.Tint.artifact,
-                        sizing: size
-                    )
-                }
                 return Iconography.icon(for: artifact.handler, size: size)
             case is Space.Type:
                 guard let space = Space.with(ref, { $0.harness }).flatMap({ $0 }), let harness = Harness.with(space, { $0.intent })
@@ -235,9 +269,10 @@ import SwiftUI
             case .artifact(let handle):
                 switch handle {
                     case .app: return Icon(symbol: "square.grid.2x2.fill", tint: Design.Tint.artifact)
-                    case .exec: return Icon(symbol: "terminal", tint: Design.Tint.artifact)
-                    case .file: return Icon(symbol: "folder", tint: Design.Tint.artifact)
-                    case .http: return Icon(symbol: "bookmark", tint: Design.Tint.artifact)
+                    case .bookmark: return Icon(symbol: "bookmark", tint: Design.Tint.artifact)
+                    case .directory: return Icon(symbol: "folder", tint: Design.Tint.artifact)
+                    case .executable: return Icon(symbol: "terminal", tint: Design.Tint.artifact)
+                    case .file: return Icon(symbol: "doc", tint: Design.Tint.artifact)
                     case .image: return Icon(symbol: "photo", tint: Design.Tint.artifact)
                     case .script: return Icon(symbol: "scroll", tint: Design.Tint.artifact)
                     case .skill: return Icon(symbol: "brain.head.profile", tint: Design.Tint.artifact)
@@ -289,4 +324,8 @@ import SwiftUI
                 return Icon(symbol: "cube.transparent", tint: Design.Tint.workspace)
         }
     }
+}
+
+#Preview {
+    Iconography.Glyph(sizing: 64)
 }

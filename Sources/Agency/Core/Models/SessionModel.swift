@@ -16,6 +16,14 @@ import Foundation
         self.navigation.reset(to: initial)
     }
 
+    var rendered: Value {
+        AgencyRuntime.Value.collection([
+            "focused": focused.resolved,
+            "selected": selected.resolved,
+            "opened": opened.resolved
+        ])
+    }
+
     var active: Reference? {
         guard let content = selected.content else { return nil }
         switch content.type {
@@ -31,10 +39,11 @@ import Foundation
     }
 
     var origin: Reference { selected.space ?? workspace }
+
     var composable: Bool { Space.with(origin, { $0.composable }) ?? Workspace.with(origin, { $0.composable }) ?? false }
+
     var input: Reference? {
-        let closure = Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure })
-        return closure.flatMap { Closure.with($0, { $0.input }) }
+        Space.with(origin, { $0.input }).flatMap { $0 } ?? Workspace.with(origin, { $0.input }).flatMap { $0 }
     }
 
     func load(_ workspace: Reference) {
@@ -76,7 +85,10 @@ import Foundation
 
     @discardableResult
     func close(_ ref: Reference) -> Bool {
-        return opened.close(ref)
+        guard opened.close(ref) else { return false }
+        if selected.content == ref { selected = selected.clearing(.content) }
+        if focused == .content(ref) { focused = .nothing }
+        return true
     }
 
     @discardableResult

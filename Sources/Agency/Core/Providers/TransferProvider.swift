@@ -112,7 +112,7 @@ enum ReferenceTransfer {
     static func detach(_ ref: Reference, from origin: Reference?) -> Bool {
         if ref.type is Space.Type {
             let parent = origin ?? Space.with(ref, { $0.space }) ?? nil
-            if let parent { return Space.update(parent) { $0.detach(child: ref) } != nil }
+            if let parent { return Space.update(ref) { $0.detach(from: parent) } != nil }
             return false
         }
 
@@ -121,14 +121,10 @@ enum ReferenceTransfer {
             return Space.update(origin) { $0.routes.remove(ref) != nil } ?? false
         }
 
-        guard let origin, let closure = closure(for: origin) else { return false }
-        return Closure.update(closure) {
-            let sheets = $0.content.count
-            let components = $0.interfaces.count
-            $0.content.remove(ref)
-            $0.interfaces.remove(ref)
-            return sheets != $0.content.count || components != $0.interfaces.count
-        } ?? false
+        guard let origin else { return false }
+        if let space = Space.with(origin, { $0 }) { space.remove(ref); return true }
+        if let workspace = Workspace.with(origin, { $0 }) { workspace.remove(ref); return true }
+        return false
     }
 
     private static func transferableRef(for item: ItemParams, create: Bool) -> Reference? {
@@ -150,28 +146,15 @@ enum ReferenceTransfer {
         switch ref.type {
         case is Space.Type:
             return Space.update(ref) { $0.attach(to: owner) } != nil
-        case is Artifact.Type, is Sheet.Type:
-            guard let closure = closure(for: owner) else { return false }
-            Closure.update(closure) { $0.content.insert(ref) }
-            if ref.type is Sheet.Type { Sheet.update(ref) { $0.owner = closure } }
+        case is Artifact.Type, is Sheet.Type, is Transcript.Type, is any Functional.Type:
+            if let space = Space.with(owner, { $0 }) { space.add(ref) }
+            else if let workspace = Workspace.with(owner, { $0 }) { workspace.add(ref) }
+            else { return false }
+            if ref.type is Sheet.Type { Sheet.update(ref) { $0.owner = owner } }
             return true
-        case is Transcript.Type:
-            return attachComponent(ref, to: owner)
-        case is any Functional.Type:
-            return attachComponent(ref, to: owner)
         default:
             return false
         }
-    }
-
-    private static func attachComponent(_ ref: Reference, to owner: Reference) -> Bool {
-        guard let closure = closure(for: owner) else { return false }
-        Closure.update(closure) { $0.interfaces.insert(ref) }
-        return true
-    }
-
-    private static func closure(for owner: Reference) -> Reference? {
-        Space.with(owner, { $0.closure }) ?? Workspace.with(owner, { $0.closure })
     }
 
     private static func contains(_ child: Reference, _ parent: Reference) -> Bool {

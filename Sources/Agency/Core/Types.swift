@@ -1,7 +1,4 @@
 import SwiftUI
-import AppKit
-import Foundation
-import OrderedCollections
 import AgencyRuntime
 
 
@@ -28,7 +25,7 @@ enum Nesting: String, CaseIterable { case recursive, single, flat }
     var state: StateContainer { get set }
     func controls(_ model: any Model) -> Controls
     func parameters(_ model: any Model) -> Params
-    func surface(_ model: any Model) -> Surface
+    func panel(_ model: any Model) -> Surface
 }
 
 @MainActor protocol Surface: View {
@@ -61,6 +58,11 @@ extension Model {
     }
 
     func compose(_ ref: Reference) -> Composition? {
+        let input = Space.with(ref, { $0.input }).flatMap { $0 } ?? Workspace.with(ref, { $0.input }).flatMap { $0 }
+        guard let input, Sheet.with(input, { !$0.blocks.isEmpty }) == true else { return nil }
+        Sheet.update(input) { $0.insert(.text(.init(), session.rendered.property.stringRepresentation), at: nil) }
+        if ref.type is Workspace.Type { Workspace.update(ref) { $0.input = input } }
+        else { Space.update(ref) { $0.input = input } }
         guard let composition = Runtime.shared.trigger(ref) else { return nil }
         if let transcript = composition.intentTranscript { open(transcript) }
         return composition
@@ -82,9 +84,13 @@ extension Mapper {
     }
 }
 
+extension Panel {
+    func controls(_ model: any Model) -> Controls { .init() }
+    func parameters(_ model: any Model) -> Params { .init() }
+}
+
 extension Surface {
     var render: (Self, Params, Controls) -> some View { Builder.build(_ :_ :_ :) }
-    func toolbar(_ model: any Model) -> any ToolbarContent { ToolbarItem() { EmptyView() } }
     func isExpanded(_ id: AnyHashable) -> Bool { panel.state.isExpanded(id) }
     func setExpanded(_ id: AnyHashable) { panel.state.setExpanded(id) }
 }

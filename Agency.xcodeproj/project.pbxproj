@@ -7,33 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7C0401D630077B130046F15B /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C0401D530077B130046F15B /* OrderedCollections */; };
-		7C1424E43007705100F7A50E /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C1424E33007705100F7A50E /* AgencyRuntime */; };
-		7C142531300771AC00F7A50E /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7C142530300771AC00F7A50E /* KeyboardShortcuts */; };
-		7C142532300771DB00F7A50E /* Agency.app in Resources */ = {isa = PBXBuildFile; fileRef = 7CEEDB3A2FE4D94D00297905 /* Agency.app */; };
 		7C443ABD2FF956D600FD0398 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABC2FF956D600FD0398 /* Collections */; };
 		7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABE2FF956D600FD0398 /* OrderedCollections */; };
 		7C444BBC2F686AC400BA95C3 /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C444BBB2F686AC400BA95C3 /* AgencyRuntime */; };
 		7C69AB062F8B46460008D611 /* AgencyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7C69AB052F8B46460008D611 /* AgencyRuntime */; };
+		7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C959129300D54FB007D9E73 /* OrderedCollections */; };
 		7CB1B9D42FC5778E00BFEA35 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB1B9D32FC5778E00BFEA35 /* MCP */; };
 		7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		7C142533300771DB00F7A50E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 7C4C36DF2ED17D5A00D6F1CF /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 7C4C36E62ED17D5A00D6F1CF;
-			remoteInfo = "Agency Studio";
-		};
-		7C142535300771E500F7A50E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 7C4C36DF2ED17D5A00D6F1CF /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 7C4C36E62ED17D5A00D6F1CF;
-			remoteInfo = "Agency Studio";
-		};
 		7C69AAFB2F8B45D90008D611 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 7C4C36DF2ED17D5A00D6F1CF /* Project object */;
@@ -79,105 +62,30 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		7C1424D730076FF100F7A50E /* Agency Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Agency Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CEEDB3A2FE4D94D00297905 /* Agency.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Agency.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CEEDB3B2FE4D94D00297905 /* agencyd.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = agencyd.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		7C0401D430077AB10046F15B /* Exceptions for "Resources" folder in "Agency Editor" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Assets.xcassets,
-			);
-			target = 7C1424D630076FF100F7A50E /* Agency Editor */;
-		};
-		7C1424F0300770D400F7A50E /* Exceptions for "Sources" folder in "Agency Editor" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Agency/AgencyModel.swift,
-				Agency/Core/Builder.swift,
-				Agency/Core/Controls.swift,
-				Agency/Core/Design/Composition.swift,
-				Agency/Core/Design/Iconography.swift,
-				Agency/Core/Design/Styles.swift,
-				Agency/Core/Layouts/GridLayout.swift,
-				Agency/Core/Layouts/GroupLayout.swift,
-				Agency/Core/Layouts/ListLayout.swift,
-				Agency/Core/Layouts/PaletteLayout.swift,
-				Agency/Core/Layouts/TableLayout.swift,
-				Agency/Core/Layouts/TranscriptLayout.swift,
-				Agency/Core/Models/AppModels.swift,
-				Agency/Core/Models/NavigationModel.swift,
-				Agency/Core/Models/SessionModel.swift,
-				Agency/Core/Models/SessionState.swift,
-				Agency/Core/Models/StateContainer.swift,
-				Agency/Core/Params.swift,
-				Agency/Core/Providers/FileProvider.swift,
-				Agency/Core/Providers/MenuProvider.swift,
-				Agency/Core/Providers/PanelProvider.swift,
-				Agency/Core/Providers/ShortcutManager.swift,
-				Agency/Core/Providers/TransferProvider.swift,
-				Agency/Core/Types.swift,
-				Agency/Core/Utilities/EmptyState.swift,
-				Agency/Core/Utilities/FlowLayout.swift,
-				Agency/Core/Utilities/HorizontalSplit.swift,
-				Agency/Core/Utilities/VerticalSplit.swift,
-				Agency/Core/Utilities/VisualEffectView.swift,
-				Agency/Core/Views/Badges.swift,
-				Agency/Core/Views/Buttons.swift,
-				Agency/Core/Views/Cards.swift,
-				Agency/Core/Views/Filters.swift,
-				Agency/Core/Views/Inputs.swift,
-				Agency/Core/Views/Menus.swift,
-				Agency/Core/Views/Tabs.swift,
-				Agency/Frames/Common/ActionsMaps.swift,
-				Agency/Frames/Common/InspectorMaps.swift,
-				Agency/Frames/Common/NavigatorMaps.swift,
-				Agency/Frames/Editor/Editor.swift,
-				Agency/Frames/Editor/EditorSurfaces.swift,
-				Agency/Frames/Library/Library.swift,
-				Agency/Frames/Studio/StudioMaps.swift,
-				Agency/Frames/Studio/StudioPanels.swift,
-				Agency/Panels/Actions.swift,
-				Agency/Panels/Inspector.swift,
-				Agency/Panels/Navigator.swift,
-				Agency/Panels/Toolbars.swift,
-				AgencyEditor/AgencyEditor.swift,
-				AgencyEditor/Core/EditorCanvas.swift,
-				AgencyEditor/Core/EditorComponent.swift,
-				AgencyEditor/Core/EditorFocus.swift,
-				AgencyEditor/Core/EditorInput.swift,
-				AgencyEditor/Core/EditorState.swift,
-				AgencyEditor/Core/EditorThemer.swift,
-				AgencyEditor/Menu/Menu.swift,
-				AgencyEditor/Menu/MenuModel.swift,
-				AgencyEditor/Menu/MenuSearch.swift,
-				AgencyEditor/Sheet/SheetBlock.swift,
-				AgencyEditor/Sheet/SheetModel.swift,
-			);
-			target = 7C1424D630076FF100F7A50E /* Agency Editor */;
-		};
 		7C69AB122F8B46EE0008D611 /* Exceptions for "Sources" folder in "agencyd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AgencyService/Service.swift,
-				AgencyService/ServiceDaemon.swift,
-				AgencyService/ServiceProcess.swift,
-				AgencyService/ServiceRegistry.swift,
-				AgencyService/ServiceUtilities.swift,
+				Service/Service.swift,
+				Service/ServiceDaemon.swift,
+				Service/ServiceProcess.swift,
+				Service/ServiceRegistry.swift,
+				Service/ServiceUtilities.swift,
 			);
 			target = 7C69AAF12F8B45D90008D611 /* agencyd */;
 		};
 		7C7F7AB12F740ADE009FA3B1 /* Exceptions for "Sources" folder in "Agency" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AgencyEditor/AgencyEditor.swift,
-				AgencyService/Service.swift,
-				AgencyService/ServiceDaemon.swift,
-				AgencyService/ServiceProcess.swift,
-				AgencyService/ServiceRegistry.swift,
-				AgencyService/ServiceUtilities.swift,
+				Service/Service.swift,
+				Service/ServiceDaemon.swift,
+				Service/ServiceProcess.swift,
+				Service/ServiceRegistry.swift,
+				Service/ServiceUtilities.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* Agency */;
 		};
@@ -189,30 +97,18 @@
 			exceptions = (
 				7C69AB122F8B46EE0008D611 /* Exceptions for "Sources" folder in "agencyd" target */,
 				7C7F7AB12F740ADE009FA3B1 /* Exceptions for "Sources" folder in "Agency" target */,
-				7C1424F0300770D400F7A50E /* Exceptions for "Sources" folder in "Agency Editor" target */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
 		};
 		7C4C37A52ED17F3700D6F1CF /* Resources */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				7C0401D430077AB10046F15B /* Exceptions for "Resources" folder in "Agency Editor" target */,
-			);
 			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		7C1424D430076FF100F7A50E /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			files = (
-				7C1424E43007705100F7A50E /* AgencyRuntime in Frameworks */,
-				7C142531300771AC00F7A50E /* KeyboardShortcuts in Frameworks */,
-				7C0401D630077B130046F15B /* OrderedCollections in Frameworks */,
-			);
-		};
 		7C4C36E42ED17D5A00D6F1CF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
@@ -226,6 +122,7 @@
 		7C69AAEF2F8B45D90008D611 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */,
 				7C69AB062F8B46460008D611 /* AgencyRuntime in Frameworks */,
 			);
 		};
@@ -246,7 +143,6 @@
 				7C4C37A42ED17F2F00D6F1CF /* Sources */,
 				7CEEDB3B2FE4D94D00297905 /* agencyd.xpc */,
 				7CEEDB3A2FE4D94D00297905 /* Agency.app */,
-				7C1424D730076FF100F7A50E /* Agency Editor.app */,
 				7C1424E23007704B00F7A50E /* Frameworks */,
 			);
 			sourceTree = "<group>";
@@ -254,30 +150,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		7C1424D630076FF100F7A50E /* Agency Editor */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 7C1424E130076FF300F7A50E /* Build configuration list for PBXNativeTarget "Agency Editor" */;
-			buildPhases = (
-				7C1424D330076FF100F7A50E /* Sources */,
-				7C1424D430076FF100F7A50E /* Frameworks */,
-				7C1424D530076FF100F7A50E /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				7C142534300771DB00F7A50E /* PBXTargetDependency */,
-				7C142536300771E500F7A50E /* PBXTargetDependency */,
-			);
-			name = "Agency Editor";
-			packageProductDependencies = (
-				7C1424E33007705100F7A50E /* AgencyRuntime */,
-				7C142530300771AC00F7A50E /* KeyboardShortcuts */,
-				7C0401D530077B130046F15B /* OrderedCollections */,
-			);
-			productName = "Agency Editor";
-			productReference = 7C1424D730076FF100F7A50E /* Agency Editor.app */;
-			productType = "com.apple.product-type.application";
-		};
 		7C4C36E62ED17D5A00D6F1CF /* Agency */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 7C4C370A2ED17D5E00D6F1CF /* Build configuration list for PBXNativeTarget "Agency" */;
@@ -330,6 +202,7 @@
 			name = agencyd;
 			packageProductDependencies = (
 				7C69AB052F8B46460008D611 /* AgencyRuntime */,
+				7C959129300D54FB007D9E73 /* OrderedCollections */,
 			);
 			productName = agencyd;
 			productReference = 7CEEDB3B2FE4D94D00297905 /* agencyd.xpc */;
@@ -345,9 +218,6 @@
 				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
-					7C1424D630076FF100F7A50E = {
-						CreatedOnToolsVersion = 27.0;
-					};
 					7C4C36E62ED17D5A00D6F1CF = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
@@ -378,18 +248,11 @@
 			targets = (
 				7C69AAF12F8B45D90008D611 /* agencyd */,
 				7C4C36E62ED17D5A00D6F1CF /* Agency */,
-				7C1424D630076FF100F7A50E /* Agency Editor */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		7C1424D530076FF100F7A50E /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			files = (
-				7C142532300771DB00F7A50E /* Agency.app in Resources */,
-			);
-		};
 		7C4C36E52ED17D5A00D6F1CF /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
@@ -430,11 +293,6 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		7C1424D330076FF100F7A50E /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			files = (
-			);
-		};
 		7C4C36E32ED17D5A00D6F1CF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
@@ -448,16 +306,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		7C142534300771DB00F7A50E /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 7C4C36E62ED17D5A00D6F1CF /* Agency */;
-			targetProxy = 7C142533300771DB00F7A50E /* PBXContainerItemProxy */;
-		};
-		7C142536300771E500F7A50E /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 7C4C36E62ED17D5A00D6F1CF /* Agency */;
-			targetProxy = 7C142535300771E500F7A50E /* PBXContainerItemProxy */;
-		};
 		7C69AAFC2F8B45D90008D611 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 7C69AAF12F8B45D90008D611 /* agencyd */;
@@ -474,78 +322,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		7C1424DF30076FF300F7A50E /* Debug configuration for PBXNativeTarget "Agency Editor" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 82C89Q2K4T;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Agency Editor";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 27.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kaechle.AgencyEditor;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
-		7C1424E030076FF300F7A50E /* Release configuration for PBXNativeTarget "Agency Editor" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 82C89Q2K4T;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Agency Editor";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 27.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kaechle.AgencyEditor;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
 		7C4C37082ED17D5E00D6F1CF /* Debug configuration for PBXProject "Agency" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -833,14 +609,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		7C1424E130076FF300F7A50E /* Build configuration list for PBXNativeTarget "Agency Editor" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				7C1424DF30076FF300F7A50E /* Debug configuration for PBXNativeTarget "Agency Editor" */,
-				7C1424E030076FF300F7A50E /* Release configuration for PBXNativeTarget "Agency Editor" */,
-			);
-			defaultConfigurationName = Release;
-		};
 		7C4C36E22ED17D5A00D6F1CF /* Build configuration list for PBXProject "Agency" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -902,21 +670,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		7C0401D530077B130046F15B /* OrderedCollections */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */;
-			productName = OrderedCollections;
-		};
-		7C1424E33007705100F7A50E /* AgencyRuntime */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7C444BBA2F686AC400BA95C3 /* XCLocalSwiftPackageReference "../AgencyRuntime" */;
-			productName = AgencyRuntime;
-		};
-		7C142530300771AC00F7A50E /* KeyboardShortcuts */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */;
-			productName = KeyboardShortcuts;
-		};
 		7C443ABC2FF956D600FD0398 /* Collections */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */;
@@ -945,6 +698,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7C444BBA2F686AC400BA95C3 /* XCLocalSwiftPackageReference "../AgencyRuntime" */;
 			productName = AgencyRuntime;
+		};
+		7C959129300D54FB007D9E73 /* OrderedCollections */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = OrderedCollections;
 		};
 		7CB1B9D32FC5778E00BFEA35 /* MCP */ = {
 			isa = XCSwiftPackageProductDependency;

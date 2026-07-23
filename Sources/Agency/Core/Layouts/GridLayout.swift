@@ -38,7 +38,7 @@ struct GridIcon: View {
 
     @ViewBuilder private var glyph: some View {
         if let ref, ref.type is Sheet.Type {
-            sheetGlyph(ref)
+            SheetGlyph(ref: ref)
         } else if let ref {
             spaceGlyph(ref)
         } else {
@@ -48,23 +48,6 @@ struct GridIcon: View {
                 sizing: 20
             )
         }
-    }
-
-    private func sheetGlyph(_ ref: Reference) -> some View {
-        let page = RoundedRectangle(cornerRadius: 6, style: .continuous)
-        let icon = Iconography.icon(for: ref, size: 15)
-        let content = Sheet.with(ref, { $0.rendered }) ?? ""
-
-        return Text(content)
-            .font(.system(size: 3, weight: .light))
-            .lineSpacing(0)
-            .foregroundStyle(.black.opacity(0.9))
-            .padding(4)
-            .frame(width: 42, height: 54, alignment: .topLeading)
-            .glassEffect(.clear, in: page)
-            .background(page.fill(.primary.opacity(0.9)))
-            .overlay(page.strokeBorder(icon.tint.opacity(0.38), lineWidth: 0.5))
-            .clipShape(page)
     }
 
     private func spaceGlyph(_ ref: Reference) -> some View {
@@ -158,14 +141,173 @@ struct GridIcon: View {
     }
 }
 
+struct SheetGlyph: View {
+    let ref: Reference
+    var width: CGFloat = 42
+    var height: CGFloat = 54
+
+    var body: some View {
+        let page = RoundedRectangle(cornerRadius: 6, style: .continuous)
+        let icon = Iconography.icon(for: ref, size: 15)
+        let content = Sheet.with(ref, { $0.rendered }) ?? ""
+
+        Text(content)
+            .font(.system(size: 3, weight: .light))
+            .lineSpacing(0)
+            .foregroundStyle(.black.opacity(0.9))
+            .padding(4)
+            .frame(width: width, height: height, alignment: .topLeading)
+            .glassEffect(.clear, in: page)
+            .background(page.fill(.primary.opacity(0.9)))
+            .overlay(page.strokeBorder(icon.tint.opacity(0.38), lineWidth: 0.5))
+            .clipShape(page)
+    }
+}
+
+struct SheetStackIcon: View {
+    let refs: [Reference]
+    let expanded: Bool
+    let onToggle: () -> Void
+
+    private let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+
+    var body: some View {
+        Button(action: onToggle) {
+            VStack {
+                ZStack {
+                    ForEach(Array(refs.prefix(3).enumerated().reversed()), id: \.element) { index, ref in
+                        SheetGlyph(ref: ref, width: 40, height: 52)
+                            .rotationEffect(.degrees(rotation(for: index)))
+                            .offset(x: offset(for: index).width, y: offset(for: index).height)
+                    }
+
+                    if expanded {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Design.Background.base.opacity(0.72))
+                            .frame(width: 44, height: 36)
+                            .overlay {
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 17, weight: .medium))
+                                    .foregroundStyle(Design.Foreground.primary)
+                            }
+                    }
+                }
+                .frame(width: 66, height: 66)
+
+                Text("Sheets\n\(refs.count) items")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .frame(maxWidth: 112, minHeight: 30, maxHeight: 34, alignment: .top)
+            }
+            .frame(width: 96, height: 112)
+            .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .help(expanded ? "Collapse sheets" : "Show \(refs.count) sheets")
+    }
+
+    private func rotation(for index: Int) -> Double {
+        switch index {
+            case 0: return expanded ? -7 : -4
+            case 1: return expanded ? 7 : 4
+            default: return 0
+        }
+    }
+
+    private func offset(for index: Int) -> CGSize {
+        switch index {
+            case 0: return .init(width: -4, height: 1)
+            case 1: return .init(width: 4, height: 2)
+            default: return .zero
+        }
+    }
+}
+
 struct GridLayout<Content: View>: View {
+    @State private var expanded = false
     @ViewBuilder let content: () -> Content
     private let gridItem = GridItem(.adaptive(minimum: 128, maximum: 128), spacing: 8, alignment: .topLeading)
 
     init(@ViewBuilder content: @escaping () -> Content) { self.content = content }
 
     var body: some View {
-        LazyVGrid(columns: [gridItem], alignment: .leading, spacing: 8) { content() }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        Group(subviews: content()) { subviews in
+            let spaces = subviews.filter { $0.containerValues.gridItem == .space }
+            let sheets = subviews.filter { $0.containerValues.gridItem.isSheet }
+            let items = subviews.filter { $0.containerValues.gridItem == .item }
+            let refs = sheets.compactMap(\.containerValues.gridItem.reference)
+
+            HStack(alignment: .top, spacing: 8) {
+                if !items.isEmpty {
+                    LazyVGrid(columns: [gridItem], alignment: .leading, spacing: 8) {
+                        ForEach(items) { $0 }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                } else {
+                    Spacer(minLength: 0)
+                }
+
+                if !spaces.isEmpty || !sheets.isEmpty {
+                    VStack(spacing: 8) {
+                        ForEach(spaces) { $0 }
+
+                        if sheets.count > 1 {
+                            SheetStackIcon(refs: refs, expanded: expanded) {
+                                withAnimation(.snappy(duration: 0.22)) { expanded.toggle() }
+                            }
+
+                            if expanded { ForEach(sheets) { $0 } }
+                        } else {
+                            ForEach(sheets) { $0 }
+                        }
+                    }
+                    .frame(width: 128, alignment: .topTrailing)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topTrailing)
+        }
+    }
+}
+
+private enum GridItemRole: Equatable {
+    case item
+    case space
+    case sheet(Reference)
+
+    var isSheet: Bool {
+        if case .sheet = self { return true }
+        return false
+    }
+
+    var reference: Reference? {
+        if case .sheet(let ref) = self { return ref }
+        return nil
+    }
+
+    init(_ ref: Reference?) {
+        switch ref?.type {
+            case is Space.Type: self = .space
+            case is Sheet.Type: self = ref.map(Self.sheet) ?? .item
+            default: self = .item
+        }
+    }
+}
+
+private struct GridItemRoleKey: ContainerValueKey {
+    static let defaultValue: GridItemRole = .item
+}
+
+private extension ContainerValues {
+    var gridItem: GridItemRole {
+        get { self[GridItemRoleKey.self] }
+        set { self[GridItemRoleKey.self] = newValue }
+    }
+}
+
+extension View {
+    func gridItem(_ ref: Reference?) -> some View {
+        containerValue(\.gridItem, GridItemRole(ref))
     }
 }

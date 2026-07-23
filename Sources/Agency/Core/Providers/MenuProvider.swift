@@ -54,12 +54,7 @@ struct Item: Identifiable {
     }
 
     static func delete(_ ref: Reference, from origin: Reference?, in model: any Model) {
-        Task {
-            let deleted = (try? await ref.delete()) != nil
-            let detached = ref.type is Space.Type ? false : ReferenceTransfer.detach(ref, from: origin)
-            guard detached || deleted else { return }
-            if detached { try? await Runtime.shared.save() }
-        }
+        Task { try? await ref.delete() }
     }
 
     static func cut(_ ref: Reference, from origin: Reference?, in model: any Model) {
@@ -84,15 +79,13 @@ struct Item: Identifiable {
     }
 
     static func createSheet(in owner: Reference, model: any Model) {
-        guard let closure = Space.with(owner, { $0.closure }) ?? Workspace.with(owner, { $0.closure }) else { return }
-        let ref = Sheet.new(closure, name: "New Sheet")
-        Closure.update(closure) { $0.content.insert(ref) }
+        let ref = Sheet.new(owner, name: "New Sheet")
         model.open(ref)
         Task { try? await Runtime.shared.save() }
     }
 
     static func createSpace(in owner: Reference, model: any Model) {
-        let ref = owner.type is Space.Type ? Space.new("New Space", owner: owner) : Space.new("New Space")
+        let ref = Space.new("New Space", owner: owner)
         model.select(ref)
         Task { try? await Runtime.shared.save() }
     }

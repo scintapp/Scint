@@ -11,14 +11,14 @@ struct TableRow: View {
         Button(action: onSelect) {
             VStack(alignment: .leading, spacing: 5) {
                 Text(title)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Design.Foreground.primary)
                     .lineLimit(1)
 
                 if !description.isEmpty {
                     Text(description)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Design.Foreground.tertiary)
                         .lineLimit(1)
                 }
             }
@@ -43,12 +43,20 @@ struct TableLayout<Content: View>: View {
     }
 
     var body: some View {
-        LazyVStack(spacing: 2) {
-            content()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        LazyVStack(spacing: 2) { content() }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 //enum RunState: String, CaseIterable, Identifiable {

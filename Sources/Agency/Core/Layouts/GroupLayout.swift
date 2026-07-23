@@ -113,7 +113,7 @@ struct GroupHeader: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center) {
                 if let ref {
-                    Iconography.icon(for: ref, size: 28)
+                    Iconography.icon(for: ref, size: 18)
                         .padding(.trailing, 6)
                 }
                 Text(title)

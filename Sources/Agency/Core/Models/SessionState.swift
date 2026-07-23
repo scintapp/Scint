@@ -9,6 +9,19 @@ enum Focus: Equatable, Sendable {
     case entry(UUID)
     case url(URL)
     case nothing
+
+    var resolved: AgencyRuntime.Value {
+        switch self {
+            case .content(let ref), .structure(let ref), .interface(let ref):
+                return .reference(ref)
+            case .entry(let id):
+                return .string(id.uuidString)
+            case .url(let url):
+                return .string(url.absoluteString)
+            case .nothing:
+                return .string("")
+        }
+    }
 }
 
 struct Selection: Equatable, Sendable {
@@ -23,6 +36,19 @@ struct Selection: Equatable, Sendable {
     var space: Reference? {
         guard let structure, structure.type is Space.Type else { return nil }
         return structure
+    }
+
+    var resolved: AgencyRuntime.Value {
+        var values: [String: AgencyRuntime.Value] = [:]
+        if let structure { values["structure"] = .reference(structure) }
+        if let interface { values["interface"] = .reference(interface) }
+        if let content {
+            if content.type is Transcript.Type { values["transcript"] = .reference(content) }
+            else { values["content"] = .reference(content) }
+        }
+        if let entry { values["entry"] = .string(entry.uuidString) }
+        if let url { values["url"] = .string(url.absoluteString) }
+        return .collection(values)
     }
 
     func selected(_ ref: Reference) -> Bool {
@@ -93,6 +119,13 @@ struct Selection: Equatable, Sendable {
 struct Open: Equatable, Sendable {
     var sheets: [Reference] = []
     var transcripts: [Reference] = []
+
+    var resolved: AgencyRuntime.Value {
+        .collection([
+            "sheets": .sequence(sheets.map(AgencyRuntime.Value.reference)),
+            "transcripts": .sequence(transcripts.map(AgencyRuntime.Value.reference))
+        ])
+    }
 
     @discardableResult
     mutating func open(_ ref: Reference) -> Bool {

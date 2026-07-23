@@ -2,11 +2,25 @@ import Foundation
 import SwiftUI
 
 @Observable final class StateContainer {
-    var presented: Bool = false
-    var position: CGFloat = 0
-    var filter: String = ""
-    var expanded: Set<AnyHashable> = []
-    var values: [AnyHashable: AnyHashable] = [:]
+    var presented: Bool
+    var position: CGFloat
+    var filter: String
+    var expanded: Set<AnyHashable>
+    var values: [AnyHashable: AnyHashable]
+
+    init(
+        presented: Bool? = false,
+        position: CGFloat? = 0,
+        filter: String? = "",
+        expanded: Set<AnyHashable>? = [],
+        values: [AnyHashable : AnyHashable]? = [:]
+    ) {
+        self.presented = presented ?? false
+        self.position = position ?? 0
+        self.filter = filter ?? ""
+        self.expanded = expanded ?? []
+        self.values = values ?? [:]
+    }
 
     func isExpanded(_ id: AnyHashable) -> Bool { expanded.contains(id) }
 

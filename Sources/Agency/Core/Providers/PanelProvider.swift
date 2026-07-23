@@ -6,6 +6,18 @@ import OrderedCollections
 
 extension Notification.Name { static let agencyPanelEscape = Notification.Name("AgencyPanelEscape") }
 
+private struct Float<Content: View>: View {
+    let content: Content
+
+    var body: some View {
+        content
+            .glassEffect(.regular, in: Design.Shape.panel)
+            .background(Design.Background.panel)
+            .overlay(Design.Shape.panel.stroke(.black.opacity(0.5), lineWidth: 0.5))
+            .clipShape(Design.Shape.panel)
+    }
+}
+
 final class FloatingPanel: NSPanel {
     var onEscape: (() -> Void)?
 
@@ -171,24 +183,21 @@ final class FloatingPanel: NSPanel {
     func toggle() { controller.toggle() }
 }
 
-private struct Float<Content: View>: View {
-    let content: Content
-
-    var body: some View {
-        content
-            .glassEffect(.regular, in: Design.Shape.panel)
-            .background(Design.Background.panel)
-            .overlay(Design.Shape.panel.stroke(.black.opacity(0.5), lineWidth: 0.5))
-            .clipShape(Design.Shape.panel)
-    }
-}
-
 @Observable @MainActor final class PanelController {
     private(set) var coordinators: OrderedDictionary<AnyHashable, PanelCoordinator> = [:]
+
     func coordinator(for id: AnyHashable) -> PanelCoordinator? { coordinators[id] }
+
     func presented(_ id: AnyHashable) -> Bool { coordinators[id]?.isVisible ?? false }
-    func toggle(_ id: AnyHashable, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) { coordinator(for: id, parameters: parameters, view: view, onVisibilityChange: onVisibilityChange).toggle() }
-    func show(_ id: AnyHashable, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) { coordinator(for: id, parameters: parameters, view: view, onVisibilityChange: onVisibilityChange).show() }
+
+    func toggle(_ id: AnyHashable, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) {
+        coordinator(for: id, parameters: parameters, view: view, onVisibilityChange: onVisibilityChange).toggle()
+    }
+
+    func show(_ id: AnyHashable, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) {
+        coordinator(for: id, parameters: parameters, view: view, onVisibilityChange: onVisibilityChange).show()
+    }
+
     func hide(_ id: AnyHashable) { coordinators[id]?.hide() }
 
     private func coordinator(for id: AnyHashable, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)?) -> PanelCoordinator {

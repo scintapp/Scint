@@ -27,6 +27,7 @@ enum Design {
     enum Shape {
         static var tab: RoundedRectangle { RoundedRectangle(cornerRadius: 28, style: .continuous) }
         static var block: RoundedRectangle { RoundedRectangle(cornerRadius: 12, style: .continuous) }
+        static var bubble: RoundedRectangle { RoundedRectangle(cornerRadius: 16, style: .continuous) }
         static var card: RoundedRectangle { RoundedRectangle(cornerRadius: 23, style: .continuous) }
         static var menu: RoundedRectangle { RoundedRectangle(cornerRadius: 20, style: .continuous) }
         static var input: RoundedRectangle { RoundedRectangle(cornerRadius: 28, style: .circular) }
