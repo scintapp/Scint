@@ -1,0 +1,50 @@
+# macOS metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Xcode user-specific data
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# Xcode build, archive, and test output
+DerivedData/
+build/
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+*.xcarchive
+*.xcresult
+*.xctestrun
+*.xccovarchive
+*.xccovreport
+*.app
+*.dmg
+*.pkg
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.pins
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Dependency-manager build output
+Carthage/Build/
