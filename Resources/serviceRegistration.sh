@@ -1,7 +1,7 @@
 #!/bin/bash
 
-LABEL="com.kaechle.agencyd"
-SERVICE_NAME="agencyd"
+LABEL="com.kaechle.Scintd"
+SERVICE_NAME="Scintd"
 PLIST_SRC="$SRCROOT/Resources/Service.plist"
 PLIST_DST=${HOME}/Library/LaunchAgents/${LABEL}.plist
 DAEMON_BIN=${BUILT_PRODUCTS_DIR}/${SERVICE_NAME}.xpc/Contents/MacOS/${SERVICE_NAME}
@@ -38,9 +38,9 @@ if [ -n "$CODEX_HOME" ]; then
 fi
 
 /usr/bin/sed \
-  -e "s#__AGENCY_DAEMON_PATH__#${DAEMON_BIN}#g" \
-  -e "s#__AGENCY_PATH__#${PATH_COMBINED}#g" \
-  -e "s#__AGENCY_ENV_VARS__#${ENV_SNIPPET}#g" \
+  -e "s#__Scint_DAEMON_PATH__#${DAEMON_BIN}#g" \
+  -e "s#__Scint_PATH__#${PATH_COMBINED}#g" \
+  -e "s#__Scint_ENV_VARS__#${ENV_SNIPPET}#g" \
   "$PLIST_SRC" > "$PLIST_DST"
 /bin/launchctl bootout gui/${UID}/${LABEL} 2>/dev/null || true
 /bin/launchctl bootstrap gui/${UID} $PLIST_DST
