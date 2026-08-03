@@ -63,7 +63,7 @@ extension Model {
         Sheet.update(input) { $0.insert(.text(.init(), session.rendered.property.stringRepresentation), at: nil) }
         if ref.type is Workspace.Type { Workspace.update(ref) { $0.input = input } }
         else { Space.update(ref) { $0.input = input } }
-        guard let composition = Runtime.shared.trigger(ref) else { return nil }
+        guard let composition = Runtime.shared.eval(ref) else { return nil }
         if let transcript = composition.intentTranscript { open(transcript) }
         return composition
     }

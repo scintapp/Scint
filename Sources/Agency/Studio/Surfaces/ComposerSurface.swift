@@ -179,7 +179,7 @@ struct TranscriptEntry: View {
 
             case .signal(let signal, _, _):
                 switch signal {
-                    case .trigger:
+                    case .eval:
                         EmptyView()
 
                     case .started:
@@ -209,7 +209,7 @@ private extension Transcript.Entry {
                 return nil
             case .signal(let signal, _, _):
                 switch signal {
-                    case .trigger: return "Started"
+                    case .eval: return "Started"
                     case .started: return "Working"
                     case .updated: return nil
                     case .completed: return "Completed"

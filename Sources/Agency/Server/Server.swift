@@ -158,7 +158,7 @@ private extension Server {
                 switch signal {
                     case .updated(let value): output.append(contentsOf: value.rendered)
                     case .failed(let value): output.append(contentsOf: value.rendered); failed = true
-                    case .trigger, .started, .completed: break
+                    case .eval, .started, .completed: break
                 }
             }
             return CallTool.Result(content: [.text(text: output.joined(separator: "\n"))], isError: failed)

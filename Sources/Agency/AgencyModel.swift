@@ -78,7 +78,7 @@ import SwiftUI
             switch callback {
                 case .open(let ref):
                     studio.open(ref)
-                case .trigger:
+                case .eval:
                     break
                 case .dispatch(_, _, let error):
                     if let error { print(error) }
