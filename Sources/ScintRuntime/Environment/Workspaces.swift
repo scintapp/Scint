@@ -9,20 +9,16 @@ final class Workspaces: @unchecked Sendable {
     var workspace: Reference { guard let active else { RuntimeError.fatal() }; return active }
     var workspaces: [Reference] { structures.workspaces.keys() }
 
-    func store(for ref: Reference) -> Store? { return structures.store(for: ref) }
-
-    func add(_ ref: Reference, _ value: Resolvable) { structures.add(ref, value) }
-
-    func update<T: Resolvable, R>(_ ref: Reference, as type: T.Type = T.self, _ body: (inout T) throws -> R) rethrows -> R? {
-        try structures.update(ref, as: type, body)
-    }
+    func store(for ref: Reference) -> Store? { structures.store(for: ref) }
 
     func create() async throws {
-        let workspace = Workspace.new("Studio", framing: .Scint)
+        let workspace = Workspace.new("Studio", framing: .scint)
         Runtime.shared.settings.persistence.lastWorkspaceId = workspace.storageId
         active = workspace
         try await save()
     }
+
+    func add(_ ref: Reference, _ value: Resolvable) { structures.add(ref, value) }
 
     func load() async throws {
         if active != nil { return }
@@ -38,9 +34,7 @@ final class Workspaces: @unchecked Sendable {
         if active == nil { try await create() }
     }
 
-    func load(_ ref: Reference) async { await load(ref.storageId) }
-
-    func load(_ storageId: UUID) async { await load(Runtime.shared.settings.persistence.spacesPath(storageId)) }
+    func load(_ ref: Reference) async { await load(Runtime.shared.settings.persistence.spacesPath(ref.storageId)) }
 
     func load(_ url: URL) async {
         do {
@@ -59,6 +53,7 @@ final class Workspaces: @unchecked Sendable {
             Catalog.shared.set(value.ref, descriptor)
             structures.store(for: value.ref)?.add(value.ref, value)
         }
+
         for (value, _) in values where value.ref.type is Space.Type {
             if (Space.with(value.ref, { $0.space }) ?? nil) == nil {
                 Space.update(value.ref) { $0.attach(to: workspace.ref) }
@@ -84,12 +79,11 @@ final class Workspaces: @unchecked Sendable {
     func delete(_ ref: Reference) async throws {
         let closure = Space.with(ref, { $0.closure }) ?? Workspace.with(ref, { $0.closure })
         let input = closure.flatMap { Closure.with($0, { $0.input }) }
-        _ = Runtime.shared.get(ref)
+        Runtime.shared.store(for: ref)?.remove(ref)
         Catalog.shared.delete(ref)
         if ref.type == Space.self { Space.update(ref) { $0.restructure() } }
         store(for: ref)?.remove(ref)
         if let closure {
-            _ = Runtime.shared.get(closure)
             Catalog.shared.delete(closure)
             store(for: closure)?.remove(closure)
         }

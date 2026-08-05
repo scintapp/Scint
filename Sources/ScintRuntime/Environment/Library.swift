@@ -44,7 +44,7 @@ final class Library: Sendable {
         try await write(records)
     }
 
-    private func write(_ records: [StorableObject]) async throws {
+    func write(_ records: [StorableObject]) async throws {
         for record in records {
             let url = Runtime.shared.settings.persistence.libraryPath(for: record.value.ref)
             try await Persistence.shared.write(PersistedObject(url: url, value: record))

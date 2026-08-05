@@ -107,7 +107,7 @@ public enum SampleInterfaces {
             existing(name, as: Command.self) ?? Command.register(name, exec: artifact, params: parameters)
         }
 
-        func harness(_ name: String, _ command: Reference, _ intent: Harness.Intent, _ parameters: [Harness.Parameter]) -> Reference {
+        func harness(_ name: String, _ command: Reference, _ intent: Harness.Process, _ parameters: [Harness.Parameter]) -> Reference {
             existing(name, as: Harness.self) ?? Harness.register(name, command: command, intent: intent, parameters: parameters)
         }
 

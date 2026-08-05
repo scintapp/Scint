@@ -1,7 +1,7 @@
 import Foundation
 
 
-public indirect enum Value: Codable, Sendable, Equatable {
+indirect enum Value: Codable, Sendable, Equatable {
     case bool(Bool)
     case integer(Int)
     case decimal(Decimal)
@@ -10,11 +10,23 @@ public indirect enum Value: Codable, Sendable, Equatable {
     case collection([String: Value])
     case reference(Reference)
 
-    public static func reference(_ type: Resolvable.Type) -> Value { .reference(Reference(type)) }
-    public static func sequence(_ value: Value) -> Value { .sequence([value]) }
-    public static var anyReference: Value { .sequence([]) }
+    init?(_ property: Property) {
+        switch property {
+            case .null: return nil
+            case .bool(let value): self = .bool(value)
+            case .integer(let value): self = .integer(value)
+            case .decimal(let value): self = .decimal(Decimal(value))
+            case .string(let value): self = .string(value)
+            case .array(let values): self = .sequence(values.compactMap(Value.init))
+            case .object(let values): self = .collection(values.compactMapValues(Value.init))
+        }
+    }
 
-    public var type: Any.Type? {
+    static func reference(_ type: Resolvable.Type) -> Value { .reference(Reference(type)) }
+    static func sequence(_ value: Value) -> Value { .sequence([value]) }
+    static var anyReference: Value { .sequence([]) }
+
+    var type: Any.Type? {
         switch self {
             case .bool: return Bool.self
             case .integer: return Int.self
@@ -26,9 +38,9 @@ public indirect enum Value: Codable, Sendable, Equatable {
         }
     }
 
-    public var rendered: [String] { render(nested: false) }
+    var rendered: [String] { render(nested: false) }
 
-    public var references: [Reference] {
+    var references: [Reference] {
         switch self {
             case .reference(let ref): return [ref]
             case .sequence(let values): return values.flatMap(\.references)
@@ -59,7 +71,7 @@ public indirect enum Value: Codable, Sendable, Equatable {
 
             case (.sequence(let alternatives), _) where alternatives.count > 1:
                 guard alternatives.contains(where: { (try? $0.construct(supplied, name: name)) != nil })
-                else { throw ParsingError.invalid("Argument \(name) is not an allowed value.") }
+                        else { throw ParsingError.invalid("Argument \(name) is not an allowed value.") }
                 return supplied
 
             case (.sequence(let template), .sequence(let values)):
@@ -85,20 +97,7 @@ public indirect enum Value: Codable, Sendable, Equatable {
                 throw ParsingError.invalid("Argument \(name) has an invalid value type.")
         }
     }
-
-    public init?(_ property: Property) {
-        switch property {
-            case .null: return nil
-            case .bool(let value): self = .bool(value)
-            case .integer(let value): self = .integer(value)
-            case .decimal(let value): self = .decimal(Decimal(value))
-            case .string(let value): self = .string(value)
-            case .array(let values): self = .sequence(values.compactMap(Value.init))
-            case .object(let values): self = .collection(values.compactMapValues(Value.init))
-        }
-    }
-
-    public var property: Property {
+    var property: Property {
         switch self {
             case .bool(let value): return .bool(value)
             case .integer(let value): return .integer(value)

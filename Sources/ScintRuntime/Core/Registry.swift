@@ -1,34 +1,6 @@
 import Foundation
 
 
-struct Codec: @unchecked Sendable {
-    let format: Format
-    let encode: Encode
-    let decode: Decode
-    let encodeFrom: EncodeFrom
-
-    public enum Format: String {
-        case json
-        case markdown
-        case source
-    }
-
-    init(format: Format = .json, encode: @escaping Encode, decode: @escaping Decode, encodeFrom: @escaping EncodeFrom) {
-        self.format = format
-        self.encode = encode
-        self.decode = decode
-        self.encodeFrom = encodeFrom
-    }
-
-    var ext: String {
-        switch format {
-        case .json: return "json"
-        case .markdown: return "md"
-        case .source: return ""
-        }
-    }
-}
-
 struct Registration: @unchecked Sendable {
     let id: TypeId
     let type: Resolvable.Type

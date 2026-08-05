@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LABEL="com.kaechle.Scintd"
+LABEL="com.kaechle.scintd"
 SERVICE_NAME="Scintd"
 PLIST_SRC="$SRCROOT/Resources/Service.plist"
 PLIST_DST=${HOME}/Library/LaunchAgents/${LABEL}.plist

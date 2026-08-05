@@ -1,4 +1,4 @@
-# Scint Studio
+# ScintStudio
 
 Scint Studio is a macOS-native workbench for building and running agent workflows as
 explicit, inspectable systems. Instead of treating an agent as a chat window, it
@@ -32,7 +32,7 @@ flowchart LR
     subgraph Shell["Scint app shell — this repository"]
         Studio["Scint Studio<br/>SwiftUI + AppKit"]
         Projection["Mappers → Params + Controls → Builder"]
-        Session["SessionModel<br/>focus · selection · navigation"]
+        Session["SessionState<br/>focus · selection · navigation"]
         MCP["Local MCP gateway<br/>127.0.0.1:7345/mcp"]
         Daemon["agencyd<br/>process supervision"]
 
@@ -43,7 +43,7 @@ flowchart LR
 
     subgraph Runtime["ScintRuntime — separate Swift package"]
         Facade["Runtime facade"]
-        Stores["Catalog + Workspaces + Library"]
+        Stores["Environment + Workspaces + Library"]
         Composition["Context + Composition + Transcripts"]
 
         Facade --> Stores
@@ -88,7 +88,7 @@ Runtime values are grouped by behavior rather than by UI:
   harnesses.
 - **Contextual** values represent requests and intents.
 
-Metadata is held separately in a catalog, while workspace structure and library
+Metadata is held separately in a Environment, while workspace structure and library
 content are persisted in dedicated stores. References carry enough identity to
 locate the correct type, descriptor, context, and storage location. Reads happen
 through scoped accessors; mutations go through store updates so persistence and
@@ -129,7 +129,7 @@ produced them.
 `ScintModel` boots the runtime, restores or creates the Studio workspace,
 starts the MCP server, and routes `agency://` callbacks. `StudioModel` then
 coordinates the library, canvas, inspector, action panel, file provider, and a
-`SessionModel`.
+`SessionState`.
 
 The session model stores references—not copied domain models—across independent
 selection axes for structure, interfaces, content, entries, and paths. It also
@@ -146,14 +146,14 @@ ScintRuntime references
 Mapper: resolve and shape live domain state
         ↓
 Params: immutable presentation description
-Controls: closures for permitted actions
+Controls: closures for permitted palette
         ↓
 Builder / Surface: grid, group, list, table, editor, or transcript UI
 ```
 
 This projection layer centralizes selection, focus, context menus, drag and
 drop, clipboard behavior, and editing conventions. A new surface can reuse
-those interactions without embedding runtime mutations throughout a SwiftUI
+those interpalette without embedding runtime mutations throughout a SwiftUI
 view tree.
 
 ### Native macOS integration
@@ -164,7 +164,7 @@ desktop behavior needs tighter control:
 - a TextKit-backed block editor with caret coordination, block transforms, and
   runtime search;
 - `NSSplitView` bridges for collapsible, restorable panes;
-- a floating `NSPanel` for global actions and keyboard-driven dismissal;
+- a floating `NSPanel` for global palette and keyboard-driven dismissal;
 - pasteboard and drag payloads that preserve reference identity and prevent
   invalid topology cycles.
 
@@ -182,7 +182,7 @@ Sources/
 │   ├── Mappers/                 Domain-to-presentation projections
 │   ├── Core/                    Builder, Params, Controls, and shared types
 │   ├── Server/                  MCP protocol adapter and localhost transport
-│   ├── Models/                  Session, actions, navigation, and panels
+│   ├── Models/                  Session, palette, navigation, and panels
 │   └── Providers/               Runtime action and filesystem adapters
 ├── Editor/                      Sheet-editing subsystem used by Studio
 └── Service/                     agencyd XPC service and process supervisor

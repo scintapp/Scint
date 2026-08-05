@@ -129,7 +129,7 @@ Every stored domain value carries a `Reference` with independent addressing face
 | --- | --- |
 | `id` | Identifies the runtime instance |
 | `typeId` | Selects its concrete type and store using deterministic type identity |
-| `descriptorId` | Locates its metadata in the `Catalog` |
+| `descriptorId` | Locates its metadata in the `Environment` |
 | `contextId` | Participates in contextual keys when an origin is composed |
 | `storageId` | Addresses its PersistedObject record |
 
@@ -145,7 +145,7 @@ Protocol families provide the top-level routing:
 | `Functional` | Resources and executable capabilities | `Artifact`, `Command`, `Harness` | `Library` interface stores |
 | `Contextual` | Live execution state | `Context` and typed intents | `Composer` |
 
-The `Catalog` is a separate metadata plane. Every stored reference has a `Descriptor`
+The `Environment` is a separate metadata plane. Every stored reference has a `Descriptor`
 containing its name, description, tags, framing, publication state, and timestamps.
 Separating metadata from values allows the runtime to search and describe its world
 without loading every object.
@@ -185,7 +185,7 @@ payloads and polymorphic persistence.
 
 This keeps the capability model provider-neutral. Local executables, command-line
 agents, HTTP services, filesystem operations, and scheduled observers all enter the
-model through the same resource, command, and harness abstractions.
+model through the same resource, command, and harness abstrpalette.
 
 ## Execution, observation, and persistence
 
@@ -196,7 +196,7 @@ model through the same resource, command, and harness abstractions.
 3. `Parser` binds that environment to the active harness.
 4. The selected intent executes through `Harness → Command → Artifact → Services`.
 5. The XPC client sends the executable, arguments, and environment to
-   `com.kaechle.Scintd`.
+   `com.kaechle.scintd`.
 6. Streamed output becomes lifecycle signals and preserved provider data.
 7. The context records the result and `Composition` derives the new application state.
 
@@ -214,15 +214,14 @@ Persistence follows ownership:
 - `Coordinator` debounces mutations, batches writes, retries failures, and forwards
   changes to live observing contexts.
 
-Catalog-backed search ranks names, descriptions, tags, and types, with `!`-prefixed tag
+Environment-backed search ranks names, descriptions, tags, and types, with `!`-prefixed tag
 or type facets. The `Scint://` callback surface exposes open, trigger, dispatch, run,
-and search actions by descriptor identity, allowing external schedulers and macOS
+and search palette by descriptor identity, allowing external schedulers and macOS
 integrations to re-enter the same context model.
 
 ## Public surface
 
 ```swift
-import Scint Runtime
 import Foundation
 
 try await Runtime.shared.load()
@@ -260,7 +259,7 @@ Sources/Scint Runtime/
 └── Runtime.swift     Public facade, callbacks, search, traversal
 ```
 
-The Swift Testing suite exercises reference and catalog invariants, recursive value
+The Swift Testing suite exercises reference and Environment invariants, recursive value
 construction, parameter rendering, context composition, execution continuity,
 persistence paths, callbacks, and reciprocal space relationships.
 
@@ -268,7 +267,7 @@ persistence paths, callbacks, and reciprocal space relationships.
 
 Scint Runtime targets **Swift 6.2** and **macOS 26**. It is a library rather than a
 standalone executable. Running executable harnesses requires the companion
-`com.kaechle.Scintd` service, which is not included in this package. Route traversal is
+`com.kaechle.scintd` service, which is not included in this package. Route traversal is
 modeled, while the `Traversing` intent currently completes as a stub.
 
 Reference-addressed storage makes sharing, cycles, and uniform metadata possible, but
