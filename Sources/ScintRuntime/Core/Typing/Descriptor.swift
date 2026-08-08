@@ -1,29 +1,19 @@
 import Foundation
 
 
-public struct Descriptor: Keyable {
-    public let key: Key
-    public var origin: Reference
-    public var framing: Framing
-    public var name: String
-    public var description: String
-    public var tags: Set<String>
-    public var created: Date
-    public var updated: Date
-    public var accessed: Date
-    public var published: Bool
+struct Descriptor: Keyable {
+    var key: Key { .descriptor(origin) }
+    var origin: Reference
+    var name: String
+    var description: String
+    var tags: Set<String>
+    var created: Date
+    var updated: Date
+    var accessed: Date
+    var published: Bool
 
-    public enum Framing: String, Codable, Sendable, CaseIterable {
-        case scint = "scint"
-        case palette = "palette"
-        case server = "server"
-        case studio = "studio"
-    }
-
-    public init(_ ref: Reference, _ name: String, _ framing: Framing = .scint) {
-        self.key = .descriptor(ref)
+    init(_ ref: Reference, _ name: String) {
         self.origin = ref
-        self.framing = framing
         self.name = name
         self.description = ""
         self.tags = []
@@ -33,8 +23,8 @@ public struct Descriptor: Keyable {
         self.accessed = .now
     }
 
-    public static func new(_ ref: Reference, framing: Framing? = .scint, name: String, description: String? = "", tags: Set<String> = [], published: Bool = true) {
-        var instance = Self(ref, name, framing ?? .scint)
+    static func new(_ ref: Reference, name: String, description: String? = "", tags: Set<String> = [], published: Bool = true) {
+        var instance = Self(ref, name)
         instance.name = name
         instance.description = description ?? ""
         instance.tags = tags

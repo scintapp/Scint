@@ -1,7 +1,7 @@
 import Foundation
 
 
-public final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Sendable {
+final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Sendable {
     private let connection: NSXPCConnection
     private var handlers: [Int32: (String) -> Void] = [:]
     private var pending: [Int32: [String]] = [:]
@@ -9,7 +9,7 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
     private var draining: Set<Int32> = []
     private let lock = NSLock()
 
-    public override init() {
+    override init() {
         connection = NSXPCConnection(machServiceName: "com.kaechle.scintd", options: [])
         super.init()
         connection.exportedObject = self
@@ -20,7 +20,7 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
 
     deinit { connection.invalidate() }
 
-    public func handle(pid: Int32, chunk: String) {
+    func handle(pid: Int32, chunk: String) {
         let handler = lock.withLock { () -> ((String) -> Void)? in
             guard let handler = handlers[pid], !draining.contains(pid) else {
                 pending[pid, default: []].append(chunk)
@@ -31,7 +31,7 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
         handler?(chunk)
     }
 
-    public func output(pid: Int32, _ handler: @escaping (Signal) -> Void) {
+    func output(pid: Int32, _ handler: @escaping (Signal) -> Void) {
         let receive: (String) -> Void = { [weak self] chunk in
             guard let self else { return }
             for signal in self.signals(pid: pid, chunk: chunk) {
@@ -55,7 +55,7 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
         }
     }
 
-    public func removeOutputHandler(pid: Int32) {
+    func removeOutputHandler(pid: Int32) {
         lock.withLock {
             handlers.removeValue(forKey: pid)
             pending.removeValue(forKey: pid)
@@ -74,14 +74,23 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
             }
             return parts.dropLast().map(String.init)
         }
-        return lines.flatMap(Parser.signals)
+        return lines.compactMap(signal)
     }
 
-    public func request(_ json: String, timeout: TimeInterval = 5.0) -> String? {
+    private func signal(_ line: String) -> Signal? {
+        let value = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return nil }
+        guard let properties = Properties.load(value),
+              (properties["type"]?.string ?? properties["event"]?.string)?.lowercased() == "terminated"
+        else { return .updated(.string(value)) }
+        return properties["exitCode"]?.int == 0 ? .completed(nil) : .failed(.string(value))
+    }
+
+    func request(_ json: String, timeout: TimeInterval = 5.0) -> String? {
         sem(timeout: timeout) { service, signal in service.request(json) { signal($0) } }
     }
 
-    public func start(_ command: String, arguments: [String] = [], environment: [String: String] = [:], timeout: TimeInterval = 5.0) -> (pid: Int32, error: String?)? {
+    func start(_ command: String, arguments: [String] = [], environment: [String: String] = [:], timeout: TimeInterval = 5.0) -> (pid: Int32, error: String?)? {
         var result: (pid: Int32, error: String?)?
         let done = DispatchSemaphore(value: 0)
 
@@ -95,7 +104,7 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
         return result
     }
 
-    public func stop(pid: Int32, timeout: TimeInterval = 5.0) -> Bool {
+    func stop(pid: Int32, timeout: TimeInterval = 5.0) -> Bool {
         var ok = false
         let done = DispatchSemaphore(value: 0)
         service().stop(pid: pid) { ok = $0; done.signal() }
@@ -103,7 +112,7 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
         return ok
     }
 
-    public func restart(pid: Int32, timeout: TimeInterval = 5.0) -> (pid: Int32, error: String?)? {
+    func restart(pid: Int32, timeout: TimeInterval = 5.0) -> (pid: Int32, error: String?)? {
         var result: (Int32, String?)?
         let done = DispatchSemaphore(value: 0)
         service().restart(pid: pid) { newPid, _, error in
@@ -114,7 +123,7 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
         return result
     }
 
-    public func list(timeout: TimeInterval = 5.0) -> [String]? {
+    func list(timeout: TimeInterval = 5.0) -> [String]? {
         var result: [String]?
         let done = DispatchSemaphore(value: 0)
         service().list { result = $0; done.signal() }
@@ -122,13 +131,13 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
         return result
     }
 
-    @discardableResult public func write(pid: Int32, input: String, close: Bool = false, timeout: TimeInterval = 5.0) -> String? {
+    @discardableResult func write(pid: Int32, input: String, close: Bool = false, timeout: TimeInterval = 5.0) -> String? {
         sem(timeout: timeout) { service, signal in
             service.write(pid: pid, input: input, close: close) { signal($0) }
         }
     }
 
-    public func inspect(pid: Int32, timeout: TimeInterval = 5.0) -> String? {
+    func inspect(pid: Int32, timeout: TimeInterval = 5.0) -> String? {
         var result: String?
         let done = DispatchSemaphore(value: 0)
         service().inspect(pid: pid) { result = $0; done.signal() }
@@ -136,26 +145,26 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
         return result
     }
 
-    public func ping(timeout: TimeInterval = 3.0) -> Bool {
+    func ping(timeout: TimeInterval = 3.0) -> Bool {
         var ok = false
         let done = DispatchSemaphore(value: 0)
         service().ping { ok = $0; done.signal() }
         return done.wait(timeout: .now() + timeout) == .success && ok
     }
 
-    public func status(timeout: TimeInterval = 5.0) -> String? {
+    func status(timeout: TimeInterval = 5.0) -> String? {
         sem(timeout: timeout) { service, signal in
             service.status { signal($0) }
         }
     }
 
-    public func registerService(_ json: String, timeout: TimeInterval = 5.0) -> String? {
+    func registerService(_ json: String, timeout: TimeInterval = 5.0) -> String? {
         sem(timeout: timeout) { service, signal in
             service.registerService(json) { signal($0) }
         }
     }
 
-    public func unregisterService(_ id: String, timeout: TimeInterval = 5.0) -> Bool {
+    func unregisterService(_ id: String, timeout: TimeInterval = 5.0) -> Bool {
         var ok = false
         let done = DispatchSemaphore(value: 0)
         service().unregisterService(id) { ok = $0; done.signal() }
@@ -163,17 +172,17 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
         return ok
     }
 
-    public func services(timeout: TimeInterval = 5.0) -> String? {
+    func services(timeout: TimeInterval = 5.0) -> String? {
         sem(timeout: timeout) { service, signal in
             service.services { signal($0) }
         }
     }
 
-    public func startService(_ id: String, timeout: TimeInterval = 5.0) -> String? {
+    func startService(_ id: String, timeout: TimeInterval = 5.0) -> String? {
         sem(timeout: timeout) { service, signal in service.startService(id) { signal($0) } }
     }
 
-    public func stopService(_ id: String, timeout: TimeInterval = 5.0) -> Bool {
+    func stopService(_ id: String, timeout: TimeInterval = 5.0) -> Bool {
         var ok = false
         let done = DispatchSemaphore(value: 0)
         service().stopService(id) { ok = $0; done.signal() }
@@ -181,7 +190,7 @@ public final class Services: NSObject, ServiceHandling, ObservableObject, @unche
         return ok
     }
 
-    public func restartService(_ id: String, timeout: TimeInterval = 5.0) -> String? {
+    func restartService(_ id: String, timeout: TimeInterval = 5.0) -> String? {
         sem(timeout: timeout) { service, signal in
             service.restartService(id) { signal($0) }
         }

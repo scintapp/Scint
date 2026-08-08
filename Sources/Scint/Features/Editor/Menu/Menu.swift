@@ -2,14 +2,14 @@ import AppKit
 import SwiftUI
 
 
-@MainActor private func menuTint(for symbol: String) -> Color {
+@MainActor func menuTint(for symbol: String) -> Color {
     switch symbol {
         case "checkmark.circle", "checklist":
             Design.Tint.task
         case "link", "folder.badge.plus":
             Design.Tint.artifact
         case "textformat.size", "textformat.size.smaller", "textformat":
-            Design.Tint.sheet
+            Design.Tint.scene
         case "quote.opening":
             Design.Tint.info
         case "curlybraces":
@@ -40,10 +40,7 @@ import SwiftUI
         .opacity(selected ? 1 : 0.92)
 }
 
-enum MenuFocus: Hashable {
-    case filter
-    case formPrimary
-}
+enum MenuFocus: Hashable { case filter, formPrimary }
 
 enum MenuSurface {
     static let menu: [MenuItem] = [
@@ -62,7 +59,7 @@ enum MenuSurface {
         MenuItem.command(id: "add-files", label: "Files or Folders...", icon: "folder.badge.plus", keywords: ["file", "folder", "directory", "artifact", "open"])
     ]
 
-    @MainActor static func build(for item: MenuItem) -> [Sheet.Block]? {
+    @MainActor static func build(for item: MenuItem) -> [Scene.Block]? {
         guard let commandID = item.commandID else { return nil }
 
         switch commandID {
@@ -76,7 +73,7 @@ enum MenuSurface {
                 guard panel.runModal() == .OK else { return nil }
                 let entries = panel.urls.map { url in
                     let name = url.lastPathComponent.isEmpty ? "Artifact" : url.lastPathComponent
-                    return Sheet.Block.artifact(Artifact.register(name, url))
+                    return Scene.Block.artifact(Artifact.register(name, url))
                 }
                 return entries.isEmpty ? nil : entries
             case "heading-1": return [.text(UUID(), "# ")]
@@ -93,9 +90,9 @@ enum MenuSurface {
 }
 
 struct MenuRow: View {
-    @Environment(EditorState.self) private var editor
-    private var menu: MenuModel { editor.menu }
-    private var selected: Bool { item.id == menu.selectedID }
+    @Environment(EditorState.self) var editor
+    var menu: MenuModel { editor.menu }
+    var selected: Bool { item.id == menu.selectedID }
     let item: MenuItem
     let shape = RoundedRectangle(cornerRadius: 15, style: .continuous)
 
@@ -141,22 +138,22 @@ struct MenuRow: View {
 }
 
 struct MenuList: View {
-    @Environment(EditorState.self) private var editor
+    @Environment(EditorState.self) var editor
 
     var menu: MenuModel { editor.menu }
 
-    private var query: Binding<String> {
+    var query: Binding<String> {
         Binding(get: { menu.query }, set: { menu.query = $0 })
     }
 
-    private var filter: some View {
+    var filter: some View {
         MenuFilter(text: query)
     }
 
     var emptyTitle: String {
         switch menu.kind {
             case .fixed: return "No commands found"
-            case .dynamic, .update(.artifact), .update(.command), .update(.sheet): return "No references found"
+            case .dynamic, .update(.artifact), .update(.command), .update(.scene): return "No references found"
             case .create, .update: return ""
         }
     }
@@ -213,14 +210,14 @@ struct MenuList: View {
 }
 
 struct MenuForm: View {
-    @Environment(EditorState.self) private var editor
+    @Environment(EditorState.self) var editor
     let kind: MenuFormKind
     let updating: Bool
     let focus: FocusState<MenuFocus?>.Binding
 
-    private var menu: MenuModel { editor.menu }
+    var menu: MenuModel { editor.menu }
 
-    private var header: some View {
+    var header: some View {
         HStack {
             Iconography.Icon(symbol: kind.icon, tint: menuTint(for: kind.icon), sizing: 16)
                 .frame(width: 24, height: 24)
@@ -235,7 +232,7 @@ struct MenuForm: View {
         .padding(.vertical, 6)
     }
 
-    private var fields: some View {
+    var fields: some View {
         VStack(alignment: .leading, spacing: 12) {
             formField(
                 placeholder: kind.primaryPlaceholder,
@@ -249,7 +246,7 @@ struct MenuForm: View {
         .padding(14)
     }
 
-    private var actions: some View {
+    var actions: some View {
         HStack(spacing: 8) {
             Spacer()
             Button("Cancel") { menu.close() }
@@ -275,7 +272,7 @@ struct MenuForm: View {
         }
     }
 
-    private func formField(placeholder: String, text: Binding<String>, focusValue: MenuFocus, commit: @escaping () -> Void) -> some View {
+    func formField(placeholder: String, text: Binding<String>, focusValue: MenuFocus, commit: @escaping () -> Void) -> some View {
         TextField(placeholder, text: text)
             .textFieldStyle(.plain)
             .font(.system(size: 13, weight: .medium))
@@ -316,12 +313,12 @@ struct MenuForm: View {
 }
 
 struct MenuFilter: View {
-    @Environment(EditorState.self) private var editor
+    @Environment(EditorState.self) var editor
     @Binding var text: String
 
-    private var menu: MenuModel { editor.menu }
+    var menu: MenuModel { editor.menu }
 
-    private func handle(_ selector: Selector) -> Bool {
+    func handle(_ selector: Selector) -> Bool {
         switch selector {
             case #selector(NSResponder.moveDown(_:)):
                 menu.moveSelection(1)
@@ -355,7 +352,7 @@ struct MenuFilter: View {
     }
 }
 
-private struct MenuFilterField: NSViewRepresentable {
+struct MenuFilterField: NSViewRepresentable {
     @Binding var text: String
     let onCommand: (Selector) -> Bool
 
@@ -390,7 +387,7 @@ private struct MenuFilterField: NSViewRepresentable {
             guard let window = field.window, window.makeFirstResponder(field) else { retry(field, attempts: attempts); return }
         }
 
-        private func retry(_ field: NSTextField, attempts: Int) {
+        func retry(_ field: NSTextField, attempts: Int) {
             guard attempts > 0 else { return }
             DispatchQueue.main.async { [weak self, weak field] in
                 guard let self, let field else { return }
@@ -409,26 +406,15 @@ private struct MenuFilterField: NSViewRepresentable {
 }
 
 struct Menu: View {
-    @Environment(EditorState.self) private var editor
-    @FocusState private var focus: MenuFocus?
+    @Environment(EditorState.self) var editor
+    @FocusState var focus: MenuFocus?
+    var menu: MenuModel { editor.menu }
     let position: CGPoint
-    private var menu: MenuModel { editor.menu }
 
-    @ViewBuilder private var content: some View {
-        switch menu.kind {
-            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.sheet):
-                MenuList()
-            case .create(let kind):
-                MenuForm(kind: kind, updating: false, focus: $focus)
-            case .update(let kind):
-                MenuForm(kind: kind, updating: true, focus: $focus)
-        }
-    }
-
-    private func focusInitialField(for kind: MenuKind) {
+    func focusInitialField(for kind: MenuKind) {
         let target: MenuFocus?
         switch kind {
-            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.sheet):
+            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.scene):
                 target = nil
             case .create, .update:
                 target = .formPrimary
@@ -442,10 +428,19 @@ struct Menu: View {
     }
 
     var body: some View {
-        content
-            .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
-            .offset(x: position.x, y: position.y)
-            .onChange(of: menu.kind) { _, kind in focusInitialField(for: kind) }
-            .onAppear { focusInitialField(for: menu.kind) }
+        Group {
+            switch menu.kind {
+                case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.scene):
+                    MenuList()
+                case .create(let kind):
+                    MenuForm(kind: kind, updating: false, focus: $focus)
+                case .update(let kind):
+                    MenuForm(kind: kind, updating: true, focus: $focus)
+            }
+        }
+        .frame(width: menu.size.width, height: menu.size.height, alignment: .topLeading)
+        .offset(x: position.x, y: position.y)
+        .onChange(of: menu.kind) { _, kind in focusInitialField(for: kind) }
+        .onAppear { focusInitialField(for: menu.kind) }
     }
 }

@@ -6,12 +6,12 @@ typealias Encode = @Sendable (any Resolvable, JSONEncoder) throws -> Data
 typealias Decode = @Sendable (Data, JSONDecoder) throws -> any Resolvable
 typealias EncodeFrom = @Sendable (Bounding, Reference, JSONEncoder) throws -> Data?
 
-public typealias Config = OrderedDictionary<String, Value>
-public typealias ActivityId = UUID
-public typealias ContextId = UUID
-public typealias DescriptorId = UUID
-public typealias StorageId = UUID
-public typealias TypeId = UUID
+typealias Config = OrderedDictionary<String, Value>
+typealias ActivityId = UUID
+typealias ContextId = UUID
+typealias DescriptorId = UUID
+typealias StorageId = UUID
+typealias TypeId = UUID
 
 protocol Storable: Codable & Sendable {}
 protocol Storing: Sendable { func store(for ref: Reference?) -> Store? }
@@ -25,7 +25,7 @@ protocol ExpressibleNumbers: ExpressibleByIntegerLiteral, ExpressibleByFloatLite
 protocol Expressible: ExpressibleNumbers, ExpressibleThings {}
 protocol Convertible: Sendable { var property: Property { get } }
 
-@objc public protocol ServiceProviding {
+@objc protocol ServiceProviding {
     func start(_ command: String, _ arguments: [String], _ environment: [String: String], _ reply: @escaping (Int32, String?, String?) -> Void)
     func stop(pid: Int32, reply: @escaping (Bool) -> Void)
     func restart(pid: Int32, reply: @escaping (Int32, String?, String?) -> Void)
@@ -42,12 +42,12 @@ protocol Convertible: Sendable { var property: Property { get } }
     func stopService(_ id: String, reply: @escaping (Bool) -> Void)
     func restartService(_ id: String, reply: @escaping (String) -> Void)
 }
-@objc public protocol ServiceHandling { func handle(pid: Int32, chunk: String) }
+@objc protocol ServiceHandling { func handle(pid: Int32, chunk: String) }
 
-public protocol Resolvable: Codable, Sendable { var ref: Reference { get } }
-public protocol Keyable: Resolvable { var key: Key { get }; var origin: Reference { get } }
-public protocol Composable: Resolvable { init(_ ref: Reference) }
-public protocol Functional: Composable {}
-public protocol Malleable: Composable { var owner: Reference { get set } }
-public protocol Structural: Composable {}
-public protocol Contextual: Keyable { init(_ origin: Reference); var transcript: Reference { get } }
+protocol Resolvable: Codable, Sendable { var ref: Reference { get } }
+protocol Keyable: Resolvable { var key: Key { get }; var origin: Reference { get } }
+protocol Composable: Resolvable { init(_ ref: Reference) }
+protocol Functional: Composable {}
+protocol Malleable: Composable { var owner: Reference { get set } }
+protocol Structural: Composable {}
+protocol Contextual: Keyable { init(_ origin: Reference); var transcript: Reference { get } }

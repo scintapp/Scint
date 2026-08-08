@@ -1,7 +1,40 @@
 import Foundation
-import MCP
 @preconcurrency import Network
 
+
+struct HTTPRequest: Sendable {
+    let method: String
+    let headers: [String: String]
+    let body: Data?
+    let path: String?
+
+    func header(_ name: String) -> String? {
+        headers.first { $0.key.caseInsensitiveCompare(name) == .orderedSame }?.value
+    }
+}
+
+struct HTTPResponse: Sendable {
+    let statusCode: Int
+    let headers: [String: String]
+    let bodyData: Data?
+
+    static func json(_ value: Properties, statusCode: Int = 200) -> Self {
+        do {
+            let body: Data = try value.render()
+            return Self(
+                statusCode: statusCode,
+                headers: ["Content-Type": "application/json"],
+                bodyData: body
+            )
+        } catch {
+            return Self(
+                statusCode: 500,
+                headers: ["Content-Type": "application/json"],
+                bodyData: Data(#"{"jsonrpc":"2.0","id":null,"error":{"code":-32603,"message":"Response encoding failed."}}"#.utf8)
+            )
+        }
+    }
+}
 
 final class NetworkServer: @unchecked Sendable {
     typealias Handler = @Sendable (HTTPRequest) async -> HTTPResponse

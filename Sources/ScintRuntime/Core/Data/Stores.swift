@@ -23,7 +23,7 @@ import Foundation
               descriptor.origin.contextId == ref.contextId,
               descriptor.origin.storageId == ref.storageId,
               descriptor.key == .descriptor(ref)
-                else { fatalError(RuntimeError.Registry.missingDescriptor(ref).description) }
+                else { fatalError(RuntimeError.Catalog.missingDescriptor(ref).description) }
         entries[ref] = value
     }
 
@@ -46,9 +46,11 @@ import Foundation
 
 @Observable final class Index<Element: Keyable>: @unchecked Sendable {
     private var entries: [Reference: Element] = [:]
+    private var refsById: [UUID: Reference] = [:]
     private var refsByKey: [Key: Reference] = [:]
     private var keysByRef: [Reference: Key] = [:]
 
+    func ref(for id: UUID) -> Reference? { refsById[id] }
     func ref(for key: Key) -> Reference? { refsByKey[key] }
     func key(for ref: Reference) -> Key? { keysByRef[ref] }
     func keys() -> [Reference] { Array(entries.keys) }
@@ -66,14 +68,18 @@ import Foundation
 
     func set(_ ref: Reference, _ value: Element) {
         let newKey = value.key
+
         if let oldKey = keysByRef[ref], oldKey != newKey {
             assert(refsByKey[oldKey] == ref, "key index desync for \(oldKey)")
             refsByKey[oldKey] = nil
         }
+
         if let owner = refsByKey[newKey] {
-            precondition(owner == ref, "Key \(newKey) already bound to a different Reference")
+            precondition(owner == ref, "Key '\(newKey)' points to Reference '\(owner).'")
         }
+
         entries[ref] = value
+        refsById[ref.descriptorId] = ref
         refsByKey[newKey] = ref
         keysByRef[ref] = newKey
     }

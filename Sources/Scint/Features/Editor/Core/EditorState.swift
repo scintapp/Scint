@@ -5,7 +5,7 @@ import SwiftUI
 
 
 @Observable final class EditorState {
-    private(set) var sheet: SheetModel
+    private(set) var scene: SceneModel
     private(set) var menu: MenuModel
     let themer = EditorThemer()
     private(set) var themeRevision = 0
@@ -13,24 +13,24 @@ import SwiftUI
     var caretSelections: [AnyHashable: NSRange] = [:]
     var caretRects: [AnyHashable: CGRect] = [:]
     var viewportRects: [AnyHashable: CGRect] = [:]
-    var entryFrames: [AnyHashable: CGRect] = [:]
+    var entryPanels: [AnyHashable: CGRect] = [:]
 
     var menuViewportRect: CGRect? {
         guard let editing,
-              let entry = entryFrames[editing],
+              let entry = entryPanels[editing],
               let viewport = viewportRects[editing]
         else { return nil }
         return viewport.offsetBy(dx: entry.minX, dy: entry.minY)
     }
 
     init(
-        sheet ref: Reference,
+        scene ref: Reference,
         menuItems: [MenuItem],
-        makeBlocks: @escaping (MenuItem) -> [Sheet.Block]?
+        makeBlocks: @escaping (MenuItem) -> [Scene.Block]?
     ) {
-        let sheet = SheetModel(ref)
-        self.sheet = sheet
-        self.menu = MenuModel(sheet: sheet, items: menuItems, makeBlocks: makeBlocks)
+        let scene = SceneModel(ref)
+        self.scene = scene
+        self.menu = MenuModel(scene: scene, items: menuItems, makeBlocks: makeBlocks)
         activateTrailingText()
     }
 
@@ -42,37 +42,37 @@ import SwiftUI
     func caretSelection(for id: AnyHashable) -> NSRange? { caretSelections[id] }
 
     func focusGained(id: AnyHashable) {
-        guard let block = sheet.block(id: id) else { return }
+        guard let block = scene.block(id: id) else { return }
         if case .text = block { enterEditing(id) }
         else { selectBlock(id) }
     }
 
     func editBlock(id: AnyHashable) {
-        guard let block = sheet.block(id: id) else { return }
+        guard let block = scene.block(id: id) else { return }
         if case .text = block { return }
         selectBlock(id)
-        menu.edit(block, anchorRect: entryFrames[id] ?? .zero)
+        menu.edit(block, anchorRect: entryPanels[id] ?? .zero)
     }
 
     func setCaret(id: AnyHashable, selection: NSRange) {
         let changed = editing != id || caretSelections[id] != selection
         editing = id
-        sheet.select(id)
+        scene.select(id)
         caretSelections[id] = selection
         if changed || menu.isOpen { updateMenu(allowOpen: false) }
     }
 
     func write(id: AnyHashable, text: String, selection: NSRange) {
         editing = id
-        sheet.select(id)
+        scene.select(id)
         caretSelections[id] = selection
-        let changed = sheet.write(text, to: id)
+        let changed = scene.write(text, to: id)
         if changed || menu.isOpen { updateMenu(allowOpen: changed) }
     }
 
-    func updateEntryFrame(id: AnyHashable, frame: CGRect) {
-        if entryFrames[id] != frame {
-            entryFrames[id] = frame
+    func updateEntryPanel(id: AnyHashable, frame: CGRect) {
+        if entryPanels[id] != frame {
+            entryPanels[id] = frame
             updateMenuAnchor(for: id)
         }
     }
@@ -107,9 +107,9 @@ import SwiftUI
         switch selector {
             case #selector(NSResponder.insertNewline(_:)):
                 guard editing == nil,
-                      let id = sheet.selection.first,
-                      let index = sheet.index(for: id),
-                      let block = sheet.block(id: id)
+                      let id = scene.selection.first,
+                      let index = scene.index(for: id),
+                      let block = scene.block(id: id)
                 else { return false }
                 if case .text = block { return false }
                 return insertText(at: index + 1)
@@ -129,13 +129,13 @@ import SwiftUI
     }
 
     @discardableResult
-    func beginEditingFromCanvasClick(at point: CGPoint) -> Bool {
+    func beginEditingFromSceneClick(at point: CGPoint) -> Bool {
         if menu.isOpen { menu.close() }
-        let blocks = Sheet.with(sheet.ref, { $0.blocks }) ?? []
+        let blocks = Scene.with(scene.ref, { $0.blocks }) ?? []
         guard !blocks.isEmpty else { return insertText(at: 0) }
 
-        let framed = blocks.enumerated().compactMap { index, block -> (Int, Sheet.Block, CGRect)? in
-            guard let frame = entryFrames[block.id] else { return nil }
+        let framed = blocks.enumerated().compactMap { index, block -> (Int, Scene.Block, CGRect)? in
+            guard let frame = entryPanels[block.id] else { return nil }
             return (index, block, frame)
         }.sorted { $0.2.minY < $1.2.minY }
 
@@ -153,16 +153,16 @@ import SwiftUI
 
     private func acceptMenuResult(_ result: (AnyHashable, NSRange?), inserting: Bool) {
         if let caret = result.1 { enterEditing(result.0, caret: caret) }
-        else if inserting, let index = sheet.index(for: result.0) { ensureText(after: index) }
+        else if inserting, let index = scene.index(for: result.0) { ensureText(after: index) }
         else { selectBlock(result.0) }
     }
 
     private func select(offset: Int) -> Bool {
-        guard let current = editing ?? sheet.selection.first,
-              let target = Sheet.with(sheet.ref, { sheet -> Sheet.Block? in
-                  guard let index = sheet.blocks.firstIndex(where: { $0.id == current }) else { return nil }
+        guard let current = editing ?? scene.selection.first,
+              let target = Scene.with(scene.ref, { scene -> Scene.Block? in
+                  guard let index = scene.blocks.firstIndex(where: { $0.id == current }) else { return nil }
                   let target = index + offset
-                  return sheet.blocks.indices.contains(target) ? sheet.blocks[target] : nil
+                  return scene.blocks.indices.contains(target) ? scene.blocks[target] : nil
               }) ?? nil
         else { return false }
 
@@ -180,14 +180,14 @@ import SwiftUI
         guard let editing,
               selection.location == 0,
               selection.length == 0,
-              let index = sheet.index(for: editing),
+              let index = scene.index(for: editing),
               index > 0
         else { return false }
 
-        if let merged = sheet.mergeText(at: editing) {
+        if let merged = scene.mergeText(at: editing) {
             enterEditing(merged.id, caret: merged.caret)
-        } else if let previous = Sheet.with(sheet.ref, { sheet -> Sheet.Block? in
-            sheet.blocks.indices.contains(index - 1) ? sheet.blocks[index - 1] : nil
+        } else if let previous = Scene.with(scene.ref, { scene -> Scene.Block? in
+            scene.blocks.indices.contains(index - 1) ? scene.blocks[index - 1] : nil
         }) ?? nil {
             selectBlock(previous.id)
         } else {
@@ -197,9 +197,9 @@ import SwiftUI
     }
 
     private func deleteSelection() -> Bool {
-        guard !sheet.selection.isEmpty else { return false }
-        let landing = sheet.delete(sheet.selection)
-        if let landing, let block = sheet.block(id: landing) {
+        guard !scene.selection.isEmpty else { return false }
+        let landing = scene.delete(scene.selection)
+        if let landing, let block = scene.block(id: landing) {
             if case .text(_, let text) = block {
                 enterEditing(landing, caret: NSRange(location: (text as NSString).length, length: 0))
             } else {
@@ -212,10 +212,10 @@ import SwiftUI
     }
 
     private func ensureText(after index: Int) {
-        if let next = Sheet.with(sheet.ref, { sheet -> Sheet.Block? in
+        if let next = Scene.with(scene.ref, { scene -> Scene.Block? in
             let next = index + 1
-            guard sheet.blocks.indices.contains(next), case .text = sheet.blocks[next] else { return nil }
-            return sheet.blocks[next]
+            guard scene.blocks.indices.contains(next), case .text = scene.blocks[next] else { return nil }
+            return scene.blocks[next]
         }) ?? nil {
             enterEditing(next.id, caret: NSRange(location: 0, length: 0))
         } else {
@@ -224,12 +224,12 @@ import SwiftUI
     }
 
     private func insertText(at index: Int) -> Bool {
-        guard let id = sheet.insertText(at: index) else { return false }
+        guard let id = scene.insertText(at: index) else { return false }
         enterEditing(id, caret: NSRange(location: 0, length: 0))
         return true
     }
 
-    private func beginEditing(near block: Sheet.Block, insertingAfter index: Int, atStart: Bool = false) -> Bool {
+    private func beginEditing(near block: Scene.Block, insertingAfter index: Int, atStart: Bool = false) -> Bool {
         if case .text(_, let text) = block {
             let location = atStart ? 0 : (text as NSString).length
             enterEditing(block.id, caret: NSRange(location: location, length: 0))
@@ -242,9 +242,9 @@ import SwiftUI
     private func enterEditing(_ id: AnyHashable, caret: NSRange? = nil) {
         removeTrailingEmptyText(excluding: id)
         editing = id
-        sheet.select(id)
+        scene.select(id)
         if let caret { caretSelections[id] = caret }
-        else if caretSelections[id] == nil, case .text(_, let text)? = sheet.block(id: id) {
+        else if caretSelections[id] == nil, case .text(_, let text)? = scene.block(id: id) {
             caretSelections[id] = NSRange(location: (text as NSString).length, length: 0)
         }
     }
@@ -252,12 +252,12 @@ import SwiftUI
     private func selectBlock(_ id: AnyHashable) {
         removeTrailingEmptyText(excluding: id)
         editing = nil
-        sheet.select(id)
+        scene.select(id)
     }
 
     @discardableResult
     func activateTrailingText() -> AnyHashable? {
-        guard let trailing = Sheet.with(sheet.ref, { $0.blocks.last }) ?? nil else {
+        guard let trailing = Scene.with(scene.ref, { $0.blocks.last }) ?? nil else {
             return insertText(at: 0) ? editing : nil
         }
 
@@ -266,7 +266,7 @@ import SwiftUI
             return trailing.id
         }
 
-        return insertText(at: Sheet.with(sheet.ref, { $0.blocks.endIndex }) ?? 0) ? editing : nil
+        return insertText(at: Scene.with(scene.ref, { $0.blocks.endIndex }) ?? 0) ? editing : nil
     }
 
     func deactivate() {
@@ -279,7 +279,7 @@ import SwiftUI
         guard let editing else { return false }
         let landing = removeTrailingEmptyText()
         self.editing = nil
-        sheet.select(sheet.block(id: editing) == nil ? landing : editing)
+        scene.select(scene.block(id: editing) == nil ? landing : editing)
         return true
     }
 
@@ -287,17 +287,17 @@ import SwiftUI
     private func removeTrailingEmptyText(excluding retainedID: AnyHashable? = nil) -> AnyHashable? {
         var landing: AnyHashable?
 
-        while let trailing = Sheet.with(sheet.ref, { $0.blocks.last }) ?? nil,
+        while let trailing = Scene.with(scene.ref, { $0.blocks.last }) ?? nil,
               trailing.id != retainedID,
               case .text(_, let text) = trailing,
               text.isEmpty {
             caretSelections[trailing.id] = nil
             caretRects[trailing.id] = nil
             viewportRects[trailing.id] = nil
-            entryFrames[trailing.id] = nil
+            entryPanels[trailing.id] = nil
             if editing == trailing.id { editing = nil }
-            let next = sheet.delete([trailing.id])
-            if sheet.selection.contains(trailing.id) { sheet.select(next) }
+            let next = scene.delete([trailing.id])
+            if scene.selection.contains(trailing.id) { scene.select(next) }
             landing = next
         }
 
@@ -307,7 +307,7 @@ import SwiftUI
     private func updateMenu(allowOpen: Bool) {
         guard allowOpen || menu.isOpen,
               let editing,
-              case .text(_, let text)? = sheet.block(id: editing),
+              case .text(_, let text)? = scene.block(id: editing),
               let selection = caretSelections[editing]
         else {
             if menu.isOpen { menu.close() }
@@ -345,7 +345,7 @@ import SwiftUI
     }
 
     private func anchorRect(for id: AnyHashable) -> CGRect {
-        guard let entry = entryFrames[id], let caret = caretRects[id] else { return entryFrames[id] ?? .zero }
+        guard let entry = entryPanels[id], let caret = caretRects[id] else { return entryPanels[id] ?? .zero }
         return caret.offsetBy(dx: entry.minX, dy: entry.minY)
     }
 

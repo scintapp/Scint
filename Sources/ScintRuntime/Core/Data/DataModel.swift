@@ -7,7 +7,7 @@ struct Codec: @unchecked Sendable {
     let decode: Decode
     let encodeFrom: EncodeFrom
 
-    public enum Format: String {
+    enum Format: String {
         case json
         case markdown
         case source
@@ -35,12 +35,12 @@ struct StorableObject: Storable {
     var value: any Resolvable
 
     init(descriptor: Descriptor, value: any Resolvable) {
-        precondition(descriptor.origin.id == value.ref.id)
-        precondition(descriptor.origin.typeId == value.ref.typeId)
-        precondition(descriptor.origin.descriptorId == value.ref.descriptorId)
-        precondition(descriptor.origin.contextId == value.ref.contextId)
-        precondition(descriptor.origin.storageId == value.ref.storageId)
-        precondition(descriptor.key == .descriptor(value.ref))
+//        precondition(descriptor.origin.id == value.ref.id)
+//        precondition(descriptor.origin.typeId == value.ref.typeId)
+//        precondition(descriptor.origin.descriptorId == value.ref.descriptorId)
+//        precondition(descriptor.origin.contextId == value.ref.contextId)
+//        precondition(descriptor.origin.storageId == value.ref.storageId)
+//        precondition(descriptor.key == .descriptor(value.ref))
         self.storageId = value.ref.storageId
         self.descriptor = descriptor
         self.value = value
@@ -76,7 +76,7 @@ struct StorableObject: Storable {
         let typeId = try c.decode(UUID.self, forKey: .typeId)
 
         guard let type = Runtime.shared.registry.typesByTypeId[typeId] else {
-            throw RuntimeError.registry(.unregisteredType(typeId.uuidString))
+            throw RuntimeError.Persistence.unregisteredType(typeId.uuidString)
         }
 
         let property = try c.decode(Property.self, forKey: .value)
@@ -107,11 +107,39 @@ struct StorableObject: Storable {
 }
 
 struct StorableCollection: Storable {
-    var routes: [StorableObject]
+    var bridges: [StorableObject]
     var closures: [StorableObject]
     var spaces: [StorableObject]
-    var workspace: StorableObject
-    var workspaces: [StorableObject]? = nil
+    var workspaces: [StorableObject]
+
+    private enum CodingKeys: String, CodingKey { case bridges, closures, spaces, workspace, workspaces }
+
+    init(bridges: [StorableObject], closures: [StorableObject], spaces: [StorableObject], workspaces: [StorableObject]) {
+        self.bridges = bridges
+        self.closures = closures
+        self.spaces = spaces
+        self.workspaces = workspaces
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.bridges = try container.decode([StorableObject].self, forKey: .bridges)
+        self.closures = try container.decode([StorableObject].self, forKey: .closures)
+        self.spaces = try container.decode([StorableObject].self, forKey: .spaces)
+        self.workspaces = try container.decodeIfPresent([StorableObject].self, forKey: .workspaces) ?? []
+        if let workspace = try container.decodeIfPresent(StorableObject.self, forKey: .workspace),
+           !workspaces.contains(where: { $0.value.ref == workspace.value.ref }) {
+            workspaces.insert(workspace, at: 0)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(bridges, forKey: .bridges)
+        try container.encode(closures, forKey: .closures)
+        try container.encode(spaces, forKey: .spaces)
+        try container.encode(workspaces, forKey: .workspaces)
+    }
 }
 
 struct PersistedObject<Value: Storable>: Sendable {

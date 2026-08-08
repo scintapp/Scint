@@ -1,24 +1,6 @@
 import SwiftUI
 
 
-@Observable @MainActor final class StudioModel: Model {
-    var sidebar: StudioSidebar
-    var canvas: StudioCanvas
-    var console: StudioConsole
-    var inspector: StudioInspector
-    var files: FileProvider
-    var session: Session
-
-    init(_ workspace: Reference) {
-        self.sidebar = .init()
-        self.canvas = .init()
-        self.console = .init()
-        self.inspector = .init()
-        self.files = .init(workspace)
-        self.session = .init(workspace)
-    }
-}
-
 struct ScintStudio: View {
     @Environment(ScintModel.self) var scint
 
@@ -26,25 +8,81 @@ struct ScintStudio: View {
         @Bindable var studio = scint.studio
 
         NavigationSplitView {
-            studio.sidebar.panel(studio)
+            studio.sidebar.surface(studio)
                 .frame(maxWidth: 400, maxHeight: .infinity)
                 .toolbar(removing: .sidebarToggle)
         } detail: {
-            VSplit($studio.console.state.presented, $studio.console.state.position) {
-                studio.canvas.panel(studio)
-            } bottom: {
-                studio.console.panel(studio)
-            }
-            .ignoresSafeArea(.container, edges: .vertical)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .toolbar(removing: .title)
+            studio.content.surface(studio)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .inspector(isPresented: $studio.inspector.state.presented) {
-            studio.inspector.panel(studio)
+            studio.inspector.surface(studio)
                 .frame(maxWidth: 400, maxHeight: .infinity)
                 .inspectorColumnWidth(ideal: 300, max: 440)
         }
         .environment(scint)
+    }
+}
+
+@Observable final class StudioSidebar: Panel {
+    var state: StateContainer = .init(presented: true)
+
+    func controls(_ model: any Model) -> Controls { SidebarMapper.controls(model) }
+    func parameters(_ model: any Model) -> Params { SidebarMapper.parameters(model) }
+
+    func surface(_ model: any Model) -> some View {
+        AnySurface(panel: self, model: model)
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .toolbar(removing: .sidebarToggle)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    @Bindable var state = self.state
+                    SidebarToggle(presented: $state.presented)
+                }
+                ToolbarSpacer(.fixed, placement: .primaryAction)
+            }
+    }
+}
+
+@Observable final class StudioContent: Panel {
+    var state: StateContainer = .init()
+
+    func controls(_ model: any Model) -> Controls { SpaceGrid.controls(model) }
+    func parameters(_ model: any Model) -> Params { SpaceGrid.parameters(model) }
+
+    func surface(_ model: any Model) -> some View {
+        AnySurface(panel: self, model: model)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .toolbar(removing: .title)
+            .toolbar {
+                ToolbarItem(placement: .navigation) { NavigationControls(model: model) }
+                ToolbarItem(placement: .navigation) { WorkspaceControls(model: model) }
+                    .sharedBackgroundVisibility(.hidden)
+                ToolbarSpacer(.flexible, placement: .primaryAction)
+                ToolbarItem(placement: .principal) { ContextControls(model: model) }
+                ToolbarSpacer(.flexible, placement: .primaryAction)
+                ToolbarItem(placement: .primaryAction) { PathMenuButton(model: model) }
+            }
+    }
+}
+
+@Observable final class StudioInspector: Panel {
+    var state: StateContainer = .init()
+    var surface: InspectorSurface = .workspace
+
+    enum InspectorSurface: String, CaseIterable { case scene, space, workspace }
+
+    func controls(_ model: any Model) -> Controls { SpaceGroup.controls(model) }
+    func parameters(_ model: any Model) -> Params { SpaceGroup.parameters(model) }
+
+    func surface(_ model: any Model) -> some View {
+        AnySurface(panel: self, model: model)
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .toolbar {
+                @Bindable var state = self.state
+                ToolbarSpacer(.flexible, placement: .primaryAction)
+                ToolbarItem(placement: .primaryAction) { InspectorToggle(presented: $state.presented) }
+            }
     }
 }
 

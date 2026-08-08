@@ -1,284 +1,386 @@
 # ScintRuntime
 
-Scint Runtime is the Swift context model and composition engine behind **Scint
-Studio**, a native macOS environment for composing and running agentic systems.
+Scint Runtime is the context model and composition engine at the heart of Scint.
+Studio authors its structures, the process service executes its capabilities, and the
+rest of the application reads the compositions it produces.
 
-Most agent software treats context as an input assembled immediately before a request:
-a prompt, a chat log, or a bag of retrieved data. Scint Runtime treats context as a
-first-class systems model. Information, capabilities, configuration, relationships,
-and execution history belong to a persistent, scoped environment that can be authored,
-run, inspected, changed, and resumed.
-
-That is the central idea of the project:
+Most agent runtimes assemble context at the last possible moment: a prompt, a chat log,
+or a bag of retrieved data built immediately before a request. Scint starts from the
+opposite premise. Context is the authored environment in which work exists. It has an
+identity, a topology, information, capabilities, configuration, and a history before it
+ever has a process identifier.
 
 > Context is not merely input to a process. It is the environment in which the process
 > exists.
 
-## The model of context
+The runtime's central move is to bring that environment into a running tense without
+inventing a second model that owns the truth. A `Workspace` or `Space` is an authored
+place. An active `Harness` makes that place composable. `Composer` associates it with a
+live `Context`; the context evaluates work as typed `Intent`s; signals leave a record in
+`Transcript`s; and `Composition` maps the whole relationship into something the rest of
+Scint can read.
 
-A context has persistent, authored structure and a temporary running form. The types in
-the runtime describe different dimensions of the same model rather than independent
-subsystems:
+There is no separate process object hiding beside the context. The context is the
+process boundary, and composition is how that boundary becomes runnable.
 
-| Dimension | Runtime model |
+## The runtime process
+
+The process system is deliberately small. Each type describes a different tense or
+view of the same activity:
+
+| Type | Responsibility |
 | --- | --- |
-| Authored origin | A `Workspace` or `Space` locates agent work within the persistent topology |
-| Environment | Its `Closure` contains input, information, capabilities, and configuration |
-| Relationships | Nested spaces and `Route`s connect local contexts into a larger topology |
-| Content | `Sheet`s provide authorable information; `Artifact`s point to external resources |
-| Capability | `Command`s and `Harness`es describe what the context can do |
-| Running form | A `Context` composes the boundary into typed intentions and executes them |
-| Continuity | Execution history records inputs, activity, output, completion, and provider state |
-| Application view | `Composition` projects the live context into state Scint Studio can present |
+| `Composer` | The managerial singleton. It indexes live contexts, validates composability, starts and stops work, bridges signals, and resolves compositions. |
+| `Composition` | A lightweight mapping from a structural reference to its live context. It copies no process state and owns no domain data. |
+| `Context` | The live execution boundary associated with one workspace or space. It owns a root transcript reference and the intents currently in flight. |
+| `Intent` | A sum type wrapping the contextual operation selected by a harness: composing, dispatching, observing, executing, or traversing. |
+| `Signal` | The lifecycle vocabulary written into transcripts: composed, started, stopped, updated, completed, or failed. |
+| `Transcript` | The durable record in which inputs, child transcripts, properties, and signals are arranged over time. |
+| `Parser` | The binding seam that turns closure configuration and transcript inputs into typed values for harnesses and commands. |
 
-Together, these form the process. Scint Runtime does not need a separate process object
-beside the context: a context is the execution boundary, and composing it is what gives
-that boundary a running tense.
+One compact way to read the model is:
+
+> A `Context` is the process, an `Intent` is the work in flight, a `Transcript` is
+> its wake, and a `Composition` is the lens through which Scint sees it.
+
+That division also explains where state actually lives:
+
+| Form | Source of truth | Lifetime |
+| --- | --- | --- |
+| Authored | `Workspace` / `Space`, `Closure`, active `Harness` | Persisted |
+| Live | `Context` and its active `Intent`s in `Composer` | In memory |
+| Recorded | Root and intent `Transcript`s | Persisted |
+| Presented | Computed properties on `Composition` | Derived on read |
+
+The layers are connected, but they are not interchangeable. The word *mapping* is
+intentional: a `Composition` is not a binding, a materialized projection, a snapshot,
+or a second store. It maps over a structure and the context currently indexed for it.
+
+## From an authored place to a process
+
+`Workspace` is the persistent root of the structural model. It owns root `Space`s, and
+spaces can own other spaces, producing a nested topology of contextual worlds. Every
+workspace and space points to a `Closure` containing:
+
+- an ordered collection of malleable content, including `Scene`s and `Transcript`s;
+- a set of functional interfaces, including `Artifact`s, `Command`s, and `Harness`es;
+- an ordered configuration dictionary; and
+- a distinguished input scene.
+
+The structure's active harness sits outside the closure. A closure may make several
+harnesses available, but the structure selects the one that presently gives the place
+its intent. Operationally, `Composer` treats a `Workspace` or `Space` as composable only
+when that active reference resolves to a real `Harness`.
+
+Containment expresses ownership. `Bridge`s express connectivity without changing that
+ownership. The runtime can walk into nested spaces, climb toward parents, or cross
+bridges into adjacent spaces, so effective context is a reachable portion of an authored
+topology rather than a global bag of values.
+
+The domain families describe how values participate in that environment:
+
+| Family | Role | Concrete values |
+| --- | --- | --- |
+| `Structural` | Defines places, boundaries, ownership, and topology | `Workspace`, `Space`, `Closure`, `Bridge` |
+| `Malleable` | Supplies authorable information and execution history | `Scene`, `Transcript` |
+| `Functional` | Describes resources and executable capabilities | `Artifact`, `Command`, `Harness` |
+| `Contextual` | Gives an authored place a keyed running form | `Context` and the intent-specific values |
+
+The context composes these layers rather than flattening them. Structural values locate
+the environment, malleable values provide input and retain the record, and functional
+values turn the parsed environment into behavior.
+
+## Composer and Composition
+
+`Composer` is the sole owner of live `Context` values. Its `Index<Context>` supports
+lookup by reference, identifier, and contextual key, but it is an in-memory index—not a
+store and not an automatic persistence boundary. Durable continuity comes from the
+authored structures and transcripts the context refers to.
+
+The distinction between composing and starting matters:
+
+- `compose(_:)` validates the origin and its active harness, creates a context if one is
+  not already indexed, and returns a composition without starting an intent;
+- `start(_:)` composes first, then asks the context to create and evaluate a new intent;
+- `stop(_:)` asks each active intent to stop and records a terminal signal when it does;
+- `resolve(_:)` returns a composition only while both the indexed context and a valid
+  active harness exist.
+
+`Composition` stores only the structural reference. Every other property follows that
+reference back through `Composer` when read:
+
+```text
+Composition.structure
+        ↓
+Composer's indexed Context
+        ├── active Intent values
+        ├── active Harness
+        └── root / current intent Transcript
+```
+
+This is why composition state does not need its own mutation stream. It is inferred from
+the intent set:
+
+- no active intents is `inactive`;
+- one or more observing intents, and no other kind, is `active`; and
+- any non-observing intent in flight is `running`.
+
+Completion and failure are transcript outcomes, not additional `Composition.State`
+cases. Once a terminal signal removes an intent, the live projection becomes inactive
+while the completed or failed result remains in the transcript tree. Ephemeral intent
+state and durable recorded state therefore agree without making `Composition` stateful.
+
+## Context and Intent
+
+A `Context` is keyed to its structural origin. The context value itself is live and
+replaceable, but its relationship to the origin and its transcript makes the process
+durable across composition sessions.
+
+Each context has a root transcript. The first time the origin is composed, the runtime
+creates that root and records `.composed(origin)`. Later contexts reuse the earliest root
+transcript carrying that composition signal.
+
+Every call to `start` creates another transcript for the selected intent and inserts its
+reference into the root. Because a transcript entry can itself reference a transcript,
+the result is a rose-tree-shaped record:
+
+```mermaid
+flowchart TD
+    Context["Context — keyed to Workspace / Space"] --> Root["Root Transcript"]
+    Context --> Active["Active Intent values"]
+    Root --> ComposeSignal["composed(origin)"]
+    Root --> BranchA["Completed Intent Transcript"]
+    Root --> BranchB["Failed Intent Transcript"]
+    Root --> BranchC["Current Intent Transcript"]
+    Active -.->|"references while in flight"| BranchC
+    BranchA --> InputsA["Input references"]
+    BranchA --> SignalsA["started · updated · completed"]
+    BranchB --> InputsB["Input references"]
+    BranchB --> SignalsB["started · updated · failed"]
+    BranchC --> InputsC["Input references"]
+    BranchC --> SignalsC["started · updated"]
+```
+
+Intent values are intentionally ephemeral. They carry the origin, selected harness,
+branch transcript, contextual key, and—where applicable—the process identifier needed
+to stop the work. When a branch receives `stopped`, `completed`, or `failed`, its intent
+is removed from the live context. The branch remains as the topological and temporal
+record of what occurred.
+
+The five intent cases are semantic vocabulary as much as implementation:
+
+| Intent | Role in the model | Present behavior |
+| --- | --- | --- |
+| `compose` | Perform context-forming work | Starts the selected harness as a managed process |
+| `dispatch` | Invoke a command-shaped operation in context | Uses the same harness start path |
+| `observe` | Remain active and react to changes in reachable context | Establishes an active intent; observation and reaction are currently stubs |
+| `execute` | Run an executable capability in context | Starts the selected harness as a managed process |
+| `traverse` | Carry work through the route graph | Currently returns completion immediately |
+
+Keeping these cases distinct preserves the intended process grammar even while several
+behaviors share a small implementation.
+
+## How evaluation unfolds
+
+A run is not built in one giant request constructor. Each layer contributes its part in
+sequence:
 
 ```mermaid
 flowchart LR
-    subgraph Persistent["Persistent context model"]
-        Origin["Workspace / Space"]
-        Origin --> Closure
-        Closure --> Information["Information"]
-        Closure --> Capabilities["Capabilities"]
-        Closure --> Configuration["Configuration"]
-        Origin --> Topology["Nested Spaces + Routes"]
-        Origin --> History["Execution history"]
-    end
-
-    subgraph Execution["Running form: execution boundary"]
-        Context --> Intent["Typed Intent"]
-        Intent --> Harness
-        Harness --> Service["Process service"]
-    end
-
-    Origin -->|"compose"| Context
-    Closure -->|"map environment"| Context
-    Context -->|"record"| History
-    Context --> Composition["Composition read model"]
+    Client["Runtime.start(origin)"] --> Composer
+    Composer -->|"create / reuse"| Context
+    Context -->|"select from Harness.Intent"| Intent
+    Closure -->|"config + input references"| Parser
+    Transcript -->|"rendered inputs"| Parser
+    Parser --> Harness
+    Intent --> Harness
+    Harness --> Command
+    Command --> Artifact
+    Artifact --> Service["scintd process service"]
+    Service -->|"stream output"| Signal
+    Signal --> Context
+    Context -->|"append"| Transcript
+    Composer -->|"resolve"| Composition
+    Composition -.->|"reads"| Context
 ```
 
-### Authored context
+In concrete terms:
 
-`Workspace` is the persistent root. A workspace owns root `Space`s, and spaces can nest
-to form smaller contextual worlds. Every workspace and space owns a `Closure` containing:
+1. A client calls `Runtime.shared.start(origin)`. `Composer` verifies that the origin is
+   a workspace or space with a resolvable active harness, then creates or reuses its
+   context.
+2. The context creates an intent transcript, wraps the harness in the matching `Intent`
+   case, and inserts the branch into the root transcript.
+3. It attaches the closure's ordinary scenes and current input scene to the branch, then
+   rotates the closure to a new input scene. The work being launched is now connected to
+   the input that produced it.
+4. The context records `.started(harness)` and adds the intent to its live set.
+5. `Parser` reads values named by the harness from `Closure.config`, renders the scenes
+   referenced by the branch, and validates or constructs values against the recursive
+   `Value` schemas declared by harness parameters.
+6. `Harness` and `Command` render those values into arguments. The command resolves its
+   `Artifact` to an executable, and `Services` asks `com.kaechle.scintd` to start it with
+   the origin's context identifier in `SCINT_CONTEXT`.
+7. Streamed lines become `.updated` signals. A service termination event becomes
+   `.completed` or `.failed`; launch errors become failures directly.
+8. `Composer` bridges each signal back to the originating context. Every signal is
+   appended to the intent branch. A terminal signal is also appended to the root and
+   removes the matching intent, which changes the next computed composition state.
 
-- an input sheet;
-- ordered content, including sheets and prior execution history;
-- a set of resource and capability interfaces; and
-- ordered configuration values.
+The transcript is not an after-the-fact log pasted onto a process. It participates in
+evaluation: it holds the input references consumed by `Parser`, carries the lifecycle
+of the intent, and anchors the result beneath the context that produced it.
 
-Containment expresses ownership and isolation. `Route`s express connectivity without
-changing ownership. The runtime can therefore derive context by walking down nested
-spaces, climbing toward a parent, or crossing routes to adjacent spaces. Scope is not a
-global bag or a field on an object; it is a reachable portion of this authored topology.
+## Parsing and capabilities
 
-### Running context
+`Parser` is the seam between context and behavior. It is not a general document parser
+or a second execution engine. Its job is narrower:
 
-Composing a workspace or space creates one live `Context` for that origin. The context
-resolves the origin's closure and active harness, maps the environment into typed
-values, selects an intent, executes it, and records what happens.
+- collect named values from closure configuration;
+- render the input scenes already attached to an intent transcript;
+- bind that input to required harness arguments;
+- apply defaults and fixed requirements;
+- construct values according to declared `Value` shapes; and
+- reject missing or unexpected arguments.
 
-Five intent modes describe how work can proceed:
+The parsed dictionary then travels through a compositional capability ladder:
 
-- `compose` delegates into another composed operation;
-- `dispatch` invokes commands;
-- `observe` reacts to changes inside reachable context;
-- `execute` runs a harness and streams its output; and
-- `traverse` carries an objective across the route graph.
+1. `Artifact` classifies and addresses an application, bookmark, directory, executable,
+   file, image, script, or skill.
+2. `Command` combines an executable artifact with named, fixed, and required
+   parameters.
+3. `Harness` adds contextual arguments, requirements, targets, command fragments, and
+   the intent that determines how the context evaluates it.
 
-`Composer` is the sole owner of live contexts. `Composition` is the application-facing
-read model: it holds the origin and resolves the current context when read, deriving
-state instead of copying runtime data into UI-owned state.
-
-Execution history is part of the context's continuity. Internally, a root transcript
-records the context lifecycle while branches record individual intentions. That shape
-preserves inputs, provider state, activity, and terminal outcomes so work can be
-inspected or resumed. The nesting is an implementation of continuity, not a separate
-concept beside context.
-
-## Architectural synthesis
-
-Scint Runtime draws from ECS and actor systems, but it is not an implementation of
-either model and should not be understood by where it superficially resembles them.
-Their influence is visible in the decisions the runtime takes further.
-
-From ECS, the runtime takes the separation of identity from state and the organization
-of state into stores partitioned by concrete type. Its storage plane is deliberately
-ECS-shaped: values of each type live together, and protocols route them through the
-appropriate family of stores.
-
-From actor systems, it takes the importance of durable identity and reference-mediated
-interaction. Callers pass stable `Reference` values instead of carrying mutable domain
-objects through the system.
-
-Scint Runtime then changes both ideas to serve a different goal. A `Reference` does not
-address an actor or mailbox; it resolves through shared typed stores, metadata, and
-persistence. A `Space` is not an entity assembled from an arbitrary bag of components;
-it is an authored contextual world with ownership, capabilities, topology, and a
-running form. The result is a reference-addressed context fabric in which data can be
-shared without collapsing scope and processes can remain connected to the environments
-that produced them.
+`Value` serves as both runtime data and a recursive parameter shape. Primitive values,
+collections, sequences, and references can therefore be validated before they are
+rendered into a process invocation. `Property` and `Properties` provide a separate JSON
+algebra for external payloads and polymorphic persistence.
 
 ## Reference-addressed storage
 
-Every stored domain value carries a `Reference` with independent addressing facets:
+Scint Runtime borrows two useful instincts without pretending to be either an ECS or an
+actor system. From ECS it takes typed, concrete stores and the separation of identity
+from stored value. From actor systems it takes durable handles and reference-mediated
+interaction. A `Reference` does not address a mailbox, however; it resolves through the
+runtime's registry, catalog, typed stores, and persistence records.
+
+Every stored domain value carries a reference with independent addressing facets:
 
 | Facet | Responsibility |
 | --- | --- |
-| `id` | Identifies the runtime instance |
-| `typeId` | Selects its concrete type and store using deterministic type identity |
-| `descriptorId` | Locates its metadata in the `Environment` |
-| `contextId` | Participates in contextual keys when an origin is composed |
-| `storageId` | Addresses its PersistedObject record |
+| `id` | Identifies the runtime value |
+| `typeId` | Resolves its concrete type and therefore its typed store |
+| `descriptorId` | Locates searchable metadata in `Catalog` |
+| `contextId` | Supplies contextual identity for `Key.context` and launched processes |
+| `storageId` | Names its persisted record |
 
-`contextId` alone does not define contextual scope. Effective scope comes from the
-origin's closure, containment hierarchy, and reachable routes.
+`contextId` is an addressing facet, not contextual scope by itself. Effective scope
+comes from the origin's closure, containment hierarchy, nested spaces, and reachable
+bridges.
 
-Protocol families provide the top-level routing:
+The `Catalog` is a separate metadata plane. A `Descriptor` carries name, description,
+tags, framing, publication state, and timestamps, allowing the runtime to search and
+describe values independently of their concrete stores.
 
-| Family | Role | Concrete types | Storage |
-| --- | --- | --- | --- |
-| `Structural` | Context boundaries and topology | `Workspace`, `Space`, `Closure`, `Route` | `Workspaces` |
-| `Malleable` | Authorable content and history | `Sheet`, `Transcript` | `Library` content stores |
-| `Functional` | Resources and executable capabilities | `Artifact`, `Command`, `Harness` | `Library` interface stores |
-| `Contextual` | Live execution state | `Context` and typed intents | `Composer` |
-
-The `Environment` is a separate metadata plane. Every stored reference has a `Descriptor`
-containing its name, description, tags, framing, publication state, and timestamps.
-Separating metadata from values allows the runtime to search and describe its world
-without loading every object.
-
-Callers retain references, not snapshots of stored values:
+Callers retain references rather than long-lived snapshots:
 
 ```swift
-let brief = Sheet.new(space, name: "Research Brief")
+let brief = Scene.new(space, name: "Research Brief")
 
-Sheet.update(brief) { sheet in
-    sheet.insert(.text(UUID(), "Compare the primary sources."), at: nil)
+Scene.update(brief) { scene in
+    scene.insert(.text(UUID(), "Compare the primary sources."), at: nil)
 }
 
-let prompt = Sheet.with(brief) { $0.rendered }
+let prompt = Scene.with(brief) { $0.rendered }
 ```
 
-`with` scopes a read to the store. `update` writes the mutation back and schedules
-persistence. Both return optionals, so a reference routed to the wrong store or concrete
-type returns `nil`.
-
-## Information and capabilities
-
-`Sheet` is a block document that can combine text, tasks, resources, commands, and other
-sheets. Rendering a closure turns its sheets into the information supplied to a run.
-
-Executable capabilities form a compositional ladder:
-
-1. `Artifact` classifies and addresses a file, directory, executable, application,
-   script, skill, image, or external URL.
-2. `Command` combines an executable artifact with fixed and caller-bound parameters.
-3. `Harness` gives a command contextual parameters and an intent.
-
-The recursive `Value` type serves as both runtime data and parameter schema. It validates
-primitive values, collections, sequences, and references before rendering an invocation.
-`Property` and `Properties` provide a separate JSON algebra for arbitrary external
-payloads and polymorphic persistence.
-
-This keeps the capability model provider-neutral. Local executables, command-line
-agents, HTTP services, filesystem operations, and scheduled observers all enter the
-model through the same resource, command, and harness abstrpalette.
-
-## Execution, observation, and persistence
-
-`Runtime.shared.trigger(origin)` starts the running form of a context:
-
-1. `Composer` creates or reuses the live `Context` for the origin.
-2. The context resolves its closure, capabilities, configuration, and prior history.
-3. `Parser` binds that environment to the active harness.
-4. The selected intent executes through `Harness → Command → Artifact → Services`.
-5. The XPC client sends the executable, arguments, and environment to
-   `com.kaechle.scintd`.
-6. Streamed output becomes lifecycle signals and preserved provider data.
-7. The context records the result and `Composition` derives the new application state.
-
-The service bridge buffers output until a PID handler is installed and carries partial
-lines across chunks, protecting the handoff between synchronous process control and
-asynchronous output.
+`with` scopes a read to the appropriate store. `update` writes the changed value back
+and schedules persistence through the owning bound. Both return optionals, so a
+reference routed to the wrong store or concrete type resolves to `nil`.
 
 Persistence follows ownership:
 
-- the structural context graph is saved atomically in the active workspace file;
-- library content and interfaces are stored as independent JSON records under the
-  XDG data directory;
-- descriptors and values are validated against the same reference facets during
-  encoding and decoding; and
-- `Coordinator` debounces mutations, batches writes, retries failures, and forwards
-  changes to live observing contexts.
+- structural values are encoded together as a workspace graph;
+- malleable and functional values are stored as individual library records;
+- descriptors travel with their values on disk while remaining separately indexed in
+  memory;
+- writes are atomic; and
+- `Coordinator` debounces dirty values, batches saves, and reschedules failed writes.
 
-Environment-backed search ranks names, descriptions, tags, and types, with `!`-prefixed tag
-or type facets. The `Scint://` callback surface exposes open, trigger, dispatch, run,
-and search palette by descriptor identity, allowing external schedulers and macOS
-integrations to re-enter the same context model.
+By default, records live below `$XDG_DATA_HOME/Scint`, falling back to
+`~/.local/share/Scint`. Composer's context index is never serialized. A context is
+reconstituted from its authored origin and durable transcript history when it is
+composed again.
 
-## Public surface
+## Runtime facade
+
+The `Runtime` singleton keeps the application-facing operations narrow:
+
+| API | Result |
+| --- | --- |
+| `load()` / `save()` | Load or persist workspace and library state |
+| `compose(_:)` | Create or reuse a context without starting work |
+| `start(_:)` / `stop(_:)` | Start a new intent or stop the active ones |
+| `context()` | Resolve every currently composed origin |
+| `context(for:)` | Resolve the live composition for one origin |
+| `context(from:)` | Collect the references reachable from an authored origin |
+| `walk`, `climb`, `adjacent`, `cross` | Navigate containment and route topology |
+| `search(_:)` | Rank descriptors by text and facets |
+
+Assuming `space` already has an active harness:
 
 ```swift
-import Foundation
-
-try await Runtime.shared.load()
-
-let space = Space.new("Research", owner: Runtime.shared.workspace)
-let brief = Sheet.new(space, name: "Brief")
-
-Sheet.update(brief) {
-    $0.insert(.text(UUID(), "Find the strongest primary evidence."), at: nil)
-}
+let composed = Runtime.shared.compose(space)
+let running = Runtime.shared.start(space)
 
 let reachable = Runtime.shared.context(from: space)
-let results = Runtime.shared.search("research !component")
+let results = Runtime.shared.search("research !scene")
 
-try await Runtime.shared.save()
+let stopped = Runtime.shared.stop(space)
+await Runtime.shared.save()
 ```
 
-The facade also exposes containment and route traversal through `walk`, `climb`,
-`adjacent`, and `cross`, plus live compositions through `context(for:)`.
+The returned values are compositions of the same origin at different moments. They do
+not capture those moments; reading them resolves the current context.
 
 ## Repository layout
 
 ```text
-Sources/Scint Runtime/
+Sources/ScintRuntime/
 ├── Core/
-│   ├── Typing/       References, protocols, type registry
-│   ├── Data/         Typed stores, persistence, settings, coordination
-│   └── Records/      Values, properties, signals, search, errors
+│   ├── Typing/          References, protocols, descriptors, type identity
+│   ├── Data/            Typed stores, bounds, persistence records
+│   ├── Records/         Values, properties, signals, search, errors
+│   ├── Coordinator.swift
+│   ├── Registry.swift
+│   └── Settings.swift
 ├── Environment/
-│   ├── Structures/  Workspace, Space, Closure, Route
-│   ├── Content/     Sheet, Transcript
-│   ├── Interfaces/  Artifact, Command, Harness
-│   └── Processes/   Context, intents, parsing, context mapping
-├── Services/         XPC client and sample context definitions
-└── Runtime.swift     Public facade, callbacks, search, traversal
+│   ├── Contextual/      Composer, Composition, Context, Intent, Parser
+│   ├── Functional/      Artifact, Command, Harness
+│   ├── Malleable/       Scene, Transcript
+│   ├── Structural/      Workspace, Space, Closure, Bridge
+│   ├── Catalog.swift
+│   ├── Library.swift
+│   ├── Services.swift
+│   └── Workspaces.swift
+├── Extensions/          Registration helpers and sample data
+└── Runtime.swift        Facade, search, context reachability, traversal
+
+Sources/ScintService/    Companion XPC process service
 ```
 
-The Swift Testing suite exercises reference and Environment invariants, recursive value
-construction, parameter rendering, context composition, execution continuity,
-persistence paths, callbacks, and reciprocal space relationships.
+## Current edges
 
-## Status and trade-offs
+Scint Runtime is an active systems prototype. The authored-to-execution path is in
+place, including context composition, parameter binding, transcript branching, process
+launch, streamed signals, terminal cleanup, and persistence. Some of the process
+grammar remains intentionally skeletal: composing, dispatching, and executing share a
+harness path; observation has not yet acquired reaction behavior; and traversal
+currently completes as a stub.
 
-Scint Runtime targets **Swift 6.2** and **macOS 26**. It is a library rather than a
-standalone executable. Running executable harnesses requires the companion
-`com.kaechle.scintd` service, which is not included in this package. Route traversal is
-modeled, while the `Traversing` intent currently completes as a stub.
-
-Reference-addressed storage makes sharing, cycles, and uniform metadata possible, but
-some ownership and type invariants are enforced at runtime through optionals and
-preconditions. Execution continuity depends on runners emitting terminal signals.
-Stores are observable and currently use `@unchecked Sendable`; the architecture assumes
-coordinated app-level access rather than arbitrary concurrent mutation.
-
-Build the library and run its tests with:
-
-```sh
-swift build
-swift test
-```
+Executable harnesses require the companion `scintd` XPC service. Output must eventually
+produce a recognized terminal event or be explicitly stopped; otherwise its intent
+remains live. Stores and indexes are observable and use coordinated application-level
+access, with several owners marked `@unchecked Sendable` rather than designed for
+arbitrary concurrent mutation.

@@ -1,34 +1,33 @@
 import Foundation
 
 
-public enum RuntimeError: Error, Codable, Equatable {
+enum RuntimeError: Error, Codable, Equatable {
     case error(String)
     case context(Context)
     case composition(Composition)
     case interfaces(Interfaces)
     case persistence(Persistence)
-    case registry(Registry)
     case settings(Settings)
     case spaces(Workspaces)
 
     static func fatal() -> Never { fatalError() }
 
-    public enum Catalog: Error, CustomStringConvertible, Equatable, Codable {
+    enum Catalog: Error, CustomStringConvertible, Equatable, Codable {
         case missingDescriptor(Reference)
 
-        public var description: String {
+        var description: String {
             switch self {
                 case .missingDescriptor(let ref): return "No descriptor for \(ref.id)"
             }
         }
     }
 
-    public enum Composition: Error, CustomStringConvertible, Equatable, Codable {
+    enum Composition: Error, CustomStringConvertible, Equatable, Codable {
         case invalidOrigin(String)
         case notFound(String)
         case notAllowed(String, String)
 
-        public var description: String {
+        var description: String {
             switch self {
             case .invalidOrigin(let origin): return "Can't use \(origin) as an origin for this component."
             case .notFound(let value): return "Space with value of \(value) not found."
@@ -37,7 +36,7 @@ public enum RuntimeError: Error, Codable, Equatable {
         }
     }
 
-    public enum Context: Error, CustomStringConvertible, Equatable, Codable {
+    enum Context: Error, CustomStringConvertible, Equatable, Codable {
         case functionNotFound(String)
         case invalidArguments(String)
         case missingRequired(Reference)
@@ -48,7 +47,7 @@ public enum RuntimeError: Error, Codable, Equatable {
 
         case contextNotFound(UUID)
 
-        public var description: String {
+        var description: String {
             switch self {
             case .contextNotFound(let v): return "Context not found: \(v)"
             case .functionNotFound(let v): return "Function not found: \(v)"
@@ -62,66 +61,56 @@ public enum RuntimeError: Error, Codable, Equatable {
         }
     }
 
-    public enum Interfaces: Error, CustomStringConvertible, Equatable, Codable {
+    enum Interfaces: Error, CustomStringConvertible, Equatable, Codable {
         case notFound(String)
 
-        public var description: String {
+        var description: String {
             switch self {
             case .notFound(let v): return "Space not found: \(v)"
             }
         }
     }
 
-    public enum Library: Error, CustomStringConvertible, Equatable, Codable {
+    enum Library: Error, CustomStringConvertible, Equatable, Codable {
         case loadFailed
 
-        public var description: String {
+        var description: String {
             switch self {
                 case .loadFailed: "Workspaces accessed before runtime finished loading."
             }
         }
     }
 
-    public enum Persistence: Error, CustomStringConvertible, Equatable, Codable {
+    enum Persistence: Error, CustomStringConvertible, Equatable, Codable {
+        case unregisteredType(String)
         case encodingFailed(Reference)
         case decodingFailed(URL)
         case notFound(URL)
 
-        public var description: String {
+        var description: String {
             switch self {
             case .notFound(let v): return "File not found: \(v.path)"
             case .encodingFailed(let v): return "Failed to encode \(v.id)"
             case .decodingFailed(let v): return "Failed to decode \(v.lastPathComponent)"
-            }
-        }
-    }
-
-    public enum Registry: Error, CustomStringConvertible, Equatable, Codable {
-        case unregisteredType(String)
-        case missingDescriptor(Reference)
-
-        public var description: String {
-            switch self {
             case .unregisteredType(let id): return "No registry entry for type \(id)"
-            case .missingDescriptor(let ref): return "No descriptor for \(ref.id)"
             }
         }
     }
 
-    public enum Settings: Error, CustomStringConvertible, Equatable, Codable {
+    enum Settings: Error, CustomStringConvertible, Equatable, Codable {
         case notFound(String)
 
-        public var description: String {
+        var description: String {
             switch self {
             case .notFound(let v): return "Settings not found: \(v)"
             }
         }
     }
 
-    public enum Workspaces: Error, CustomStringConvertible, Equatable, Codable {
+    enum Workspaces: Error, CustomStringConvertible, Equatable, Codable {
         case loadFailed
 
-        public var description: String {
+        var description: String {
             switch self {
             case .loadFailed: "Workspaces accessed before runtime finished loading."
             }
@@ -129,12 +118,12 @@ public enum RuntimeError: Error, Codable, Equatable {
     }
 }
 
-public enum ParsingError: Error, CustomStringConvertible, Equatable {
+enum ParsingError: Error, CustomStringConvertible, Equatable {
     case invalid(String)
     case missingArgument(String)
     case unexpectedArguments([String])
 
-    public var description: String {
+    var description: String {
         switch self {
             case .invalid(let message): return message
             case .missingArgument(let name): return "Missing required argument: \(name)."
@@ -143,7 +132,7 @@ public enum ParsingError: Error, CustomStringConvertible, Equatable {
     }
 }
 
-public enum CallbackError: Error, CustomStringConvertible, Equatable {
+enum CallbackError: Error, CustomStringConvertible, Equatable {
     case invalidURL
     case missing(String)
     case invalidDescriptor(String)
@@ -155,7 +144,7 @@ public enum CallbackError: Error, CustomStringConvertible, Equatable {
     case dispatchFailed(Reference)
     case runFailed(Reference)
 
-    public var description: String {
+    var description: String {
         switch self {
             case .invalidURL: return "Invalid Scint URL."
             case .missing(let name): return "Missing callback parameter: \(name)."

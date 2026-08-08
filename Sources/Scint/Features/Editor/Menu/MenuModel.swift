@@ -3,7 +3,7 @@ import SwiftUI
 
 
 struct MenuInsertion {
-    let blocks: [Sheet.Block]
+    let blocks: [Scene.Block]
     let target: AnyHashable
     let replacementRange: NSRange
 }
@@ -20,7 +20,7 @@ enum MenuFormKind: Equatable {
     case link
     case artifact
     case command
-    case sheet
+    case scene
 
     var name: String {
         switch self {
@@ -28,7 +28,7 @@ enum MenuFormKind: Equatable {
             case .link: return "Link"
             case .artifact: return "Artifact"
             case .command: return "Command"
-            case .sheet: return "Sheet"
+            case .scene: return "Scene"
         }
     }
 
@@ -38,7 +38,7 @@ enum MenuFormKind: Equatable {
             case .link: return "link"
             case .artifact: return "folder.badge.plus"
             case .command: return "curlybraces"
-            case .sheet: return "textformat"
+            case .scene: return "textformat"
         }
     }
 
@@ -48,7 +48,7 @@ enum MenuFormKind: Equatable {
         switch self {
             case .task: return "Task"
             case .link: return "URL"
-            case .artifact, .command, .sheet: return "Search \(name.lowercased())s"
+            case .artifact, .command, .scene: return "Search \(name.lowercased())s"
         }
     }
 }
@@ -124,37 +124,12 @@ enum MenuItem: Identifiable, Equatable {
 }
 
 @Observable final class MenuModel {
-    private let sheet: SheetModel
+    private(set) var items: [MenuItem] = []
+    private let scene: SceneModel
     private let fixedItems: [MenuItem]
-    private let makeBlocks: (MenuItem) -> [Sheet.Block]?
+    private let makeBlocks: (MenuItem) -> [Scene.Block]?
     private var target: AnyHashable?
 
-    private var normalizedQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-    private var currentItems: [MenuItem] {
-        switch kind {
-            case .fixed:
-                return trimmedDividers(in: fixedItems.filter {
-                    if case .dividerItem = $0 { return normalizedQuery.isEmpty }
-                    return $0.matches(normalizedQuery)
-                })
-            case .dynamic:
-                return MenuSearch.items(for: query)
-            case .update(let form) where form == .artifact || form == .command || form == .sheet:
-                return MenuSearch.items(for: query) { ref in
-                    switch form {
-                        case .artifact: return ref.type == Artifact.self
-                        case .command: return ref.type == Command.self
-                        case .sheet: return ref.type == Sheet.self
-                        default: return false
-                    }
-                }
-            case .create, .update:
-                return []
-        }
-    }
-
-    private(set) var items: [MenuItem] = []
     var kind: MenuKind = .fixed
     var query = "" { didSet { if isOpen { refreshItems() } } }
     var selectedID: String?
@@ -163,6 +138,13 @@ enum MenuItem: Identifiable, Equatable {
     var isOpen = false
     var formPrimary = ""
     var formCompleted = false
+
+    init(scene: SceneModel, items: [MenuItem], makeBlocks: @escaping (MenuItem) -> [Scene.Block]?) {
+        self.scene = scene
+        self.fixedItems = items
+        self.makeBlocks = makeBlocks
+        self.items = items
+    }
 
     var isInserting: Bool {
         switch kind {
@@ -177,13 +159,6 @@ enum MenuItem: Identifiable, Equatable {
             case .create, .update(.task), .update(.link): return CGSize(width: 256, height: 160)
             case .update: return CGSize(width: 256, height: 160)
         }
-    }
-
-    init(sheet: SheetModel, items: [MenuItem], makeBlocks: @escaping (MenuItem) -> [Sheet.Block]?) {
-        self.sheet = sheet
-        self.fixedItems = items
-        self.makeBlocks = makeBlocks
-        self.items = items
     }
 
     func open(kind: MenuKind, query: String, target: AnyHashable, replacementRange: NSRange, anchorRect: CGRect) {
@@ -202,7 +177,7 @@ enum MenuItem: Identifiable, Equatable {
         refreshItems()
     }
 
-    func edit(_ block: Sheet.Block, anchorRect: CGRect) {
+    func edit(_ block: Scene.Block, anchorRect: CGRect) {
         target = block.id
         replacementRange = NSRange(location: 0, length: 0)
         self.anchorRect = anchorRect
@@ -225,8 +200,8 @@ enum MenuItem: Identifiable, Equatable {
             case .command:
                 kind = .update(.command)
                 formPrimary = ""
-            case .sheet:
-                kind = .update(.sheet)
+            case .scene:
+                kind = .update(.scene)
                 formPrimary = ""
             case .text:
                 close()
@@ -281,11 +256,38 @@ enum MenuItem: Identifiable, Equatable {
 
     func commitSelection() -> (AnyHashable, NSRange?)? {
         switch kind {
-            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.sheet):
+            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.scene):
                 guard let item = selectedItem else { return nil }
                 return commit(item)
             case .create(let form), .update(let form):
                 return commitForm(form)
+        }
+    }
+
+
+
+    private var normalizedQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    private var currentItems: [MenuItem] {
+        switch kind {
+            case .fixed:
+                return trimmedDividers(in: fixedItems.filter {
+                    if case .dividerItem = $0 { return normalizedQuery.isEmpty }
+                    return $0.matches(normalizedQuery)
+                })
+            case .dynamic:
+                return MenuSearch.items(for: query)
+            case .update(let form) where form == .artifact || form == .command || form == .scene:
+                return MenuSearch.items(for: query) { ref in
+                    switch form {
+                        case .artifact: return ref.type == Artifact.self
+                        case .command: return ref.type == Command.self
+                        case .scene: return ref.type == Scene.self
+                        default: return false
+                    }
+                }
+            case .create, .update:
+                return []
         }
     }
 
@@ -298,13 +300,13 @@ enum MenuItem: Identifiable, Equatable {
         if case .fixed = kind, item.commandID == "new-task" { openCreate(.task); return nil }
         if case .fixed = kind, item.commandID == "new-link" { openCreate(.link); return nil }
 
-        let blocks: [Sheet.Block]
+        let blocks: [Scene.Block]
         if let ref = item.ref, let block = MenuSearch.block(for: ref) { blocks = [block] }
         else if let built = makeBlocks(item), !built.isEmpty { blocks = built }
         else { return nil }
 
         if case .update = kind {
-            guard let target, let block = blocks.first, let id = sheet.update(block, replacing: target) else { return nil }
+            guard let target, let block = blocks.first, let id = scene.update(block, replacing: target) else { return nil }
             close()
             return (id, nil)
         }
@@ -324,11 +326,11 @@ enum MenuItem: Identifiable, Equatable {
 
     private func commitForm(_ form: MenuFormKind) -> (AnyHashable, NSRange?)? {
         let value = formPrimary.trimmingCharacters(in: .whitespacesAndNewlines)
-        let block: Sheet.Block
+        let block: Scene.Block
 
         switch form {
             case .task:
-                if case .update = kind, let target, case .task(let id, _, _) = sheet.block(id: target) {
+                if case .update = kind, let target, case .task(let id, _, _) = scene.block(id: target) {
                     block = .task(id, value.isEmpty ? "Task" : value, formCompleted)
                 } else {
                     block = .task(UUID(), value.isEmpty ? "Task" : value, formCompleted)
@@ -336,12 +338,12 @@ enum MenuItem: Identifiable, Equatable {
             case .link:
                 guard let url = normalizedURL(from: value) else { return nil }
                 block = .artifact(Artifact.register(url.host(percentEncoded: false) ?? url.absoluteString, url))
-            case .artifact, .command, .sheet:
+            case .artifact, .command, .scene:
                 return nil
         }
 
         if case .update = kind {
-            guard let target, let id = sheet.update(block, replacing: target) else { return nil }
+            guard let target, let id = scene.update(block, replacing: target) else { return nil }
             close()
             return (id, nil)
         }
@@ -351,7 +353,7 @@ enum MenuItem: Identifiable, Equatable {
     }
 
     private func apply(_ insertion: MenuInsertion) -> (AnyHashable, NSRange?)? {
-        let result = sheet.insert(insertion.blocks, replacing: insertion.replacementRange, in: insertion.target)
+        let result = scene.insert(insertion.blocks, replacing: insertion.replacementRange, in: insertion.target)
         if result != nil { close() }
         return result
     }

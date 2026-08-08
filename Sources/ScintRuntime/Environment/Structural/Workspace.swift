@@ -4,6 +4,7 @@ import Foundation
 struct Workspace: Structural {
     let ref: Reference
     var spaces: Set<Reference> = []
+    var bridges: Set<Reference> = []
     var harness: Reference
     var closure: Reference
 
@@ -18,11 +19,11 @@ struct Workspace: Structural {
     var artifacts: [Reference] { Closure.with(closure, { $0 })?.artifacts ?? [] }
     var commands: [Reference] { Closure.with(closure, { $0 })?.commands ?? [] }
     var harnesses: [Reference] { Closure.with(closure, { $0 })?.harnesses ?? [] }
-    var sheets: [Reference] { Closure.with(closure, { $0 })?.sheets ?? [] }
+    var scenes: [Reference] { Closure.with(closure, { $0 })?.scenes ?? [] }
     var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
     var directories: [Reference] { Closure.with(closure, { $0 })?.directories ?? [] }
     var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
-    var components: [Reference] { artifacts + commands + harnesses + sheets + transcripts }
+    var components: [Reference] { artifacts + commands + harnesses + scenes + transcripts }
     var input: Reference? {
         get { Closure.with(closure, { $0.input }) }
         set {
@@ -30,7 +31,7 @@ struct Workspace: Structural {
             Closure.update(closure) {
                 $0.content.removeAll { $0 == input }
                 $0.content.insert(input, at: 0)
-                $0.input = Sheet.new(ref, input: true)
+                $0.input = Scene.new(ref, input: true)
             }
         }
     }
@@ -56,9 +57,10 @@ struct Workspace: Structural {
 
     func configure(_ value: Value?, for key: String) { Closure.update(closure) { $0.config[key] = value } }
 
-    static func new(_ name: String, framing: Descriptor.Framing? = .scint) -> Reference {
+    @discardableResult
+    static func new(_ name: String) -> Reference {
         var instance = Workspace(.init(Self.self))
-        Descriptor.new(instance.ref, framing: framing, name: name, tags: ["space"])
+        Descriptor.new(instance.ref, name: name, tags: ["space"])
         instance.closure = Closure.new("Closure", owner: instance.ref)
         Workspaces.shared.add(instance.ref, instance)
         return instance.ref

@@ -1,82 +1,85 @@
 import Foundation
 
 
-public struct Transcript: Malleable {
-    public let ref: Reference
-    public var owner: Reference
-    public private(set) var entries: [Entry] = []
+struct Transcript: Malleable {
+    let ref: Reference
+    var owner: Reference
+    private(set) var entries: Array<Entry> = []
 
-    public enum Entry: Codable, Sendable, Identifiable {
-        case signal(Signal, ActivityId, Date)
-        case input(Reference, Date)
-        case transcript(Reference, Key, Date)
-        case property(String, Value, Date)
+    enum Entry: Codable, Sendable, Identifiable, Equatable {
+        case event(ActivityId, Signal, Date)
+        case scene(Reference, Date)
+        case value(String, Value, Date)
+        case transcript(Reference, Date)
 
-        public var id: AnyHashable {
+        var id: AnyHashable {
             switch self {
-                case .signal(_, let id, _): return id
-                case .input(let ref, _): return ref
-                case .transcript(let key, _, _): return key
-                case .property(_, _, let date): return date
+                case .event(let id, _, _): id
+                case .scene(let ref, _): ref
+                case .value(let key, _, _): key
+                case .transcript(let ref, _): ref
             }
         }
 
-        public var created: Date {
+        var created: Date {
             switch self {
-                case .signal(_, _, let date): return date
-                case .input(_, let date): return date
-                case .transcript(_, _, let date): return date
-                case .property(_, _, let date): return date
+                case .event(_, _, let date): date
+                case .scene(_, let date): date
+                case .value(_, _, let date): date
+                case .transcript(_, let date): date
             }
         }
 
-        public var terminal: Bool {
-            if case .signal(let signal, _, _) = self { return signal.terminal }
+        var terminal: Bool {
+            if case .event(_, let signal, _) = self { return signal.terminal }
             return false
         }
     }
 
-    public init(_ ref: Reference = .init(Self.self)) {
+    init(_ ref: Reference = .init(Self.self)) {
         self.ref = ref
         self.owner = ref
     }
 
-    public var active: Bool { entries.last?.terminal != true }
-    public var started: Date? { entries.first?.created }
-    public var stopped: Date? { entries.last(where: \.terminal)?.created }
+    var active: Bool { entries.last?.terminal != true }
+    var started: Date? { entries.first?.created }
+    var stopped: Date? { entries.last(where: \.terminal)?.created }
 
-    public var rendered: [String] {
+    var rendered: [String] {
         entries.map { entry in
             switch entry {
-                case .signal(let signal, _, _): return signal.rendered
-                case .input(let ref, _): return Sheet.with(ref, { $0.rendered }) ?? ""
-                case .transcript(let ref, _, _): return ref.descriptor.name
-                case .property(let key, let value, _): return "\(key)=\(value.rendered.joined(separator: " "))"
+                case .event(_, let signal, _): signal.rendered
+                case .scene(let ref, _): Scene.with(ref, { $0.rendered }) ?? ""
+                case .value(let key, let value, _): "\(key)=\(value.rendered.joined(separator: " "))"
+                case .transcript(let ref, _): ref.descriptor.name
             }
         }
         .filter { !$0.isEmpty }
     }
 
     mutating func insert(_ signal: Signal) {
-        entries.append(.signal(signal, .init(), .now))
+        entries.append(.event(.init(), signal, .now))
     }
 
-    mutating func insert(_ input: Reference) {
-        guard let _ = Sheet.with(input, { $0 }) else { return }
-        entries.append(.input(input, .now))
+    mutating func insert(_ scene: Reference) {
+        if Scene.with(scene, { $0 }) != nil {
+            entries.append(.scene(scene, .now))
+        }
     }
 
     mutating func insert(_ transcript: Reference, _ key: Key) {
-        entries.append(.transcript(transcript, key, .now))
+        if Transcript.with(transcript, { $0 }) != nil {
+            entries.append(.transcript(transcript, .now))
+        }
     }
 
-    mutating func insert(_ value: Value, for key: String) {
-        entries.append(.property(key, value, .now))
+    mutating func insert(_ key: String, _ value: Value) {
+        entries.append(.value(key, value, .now))
     }
 
-    func property(_ key: String) -> Value? {
+    func output(_ key: String) -> Value? {
         entries.reversed().compactMap { entry -> Value? in
-            guard case .property(let name, let value, _) = entry, name == key else { return nil }
+            guard case .value(let name, let value, _) = entry, name == key else { return nil }
             return value
         }.first
     }

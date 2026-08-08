@@ -1,49 +1,37 @@
 import Foundation
 
 
-public struct SettingsKeys: Sendable {
+struct SettingsKeys: Sendable {
     let name: String
     let persistence: Persistence = .init()
 
-    public struct Persistence: Sendable {
+    struct Persistence: Sendable {
         var data: (String, String) = ("XDG_DATA_HOME", ".local/share")
         var config: (String, String) = ("XDG_CONFIG_HOME", ".config")
     }
 }
 
-public struct Settings: Sendable {
+struct Settings: Sendable {
     let keys: SettingsKeys
-    public var persistence: PersistenceSettings
+    var persistence: PersistenceSettings
 
-    public init(name: String = "Scint") {
+    init(name: String = "scint") {
         self.keys = SettingsKeys(name: name)
         self.persistence = PersistenceSettings(keys: keys)
     }
 }
 
-public struct PersistenceSettings: Sendable {
+struct PersistenceSettings: Sendable {
     let keys: SettingsKeys
-    var lastSpaceKey: String { "\(keys.name).lastSpaceId" }
-    var config: URL { path(keys.persistence.config).appendingPathComponent(keys.name, isDirectory: true) }
-    var data: URL { path(keys.persistence.data).appendingPathComponent(keys.name, isDirectory: true) }
+    var data: URL { path(keys.persistence.data).appendingPathComponent(keys.name.lowercased(), isDirectory: true) }
+    var config: URL { path(keys.persistence.config).appendingPathComponent(keys.name.lowercased(), isDirectory: true) }
     var library: URL { data.appendingPathComponent("library", isDirectory: true) }
     var transcripts: URL { data.appendingPathComponent("transcripts", isDirectory: true) }
     var workspaces: URL { data.appendingPathComponent("workspaces", isDirectory: true) }
 
-    var lastWorkspaceId: UUID? {
-        get {
-            guard let string = UserDefaults.standard.string(forKey: lastSpaceKey) else { return nil }
-            return UUID(uuidString: string)
-        }
-        nonmutating set {
-            if let id = newValue { UserDefaults.standard.set(id.uuidString, forKey: lastSpaceKey) }
-            else { UserDefaults.standard.removeObject(forKey: lastSpaceKey) }
-        }
-    }
-
     private func typePath(for ref: Reference) -> String {
         let name = switch ref.type {
-            case is Sheet.Type: "sheets"
+            case is Scene.Type: "scenes"
             case is Transcript.Type: "transcripts"
             case is Artifact.Type: "artifacts"
             case is Command.Type: "commands"
@@ -95,14 +83,14 @@ public struct PersistenceSettings: Sendable {
         library.appendingPathComponent(directory(for: type), isDirectory: true)
     }
 
-    func spacesPath(_ id: UUID) -> URL {
-        workspaces.appendingPathComponent("\(id.uuidString).json")
+    func workspacePath(_ id: UUID) -> URL {
+        workspaces.appendingPathComponent("\(id.uuidString.lowercased()).json")
     }
 
 
     private func directory<T: Resolvable>(for type: T.Type) -> String {
         switch type {
-            case is Sheet.Type: return "sheets"
+            case is Scene.Type: return "scenes"
             case is Artifact.Type: return "artifacts"
             case is Command.Type: return "commands"
             case is Harness.Type: return "harnesses"

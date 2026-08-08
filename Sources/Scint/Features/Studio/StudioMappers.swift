@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-struct LocationsSidebarSection: Mapper {
+struct FolderTree: Mapper {
     static func controls(_ model: any Model) -> Controls {
         .init(
             selected: { item in
@@ -31,7 +31,7 @@ struct LocationsSidebarSection: Mapper {
         func file(for entry: Artifact.Handler, root: Reference, in model: some Model) -> ItemParams? {
             guard let url = entry.url else { return nil }
             let children: [ItemParams] = entry.directory && expanded.contains(AnyHashable(url))
-            ? sortFileItems(model.files.children(for: entry).compactMap { file(for: $0, root: root, in: model) })
+            ? sortFileItems(model.children(for: entry).compactMap { file(for: $0, root: root, in: model) })
             : []
 
             return .init(
@@ -49,7 +49,7 @@ struct LocationsSidebarSection: Mapper {
             let isDirectory = entry.directory
             let isExpanded = expanded.contains(AnyHashable(url))
             let children: [ItemParams] = isDirectory && isExpanded
-            ? sortFileItems(model.files.children(for: entry).compactMap { file(for: $0, root: ref, in: model) })
+            ? sortFileItems(model.children(for: entry).compactMap { file(for: $0, root: ref, in: model) })
             : []
 
             return .init(
@@ -68,28 +68,154 @@ struct LocationsSidebarSection: Mapper {
                 .init(
                     id: "folders",
                     name: "Folders",
-                    items: sortFileItems(model.files.artifacts.compactMap { folder(for: $0, in: model) })
+                    items: sortFileItems(model.artifacts(model.session.origin).compactMap { folder(for: $0, in: model) })
                 )
             ]
         )
     }
 }
 
-struct SheetsSidebarSection: Mapper {
+struct LibraryList: Mapper {
+    static func controls(_ model: any Model) -> Controls {
+        .init(
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                if let url = item.path { return model.session.selected.selected(ref, url) }
+                return model.session.selected.selected(ref)
+            },
+            onSelect: { item in
+                guard let ref = item.ref else { return }
+                model.select(ref)
+            },
+            itemPalette: { item in
+                item.path == nil ? Action.itemItems(for: item) : []
+            }
+        )
+    }
+
+    static func parameters(_ model: any Model) -> Params {
+        func sort(_ items: [ItemParams]) -> [ItemParams] {
+            items.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        }
+
+        func items<T: Resolvable>(for type: T.Type, image: String) -> [ItemParams] {
+            sort(Runtime.shared.all(as: type).compactMap { (ref, entry) in ItemParams(ref: ref, name: entry.name, image: image) })
+        }
+
+        return .init(
+            nesting: .recursive,
+            header: false,
+            components: [
+                .init(
+                    id: "library",
+                    header: false,
+                    items: [
+                        .init(
+                            name: "Apps",
+                            image: "square.grid.3x3.square"
+                        ),
+                        .init(
+                            name: "Bookmarks",
+                            image: "bookmark"
+                        ),
+                        .init(
+                            name: "Commands",
+                            image: "switch.2"
+                        ),
+                        .init(
+                            name: "Harnesses",
+                            image: "gearshape"
+                        ),
+                        .init(
+                            name: "Skills",
+                            image: "brain.head.profile"
+                        ),
+                    ]
+                )
+            ]
+        )
+    }
+}
+
+struct PreviewGroup: Mapper {
+    static func controls(_ model: any Model) -> Controls {
+        .init(
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                if let url = item.path { return model.session.selected.selected(ref, url) }
+                if let entry = item.entryId { return model.session.selected.selected(ref, entry) }
+                return model.session.selected.selected(ref)
+            },
+            onSelect: { item in
+                guard let ref = item.ref else { return }
+                if ref.type is Workspace.Type || ref.type is Space.Type { model.select(ref) }
+                else { model.focus(ref) }
+            },
+            onOpen: { item in
+                guard let ref = item.ref else { return }
+                model.open(ref)
+            },
+            surfacePalette: {
+                let ref: Reference
+                switch model.session.focused {
+                    case .structure(let focused): ref = focused
+                    default: ref = model.session.selected.structure!
+                }
+                return Action.surfaceItems(for: ref)
+            },
+            surfaceDropTarget: {
+                let ref: Reference
+                switch model.session.focused {
+                    case .structure(let focused): ref = focused
+                    default: ref = model.session.selected.structure!
+                }
+                return .init(ref: ref, name: ref.descriptor.name)
+            },
+            itemPalette: { item in
+                Action.itemItems(for: item)
+            }
+        )
+    }
+
+    static func parameters(_ studio: any Model) -> Params {
+        .init(
+            layout: .group,
+            components: [
+                .init(
+                    id: "context",
+                    name: "Context",
+                    footer: "A preview of this space's context."
+                ),
+                .init(
+                    id: "usage",
+                    name: "Usage",
+                    footer: "An estimate of the tokens required to process this space.",
+                    items: [
+                        .init(name: "Input Tokens",  trailingKind: .value, description: "0"),
+                        .init(name: "Cached Tokens", trailingKind: .value, description: "0"),
+                        .init(name: "Output Tokens", trailingKind: .value, description: "0"),
+                    ]
+                ),
+            ]
+        )
+    }
+}
+
+struct ScenesTree: Mapper {
     static func controls(_ model: any Model) -> Controls {
         return .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                return model.session.active == ref || model.session.selected.selected(ref)
+                return model.session.scene == ref || model.session.selected.selected(ref)
             },
             onSelect: { item in
-                guard let ref = item.ref, ref.type is Sheet.Type else { return }
+                guard let ref = item.ref, ref.type is Scene.Type else { return }
                 model.select(ref)
             },
             itemPalette: { item in
                 item.path == nil ? Action.itemItems(for: item) : []
             }, itemLeadingAccessory: { item, _ in
-                guard let ref = item.ref, ref.type is Sheet.Type else { return nil }
+                guard let ref = item.ref, ref.type is Scene.Type else { return nil }
                 return AnyView(
                     Button {
                         model.session.close(ref)
@@ -112,7 +238,7 @@ struct SheetsSidebarSection: Mapper {
 
     static func parameters(_ model: any Model) -> Params {
         var order: [Reference: Int] = [:]
-        for (index, ref) in model.session.opened.sheets.enumerated() {
+        for (index, ref) in model.session.opened.scenes.enumerated() {
             order[ref] = index
         }
 
@@ -121,8 +247,8 @@ struct SheetsSidebarSection: Mapper {
             return order[ref] ?? .max
         }
 
-        let items = model.session.opened.sheets.compactMap { ref -> ItemParams? in
-            guard ref.type is Sheet.Type else { return nil }
+        let items = model.session.opened.scenes.compactMap { ref -> ItemParams? in
+            guard ref.type is Scene.Type else { return nil }
             return .init(
                 ref: ref,
                 name: ref.descriptor.name,
@@ -139,8 +265,8 @@ struct SheetsSidebarSection: Mapper {
             nesting: .flat,
             components: [
                 .init(
-                    id: "sheets",
-                    name: "Sheets",
+                    id: "scenes",
+                    name: "Scenes",
                     header: false,
                     items: items
                 )
@@ -149,7 +275,7 @@ struct SheetsSidebarSection: Mapper {
     }
 }
 
-struct SpacesSidebarSection: Mapper {
+struct SpaceTree: Mapper {
     static func controls(_ model: any Model) -> Controls {
         .init(
             selected: { item in
@@ -210,240 +336,7 @@ struct SpacesSidebarSection: Mapper {
     }
 }
 
-struct WorkspaceSidebar: Mapper {
-    static func controls(_ model: any Model) -> Controls {
-        .init(
-            selected: { item in
-                guard let ref = item.ref else { return false }
-                if let url = item.path { return model.session.selected.selected(ref, url) }
-                return model.session.selected.selected(ref)
-            },
-            onSelect: { item in
-                guard let ref = item.ref else { return }
-                model.select(ref)
-            },
-            itemPalette: { item in
-                item.path == nil ? Action.itemItems(for: item) : []
-            }
-        )
-    }
-
-    static func parameters(_ model: any Model) -> Params {
-        func sort(_ items: [ItemParams]) -> [ItemParams] {
-            items.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        }
-
-        func items<T: Resolvable>(for type: T.Type, image: String) -> [ItemParams] {
-            sort(Runtime.shared.all(as: type).compactMap { (ref, entry) in ItemParams(ref: ref, name: entry.name, image: image) })
-        }
-
-        return .init(
-            nesting: .recursive,
-            header: false,
-            components: [
-                .init(
-                    id: "workspace",
-                    header: false,
-                    items: [
-                        .init(
-                            name: "Inbox",
-                            image: "tray"
-                        ),
-                        .init(
-                            name: "Drafts",
-                            image: "square.and.pencil"
-                        ),
-                        .init(
-                            name: "Scheduled",
-                            image: "clock"
-                        ),
-                    ]
-                ),
-                //                .init(
-                //                    id: "library",
-                //                    name: "Library",
-                //                    header: true,
-                //                    items: [
-                //                        .init(
-                //                            name: "Apps",
-                //                            image: "square.grid.3x3.square"
-                //                        ),
-                //                        .init(
-                //                            name: "Bookmarks",
-                //                            image: "bookmark"
-                //                        ),
-                //                        .init(
-                //                            name: "Commands",
-                //                            image: "switch.2"
-                //                        ),
-                //                        .init(
-                //                            name: "Harnesses",
-                //                            image: "gearshape"
-                //                        ),
-                //                        .init(
-                //                            name: "Skills",
-                //                            image: "brain.head.profile"
-                //                        ),
-                //                    ]
-                //                ),
-                    .init(
-                        id: "spaces",
-                        name: "Spaces",
-                        header: true,
-                        items: SpacesSidebarSection
-                            .parameters(model)
-                            .components
-                            .flatMap { $0.items }
-                    ),
-            ]
-        )
-    }
-}
-
-struct LibrarySidebar: Mapper {
-    static func controls(_ model: any Model) -> Controls {
-        .init(
-            selected: { item in
-                guard let ref = item.ref else { return false }
-                if let url = item.path { return model.session.selected.selected(ref, url) }
-                return model.session.selected.selected(ref)
-            },
-            onSelect: { item in
-                guard let ref = item.ref else { return }
-                model.select(ref)
-            },
-            itemPalette: { item in
-                item.path == nil ? Action.itemItems(for: item) : []
-            }
-        )
-    }
-
-    static func parameters(_ model: any Model) -> Params {
-        func sort(_ items: [ItemParams]) -> [ItemParams] {
-            items.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        }
-
-        func items<T: Resolvable>(for type: T.Type, image: String) -> [ItemParams] {
-            sort(Runtime.shared.all(as: type).compactMap { (ref, entry) in ItemParams(ref: ref, name: entry.name, image: image) })
-        }
-
-        return .init(
-            nesting: .recursive,
-            header: false,
-            components: [
-                .init(
-                    id: "workspace",
-                    header: false,
-                    items: [
-                        .init(
-                            name: "Inbox",
-                            image: "tray"
-                        ),
-                        .init(
-                            name: "Drafts",
-                            image: "square.and.pencil"
-                        ),
-                        .init(
-                            name: "Scheduled",
-                            image: "clock"
-                        ),
-                    ]
-                ),
-                //                .init(
-                //                    id: "library",
-                //                    name: "Library",
-                //                    header: true,
-                //                    items: [
-                //                        .init(
-                //                            name: "Apps",
-                //                            image: "square.grid.3x3.square"
-                //                        ),
-                //                        .init(
-                //                            name: "Bookmarks",
-                //                            image: "bookmark"
-                //                        ),
-                //                        .init(
-                //                            name: "Commands",
-                //                            image: "switch.2"
-                //                        ),
-                //                        .init(
-                //                            name: "Harnesses",
-                //                            image: "gearshape"
-                //                        ),
-                //                        .init(
-                //                            name: "Skills",
-                //                            image: "brain.head.profile"
-                //                        ),
-                //                    ]
-                //                ),
-                    .init(
-                        id: "spaces",
-                        name: "Spaces",
-                        header: true,
-                        items: SpacesSidebarSection
-                            .parameters(model)
-                            .components
-                            .flatMap { $0.items }
-                    ),
-            ]
-        )
-    }
-}
-
-struct TranscriptsSidebar: Mapper {
-    static func controls(_ model: any Model) -> Controls {
-        .init(
-            selected: { item in
-                guard let ref = item.ref else { return false }
-                return model.session.active == ref
-            },
-            onSelect: { item in
-                guard let ref = item.ref, ref.type is Transcript.Type else { return }
-                model.open(ref)
-            }
-        )
-    }
-
-    static func parameters(_ model: any Model) -> Params {
-        let space = model.session.selected.space ?? model.session.workspace
-        let calendar = Calendar.autoupdatingCurrent
-
-        let items = Runtime.shared.transcripts(for: space)
-            .map { ref -> (ref: Reference, date: Date) in
-                let date = Transcript.with(ref, { $0.entries.last?.created ?? ref.descriptor.created })!
-                return (ref, date)
-            }
-            .sorted { $0.date > $1.date }
-
-            .map { ref, date in
-                let day: String
-                if calendar.isDateInToday(date) { day = "Today" }
-                else if calendar.isDateInYesterday(date) { day = "Yesterday" }
-                else { day = date.formatted(.dateTime.month(.abbreviated).day()) }
-
-                return ItemParams(
-                    ref: ref,
-                    name: ref.descriptor.name,
-                    description: "\(day), \(date.formatted(date: .omitted, time: .shortened))"
-                )
-            }
-
-        return .init(
-            layout: .table,
-            components: [
-                .init(
-                    id: "transcripts",
-                    name: "Transcripts",
-                    header: false,
-                    items: items
-                )
-            ],
-        )
-    }
-}
-
-
-struct SpaceCanvas: Mapper {
+struct SpaceGrid: Mapper {
     static func controls(_ model: any Model) -> Controls {
         .init(
             focused: { item in
@@ -481,101 +374,30 @@ struct SpaceCanvas: Mapper {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        guard let ref = model.session.selected.space else { return WorkspaceCanvas.parameters(model) }
-        let space = Space.with(ref, { $0 })
-        let content = space.flatMap { $0.sheets + $0.transcripts } ?? []
+        let ref = model.session.origin
+        let scenes = Space.with(ref, { $0.scenes }) ?? []
         let spaces = Space.with(ref, { $0.spaces }) ?? []
 
-        let spaceItems: [ItemParams] = spaces
-            .filter { $0.type is Space.Type }
-            .map { child in
-                return .init(
-                    ref: child,
-                    origin: ref,
-                    name: child.descriptor.name
-                )
-            }
-
-        let contentItems: [ItemParams] = content.compactMap { ref in
+        let structures: [ItemParams] = spaces
+            .filter { $0.descriptor.published != false }
+            .compactMap { space in
                 .init(
-                    ref: ref,
-                    origin: ref,
-                    name: ref.descriptor.name,
-                    image: Iconography.icon(for: ref).symbol
-                )
-        }
-
-        return .init(
-            layout: .grid,
-            components: [
-                .init(
-                    id: "content",
-                    header: false,
-                    items: spaceItems + contentItems.filter { $0.ref?.type == Sheet.self && $0.name != "Input" }
-                ),
-            ]
-        )
-    }
-}
-
-struct WorkspaceCanvas: Mapper {
-    static func controls(_ model: any Model) -> Controls {
-        .init(
-            focused: { item in
-                guard let ref = item.ref else { return false }
-                return model.session.focused == .structure(ref)
-                || model.session.focused == .interface(ref)
-                || model.session.focused == .content(ref)
-            },
-            selected: { item in
-                guard let ref = item.ref else { return false }
-                if let url = item.path { return model.session.selected.selected(ref, url) }
-                if let entry = item.entryId { return model.session.selected.selected(ref, entry) }
-                return model.session.selected.selected(ref)
-            },
-            onSelect: { item in
-                guard let ref = item.ref else { return }
-                model.focus(ref)
-            },
-            onOpen: { item in
-                guard let ref = item.ref else { return }
-                if ref.type is Workspace.Type || ref.type is Space.Type { model.select(ref) }
-                else { model.open(ref) }
-            },
-            surfacePalette: {
-                Action.surfaceItems(for: model.session.workspace)
-            },
-            surfaceDropTarget: {
-                .init(ref: model.session.workspace, name: "Workspace")
-            },
-            itemPalette: { item in
-                Action.itemItems(for: item)
-            }
-        )
-    }
-
-    static func parameters(_ model: any Model) -> Params {
-        let spaces = Workspace.with(model.session.workspace, { $0.spaces }) ?? []
-        let closure = Workspace.with(model.session.workspace, { $0.closure })
-        let state = closure.flatMap { Closure.with($0, { $0.content }) } ?? []
-
-        let spaceItems: [ItemParams] = spaces
-            .filter { $0.type is Space.Type }
-            .map { space in
-                return .init(
                     ref: space,
-                    origin: model.session.workspace,
-                    name: space.descriptor.name
+                    origin: space,
+                    name: space.descriptor.name,
+                    image: Iconography.icon(for: space).symbol
                 )
             }
 
-        let stateItems: [ItemParams] = state.map { ref in
-                .init(
-                    ref: ref,
-                    origin: model.session.workspace,
-                    name: ref.descriptor.name,
-                    image: Iconography.icon(for: ref).symbol
-                )
+        let content: [ItemParams] = scenes
+            .filter { $0.descriptor.published != false }
+            .compactMap { scene in
+            .init(
+                ref: scene,
+                origin: Scene.with(scene, { $0.owner }),
+                name: ref.descriptor.name,
+                image: Iconography.icon(for: scene).symbol
+            )
         }
 
         return .init(
@@ -584,19 +406,105 @@ struct WorkspaceCanvas: Mapper {
                 .init(
                     id: "space",
                     header: false,
-                    items: spaceItems + stateItems.filter { $0.ref?.type == Sheet.self && $0.name != "Input" }
+                    items: structures + content.filter { $0.ref?.type == Scene.self && $0.name != "Input" }
+                ),
+            ]
+        )
+    }
+}
+
+struct SceneGroup: Mapper {
+    static func controls(_ model: any Model) -> Controls {
+        .init(
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                if let entry = item.entryId { return model.session.selected.selected(ref, entry) }
+                return model.session.selected.selected(ref)
+            },
+            onSelect: { item in
+                guard let ref = item.ref else { return }
+                model.select(ref, entry: item.entryId, url: item.path)
+            }
+        )
+    }
+
+    static func parameters(_ model: any Model) -> Params {
+        func item(for block: Scene.Block, owner: Reference) -> ItemParams {
+            let icon = Iconography.icon(for: block)
+
+            switch block {
+                case .artifact(let ref), .command(let ref):
+                    return .init(
+                        ref: ref,
+                        origin: owner,
+                        name: ref.descriptor.name,
+                        image: icon.symbol,
+                        tint: icon.tint,
+                        description: ref.descriptor.description
+                    )
+                case .text(let id, let text):
+                    return .init(
+                        ref: owner,
+                        origin: owner,
+                        entryId: id,
+                        name: text,
+                        image: icon.symbol,
+                        tint: icon.tint
+                    )
+                case .scene(let ref):
+                    let children = Scene.with(ref, { scene in
+                        scene.blocks.map { item(for: $0, owner: ref) }
+                    }) ?? []
+
+                    return .init(
+                        ref: ref,
+                        origin: owner,
+                        name: ref.descriptor.name,
+                        image: icon.symbol,
+                        tint: icon.tint,
+                        description: ref.descriptor.description,
+                        items: children
+                    )
+                case .task(let id, let title, _):
+                    return .init(
+                        ref: owner,
+                        origin: owner,
+                        entryId: id,
+                        name: title,
+                        image: icon.symbol,
+                        tint: icon.tint
+                    )
+            }
+        }
+
+        guard case .content(let scene) = model.session.focused, scene.type is Scene.Type
+                else { return .init(layout: .group) }
+        let items = Scene.with(scene, { value in value.blocks.map { item(for: $0, owner: scene) } }) ?? []
+
+        return .init(
+            ref: scene,
+            name: scene.descriptor.name,
+            description: scene.descriptor.description,
+            layout: .group,
+            nesting: .recursive,
+            header: true,
+            components: [
+                .init(
+                    id: "outline",
+                    name: "Content Outline",
+                    header: true,
+                    items: items
                 )
             ]
         )
     }
 }
 
-
-struct SpaceInspector: Mapper {
+struct SpaceGroup: Mapper {
     static func controls(_ model: any Model) -> Controls {
         var space: Reference {
             if case .structure(let ref) = model.session.focused { return ref }
-            else { return model.session.space ?? model.session.workspace }
+            else { return model.session.origin }
         }
 
         func add(_ ref: Reference) {
@@ -637,6 +545,7 @@ struct SpaceInspector: Mapper {
                     else { Space.update(space) { $0.harness = ref } }
                     return
                 }
+
                 if let ref = item.ref, ref.type is Command.Type || ref.type is Artifact.Type {
                     remove(ref)
                     return
@@ -661,39 +570,7 @@ struct SpaceInspector: Mapper {
     static func parameters(_ model: any Model) -> Params {
         var space: Reference {
             if case .structure(let ref) = model.session.focused { return ref }
-            else { return model.session.space ?? model.session.workspace }
-        }
-
-        func options(_ value: Value) -> [Value] {
-            switch value {
-                case .collection(let values) where values.count == 1:
-                    return values.values.first.map(options) ?? []
-                case .sequence(let values) where values.count > 1:
-                    return values
-                default:
-                    return []
-            }
-        }
-
-        func leaf(_ value: Value) -> Value {
-            switch value {
-                case .collection(let values) where values.count == 1:
-                    return values.values.first.map(leaf) ?? value
-                case .sequence(let values) where values.count > 1:
-                    return values.first.map(leaf) ?? value
-                default:
-                    return value
-            }
-        }
-
-        func label(_ value: String) -> String {
-            value.reduce(into: "") { label, character in
-                if character == "-" || character == "_" { label.append(" ") }
-                else {
-                    if character.isUppercase, !label.isEmpty { label.append(" ") }
-                    label.append(character)
-                }
-            }.capitalized
+            else { return model.session.origin }
         }
 
         let commands = Space.with(space, { $0.commands }) ?? Workspace.with(space, { $0.commands }) ?? []
@@ -701,11 +578,12 @@ struct SpaceInspector: Mapper {
         let harness = Space.with(space, { $0.harness }).flatMap { $0 } ?? Workspace.with(space, { $0.harness })
         let config = Space.with(space, { $0.config }) ?? Workspace.with(space, { $0.config }) ?? [:]
         let parameters = harness.flatMap { Harness.with($0, { $0.parameters }) } ?? []
+
         let executionItems = parameters.compactMap { parameter -> ItemParams? in
             guard case .argument(let key, let type, let required, let defaultValue) = parameter,
                   !required,
                   key != "continuation"
-            else { return nil }
+                    else { return nil }
 
             let configured = config[key]
             let selected = configured?.rendered.last ?? ""
@@ -760,20 +638,53 @@ struct SpaceInspector: Mapper {
             }
         }
 
-//        let artifacts = (Space.with(space, { $0.artifacts }) ?? Workspace.with(space, { $0.artifacts }) ?? []).filter { ref in
-//            Artifact.with(ref) { artifact in
-//                switch artifact.handler {
-//                    case .app, .directory, .file, .image, .script, .skill, .executable: true
-//                    case .bookmark: false
-//                }
-//            }!
-//        }.map { ref in
-//            ItemParams(
-//                ref: ref,
-//                name: ref.descriptor.name,
-//                trailingKind: .remove
-//            )
-//        }
+        func options(_ value: Value) -> [Value] {
+            switch value {
+                case .collection(let values) where values.count == 1:
+                    return values.values.first.map(options) ?? []
+                case .sequence(let values) where values.count > 1:
+                    return values
+                default:
+                    return []
+            }
+        }
+
+        func leaf(_ value: Value) -> Value {
+            switch value {
+                case .collection(let values) where values.count == 1:
+                    return values.values.first.map(leaf) ?? value
+                case .sequence(let values) where values.count > 1:
+                    return values.first.map(leaf) ?? value
+                default:
+                    return value
+            }
+        }
+
+        func label(_ value: String) -> String {
+            value.reduce(into: "") { label, character in
+                if character == "-" || character == "_" { label.append(" ") }
+                else {
+                    if character.isUppercase, !label.isEmpty { label.append(" ") }
+                    label.append(character)
+                }
+            }
+        }
+
+        let artifacts = (Space.with(space, { $0.artifacts }) ?? Workspace.with(space, { $0.artifacts }) ?? [])
+            .filter { ref in
+                Artifact.with(ref) { artifact in
+                    switch artifact.handler {
+                        case .app, .directory, .file, .image, .script, .skill, .executable: true
+                        case .bookmark: false
+                    }
+                }!
+            }.map { ref in
+                ItemParams(
+                    ref: ref,
+                    name: ref.descriptor.name,
+                    trailingKind: .remove
+                )
+            }
 
         let library = Runtime.shared.all(as: Harness.self)
             .map { $0.0 }
@@ -842,8 +753,8 @@ struct SpaceInspector: Mapper {
                 )
             }
 
-        let loaderIcon = Iconography.Icon(symbol: "plus", tint: Design.Tint.harness)
-        let commandLoaderIcon = Iconography.Icon(symbol: "plus", tint: Design.Tint.command)
+        let commandLoaderIcon = Iconography.Icon(symbol: "switch.2", tint: Design.Tint.command)
+        let loaderIcon = Iconography.Icon(symbol: "gear.badge.checkmark", tint: Design.Tint.command)
 
         var components: [ComponentParams] = [
             .init(
@@ -851,7 +762,7 @@ struct SpaceInspector: Mapper {
                 name: "Harnesses",
                 items: [
                     .init(
-                        name: "Add Harnesses...",
+                        name: "Add Harness...",
                         image: loaderIcon.symbol,
                         tint: loaderIcon.tint,
                         trailingKind: .load,
@@ -864,18 +775,16 @@ struct SpaceInspector: Mapper {
                 name: "Commands",
                 items: [
                     .init(
-                        name: "Add Commands...",
+                        name: "Add Command...",
                         image: commandLoaderIcon.symbol,
                         tint: commandLoaderIcon.tint,
                         trailingKind: .load,
                         items: commandLibrary
                     )
                 ] + loadedCommands
-            )
+            ),
         ]
-        if !executionItems.isEmpty {
-            components.append(.init(id: "execution", name: "Execution", items: executionItems))
-        }
+
         components.append(
             .init(
                 id: "files",
@@ -888,9 +797,13 @@ struct SpaceInspector: Mapper {
                         tint: Design.Tint.artifact,
                         trailingKind: .button
                     )
-                ] /*+ artifacts*/
+                ] + artifacts
             )
         )
+
+        if !executionItems.isEmpty {
+            components.append(.init(id: "execution", name: "Execution", items: executionItems))
+        }
 
         return .init(
             ref: space,
@@ -903,151 +816,113 @@ struct SpaceInspector: Mapper {
     }
 }
 
-struct SheetInspector: Mapper {
+struct TranscriptsList: Mapper {
     static func controls(_ model: any Model) -> Controls {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                if let entry = item.entryId { return model.session.selected.selected(ref, entry) }
-                return model.session.selected.selected(ref)
+                return model.session.transcript == ref
             },
             onSelect: { item in
-                guard let ref = item.ref else { return }
-                model.select(ref, entry: item.entryId, url: item.path)
+                guard let ref = item.ref, ref.type is Transcript.Type else { return }
+                model.focus(ref)
             }
         )
     }
 
     static func parameters(_ model: any Model) -> Params {
-        func item(for block: Sheet.Block, owner: Reference) -> ItemParams {
-            let icon = Iconography.icon(for: block)
+        let space = model.session.selected.space ?? model.session.workspace
+        let calendar = Calendar.autoupdatingCurrent
 
-            switch block {
-                case .artifact(let ref), .command(let ref):
-                    return .init(
-                        ref: ref,
-                        origin: owner,
-                        name: ref.descriptor.name,
-                        image: icon.symbol,
-                        tint: icon.tint,
-                        description: ref.descriptor.description
-                    )
-                case .text(let id, let text):
-                    return .init(
-                        ref: owner,
-                        origin: owner,
-                        entryId: id,
-                        name: text,
-                        image: icon.symbol,
-                        tint: icon.tint
-                    )
-                case .sheet(let ref):
-                    let children = Sheet.with(ref, { sheet in
-                        sheet.blocks.map { item(for: $0, owner: ref) }
-                    }) ?? []
-
-                    return .init(
-                        ref: ref,
-                        origin: owner,
-                        name: ref.descriptor.name,
-                        image: icon.symbol,
-                        tint: icon.tint,
-                        description: ref.descriptor.description,
-                        items: children
-                    )
-                case .task(let id, let title, _):
-                    return .init(
-                        ref: owner,
-                        origin: owner,
-                        entryId: id,
-                        name: title,
-                        image: icon.symbol,
-                        tint: icon.tint
-                    )
+        let items = Runtime.shared.transcripts(for: space)
+            .map { ref -> (ref: Reference, date: Date) in
+                let date = Transcript.with(ref, { $0.entries.last?.created ?? ref.descriptor.created })!
+                return (ref, date)
             }
-        }
+            .sorted { $0.date > $1.date }
 
-        guard case .content(let sheet) = model.session.focused, sheet.type is Sheet.Type
-                else { return .init(layout: .group) }
-        let items = Sheet.with(sheet, { value in value.blocks.map { item(for: $0, owner: sheet) } }) ?? []
+            .map { ref, date in
+                let day: String
+                if calendar.isDateInToday(date) { day = "Today" }
+                else if calendar.isDateInYesterday(date) { day = "Yesterday" }
+                else { day = date.formatted(.dateTime.month(.abbreviated).day()) }
+
+                return ItemParams(
+                    ref: ref,
+                    name: ref.descriptor.name,
+                    description: "\(day), \(date.formatted(date: .omitted, time: .shortened))"
+                )
+            }
 
         return .init(
-            ref: sheet,
-            name: sheet.descriptor.name,
-            description: sheet.descriptor.description,
-            layout: .group,
-            nesting: .recursive,
-            header: true,
+            layout: .table,
             components: [
                 .init(
-                    id: "outline",
-                    name: "Content Outline",
-                    header: true,
+                    id: "transcripts",
+                    name: "Transcripts",
+                    header: false,
                     items: items
                 )
-            ]
+            ],
         )
     }
 }
 
-struct PreviewInspector: Mapper {
+struct SidebarMapper: Mapper {
     static func controls(_ model: any Model) -> Controls {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
+                if ref.type is Transcript.Type { return model.session.transcript == ref }
                 if let url = item.path { return model.session.selected.selected(ref, url) }
-                if let entry = item.entryId { return model.session.selected.selected(ref, entry) }
                 return model.session.selected.selected(ref)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
-                if ref.type is Workspace.Type || ref.type is Space.Type { model.select(ref) }
-                else { model.focus(ref) }
-            },
-            onOpen: { item in
-                guard let ref = item.ref else { return }
-                model.open(ref)
-            },
-            surfacePalette: {
-                let ref: Reference
-                switch model.session.focused {
-                    case .structure(let focused): ref = focused
-                    default: ref = model.session.selected.structure!
-                }
-                return Action.surfaceItems(for: ref)
-            },
-            surfaceDropTarget: {
-                let ref: Reference
-                switch model.session.focused {
-                    case .structure(let focused): ref = focused
-                    default: ref = model.session.selected.structure!
-                }
-                return .init(ref: ref, name: ref.descriptor.name)
+                model.select(ref)
             },
             itemPalette: { item in
-                Action.itemItems(for: item)
+                item.path == nil ? Action.itemItems(for: item) : []
             }
         )
     }
 
-    static func parameters(_ studio: any Model) -> Params {
+    static func parameters(_ model: any Model) -> Params {
         .init(
-            layout: .group,
+            nesting: .recursive,
+            header: false,
             components: [
                 .init(
-                    id: "context",
-                    name: "Context",
-                    footer: "A preview of this space's context, as the agent or model sees it."
+                    id: "workspace",
+                    header: false,
+                    items: [
+                        .init(
+                            name: "Inbox",
+                            image: "tray"
+                        ),
+                        .init(
+                            name: "Scheduled",
+                            image: "clock"
+                        ),
+                    ]
                 ),
                 .init(
-                    id: "usage",
-                    name: "Usage",
-                    footer: "An estimate of the tokens required to process this space.",
-                    items: [
-                        .init(name: "Input Tokens",  trailingKind: .value, description: "0"),
-                        .init(name: "Cached Tokens", trailingKind: .value, description: "0"),
-                        .init(name: "Output Tokens", trailingKind: .value, description: "0"),
-                    ]
+                    id: "library",
+                    name: "Library",
+                    header: true,
+                    items: LibraryList
+                        .parameters(model)
+                        .components
+                        .flatMap { $0.items }
+                ),
+                .init(
+                    id: "spaces",
+                    name: "Spaces",
+                    header: true,
+                    items: SpaceTree
+                        .parameters(model)
+                        .components
+                        .flatMap { $0.items }
                 ),
             ]
         )

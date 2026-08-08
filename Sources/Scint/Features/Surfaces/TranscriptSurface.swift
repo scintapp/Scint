@@ -1,25 +1,5 @@
 import SwiftUI
 
-private extension Transcript.Entry {
-    var statusTitle: String? {
-        switch self {
-            case .input:
-                return nil
-            case .transcript:
-                return "Working"
-            case .property:
-                return nil
-            case .signal(let signal, _, _):
-                switch signal {
-                    case .eval: return "Started"
-                    case .started: return "Working"
-                    case .updated: return nil
-                    case .completed: return "Completed"
-                    case .failed: return "Failed"
-                }
-        }
-    }
-}
 
 enum TranscriptContent {
     case message(String)
@@ -58,24 +38,6 @@ enum TranscriptContent {
 
             default:
                 return nil
-        }
-    }
-}
-
-struct TranscriptTicker: View {
-    let entries: [Transcript.Entry]
-    var title: String? { entries.reversed().compactMap(\.statusTitle).first }
-
-    var body: some View {
-        if let title {
-            HStack(spacing: 12) {
-                Text(title)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Design.Foreground.quaternary)
-                Rectangle()
-                    .fill(Design.Foreground.quaternary.opacity(0.2))
-                    .frame(height: 0.5)
-            }
         }
     }
 }
@@ -161,18 +123,9 @@ struct TranscriptEntry: View {
 
     var body: some View {
         switch entry {
-            case .input(let ref, _):
-                TranscriptInput(ref: ref)
-
-            case .transcript:
-                EmptyView()
-
-            case .property:
-                EmptyView()
-
-            case .signal(let signal, _, _):
+            case .event(_, let signal, _):
                 switch signal {
-                    case .eval:
+                    case .composed:
                         EmptyView()
 
                     case .started:
@@ -186,7 +139,20 @@ struct TranscriptEntry: View {
 
                     case .failed(let value):
                         TranscriptOutput(value: value, failed: true)
+
+                    case .stopped:
+                        EmptyView()
                 }
+            case .scene(let ref, _):
+                TranscriptInput(ref: ref)
+
+            case .transcript:
+                EmptyView()
+
+            case .value:
+                EmptyView()
+
+
         }
     }
 }
@@ -196,8 +162,8 @@ struct TranscriptInput: View {
 
     var body: some View {
         if ref.descriptor.tags.contains("input"),
-           let content = Sheet.with(ref, { sheet in
-               var input = sheet
+           let content = Scene.with(ref, { scene in
+               var input = scene
                if !input.blocks.isEmpty { input.delete(at: input.blocks.index(before: input.blocks.endIndex)) }
                return input.rendered.trimmingCharacters(in: .whitespacesAndNewlines)
            }), !content.isEmpty {
@@ -218,34 +184,27 @@ struct TranscriptInput: View {
 
 struct TranscriptSurface: Surface {
     var panel: any Panel
-    var model: any Model
+    let model: any Model
+
+    var transcript: Reference? {
+        guard let context = model.session.origin.context else { return nil }
+        return context.transcript
+    }
 
     var body: some View {
-        var transcript: Transcript? {
-            guard
-                let active = model.session.active,
-                let transcript = Transcript.with(active, { $0 })
-                    else { return nil }
-            return transcript
-        }
-
-        ZStack(alignment: .bottom) {
-            ScrollView {
-                VStack(spacing: 16) {
-                    if transcript != nil {
-                        ForEach(transcript!.entries) { entry in
-                            TranscriptEntry(entry: entry)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        }
-                        .textSelection(.enabled)
-                        .frame(maxWidth: 660, alignment: .top)
-                    } else {
-                        Spacer()
+        ScrollView {
+            VStack(spacing: 16) {
+                if let transcript, let entries = Transcript.with(transcript, { $0 })?.entries {
+                    ForEach(entries) { entry in
+                        TranscriptEntry(entry: entry)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
+                    .frame(maxWidth: 660, alignment: .top)
+                } else {
+                    Spacer()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            ComposerInput(model: model)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }

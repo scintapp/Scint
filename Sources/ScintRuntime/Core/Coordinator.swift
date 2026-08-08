@@ -3,19 +3,16 @@ import Foundation
 
 actor Coordinator {
     static let shared = Coordinator()
-    private var workspaceDirty = false
+    private var workspaceDirty: Set<Reference> = []
     private var libraryDirty: Set<Reference> = []
-    private var changed: Set<Reference> = []
     private var task: Task<Void, Never>?
 
     func schedule(_ ref: Reference) {
         switch ref.type {
             case is any Structural.Type:
-                workspaceDirty = true
-                changed.insert(ref)
+                workspaceDirty.insert(ref)
             case is any Malleable.Type, is any Functional.Type:
                 libraryDirty.insert(ref)
-                changed.insert(ref)
             default: return
         }
 
@@ -25,31 +22,28 @@ actor Coordinator {
     func flush() async {
         task?.cancel()
         task = nil
-        let saveWorkspace = workspaceDirty
-        let refs = libraryDirty
-        let changes = changed
-        workspaceDirty = false
+        let workspaceRefs = workspaceDirty
+        let libraryRefs = libraryDirty
+        workspaceDirty.removeAll()
         libraryDirty.removeAll()
-        changed.removeAll()
 
         var failed = false
-        if saveWorkspace {
-            do { try await Workspaces.shared.save() }
+        if !workspaceRefs.isEmpty {
+            do { try await Workspaces.shared.save(workspaceRefs) }
             catch {
-                workspaceDirty = true
+                workspaceDirty.formUnion(workspaceRefs)
                 failed = true
                 print("Autosave failed for workspace: \(error)")
             }
         }
-        if !refs.isEmpty {
-            do { try await Library.shared.save(refs) }
+        if !libraryRefs.isEmpty {
+            do { try await Library.shared.save(libraryRefs) }
             catch {
-                libraryDirty.formUnion(refs)
+                libraryDirty.formUnion(libraryRefs)
                 failed = true
                 print("Autosave failed for library: \(error)")
             }
         }
-        for ref in changes { Composer.shared.changed(ref) }
         if failed { debounce() }
     }
 

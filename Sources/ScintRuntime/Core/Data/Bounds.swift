@@ -2,13 +2,13 @@ import Foundation
 
 
 final class Content: Bounding {
-    let sheets = Store()
+    let scenes = Store()
     let transcripts = Store()
-    var stores: [Store] { [sheets, transcripts] }
+    var stores: [Store] { [scenes, transcripts] }
     
     func store(for ref: Reference?) -> Store? {
         switch ref?.type {
-            case is Sheet.Type: return sheets
+            case is Scene.Type: return scenes
             case is Transcript.Type: return transcripts
             default: return nil
         }
@@ -43,52 +43,85 @@ final class Interfaces: Bounding {
 
 final class Structures: Bounding {
     let closures = Store()
-    let routes = Store()
+    let bridges = Store()
     let spaces = Store()
     let workspaces = Store()
-    var stores: [Store] { [routes, closures, spaces, workspaces] }
+    var stores: [Store] { [bridges, closures, spaces, workspaces] }
 
     func store(for ref: Reference?) -> Store? {
         switch ref?.type {
             case is Space.Type: return spaces
             case is Closure.Type: return closures
-            case is Route.Type: return routes
+            case is Bridge.Type: return bridges
             case is Workspace.Type: return workspaces
             default: return nil
         }
     }
 
+    func workspace(for ref: Reference) -> Reference? {
+        var current: Reference? = ref
+        var visited: Set<Reference> = []
+
+        while let ref = current, visited.insert(ref).inserted {
+            switch ref.type {
+                case is Workspace.Type:
+                    return workspaces.with(ref, as: Workspace.self, { $0.ref })
+                case is Space.Type:
+                    current = spaces.with(ref, as: Space.self, { $0.space }) ?? nil
+                case is Closure.Type:
+                    current = closures.with(ref, as: Closure.self, { $0.origin })
+                case is Bridge.Type:
+                    current = bridges.with(ref, as: Bridge.self, { $0.origin }) ?? nil
+                default:
+                    return nil
+            }
+        }
+        return nil
+    }
+
     func encode(_ workspace: Workspace) throws -> StorableCollection {
-        func records(_ store: Store) throws -> [StorableObject] {
-            try store.keys().map { ref in
+        func records(_ refs: Set<Reference>) throws -> [StorableObject] {
+            try refs.sorted { $0.storageId.uuidString < $1.storageId.uuidString }.map { ref in
                 guard let record = try record(for: ref) else { throw RuntimeError.persistence(.encodingFailed(ref)) }
                 return record
             }
         }
-        guard let ws = try record(for: workspace.ref) else { throw RuntimeError.persistence(.encodingFailed(workspace.ref)) }
+
+        var spaceRefs: Set<Reference> = []
+        var bridges: Set<Reference> = []
+        var closures: Set<Reference> = [workspace.closure]
+        var pending = Array(workspace.spaces)
+
+        while let ref = pending.popLast() {
+            guard spaceRefs.insert(ref).inserted else { continue }
+            guard let space = spaces.with(ref, as: Space.self, { $0 })
+            else { throw RuntimeError.persistence(.encodingFailed(ref)) }
+            bridges.formUnion(space.bridges)
+            closures.insert(space.closure)
+            pending.append(contentsOf: space.spaces)
+        }
+
+        guard let record = try record(for: workspace.ref)
+        else { throw RuntimeError.persistence(.encodingFailed(workspace.ref)) }
         return StorableCollection(
-            routes: try records(routes),
+            bridges: try records(bridges),
             closures: try records(closures),
-            spaces: try records(spaces),
-            workspace: ws,
-            workspaces: try records(workspaces).filter { $0.value.ref != workspace.ref }
+            spaces: try records(spaceRefs),
+            workspaces: [record]
         )
     }
 
-    func decode(_ stored: StorableCollection) throws -> (Workspace, Descriptor, [(any Resolvable, Descriptor)]) {
-        guard let workspace = stored.workspace.value as? Workspace
-        else { throw RuntimeError.persistence(.decodingFailed(URL(fileURLWithPath: "workspace"))) }
-        return (
-            workspace, stored.workspace.descriptor,
-            (stored.workspaces ?? []).map { ($0.value, $0.descriptor) } +
-            stored.routes.map { ($0.value, $0.descriptor) } +
+    func decode(_ stored: StorableCollection) throws -> [(any Resolvable, Descriptor)] {
+        guard !stored.workspaces.isEmpty, stored.workspaces.allSatisfy({ $0.value is Workspace })
+        else { throw RuntimeError.persistence(.decodingFailed(URL(fileURLWithPath: "workspaces"))) }
+        return stored.workspaces.map { ($0.value, $0.descriptor) } +
+            stored.bridges.map { ($0.value, $0.descriptor) } +
             stored.closures.map { ($0.value, $0.descriptor) } +
             stored.spaces.map { ($0.value, $0.descriptor) }
-        )
     }
 
     func reset() {
-        for ref in (routes.keys() + closures.keys() + spaces.keys()) { Catalog.shared.delete(ref) }
-        routes.reset(); closures.reset(); spaces.reset()
+        for ref in stores.flatMap({ $0.keys() }) { Catalog.shared.delete(ref) }
+        stores.forEach { $0.reset() }
     }
 }

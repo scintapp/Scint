@@ -45,12 +45,12 @@ enum Query {
     }
 }
 
-public struct SearchRequest: Codable, Sendable, Hashable {
-    public let text: String
-    public let input: String
-    public let filters: [String]
+struct SearchRequest: Codable, Sendable, Hashable {
+    let text: String
+    let input: String
+    let filters: [String]
 
-    public init(_ input: String) {
+    init(_ input: String) {
         var terms: [String] = []
         var filters: [String] = []
 
@@ -67,15 +67,15 @@ public struct SearchRequest: Codable, Sendable, Hashable {
     }
 }
 
-public struct SearchResult: Codable, Sendable, Identifiable {
-    public var id: UUID { ref.id }
-    public let ref: Reference
-    public let name: String
-    public let description: String
-    public let tags: Set<String>
-    public let score: Double
+struct SearchResult: Codable, Sendable, Identifiable {
+    var id: UUID { ref.id }
+    let ref: Reference
+    let name: String
+    let description: String
+    let tags: Set<String>
+    let score: Double
 
-    public init(ref: Reference, name: String, description: String, tags: Set<String>, score: Double) {
+    init(ref: Reference, name: String, description: String, tags: Set<String>, score: Double) {
         self.ref = ref
         self.name = name
         self.description = description
@@ -128,13 +128,13 @@ public struct SearchResult: Codable, Sendable, Identifiable {
     }
 }
 
-public struct SearchResults: Codable, Sendable {
-    public let query: String
-    public let text: String
-    public let filters: [String]
-    public let all: [SearchResult]
+struct SearchResults: Codable, Sendable {
+    let query: String
+    let text: String
+    let filters: [String]
+    let all: [SearchResult]
 
-    public init(query: String, text: String? = nil, filters: [String] = [], all: [SearchResult]) {
+    init(query: String, text: String? = nil, filters: [String] = [], all: [SearchResult]) {
         self.query = query
         self.text = text ?? query
         self.filters = filters

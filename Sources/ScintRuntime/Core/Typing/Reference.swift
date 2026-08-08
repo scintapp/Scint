@@ -1,18 +1,18 @@
 import Foundation
 
 
-public enum Key: Codable, Sendable, Identifiable, Hashable {
+enum Key: Codable, Sendable, Identifiable, Hashable {
     case context(Reference)
     case descriptor(Reference)
 
-    public var id: AnyHashable {
+    var id: AnyHashable {
         switch self {
             case .context(let ref): return ref.contextId
             case .descriptor(let ref): return ref.descriptorId
         }
     }
 
-    public var ref: Reference {
+    var ref: Reference {
         switch self {
             case .context(let ref): return ref
             case .descriptor(let ref): return ref
@@ -20,14 +20,14 @@ public enum Key: Codable, Sendable, Identifiable, Hashable {
     }
 }
 
-public struct Reference: Codable, Sendable, Identifiable, Hashable {
-    public let id: UUID
+struct Reference: Codable, Sendable, Identifiable, Hashable {
+    let id: UUID
     let typeId: TypeId
     let contextId: ContextId
     let descriptorId: DescriptorId
     let storageId: StorageId
 
-    public init(_ type: Resolvable.Type, id: UUID = UUID(), descriptorId: DescriptorId? = nil, contextId: ContextId? = nil, storageId: StorageId? = nil) {
+    init(_ type: Resolvable.Type, id: UUID = UUID(), descriptorId: DescriptorId? = nil, contextId: ContextId? = nil, storageId: StorageId? = nil) {
         self.id = id
         self.typeId = .typeId(type.self)
         self.descriptorId = descriptorId ?? id
@@ -43,11 +43,11 @@ public struct Reference: Codable, Sendable, Identifiable, Hashable {
         self.storageId = storageId ?? id
     }
 
-    public var type: Resolvable.Type? { Runtime.shared.registry.resolve(self) }
-    public var context: Composition? { Composer.shared.resolve(self) }
-    public var descriptor: Descriptor { Runtime.shared.get(self) }
+    var type: Resolvable.Type? { Runtime.shared.registry.resolve(self) }
+    var context: Composition? { Composer.shared.resolve(self) }
+    var descriptor: Descriptor { Runtime.shared.get(self) }
 
-    public func delete() async throws {
+    func delete() async throws {
         switch type {
             case is any Structural.Type: try await Workspaces.shared.delete(self)
             case is any Malleable.Type, is any Functional.Type: try await Library.shared.delete(self)
@@ -55,14 +55,13 @@ public struct Reference: Codable, Sendable, Identifiable, Hashable {
         }
     }
 
-
-    public func hash(into hasher: inout Hasher) {
+    func hash(into hasher: inout Hasher) {
         hasher.combine(id)
         hasher.combine(typeId)
         hasher.combine(descriptorId)
     }
 
-    public static func == (lhs: Reference, rhs: Reference) -> Bool {
+    static func == (lhs: Reference, rhs: Reference) -> Bool {
         lhs.typeId == rhs.typeId
         && lhs.descriptorId == rhs.descriptorId
         && lhs.id == rhs.id

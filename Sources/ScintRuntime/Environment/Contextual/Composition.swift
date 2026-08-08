@@ -1,38 +1,28 @@
 import Foundation
 
 
-public struct Composition: Codable, Sendable {
+struct Composition: Codable, Sendable {
     let structure: Reference
 
-    enum State: Codable, Sendable, Equatable { case inactive, active, running, completed, failed }
+    enum State: Codable, Sendable, Equatable { case inactive, active, running }
 
-    var context: Context? { Composer.shared.context(origin) }
-    var intents: [Context.Intent] { context?.intents ?? [] }
-    var harness: Reference? { context?.harness?.ref }
-    var transcript: Reference { context?.transcript ?? origin }
+    var context: Context? { Composer.shared.context(structure) }
+    var intents: [Intent] { context?.intents ?? [] }
+    var harness: Reference? { context?.harness }
+    var transcript: Reference { context?.transcript ?? structure }
+
+    var intentTranscript: Reference? {
+        if let transcript = intents.last?.transcript { return transcript }
+        return Transcript.with(transcript, { $0.entries }).flatMap { entries in
+            entries.reversed().compactMap { entry -> Reference? in
+                guard case .transcript(let ref, _) = entry else { return nil }
+                return ref
+            }.first
+        }
+    }
 
     var state: State {
-        guard let context else { return .inactive }
-        if !context.intents.isEmpty { return .running }
-        guard let signal = Transcript.with(context.transcript, { transcript in
-            transcript.entries.reversed().compactMap { entry -> Signal? in
-                guard case .signal(let signal, _, _) = entry else { return nil }
-                return signal
-            }.first
-        }) ?? nil else { return .active }
-
-        switch signal {
-            case .composed:
-                return .inactive
-
-            case .started, .updated:
-                return .active
-
-            case .completed:
-                return .completed
-
-            case .failed:
-                return .failed
-        }
+        guard let intents = context?.intents, !intents.isEmpty else { return .inactive }
+        return intents.contains { !$0.observing } ? .running : .active
     }
 }

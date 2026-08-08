@@ -23,10 +23,10 @@ struct Harness: Functional {
         self.parameters = []
     }
 
-    init(_ ref: Reference, command: Reference, params: [Parameter]) {
+    init(_ ref: Reference, command: Reference, intent: Intent, params: [Parameter]) {
         self.ref = ref
         self.command = command
-        self.intent = .compose
+        self.intent = intent
         self.parameters = params
     }
 
@@ -49,8 +49,12 @@ struct Harness: Functional {
         }
     }
 
-    func start(_ values: [String: Value] = [:], output: @escaping (Signal) -> Void) -> (pid: Int32, error: String?)? {
-        Command.with(command, { $0 })?.run(values, output: output)
+    func start(_ origin: Reference, transcript: Reference, output: @escaping (Signal) -> Void) throws -> (pid: Int32, error: String?)? {
+        let values = try Parser.parse(origin, transcript: transcript, for: ref)
+        let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
+        return Command.with(command) { command in
+            command.dispatch(rendered: command.rendered(with: values) + rendered(with: values), environment: environment, output: output)
+        } ?? nil
     }
 
     func stop(pid: Int32) -> Bool {
@@ -58,8 +62,8 @@ struct Harness: Functional {
         return Runtime.shared.services.stop(pid: pid)
     }
 
-    static func register(_ name: String, command: Reference, intent: Process, parameters: [Parameter] = []) -> Reference {
-        let instance = Self(.init(Self.self), command: command, params: parameters)
+    static func register(_ name: String, command: Reference, intent: Intent, parameters: [Parameter] = []) -> Reference {
+        let instance = Self(.init(Self.self), command: command, intent: intent, params: parameters)
         Descriptor.new(instance.ref, name: name, tags: [])
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
         return instance.ref

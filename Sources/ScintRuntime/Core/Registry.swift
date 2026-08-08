@@ -19,13 +19,13 @@ struct Registry: Sendable {
     private(set) var entriesByTypeId: [UUID: Registration] = [:]
     private(set) var entriesByTypeName: [String: Registration] = [:]
 
-    public init() {
-        register(Sheet.self)
+    init() {
+        register(Scene.self)
         register(Transcript.self)
         register(Artifact.self)
         register(Command.self)
         register(Harness.self)
-        register(Route.self)
+        register(Bridge.self)
         register(Closure.self)
         register(Space.self)
         register(Workspace.self)
@@ -37,7 +37,7 @@ struct Registry: Sendable {
             type: T.self,
             codec: .init(
                 encode: { value, encoder in
-                    guard let typed = value as? T else { throw RuntimeError.persistence(.encodingFailed(value.ref)) }
+                    guard let typed = value as? T else { throw RuntimeError.Persistence.encodingFailed(value.ref) }
                     return try encoder.encode(typed)
                 },
                 decode: { data, decoder in try decoder.decode(T.self, from: data) },

@@ -72,7 +72,8 @@
 			membershipExceptions = (
 				Scint.md,
 				ScintRuntime.md,
-				ScintStudio.md,
+				ScintServer.md,
+				ScintService.md,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* Scint */;
 		};
@@ -97,7 +98,7 @@
 				ScintRuntime/Core/Typing/Protocols.swift,
 				ScintRuntime/Core/Typing/Reference.swift,
 				ScintRuntime/Environment/Catalog.swift,
-				ScintRuntime/Environment/Contextual/Composer.swift,
+				ScintRuntime/Environment/Composer.swift,
 				ScintRuntime/Environment/Contextual/Composition.swift,
 				ScintRuntime/Environment/Contextual/Context.swift,
 				ScintRuntime/Environment/Contextual/Parser.swift,
@@ -105,29 +106,28 @@
 				ScintRuntime/Environment/Functional/Command.swift,
 				ScintRuntime/Environment/Functional/Harness.swift,
 				ScintRuntime/Environment/Library.swift,
-				ScintRuntime/Environment/Malleable/Sheet.swift,
+				ScintRuntime/Environment/Malleable/Scene.swift,
 				ScintRuntime/Environment/Malleable/Transcript.swift,
 				ScintRuntime/Environment/Services.swift,
+				ScintRuntime/Environment/Structural/Bridge.swift,
 				ScintRuntime/Environment/Structural/Closure.swift,
-				ScintRuntime/Environment/Structural/Route.swift,
 				ScintRuntime/Environment/Structural/Space.swift,
 				ScintRuntime/Environment/Structural/Workspace.swift,
 				ScintRuntime/Environment/Workspaces.swift,
 				ScintRuntime/Extensions/InterfaceExtensions.swift,
-				ScintRuntime/Extensions/SampleData.swift,
 				ScintRuntime/Runtime.swift,
-				ScintService/Service.swift,
-				ScintService/ServiceDaemon.swift,
-				ScintService/ServiceProcess.swift,
-				ScintService/ServiceRegistry.swift,
-				ScintService/ServiceUtilities.swift,
+				ScintServices/Service.swift,
+				ScintServices/ServiceDaemon.swift,
+				ScintServices/ServiceProcess.swift,
+				ScintServices/ServiceRegistry.swift,
+				ScintServices/ServiceUtilities.swift,
 			);
 			target = 7C69AAF12F8B45D90008D611 /* scintd */;
 		};
 		7CBB43923021077200B9D4D7 /* Exceptions for "Sources" folder in "Scint" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ScintService/Service.swift,
+				ScintServices/Service.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* Scint */;
 		};

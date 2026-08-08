@@ -1,10 +1,9 @@
 import Foundation
 
 
-public final class Runtime: @unchecked Sendable {
-    public static let shared = Runtime()
-    public var workspace: Reference { Workspaces.shared.workspace }
-    public var workspaces: [Reference] { Workspaces.shared.store(for: self.workspace)?.keys() ?? [] }
+final class Runtime: @unchecked Sendable {
+    static let shared = Runtime()
+    var workspaces: [Reference] { Workspaces.shared.workspaces }
     let registry: Registry = Registry()
     let services: Services = .init()
     let settings: Settings = .init()
@@ -17,7 +16,7 @@ public final class Runtime: @unchecked Sendable {
         }
     }
 
-    public func load() async throws {
+    func load() async throws {
         try await Workspaces.shared.load()
         try await Library.shared.load()
     }
@@ -41,21 +40,22 @@ public final class Runtime: @unchecked Sendable {
 }
 
 extension Runtime {
-    public func get(_ ref: Reference) -> Descriptor {
-        guard let descriptor = Catalog.shared.get(ref)
-        else { fatalError(RuntimeError.Registry.missingDescriptor(ref).description) }
+    func get(_ ref: Reference) -> Descriptor {
+        guard let descriptor = Catalog.shared.get(ref) as Descriptor? else {
+            fatalError(RuntimeError.Catalog.missingDescriptor(ref).description)
+        }
         return descriptor
     }
 
-    public func set(_ ref: Reference, _ value: Descriptor) {
+    func set(_ ref: Reference, _ value: Descriptor) {
         Catalog.shared.set(ref, value)
     }
 
-    public func all<T: Resolvable>(as type: T.Type) -> [(Reference, T)] {
+    func all<T: Resolvable>(as type: T.Type) -> [(Reference, T)] {
         store(for: Reference(T.self))?.all(as: type) ?? []
     }
 
-    public func search(_ text: String = "", limit: Int = 20) -> SearchResults {
+    func search(_ text: String = "", limit: Int = 20) -> SearchResults {
         let search = SearchRequest(text)
         let results = Catalog.shared.values().compactMap { SearchResult(descriptor: $0, search: search) }
         return SearchResults(
@@ -68,15 +68,17 @@ extension Runtime {
 }
 
 extension Runtime {
-//    public func compose(_ signal: Signal) -> Composition? { Composer.shared.compose(signal) }
+    func compose(_ ref: Reference) -> Composition? { Composer.shared.compose(ref) }
 
-    public func compose(_ ref: Reference) -> Composition? { Composer.shared.compose(signal) }
+    func start(_ ref: Reference) -> Composition? { Composer.shared.start(ref) }
 
-    public func context() -> [Composition] { Composer.shared.resolve() }
+    func stop(_ ref: Reference) -> Composition? { Composer.shared.stop(ref) }
 
-    public func context(for ref: Reference) -> Composition? { Composer.shared.resolve(ref) }
+    func context() -> [Composition] { Composer.shared.resolve() }
 
-    public func context(from origin: Reference) -> Set<Reference> {
+    func context(for ref: Reference) -> Composition? { Composer.shared.resolve(ref) }
+
+    func context(from origin: Reference) -> Set<Reference> {
         var context: Set<Reference> = [origin]
         var pending: [Reference] = []
         var visited: Set<Reference> = []
@@ -110,16 +112,15 @@ extension Runtime {
         return context
     }
 
-    public func transcripts(for ref: Reference) -> [Reference] {
-        store(for: ref)?
-            .all(as: Transcript.self)
+    func transcripts(for ref: Reference) -> [Reference] {
+        all(as: Transcript.self)
             .filter { $0.1.owner == ref }
-            .map { $0.0 } ?? []
+            .map { $0.0 }
     }
 }
 
 extension Runtime {
-    public func walk(from root: Reference, path: [Reference] = [], _ visit: ([Reference], Reference, Space) -> Void) {
+    func walk(from root: Reference, path: [Reference] = [], _ visit: ([Reference], Reference, Space) -> Void) {
         func dfs(_ ref: Reference, _ path: [Reference]) {
             guard !seen.contains(ref) else { return }
             seen.insert(ref)
@@ -134,7 +135,7 @@ extension Runtime {
         dfs(root, path)
     }
 
-    public func climb(from root: Reference, path: [Reference] = [], _ visit: ([Reference], Reference, Space) -> Void) {
+    func climb(from root: Reference, path: [Reference] = [], _ visit: ([Reference], Reference, Space) -> Void) {
         var currentPath = path
         var cursor: Reference? = root
 
@@ -145,7 +146,7 @@ extension Runtime {
         }
     }
 
-    public func cross(from root: Reference, path: [Reference] = [],_ visit: ([Reference], Reference, Route, Reference, Space) -> Void) {
+    func cross(from root: Reference, path: [Reference] = [],_ visit: ([Reference], Reference, Bridge, Reference, Space) -> Void) {
         var seen = Set<Reference>()
         func dfs(_ current: Reference, _ path: [Reference]) {
             guard seen.insert(current).inserted else { return }
@@ -157,11 +158,11 @@ extension Runtime {
         dfs(root, path)
     }
 
-    public func adjacent(from source: Reference) -> [(Route, Reference, Space)] {
-        let refs = Space.with(source, { $0.routes }) ?? []
+    func adjacent(from source: Reference) -> [(Bridge, Reference, Space)] {
+        let refs = Space.with(source, { $0.bridges }) ?? []
 
         return refs.compactMap { edge in
-            guard let route = Route.with(edge, { $0 }) else { return nil }
+            guard let route = Bridge.with(edge, { $0 }) else { return nil }
             let target: Reference? = if route.origin == source { route.target }
             else if route.target == source { route.origin }
             else { nil }
@@ -171,78 +172,3 @@ extension Runtime {
         }
     }
 }
-
-//extension Runtime {
-//    public enum Callback: Sendable {
-//        case open(Reference)
-//        case eval(Reference)
-//        case dispatch(command: Reference, pid: Int32, error: String?)
-//        case run(artifact: Reference, pid: Int32, error: String?)
-//        case search(SearchResults)
-//    }
-//
-//    public func handle(_ url: URL) throws -> Callback {
-//        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-//              components.scheme?.lowercased() == "Scint",
-//              let action = components.host?.lowercased()
-//                else { throw CallbackError.invalidURL }
-//
-//        let query = (components.queryItems ?? []).reduce(into: [String: String]()) { values, item in
-//            values[item.name] = item.value
-//        }
-//
-//        switch action {
-//            case "open":
-//                guard let value = query["descriptor"] else { throw CallbackError.missing("descriptor") }
-//                return .open(try reference(for: value))
-//
-//            case "eval":
-//                guard let value = query["descriptor"] else { throw CallbackError.missing("descriptor") }
-//                let ref = try reference(for: value)
-//                guard ref.type == Space.self || ref.type == Workspace.self else { throw CallbackError.invalidTrigger(ref) }
-//                _ = eval(ref)
-//                return .eval(ref)
-//
-//            case "dispatch":
-//                guard let value = query["command"] else { throw CallbackError.missing("command") }
-//                let command = try reference(for: value)
-//                guard command.type == Command.self else { throw CallbackError.invalidCommand(command) }
-//                guard let value = query["arguments"] else { throw CallbackError.missing("arguments") }
-//                guard let properties = Properties.load(value) else { throw CallbackError.invalidArguments }
-//                var values = properties.mergedObject.compactMapValues(Value.init)
-//                if let value = query["target"] {
-//                    let target = try reference(for: value)
-//                    let bound = try Command.with(command) { try Parser.parse([.reference(target)], parameters: $0.parameters) } ?? [:]
-//                    values.merge(bound) { _, target in target }
-//                }
-//                guard let result = try Command.with(command, { command in
-//                    command.dispatch(try Parser.parse(values, parameters: command.parameters))
-//                }) ?? nil
-//                        else { throw CallbackError.dispatchFailed(command) }
-//                return .dispatch(command: command, pid: result.pid, error: result.error)
-//
-//            case "run":
-//                guard let value = query["artifact"] else { throw CallbackError.missing("artifact") }
-//                let artifact = try reference(for: value)
-//                guard artifact.type == Artifact.self,
-//                      let executable = Artifact.with(artifact, { $0.handler.executable }) ?? nil
-//                        else { throw CallbackError.invalidArtifact(artifact) }
-//                let environment = try query["target"].map { try reference(for: $0) }
-//                    .map { ["Scint_TARGET": $0.descriptorId.uuidString.lowercased()] } ?? [:]
-//                guard let result = services.start(executable, environment: environment) else { throw CallbackError.runFailed(artifact) }
-//                return .run(artifact: artifact, pid: result.pid, error: result.error)
-//
-//            case "search":
-//                guard let query = query["query"] else { throw CallbackError.missing("query") }
-//                return .search(search(query))
-//
-//            default:
-//                throw CallbackError.invalidURL
-//        }
-//    }
-//
-//    private func reference(for descriptor: String) throws -> Reference {
-//        guard let descriptor = UUID(uuidString: descriptor) else { throw CallbackError.invalidDescriptor(descriptor) }
-//        return Catalog.shared.reference(for: descriptor) else { throw CallbackError.notFound(descriptor) }
-//    }
-//}

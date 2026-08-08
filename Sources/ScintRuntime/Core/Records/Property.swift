@@ -2,7 +2,7 @@ import Foundation
 
 
 
-public enum Property: Codable, Convertible, Equatable, Hashable, Expressible {
+enum Property: Codable, Convertible, Equatable, Hashable, Expressible {
     case bool(Bool)
     case integer(Int)
     case decimal(Double)
@@ -11,13 +11,13 @@ public enum Property: Codable, Convertible, Equatable, Hashable, Expressible {
     case object([String: Property])
     case null
 
-    public init(_ key: String, _ value: Property) { self = .object([key: value]) }
-    public init(_ key: String, _ value: String) { self = .object([key: .string(value)]) }
-    public init(_ key: String, _ value: Int) { self = .object([key: .integer(value)]) }
-    public init(_ key: String, _ value: Double) { self = .object([key: .decimal(value)]) }
-    public init(_ key: String, _ value: Bool) { self = .object([key: .bool(value)]) }
+    init(_ key: String, _ value: Property) { self = .object([key: value]) }
+    init(_ key: String, _ value: String) { self = .object([key: .string(value)]) }
+    init(_ key: String, _ value: Int) { self = .object([key: .integer(value)]) }
+    init(_ key: String, _ value: Double) { self = .object([key: .decimal(value)]) }
+    init(_ key: String, _ value: Bool) { self = .object([key: .bool(value)]) }
 
-    public init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if c.decodeNil() { self = .null; return }
         if let v = try? c.decode(Bool.self) { self = .bool(v); return }
@@ -29,9 +29,9 @@ public enum Property: Codable, Convertible, Equatable, Hashable, Expressible {
         throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Unsupported Property"))
     }
 
-    public var property: Property { self }
+    var property: Property { self }
 
-    public func encode(to encoder: Encoder) throws {
+    func encode(to encoder: Encoder) throws {
         var c = encoder.singleValueContainer()
 
         switch self {
@@ -46,7 +46,7 @@ public enum Property: Codable, Convertible, Equatable, Hashable, Expressible {
     }
 }
 
-public extension Property {
+extension Property {
     var string: String? { if case .string(let v) = self { v } else { nil } }
     var double: Double? { if case .decimal(let v) = self { v } else { nil } }
     var int: Int? { if case .integer(let v) = self { v } else { nil } }
@@ -55,7 +55,7 @@ public extension Property {
     var object: [String: Property]? { if case .object(let v) = self { v } else { nil } }
 }
 
-public extension Property {
+extension Property {
     init(nilLiteral: ()) { self = .null }
     init(stringLiteral value: String) { self = .string(value) }
     init(integerLiteral value: Int) { self = .integer(value) }
@@ -63,14 +63,14 @@ public extension Property {
     init(booleanLiteral value: Bool) { self = .bool(value) }
 }
 
-public extension Property {
+extension Property {
     var properties: Properties? {
         guard case .object(let m) = self else { return nil }
         return Properties(.object(m))
     }
 }
 
-public extension Property {
+extension Property {
     subscript(_ keyPath: String) -> Property? {
         get {
             guard !keyPath.isEmpty else { return self }
@@ -132,7 +132,7 @@ public extension Property {
     }
 }
 
-public extension Property {
+extension Property {
     func toJSONAny() -> Any {
         switch self {
         case .null: return NSNull()
@@ -159,7 +159,7 @@ public extension Property {
     }
 }
 
-public extension Property {
+extension Property {
     static func fromCodable<T: Codable>(_ value: T) -> Property {
         guard let data = try? JSONEncoder().encode(value),
               let any = try? JSONSerialization.jsonObject(with: data) else { return .null }
@@ -171,7 +171,7 @@ public extension Property {
     }
 }
 
-public extension Property {
+extension Property {
     var stringRepresentation: String {
         switch self {
         case .string(let v): return v
@@ -199,7 +199,7 @@ public extension Property {
     }
 }
 
-public extension Property {
+extension Property {
     var strings: [String]? {
         guard case .array(let arr) = self else { return nil }
         return arr.compactMap(\.string)
@@ -221,7 +221,7 @@ public extension Property {
     }
 }
 
-public extension Property {
+extension Property {
     var isNull: Bool { if case .null = self { return true } else { return false } }
     var isPresent: Bool { !isNull }
 }

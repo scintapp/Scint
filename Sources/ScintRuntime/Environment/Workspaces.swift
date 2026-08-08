@@ -4,76 +4,63 @@ import Foundation
 final class Workspaces: @unchecked Sendable {
     static let shared = Workspaces()
     private let structures: Structures = .init()
-    private var active: Reference?
-
-    var workspace: Reference { guard let active else { RuntimeError.fatal() }; return active }
     var workspaces: [Reference] { structures.workspaces.keys() }
 
     func store(for ref: Reference) -> Store? { structures.store(for: ref) }
 
-    func create() async throws {
-        let workspace = Workspace.new("Studio", framing: .scint)
-        Runtime.shared.settings.persistence.lastWorkspaceId = workspace.storageId
-        active = workspace
-        try await save()
-    }
-
     func add(_ ref: Reference, _ value: Resolvable) { structures.add(ref, value) }
 
     func load() async throws {
-        if active != nil { return }
+        if !workspaces.isEmpty { return }
         let settings = Runtime.shared.settings.persistence
-        let lastWorkspaceId = settings.lastWorkspaceId
         let urls = try await Persistence.shared.files(in: settings.workspaces)
         for url in urls where url.pathExtension == "json" { await load(url) }
-        if let id = lastWorkspaceId,
-           let ref = structures.workspaces.keys().first(where: { $0.storageId == id }) {
-            active = ref
-            Runtime.shared.settings.persistence.lastWorkspaceId = id
-        }
-        if active == nil { try await create() }
+        if workspaces.isEmpty { Workspace.new("Workspace") }
     }
 
-    func load(_ ref: Reference) async { await load(Runtime.shared.settings.persistence.spacesPath(ref.storageId)) }
+    func load(_ ref: Reference) async { await load(Runtime.shared.settings.persistence.workspacePath(ref.storageId)) }
 
     func load(_ url: URL) async {
         do {
             let stored = try await Persistence.shared.read(StorableCollection.self, at: url)
-            let (space, descriptor, values) = try structures.decode(stored)
-            load(space, descriptor: descriptor, values: values)
+            let values = try structures.decode(stored)
+            load(values)
+
+            let refs = Set(values.compactMap { value, _ in
+                value.ref.type is Workspace.Type ? value.ref : nil
+            })
+            let settings = Runtime.shared.settings.persistence
+            let canonical = Set(refs.map { settings.workspacePath($0.storageId).standardizedFileURL.path.lowercased() })
+            let source = url.standardizedFileURL.path.lowercased()
+            guard refs.count != 1 || !canonical.contains(source) else { return }
+            try await save(refs)
+            if !canonical.contains(source) { try await Persistence.shared.delete(at: url) }
         } catch { print("Workspace load failed (\(url.lastPathComponent)): \(error)")}
     }
 
-    func load(_ workspace: Workspace, descriptor: Descriptor, values: [(any Resolvable, Descriptor)]) {
-        Catalog.shared.set(workspace.ref, descriptor)
-        structures.store(for: workspace.ref)?.add(workspace.ref, workspace)
-        active = workspace.ref
-
+    func load(_ values: [(any Resolvable, Descriptor)]) {
         for (value, descriptor) in values {
             Catalog.shared.set(value.ref, descriptor)
             structures.store(for: value.ref)?.add(value.ref, value)
         }
-
-        for (value, _) in values where value.ref.type is Space.Type {
-            if (Space.with(value.ref, { $0.space }) ?? nil) == nil {
-                Space.update(value.ref) { $0.attach(to: workspace.ref) }
-            }
-        }
-
-        Runtime.shared.settings.persistence.lastWorkspaceId = workspace.ref.storageId
     }
 
     func save() async throws {
-        guard let active, let ws = Workspace.with(active, { $0 })
-        else { throw RuntimeError.spaces(.loadFailed) }
-        let stored = try structures.encode(ws)
-        let url = Runtime.shared.settings.persistence.spacesPath(ws.ref.storageId)
-        try await Persistence.shared.write(PersistedObject(url: url, value: stored))
+        try await save(Set(workspaces))
+    }
+
+    func save(_ refs: Set<Reference>) async throws {
+        let workspaceRefs = Set(refs.compactMap { structures.workspace(for: $0) })
+        for ref in workspaceRefs.sorted(by: { $0.storageId.uuidString < $1.storageId.uuidString }) {
+            guard let workspace = Workspace.with(ref, { $0 }) else { throw RuntimeError.spaces(.loadFailed) }
+            let stored = try structures.encode(workspace)
+            let url = Runtime.shared.settings.persistence.workspacePath(workspace.ref.storageId)
+            try await Persistence.shared.write(PersistedObject(url: url, value: stored))
+        }
     }
 
     func save(_ ref: Reference) async {
-        guard active != nil else { return }
-        do { try await save() } catch { print("Workspace save failed for \(ref.id): \(error)") }
+        do { try await save([ref]) } catch { print("Workspace save failed for \(ref.id): \(error)") }
     }
 
     func delete(_ ref: Reference) async throws {
@@ -87,7 +74,7 @@ final class Workspaces: @unchecked Sendable {
             Catalog.shared.delete(closure)
             store(for: closure)?.remove(closure)
         }
-        if let input, input.type == Sheet.self { try await Library.shared.delete(input) }
+        if let input, input.type == Scene.self { try await Library.shared.delete(input) }
         try await save()
     }
 }

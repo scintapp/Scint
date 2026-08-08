@@ -373,8 +373,7 @@ final class EditorInputView: NSTextView {
         resetTypingAttributes()
     }
 
-    override func setFrameSize(_ newSize: NSSize) {
-        super.setFrameSize(newSize)
+    func setPanelSize(_ newSize: NSSize) {
         if backingTextContainer.containerSize.width != newSize.width {
             backingTextContainer.containerSize = NSSize(width: newSize.width, height: .greatestFiniteMagnitude)
         }

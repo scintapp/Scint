@@ -6,7 +6,7 @@ struct Space: Structural {
     let ref: Reference
     var space: Reference? = nil
     var spaces: Set<Reference> = []
-    var routes: Set<Reference> = []
+    var bridges: Set<Reference> = []
     var harness: Reference? = nil
     var closure: Reference
 
@@ -20,11 +20,13 @@ struct Space: Structural {
     var artifacts: [Reference] { Closure.with(closure, { $0 })?.artifacts ?? [] }
     var commands: [Reference] { Closure.with(closure, { $0 })?.commands ?? [] }
     var harnesses: [Reference] { Closure.with(closure, { $0 })?.harnesses ?? [] }
-    var sheets: [Reference] { Closure.with(closure, { $0 })?.sheets ?? [] }
+    var scenes: [Reference] { Closure.with(closure, { $0 })?.scenes ?? [] }
     var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
     var directories: [Reference] { Closure.with(closure, { $0 })?.directories ?? [] }
     var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
-    var components: [Reference] { artifacts + commands + harnesses + sheets + transcripts }
+    var components: [Reference] { artifacts + commands + harnesses + scenes + transcripts }
+    var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
+
     var input: Reference? {
         get { Closure.with(closure, { $0.input }) }
         set {
@@ -32,11 +34,10 @@ struct Space: Structural {
             Closure.update(closure) {
                 $0.content.removeAll { $0 == input }
                 $0.content.insert(input, at: 0)
-                $0.input = Sheet.new(ref, input: true)
+                $0.input = Scene.new(ref, input: true)
             }
         }
     }
-    var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
 
     func configure(_ value: Value?, for key: String) { Closure.update(closure) { $0.config[key] = value } }
 
@@ -56,7 +57,7 @@ struct Space: Structural {
         }
     }
 
-    func attach(to parent: Reference) {
+    mutating func attach(to parent: Reference) {
         guard parent != ref else { return }
         if let previous = space, previous != parent {
             if previous.type is Space.Type { Space.update(previous) { $0.spaces.remove(ref) } }
@@ -69,19 +70,19 @@ struct Space: Structural {
         else { Workspace.update(parent) { $0.spaces.update(with: ref) } }
     }
 
-    func detach(from parent: Reference) {
+    mutating func detach(from parent: Reference) {
         if parent.type is Space.Type { Space.update(parent) { $0.spaces.remove(ref) } }
         else if parent.type is Workspace.Type { Workspace.update(parent) { $0.spaces.remove(ref) } }
         if space == parent { space = nil }
     }
 
-    func attach(child: Reference) {
+    mutating func attach(child: Reference) {
         guard child != ref, child.type is Space.Type else { return }
         spaces.update(with: child)
         Space.update(child) { $0.attach(to: ref) }
     }
 
-    func detach(child: Reference) {
+    mutating func detach(child: Reference) {
         guard child.type is Space.Type else { return }
         spaces.remove(child)
         Space.update(child) { $0.detach(from: ref) }

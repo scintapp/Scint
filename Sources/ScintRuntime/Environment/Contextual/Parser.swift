@@ -1,172 +1,115 @@
 import Foundation
-import OrderedCollections
 
-
-struct Argument {
-    let name: String
-    let type: Value
-    let required: Bool
-    let defaultValue: Value?
-}
 
 enum Parser {
-    static func parse(_ supplied: [String: Value], parameters: [Command.Parameter]) throws -> [String: Value] {
-        let arguments = parameters.compactMap { parameter -> Argument? in
-            guard case .argument(let name, let type, let required, let value) = parameter else { return nil }
-            return Argument(name: name, type: type, required: required, defaultValue: value)
+    static func parse(_ supplied: [String: Value], for ref: Reference) throws -> [String: Value] {
+        if let command = Command.with(ref, { $0 }) {
+            return try parse(supplied, command: command)
         }
-        return try parse(supplied, arguments: arguments)
+        if let harness = Harness.with(ref, { $0 }) {
+            return try parse(supplied, harness: harness, input: nil)
+        }
+        throw ParsingError.invalid("No functional object found for \(ref.id).")
     }
 
-    static func parse(_ input: [Value], parameters: [Command.Parameter]) throws -> [String: Value] {
-        let arguments = parameters.compactMap { parameter -> Argument? in
-            guard case .argument(let name, let type, let required, let value) = parameter else { return nil }
-            return Argument(name: name, type: type, required: required, defaultValue: value)
+    static func parse(_ origin: Reference, transcript: Reference, for harness: Reference) throws -> [String: Value] {
+        guard let harness = Harness.with(harness, { $0 }) else {
+            throw RuntimeError.context(.missing(harness))
         }
-        return try parse(bind(input, to: arguments), arguments: arguments)
-    }
+        guard let closureRef = Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure }),
+              let closure = Closure.with(closureRef, { $0 })
+        else { throw RuntimeError.context(.missing(origin)) }
 
-    static func parse(_ supplied: [String: Value], parameters: [Harness.Parameter]) throws -> [String: Value] {
-        let arguments = parameters.compactMap { parameter -> Argument? in
+        var supplied: [String: Value] = [:]
+        for parameter in harness.parameters {
             switch parameter {
-                case .argument(let name, let type, let required, let value):
-                    return Argument(name: name, type: type, required: required, defaultValue: value)
-                case .target(let name, let type, let value):
-                    return Argument(name: name, type: type, required: false, defaultValue: value)
-                default:
-                    return nil
+                case .argument(let name, _, _, _), .requirement(let name, _, _), .target(let name, _, _):
+                    supplied[name] = closure.config[name]
+                case .command:
+                    break
             }
         }
-        return try parse(supplied, arguments: arguments)
-    }
 
-    static func parse(_ input: [Value], config: Config = [:], parameters: [Harness.Parameter]) throws -> [String: Value] {
-        let arguments = parameters.compactMap { parameter -> Argument? in
-            switch parameter {
-                case .argument(let name, let type, let required, let value):
-                    return Argument(name: name, type: type, required: required, defaultValue: value)
-                case .target(let name, let type, let value):
-                    return Argument(name: name, type: type, required: false, defaultValue: value)
-                default:
-                    return nil
+        let inputs = Transcript.with(transcript) { transcript in
+            transcript.entries.compactMap { entry -> Reference? in
+                guard case .scene(let ref, _) = entry else { return nil }
+                return ref
             }
+        } ?? []
+        let rendered = inputs.compactMap { ref -> String? in
+            guard let value = Scene.with(ref, { $0.rendered }), !value.isEmpty else { return nil }
+            return "# \(ref.descriptor.name)\n\(value)"
         }
-        var supplied = bind(input, to: arguments)
-        for (key, value) in config { supplied[key] = value }
-        return try parse(supplied, arguments: arguments)
-    }
-
-    static func signals(_ chunk: String) -> [Signal] {
-        chunk.split(whereSeparator: \.isNewline).compactMap { line in
-            signal(String(line))
+        let artifacts = Transcript.with(transcript, { $0.output("artifacts") }).flatMap { $0 }?.references ?? []
+        let renderedArtifacts = artifacts.compactMap { ref -> String? in
+            guard let value = Artifact.with(ref, { $0.rendered }), !value.isEmpty else { return nil }
+            return "# \(ref.descriptor.name)\n\(value)"
         }
+        let context = (renderedArtifacts + rendered).joined(separator: "\n\n")
+        let input = context.isEmpty ? nil : Value.string(context)
+        return try parse(supplied, harness: harness, input: input)
     }
 
-    static func continuation(_ value: Value) -> Value? {
-        value.references.compactMap { ref -> Value? in
-            guard ref.type == Transcript.self else { return nil }
-            return Transcript.with(ref) { $0.property("thread_id") ?? $0.property("session_id") } ?? nil
-        }.first
-    }
-
-    static func properties(_ signal: Signal) -> [(String, Value)] {
-        guard case .updated(.string(let raw)) = signal, let properties = Properties.load(raw) else { return [] }
-        return ["thread_id", "session_id"].compactMap { key in
-            properties[key].flatMap(Value.init).map { (key, $0) }
-        }
-    }
-
-    static func property(_ key: String, in value: Value) -> Value? {
-        let marker = "\(key)="
-        return value.rendered.reversed().compactMap { rendered -> Value? in
-            guard let range = rendered.range(of: marker, options: .backwards) else { return nil }
-            let suffix = rendered[range.upperBound...]
-            let string = String(suffix.prefix { !$0.isWhitespace && $0 != "," })
-            return string.isEmpty ? nil : .string(string)
-        }.first
-    }
-
-    private static func signal(_ chunk: String) -> Signal? {
-        let trimmed = chunk.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        guard let properties = Properties.load(trimmed) else { return .updated(.string(trimmed)) }
-
-        switch (properties["type"]?.string ?? properties["event"]?.string)?.lowercased() {
-            case "terminated":
-                return properties["exitCode"]?.int == 0 ? .completed : .failed(.string(trimmed))
-            case "item.completed":
-                switch properties["item.type"]?.string?.lowercased() {
-                    case "agent_message", "message", "reasoning", "command_execution", "command",
-                        "mcp_tool_call", "function_call", "function":
-                        return .updated(.string(trimmed))
-                    default:
-                        return nil
-                }
-            case "thread.started":
-                return .updated(.string(trimmed))
-            case "turn.started", "turn.completed", "item.started":
-                return nil
-            default:
-                return .updated(.string(trimmed))
-        }
-    }
-
-    private static func parse(_ supplied: [String: Value], arguments: [Argument]) throws -> [String: Value] {
+    private static func parse(_ supplied: [String: Value], command: Command) throws -> [String: Value] {
         var parsed: [String: Value] = [:]
+        var expected: Set<String> = []
 
-        for argument in arguments {
-            if let value = supplied[argument.name] {
-                parsed[argument.name] = try argument.type.construct(value, name: argument.name)
-            } else if let value = argument.defaultValue {
-                parsed[argument.name] = try argument.type.construct(value, name: argument.name)
-            } else if argument.required {
-                throw ParsingError.missingArgument(argument.name)
+        for parameter in command.parameters {
+            guard case .argument(let name, let type, let required, let defaultValue) = parameter else { continue }
+            expected.insert(name)
+            if let value = supplied[name] {
+                parsed[name] = try type.construct(value, name: name)
+            } else if let defaultValue {
+                parsed[name] = try type.construct(defaultValue, name: name)
+            } else if required {
+                throw ParsingError.missingArgument(name)
             }
         }
 
-        let expected = Set(arguments.map(\.name))
         let unexpected = supplied.keys.filter { !expected.contains($0) }.sorted()
         guard unexpected.isEmpty else { throw ParsingError.unexpectedArguments(unexpected) }
         return parsed
     }
 
-    private static func bind(_ values: [Value], to arguments: [Argument]) -> [String: Value] {
-        var input = values
-        var supplied: [String: Value] = [:]
+    private static func parse(_ supplied: [String: Value], harness: Harness, input: Value?) throws -> [String: Value] {
+        var parsed: [String: Value] = [:]
+        var expected: Set<String> = []
+        var input = input
 
-        for argument in arguments {
-            let acceptsInput = argument.required || !argument.type.references.isEmpty
-            guard acceptsInput, let value = consume(&input, as: argument.type, name: argument.name) else { continue }
-            supplied[argument.name] = value
-        }
-        return supplied
-    }
+        for parameter in harness.parameters {
+            switch parameter {
+                case .argument(let name, let type, let required, let defaultValue):
+                    expected.insert(name)
+                    if let value = supplied[name] {
+                        parsed[name] = try type.construct(value, name: name)
+                    } else if required, let value = input {
+                        parsed[name] = try type.construct(value, name: name)
+                        input = nil
+                    } else if let defaultValue {
+                        parsed[name] = try type.construct(defaultValue, name: name)
+                    } else if required {
+                        throw ParsingError.missingArgument(name)
+                    }
 
-    private static func consume(_ input: inout [Value], as type: Value, name: String) -> Value? {
-        if let index = input.firstIndex(where: { (try? type.construct($0, name: name)) != nil }) {
-            return input.remove(at: index)
-        }
+                case .requirement(let name, let type, let value):
+                    expected.insert(name)
+                    parsed[name] = try type.construct(supplied[name] ?? value, name: name)
 
-        guard let element = sequenceElement(in: type) else { return nil }
-        var remaining: [Value] = []
-        let values = input.compactMap { value -> Value? in
-            guard (try? element.construct(value, name: name)) != nil else {
-                remaining.append(value)
-                return nil
+                case .target(let name, let type, let defaultValue):
+                    expected.insert(name)
+                    if let value = supplied[name] {
+                        parsed[name] = try type.construct(value, name: name)
+                    } else if let defaultValue {
+                        parsed[name] = try type.construct(defaultValue, name: name)
+                    }
+
+                case .command:
+                    break
             }
-            return value
         }
-        let value = Value.sequence(values)
-        guard !values.isEmpty, (try? type.construct(value, name: name)) != nil else { return nil }
-        input = remaining
-        return value
-    }
 
-    private static func sequenceElement(in value: Value) -> Value? {
-        switch value {
-            case .sequence(let values): return values.first
-            case .collection(let values) where values.count == 1: return values.values.first.flatMap(sequenceElement)
-            default: return nil
-        }
+        let unexpected = supplied.keys.filter { !expected.contains($0) }.sorted()
+        guard unexpected.isEmpty else { throw ParsingError.unexpectedArguments(unexpected) }
+        return parsed
     }
 }

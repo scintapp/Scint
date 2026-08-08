@@ -2,47 +2,47 @@ import Foundation
 import CryptoKit
 
 
-extension Int: Convertible { public var property: Property { .integer(self) }}
-extension Double: Convertible { public var property: Property { .decimal(self) }}
-extension String: Convertible { public var property: Property { .string(self) }}
-extension Bool: Convertible { public var property: Property { .bool(self) }}
+extension Int: Convertible { var property: Property { .integer(self) }}
+extension Double: Convertible { var property: Property { .decimal(self) }}
+extension String: Convertible { var property: Property { .string(self) }}
+extension Bool: Convertible { var property: Property { .bool(self) }}
 extension Optional: Convertible where Wrapped: Convertible { var property: Property { self?.property ?? .null } }
 
 extension Resolvable {
-    public var name: String {
+    var name: String {
         get { Catalog.shared.with(ref, { $0.name }) ?? "" }
         set { Catalog.shared.update(ref, { $0.name = newValue }) }
     }
 
-    public var description: String {
+    var description: String {
         get { Catalog.shared.with(ref, { $0.description }) ?? "" }
         set { Catalog.shared.update(ref, { $0.description = newValue }) }
     }
 
-    public var tags: Set<String> {
+    var tags: Set<String> {
         get { Catalog.shared.with(ref, { $0.tags }) ?? [] }
         set { Catalog.shared.update(ref, { $0.tags = newValue }) }
     }
 
-    public var rendered: String { "" }
+    var rendered: String { "" }
 
-    @discardableResult public static func with<R>(_ ref: Reference,_ body: (Self) throws -> R) rethrows -> R? {
+    @discardableResult static func with<R>(_ ref: Reference,_ body: (Self) throws -> R) rethrows -> R? {
         if ref.type is any Structural.Type { try Workspaces.shared.store(for: ref)?.with(ref, as: Self.self, body) }
         else { try Library.shared.store(for: ref)?.with(ref, as: Self.self, body) }
     }
 
-    @discardableResult public static func update<R>(_ ref: Reference,_ body: (inout Self) throws -> R) rethrows -> R? {
+    @discardableResult static func update<R>(_ ref: Reference,_ body: (inout Self) throws -> R) rethrows -> R? {
         if ref.type is any Structural.Type { try Workspaces.shared.store(for: ref)?.update(ref, as: Self.self, body) }
         else { try Library.shared.store(for: ref)?.update(ref, as: Self.self, body) }
     }
 }
 
 extension Keyable {
-    public var ref: Reference { origin }
+    var ref: Reference { origin }
 }
 
 extension Structural {
-    public static func new(_ name: String, owner: Reference? = nil) -> Reference {
+    static func new(_ name: String, owner: Reference? = nil) -> Reference {
         var instance = Space(.init(Self.self))
         Descriptor.new(instance.ref, name: name, tags: [])
         instance.closure = Closure.new(name, owner: instance.ref)
@@ -89,7 +89,7 @@ extension Bounding {
     func record(for ref: Reference) throws -> StorableObject? {
         guard let value = store(for: ref)?.with(ref, as: (any Resolvable).self, { $0 }) else { return nil }
         guard let descriptor = Catalog.shared.get(ref)
-        else { throw RuntimeError.registry(.missingDescriptor(ref)) }
+                else { throw RuntimeError.Catalog.missingDescriptor(ref) }
         return StorableObject(descriptor: descriptor, value: value)
     }
 

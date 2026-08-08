@@ -3,65 +3,44 @@ import SwiftUI
 
 
 @Observable @MainActor final class ScintModel {
-    var palette: PaletteModel
+    var editor: EditorModel
     var studio: StudioModel
+    var panels: PanelsModel
     var server: ServerModel
-    var panels: PanelController
 
-    init(_ workspaces: [Reference]) {
-        func workspace(_ framing: Descriptor.Framing) -> Reference {
-            if let ref = workspaces.first(where: { $0.descriptor.framing == framing }) { return ref }
-            return Workspace.new("\(framing)".capitalized, framing: framing)
-        }
-
-        self.palette = .init(workspace(.studio))
-        self.panels = .init()
+    init() {
+        self.editor = .init(Self.restore(for: .editor))
+        self.studio = .init(Self.restore(for: .studio))
+        self.panels = .init(Self.restore(for: .panels))
         self.server = .init()
-        self.studio = .init(workspace(.studio))
     }
 
     func load() async {
-        await SampleData.load(studio.session.workspace)
+        await SampleData.load(editor.session.workspace, for: .editor)
+        await SampleData.load(studio.session.workspace, for: .studio)
+        await SampleData.load(panels.session.workspace, for: .panels)
         await Runtime.shared.save()
         await server.start()
     }
 
-    func showPalette() {
-        let parameters = palette.search.parameters(studio)
-        guard let panel = parameters.panel else { return }
-        panels.show(parameters.id, parameters: panel, view: palette.search.panel(studio)) {
-            [weak palette = palette] presented in palette?.search.state.presented = presented
-        }
+    func toggleActions() { panels.toggleActions() }
+    func toggleAssistant() { panels.toggleAssistant() }
+    func toggleOutline() { panels.toggleOutline() }
+    func toggleSearch() { panels.toggleSearch() }
+    func toggleTasks() { panels.toggleTasks() }
+
+    static func persist(_ session: Session, for key: AppKey) {
+        guard let data = try? JSONEncoder().encode(session) else { return }
+        UserDefaults.standard.set(data, forKey: key.value)
     }
 
-    func togglePalette() {
-        let parameters = palette.search.parameters(studio)
-        guard let panel = parameters.panel else { return }
-        panels.toggle(parameters.id, parameters: panel, view: palette.search.panel(studio)) {
-            [weak palette = palette] presented in palette?.search.state.presented = presented
-        }
+    static func restore(for key: AppKey) -> Session {
+        if let data = UserDefaults.standard.data(forKey: key.value),
+           let session = try? JSONDecoder().decode(Session.self, from: data),
+           Workspace.with(session.workspace, { _ in true }) == true { return session }
+        let workspace = Workspace.new(key.value)
+        let session = Session(workspace)
+        persist(session, for: key)
+        return session
     }
-
-//    func handle(_ url: URL) -> Runtime.Callback? {
-//        do {
-//            let callback = try Runtime.shared.handle(url)
-//            switch callback {
-//                case .open(let ref):
-//                    studio.open(ref)
-//                case .eval:
-//                    break
-//                case .dispatch(_, _, let error):
-//                    if let error { print(error) }
-//                case .run(_, _, let error):
-//                    if let error { print(error) }
-//                case .search(let results):
-//                    palette.search.query = results.query
-//                    showPalette()
-//            }
-//            return callback
-//        } catch {
-//            print(error)
-//            return nil
-//        }
-//    }
 }

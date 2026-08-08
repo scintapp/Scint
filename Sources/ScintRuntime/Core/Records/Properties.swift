@@ -1,14 +1,14 @@
 import Foundation
 
 
-public struct Properties: Codable, Convertible, Equatable, Hashable, Sendable {
-    public var props: [Property]
-    public var property: Property { .object(self.mergedObject) }
-    public var properties: Properties { .array(props)}
-    public init(_ props: [Property]) { self.props = props }
-    public init(_ props: Property...) { self.props = props }
+struct Properties: Codable, Convertible, Equatable, Hashable, Sendable {
+    var props: [Property]
+    var property: Property { .object(self.mergedObject) }
+    var properties: Properties { .array(props)}
+    init(_ props: [Property]) { self.props = props }
+    init(_ props: Property...) { self.props = props }
 
-    public init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let single = try decoder.singleValueContainer()
         let prop = try single.decode(Property.self)
         switch prop {
@@ -17,7 +17,7 @@ public struct Properties: Codable, Convertible, Equatable, Hashable, Sendable {
         }
     }
 
-    public func encode(to encoder: Encoder) throws {
+    func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         if props.count == 1, case .object = props[0] {
             try container.encode(props[0])
@@ -26,33 +26,33 @@ public struct Properties: Codable, Convertible, Equatable, Hashable, Sendable {
         }
     }
 
-    public static func load(_ string: String) -> Self? {
+    static func load(_ string: String) -> Self? {
         guard let data = string.data(using: .utf8) else { return nil }
         return load(data)
     }
 
-    public static func load(_ data: Data) -> Self? {
+    static func load(_ data: Data) -> Self? {
         return try? JSONDecoder().decode(Properties.self, from: data)
     }
 
-    public func render() -> String {
+    func render() -> String {
         guard let data: Data = try? render(),
               let s = String(data: data, encoding: .utf8) else { return "" }
         return s
     }
 
-    public var rendered: String {
+    var rendered: String {
         guard let data: Data = try? render(), let render = String(data: data, encoding: .utf8)
                 else { return "" }
         return render
     }
 
-    public func render() throws -> Data {
+    func render() throws -> Data {
         try JSONEncoder().encode(self)
     }
 }
 
-public extension Properties {
+extension Properties {
     var mergedObject: [String: Property] {
         var merged: [String: Property] = [:]
         for p in props {
@@ -77,12 +77,12 @@ public extension Properties {
     }
 }
 
-public extension Properties {
+extension Properties {
     enum AccessError: Error, CustomStringConvertible {
         case missing(String)
         case typeMismatch(path: String, expected: String, got: Property)
 
-        public var description: String {
+        var description: String {
             switch self {
                 case .missing(let p): return "Missing required key: \(p)"
                 case .typeMismatch(let path, let exp, let got):
@@ -113,7 +113,7 @@ public extension Properties {
     }
 }
 
-public extension Properties {
+extension Properties {
     static func object(_ map: [String: Property]) -> Properties {
         Properties(.object(map))
     }
@@ -127,7 +127,7 @@ public extension Properties {
     }
 }
 
-public extension Properties {
+extension Properties {
     internal static func object(_ map: [String: any Convertible]) -> Properties {
         Properties(.object(map.mapValues { $0.property }))
     }
@@ -137,7 +137,7 @@ public extension Properties {
     }
 }
 
-public extension Properties {
+extension Properties {
     func firstProperty(of keyPaths: [String]) -> Property? {
         for path in keyPaths {
             if let v = self[path], v.isPresent { return v }

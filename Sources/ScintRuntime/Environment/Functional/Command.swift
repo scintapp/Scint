@@ -36,9 +36,9 @@ struct Command: Functional {
         }
     }
 
-    func dispatch(rendered arguments: [String], output: ((Signal) -> Void)? = nil) -> (pid: Int32, error: String?)? {
+    func dispatch(rendered arguments: [String], environment: [String: String] = [:], output: ((Signal) -> Void)? = nil) -> (pid: Int32, error: String?)? {
         guard let exec = Artifact.with(artifact, { $0.handler.executable }) ?? nil else { return nil }
-        let result = Runtime.shared.services.start(exec, arguments: arguments)
+        let result = Runtime.shared.services.start(exec, arguments: arguments, environment: environment)
         if let output, let pid = result?.pid, result?.error == nil { Runtime.shared.services.output(pid: pid, output) }
         return result
     }

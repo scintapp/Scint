@@ -49,6 +49,18 @@ indirect enum Value: Codable, Sendable, Equatable {
         }
     }
 
+    var property: Property {
+        switch self {
+            case .bool(let value): return .bool(value)
+            case .integer(let value): return .integer(value)
+            case .decimal(let value): return .decimal(NSDecimalNumber(decimal: value).doubleValue)
+            case .string(let value): return .string(value)
+            case .sequence(let values): return .array(values.map(\.property))
+            case .collection(let values): return .object(values.mapValues(\.property))
+            case .reference(let ref): return .string(ref.id.uuidString)
+        }
+    }
+
     func construct(_ supplied: Value, name: String) throws -> Value {
         switch (self, supplied) {
             case (.bool, .bool), (.integer, .integer), (.decimal, .decimal), (.string, .string):
@@ -97,17 +109,6 @@ indirect enum Value: Codable, Sendable, Equatable {
                 throw ParsingError.invalid("Argument \(name) has an invalid value type.")
         }
     }
-    var property: Property {
-        switch self {
-            case .bool(let value): return .bool(value)
-            case .integer(let value): return .integer(value)
-            case .decimal(let value): return .decimal(NSDecimalNumber(decimal: value).doubleValue)
-            case .string(let value): return .string(value)
-            case .sequence(let values): return .array(values.map(\.property))
-            case .collection(let values): return .object(values.mapValues(\.property))
-            case .reference(let ref): return .string(ref.id.uuidString)
-        }
-    }
 
     private func render(nested: Bool) -> [String] {
         switch self {
@@ -128,9 +129,9 @@ indirect enum Value: Codable, Sendable, Equatable {
                     case is Artifact.Type: return [Artifact.with(ref, { $0.rendered }) ?? ""]
                     case is Command.Type: return Command.with(ref, { $0.rendered }) ?? []
                     case is Harness.Type: return Harness.with(ref, { $0.rendered }) ?? []
-                    case is Sheet.Type: return [Sheet.with(ref, { $0.rendered }) ?? ""]
+                    case is Scene.Type: return [Scene.with(ref, { $0.rendered }) ?? ""]
                     case is Transcript.Type: return Transcript.with(ref, { $0.rendered }) ?? []
-                    default: return [ref.descriptor.name]
+                    default: return []
                 }
         }
     }

@@ -1,53 +1,28 @@
 import SwiftUI
 
 
-struct PaletteIndexComponent: Identifiable {
-    let component: ComponentParams
-    let startIndex: Int
-
-    var id: AnyHashable { component.id }
-
-    static func index(_ components: [ComponentParams]) -> [PaletteIndexComponent] {
-        var offset = 0
-        return components.map { component in
-            defer { offset += component.items.count }
-            return PaletteIndexComponent(component: component, startIndex: offset)
-        }
-    }
-}
-
-struct PaletteRow: View {
-    let item: ItemParams
+struct PanelRow: View {
+    let name: String
+    let description: String
+    let image: String
+    let tint: Color
     let isSelected: Bool
     let onTap: () -> Void
 
-    @ViewBuilder var icon: some View {
-        if let ref = item.ref {
-            Iconography.Icon(
-                symbol: Iconography.symbol(for: ref),
-                tint: Iconography.accent(for: ref),
-                sizing: 20,
-                selected: isSelected
-            )
-        } else {
-            Iconography.Icon(
-                symbol: item.image.isEmpty ? "square.stack.3d.up" : item.image,
-                tint: Design.Tint.active,
-                sizing: 20,
-                selected: isSelected
-            )
-        }
-    }
-
     var body: some View {
         HStack(alignment: .center) {
-            icon
+            Iconography.Icon(
+                symbol: image.isEmpty ? "square.stack.3d.up" : image,
+                tint: tint,
+                sizing: 20,
+                selected: isSelected
+            )
                 .frame(width: 34, height: 34, alignment: .center)
                 .padding(.leading, 2)
                 .padding(.trailing, 6)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.name)
+                Text(name)
                     .font(.system(size: 16, weight: isSelected ? .medium : .regular))
                     .foregroundStyle(
                         isSelected
@@ -56,8 +31,8 @@ struct PaletteRow: View {
                     )
                     .lineLimit(1)
 
-                if !item.description.isEmpty {
-                    Text(item.description)
+                if !description.isEmpty {
+                    Text(description)
                         .font(.system(size: 13))
                         .foregroundStyle(Design.Foreground.tertiary)
                         .lineLimit(1)
@@ -82,14 +57,14 @@ struct PaletteRow: View {
             RoundedRectangle(cornerRadius: 17, style: .continuous)
                 .fill(
                     isSelected
-                    ? Design.Foreground.quaternary.opacity(0.3)
+                    ? Design.Foreground.accent.opacity(0.6)
                     : Color.clear
                 )
         )
     }
 }
 
-struct PaletteInput: View {
+struct PanelInput: View {
     @Binding var value: String
     @FocusState var focused: Bool
 
@@ -134,36 +109,118 @@ struct PaletteInput: View {
     }
 }
 
-struct PaletteComponent: View {
-    let component: ComponentParams
-    let startIndex: Int
-    let selectedIndex: Int
-    let controls: Controls
-    let onSelectIndex: (Int) -> Void
+struct SearchSurface: Surface {
+    var panel: any Panel
+    let model: any Model
+
+    private var search: SearchPanel { panel as! SearchPanel }
 
     var body: some View {
-        if !component.items.isEmpty {
-            if component.header && !component.name.isEmpty {
-                Text(component.name)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.top, 12)
-                    .padding(.bottom, 6)
+        let search = self.search
+        let params = panel.parameters(model)
+        let controls = panel.controls(model)
+        let items = params.components.flatMap(\.items)
+        let surfaces = params.panel?.items ?? []
+        let selection = params.panel?.selection
+        let surfaceIndex = surfaces.firstIndex { $0.id == selection?.id } ?? 0
+
+        func move(_ delta: Int) {
+            guard !items.isEmpty else { return }
+            panel.state.index = (panel.state.index + delta + items.count) % items.count
+        }
+
+        func commit() {
+            guard items.indices.contains(panel.state.index) else { return }
+            let item = items[panel.state.index]
+            if let onAction = controls.onAction { onAction(item) }
+            else { controls.onSelect?(item) }
+        }
+
+        func selectSurface(_ index: Int) {
+            guard surfaces.indices.contains(index) else { return }
+            let target = surfaces[index]
+            controls.onChange?(selection ?? target, target)
+        }
+
+        func cycleSurface() -> KeyPress.Result {
+            guard surfaces.count > 1 else { return .ignored }
+            selectSurface((surfaceIndex + 1) % surfaces.count)
+            return .handled
+        }
+
+        return VStack(alignment: .leading, spacing: 0) {
+            if let input = params.panel?.input {
+                PanelInput(
+                    value: Binding(
+                        get: { panel.state.query },
+                        set: { controls.onValueChange?(input, $0) }
+                    ),
+                    image: input.image,
+                    placeholder: input.name,
+                    onUpArrow: { move(-1); return .handled },
+                    onDownArrow: { move(+1); return .handled },
+                    onReturn: { commit(); return .handled },
+                    onTab: cycleSurface
+                )
             }
 
-            ForEach(Array(component.items.enumerated()), id: \.element.id) { offset, item in
-                let absoluteIndex = startIndex + offset
-                PaletteRow(
-                    item: item,
-                    isSelected: absoluteIndex == selectedIndex,
-                    onTap: {
-                        onSelectIndex(absoluteIndex)
-                        controls.onSelect?(item)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 2) {
+                        ForEach(Array(params.components.enumerated()), id: \.element.id) { componentIndex, component in
+                            if !component.items.isEmpty {
+                                if component.header && !component.name.isEmpty {
+                                    Text(component.name)
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 8)
+                                        .padding(.top, 12)
+                                        .padding(.bottom, 6)
+                                }
+
+                                let startIndex = params.components.prefix(componentIndex).reduce(0) { $0 + $1.items.count }
+                                ForEach(Array(component.items.enumerated()), id: \.element.id) { offset, item in
+                                    let absoluteIndex = startIndex + offset
+                                    PanelRow(
+                                        name: item.name,
+                                        description: item.description,
+                                        image: item.image,
+                                        tint: item.tint ?? Design.Tint.active,
+                                        isSelected: absoluteIndex == panel.state.index,
+                                        onTap: {
+                                            panel.state.index = absoluteIndex
+                                            controls.onSelect?(item)
+                                        }
+                                    )
+                                    .id(item.id)
+                                }
+                            }
+                        }
                     }
-                )
-                .id(item.id)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 8)
+                }
+                .onChange(of: panel.state.index) { _, newIndex in
+                    guard items.indices.contains(newIndex) else { return }
+                    proxy.scrollTo(items[newIndex].id, anchor: .center)
+                }
             }
+        }
+        .frame(maxWidth: .infinity)
+        .onChange(of: panel.state.query) { _, _ in panel.state.index = 0 }
+        .onChange(of: search.mode) { _, _ in panel.state.index = 0 }
+        .background {
+            ZStack {
+                ForEach(0..<min(surfaces.count, 9), id: \.self) { index in
+                    Button { selectSurface(index) } label: { EmptyView() }
+                        .keyboardShortcut(
+                            KeyEquivalent(Character(String(index + 1))),
+                            modifiers: .command
+                        )
+                }
+            }
+            .frame(width: 0, height: 0)
+            .opacity(0)
         }
     }
 }
