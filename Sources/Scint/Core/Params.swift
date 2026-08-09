@@ -1,14 +1,6 @@
 import SwiftUI
 
 
-enum NewParams: Identifiable, Hashable {
-    case panel(id: AnyHashable, panel: Panel? = .framed, params: [NewParams])
-    case section(id: AnyHashable, layout: Layout? = .list, params: [NewParams])
-    case item(id: AnyHashable)
-    enum Panel: Hashable { case framed, floating(CGFloat, CGFloat) }
-    var id: AnyHashable { switch self { case .panel(let id, _, _), .section(let id, _, _), .item(let id): id } }
-}
-
 enum PanelLayout: Hashable { case fixed, float }
 
 struct PanelSizingParams: Hashable {
@@ -181,4 +173,12 @@ struct Params: Identifiable {
         self.components = components
 
     }
+}
+
+enum NewParams: Identifiable, Hashable {
+    case panel(id: AnyHashable, panel: Panel? = .framed, params: [NewParams])
+    case section(id: AnyHashable, layout: Layout? = .list, params: [NewParams])
+    case item(id: AnyHashable)
+    enum Panel: Hashable { case framed, floating(CGFloat, CGFloat) }
+    var id: AnyHashable { switch self { case .panel(let id, _, _), .section(let id, _, _), .item(let id): id } }
 }

@@ -7,6 +7,7 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
     private var pending: [Int32: [String]] = [:]
     private var buffers: [Int32: String] = [:]
     private var draining: Set<Int32> = []
+    private var contextByPID: [Int32: ContextId] = [:]
     private let lock = NSLock()
 
     override init() {
@@ -61,6 +62,7 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
             pending.removeValue(forKey: pid)
             buffers.removeValue(forKey: pid)
             draining.remove(pid)
+            contextByPID.removeValue(forKey: pid)
         }
     }
 
@@ -100,8 +102,22 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
         }
 
         guard done.wait(timeout: .now() + timeout) == .success, let result else { return nil }
-        if result.error == nil { _ = write(pid: result.pid, input: "", close: true, timeout: timeout) }
+        if result.error == nil {
+            if let context = environment["SCINT_CONTEXT"].flatMap(UUID.init(uuidString:)) {
+                lock.withLock { contextByPID[result.pid] = context }
+            }
+            _ = write(pid: result.pid, input: "", close: true, timeout: timeout)
+        }
         return result
+    }
+
+    func stop(context: ContextId, timeout: TimeInterval = 5.0) -> Bool {
+        let pids = lock.withLock { contextByPID.compactMap { $0.value == context ? $0.key : nil } }
+        return pids.reduce(true) { stopped, pid in
+            let result = stop(pid: pid, timeout: timeout)
+            if result { removeOutputHandler(pid: pid) }
+            return stopped && result
+        }
     }
 
     func stop(pid: Int32, timeout: TimeInterval = 5.0) -> Bool {

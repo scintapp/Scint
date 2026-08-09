@@ -6,7 +6,7 @@ import SwiftUI
     var state: StateContainer = .init()
 
     func surface(_ model: any Model) -> some View {
-        ComposerSurface(panel: self, model: model)
+        ComposeSurface(panel: self, model: model)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

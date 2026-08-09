@@ -26,7 +26,6 @@ struct PathButton: View {
 }
 
 struct PathBar: View {
-    @State var hovered: Bool = false
     let model: any Model
 
     var refs: [Reference] {
@@ -36,19 +35,13 @@ struct PathBar: View {
 
     var body: some View {
         HStack(alignment: .center) {
-            if hovered {
-                ForEach(Array(refs.enumerated()), id: \.element) { index, ref in
-                    PathButton(model: model, ref: ref, last: refs.last == ref)
-                }
-                .buttonStyle(.plain)
-            } else {
-                if let last = refs.last {
-                    PathButton(model: model, ref: last, last: true)
-                }
+            ForEach(Array(refs.enumerated()), id: \.element) { index, ref in
+                PathButton(model: model, ref: ref, last: refs.last == ref)
             }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, maxHeight: 30, alignment: .leading)
-        .onHover { _ in hovered.toggle() }
+        .padding(.horizontal, 8)
     }
 }
 
@@ -82,45 +75,5 @@ struct PathControls: View {
         }
         .frame(maxWidth: .infinity, maxHeight: 30, alignment: .leading)
         .onHover { _ in hovered.toggle() }
-    }
-}
-
-struct PathMenuButton: View {
-    let model: any Model
-    var space: Reference? { model.session.selected.space }
-    var workspace: Reference { model.session.workspace }
-    var context: Composition? { model.session.origin.context }
-    var active: Bool { context?.state == .active }
-
-    var refs: [Reference] {
-        model.session.navigation.path(for: model.session.selected, in: workspace)
-            .filter { $0.type != Workspace.self }
-            .filter { $0.type != Scene.self }
-    }
-
-    var body: some View {
-        SwiftUI.Menu {
-            PathButton(model: model, ref: workspace, last: true)
-
-            ForEach(Array(refs.enumerated().dropLast(1)), id: \.element) { index, ref in
-                PathButton(model: model, ref: ref, last: true)
-            }
-
-            if let space {
-                PathButton(model: model, ref: space, last: true)
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "list.bullet")
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
-            }
-            .frame(height: 30, alignment: .center)
-            .foregroundStyle(Design.Foreground.secondary)
-            .font(.system(size: 13))
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .buttonStyle(.plain)
     }
 }

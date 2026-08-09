@@ -43,43 +43,14 @@ enum Intent: Codable, Sendable {
         else { false }
     }
 
-    var pid: Int32? {
+    func start(_ signal: @escaping (Signal) -> Void) throws -> Signal? {
         switch self {
-            case .compose(let intent): return intent.pid
-            case .dispatch(let intent): return intent.pid
-            case .execute(let intent): return intent.pid
-            case .observe, .traverse: return nil
+            case .compose(let intent): return try intent.compose(signal)
+            case .dispatch(let intent): return try intent.dispatch(signal)
+            case .observe(let intent): return try intent.observe(signal)
+            case .execute(let intent): return try intent.execute(signal)
+            case .traverse(let intent): return try intent.traverse(signal)
         }
-    }
-
-    mutating func start(_ signal: @escaping (Signal) -> Void) throws -> Signal? {
-        switch self {
-            case .compose(var intent):
-                let terminal = try intent.compose(signal)
-                self = .compose(intent)
-                return terminal
-
-            case .dispatch(var intent):
-                let terminal = try intent.dispatch(signal)
-                self = .dispatch(intent)
-                return terminal
-
-            case .observe(let intent):
-                return try intent.observe(signal)
-
-            case .execute(var intent):
-                let terminal = try intent.execute(signal)
-                self = .execute(intent)
-                return terminal
-
-            case .traverse(let intent):
-                return try intent.traverse(signal)
-        }
-    }
-
-    func stop() -> Bool {
-        guard let pid else { return true }
-        return Harness.with(harness) { $0.stop(pid: pid) } ?? false
     }
 }
 
@@ -88,14 +59,12 @@ struct Composing: Contextual {
     let origin: Reference
     let harness: Reference
     let transcript: Reference
-    var pid: Int32?
 
     init(_ origin: Reference) {
         self.key = .context(origin)
         self.origin = origin
         self.harness = origin
         self.transcript = origin
-        self.pid = nil
     }
 
     init(_ origin: Reference, harness: Reference, transcript: Reference) {
@@ -103,16 +72,10 @@ struct Composing: Contextual {
         self.origin = origin
         self.harness = harness
         self.transcript = transcript
-        self.pid = nil
     }
 
-    mutating func compose(_ signal: @escaping (Signal) -> Void) throws -> Signal? {
-        guard let result = try Harness.with(harness, {
-            try $0.start(origin, transcript: transcript, output: signal) }) ?? nil else {
-            throw RuntimeError.Context.startFailed("Harness start returned no result.")
-        }
-        if let error = result.error, !error.isEmpty { throw RuntimeError.Context.startFailed(error) }
-        pid = result.pid
+    func compose(_ signal: @escaping (Signal) -> Void) throws -> Signal? {
+        try start(harness, origin: origin, transcript: transcript, signal: signal)
         return nil
     }
 }
@@ -122,14 +85,12 @@ struct Dispatching: Contextual {
     let origin: Reference
     let harness: Reference
     let transcript: Reference
-    var pid: Int32?
 
     init(_ origin: Reference) {
         self.key = .context(origin)
         self.origin = origin
         self.harness = origin
         self.transcript = origin
-        self.pid = nil
     }
 
     init(_ origin: Reference, harness: Reference, transcript: Reference) {
@@ -137,14 +98,10 @@ struct Dispatching: Contextual {
         self.origin = origin
         self.harness = harness
         self.transcript = transcript
-        self.pid = nil
     }
 
-    mutating func dispatch(_ signal: @escaping (Signal) -> Void) throws -> Signal? {
-        guard let result = try Harness.with(harness, { try $0.start(origin, transcript: transcript, output: signal) }) ?? nil
-        else { throw RuntimeError.context(.startFailed("Harness start returned no result.")) }
-        if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-        pid = result.pid
+    func dispatch(_ signal: @escaping (Signal) -> Void) throws -> Signal? {
+        try start(harness, origin: origin, transcript: transcript, signal: signal)
         return nil
     }
 }
@@ -154,14 +111,12 @@ struct Executing: Contextual {
     let origin: Reference
     let harness: Reference
     let transcript: Reference
-    var pid: Int32?
 
     init(_ origin: Reference) {
         self.key = .context(origin)
         self.origin = origin
         self.harness = origin
         self.transcript = origin
-        self.pid = nil
     }
 
     init(_ origin: Reference, harness: Reference, transcript: Reference) {
@@ -169,14 +124,10 @@ struct Executing: Contextual {
         self.origin = origin
         self.harness = harness
         self.transcript = transcript
-        self.pid = nil
     }
 
-    mutating func execute(_ signal: @escaping (Signal) -> Void) throws -> Signal? {
-        guard let result = try Harness.with(harness, { try $0.start(origin, transcript: transcript, output: signal) }) ?? nil
-        else { throw RuntimeError.context(.startFailed("Harness start returned no result.")) }
-        if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-        pid = result.pid
+    func execute(_ signal: @escaping (Signal) -> Void) throws -> Signal? {
+        try start(harness, origin: origin, transcript: transcript, signal: signal)
         return nil
     }
 }
@@ -228,6 +179,12 @@ struct Traversing: Contextual {
     func traverse(_ signal: @escaping (Signal) -> Void) throws -> Signal? { .completed(nil) }
 }
 
+private func start(_ harness: Reference, origin: Reference, transcript: Reference, signal: @escaping (Signal) -> Void) throws {
+    guard let result = try Harness.with(harness, { try $0.start(origin, transcript: transcript, output: signal) }) ?? nil
+    else { throw RuntimeError.context(.startFailed("Harness start returned no result.")) }
+    if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
+}
+
 struct Context: Contextual {
     let key: Key
     let origin: Reference
@@ -242,42 +199,41 @@ struct Context: Contextual {
 
     var harness: Reference? { Self.harness(for: origin) }
 
-    mutating func start() {
+    mutating func start(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
         guard let harnessRef = harness, let harness = Harness.with(harnessRef, { $0 }) else { return }
         let focused = focusedTranscript()
         let branch = focused ?? Transcript.new("\(harness.intent) Transcript".capitalized, owner: origin)
         let intent = parse(harness, transcript: branch)
+        Transcript.update(transcript) { $0.insert(.started(harnessRef)) }
         if focused == nil { Transcript.update(transcript) { $0.insert(branch, intent.key) } }
         recordEnvironment(in: branch)
-        Transcript.update(branch) { $0.insert(.started(harnessRef)) }
         intents.append(intent)
 
-        let origin = self.origin
         let receive: @Sendable (Signal) -> Void = { signal in
             Task { @MainActor in
-                Composer.shared.receive(signal, origin: origin, transcript: branch)
+                Transcript.update(branch) { $0.insert(signal) }
+                if signal.terminal { terminal(signal, branch) }
             }
         }
 
         do {
-            let index = intents.index(before: intents.endIndex)
-            if let terminal = try intents[index].start(receive) {
-                self.receive(terminal, from: branch)
-            }
+            if let terminal = try intent.start(receive) { receive(terminal) }
         } catch {
-            self.receive(.failed(.string(String(describing: error))), from: branch)
+            receive(.failed(.string(String(describing: error))))
         }
     }
 
     mutating func stop() {
+        guard Runtime.shared.services.stop(context: origin.contextId) else { return }
         let active = intents
-        for intent in active where intent.stop() {
-            receive(.stopped(intent.harness), from: intent.transcript)
+        for intent in active {
+            let signal = Signal.stopped(intent.harness)
+            Transcript.update(intent.transcript) { $0.insert(signal) }
+            complete(signal, from: intent.transcript)
         }
     }
 
-    mutating func receive(_ signal: Signal, from branch: Reference) {
-        Transcript.update(branch) { $0.insert(signal) }
+    mutating func complete(_ signal: Signal, from branch: Reference) {
         guard signal.terminal else { return }
         Transcript.update(transcript) { $0.insert(signal) }
         intents.removeAll { $0.transcript == branch }

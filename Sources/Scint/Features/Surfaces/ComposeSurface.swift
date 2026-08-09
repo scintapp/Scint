@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-struct ComposerInput: View {
+struct ComposeInput: View {
     let model: any Model
 
     var controls: some View {
@@ -37,3 +37,26 @@ struct ComposerInput: View {
         .frame(maxWidth: 660)
     }
 }
+
+struct ComposeSurface: Surface {
+    var panel: any Panel
+    var model: any Model
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            TranscriptEntries(model: model)
+                .frame(maxWidth: 660, maxHeight: .infinity, alignment: .top)
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+
+            ComposeInput(model: model)
+                .frame(maxWidth: 660, alignment: .bottom)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 12)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .scrollEdgeEffectStyle(.soft, for: .top)
+    }
+}
+
+

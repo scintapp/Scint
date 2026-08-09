@@ -360,7 +360,7 @@ struct SceneBlock: View {
                     Badge("\(facts.artifacts) artifact\(facts.artifacts == 1 ? "" : "s")", tint: Design.Tint.command, style: .neutral)
                 }
                 if !args.isEmpty {
-                    Badge(args, tint: Design.Tint.command, style: .neutral, monospaced: true)
+                    Badge(args, tint: Design.Tint.command, style: .neutral)
                 }
             }
             .fixedSize(horizontal: true, vertical: false)

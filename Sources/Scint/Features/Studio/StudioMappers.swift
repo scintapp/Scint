@@ -31,7 +31,7 @@ struct FolderTree: Mapper {
         func file(for entry: Artifact.Handler, root: Reference, in model: some Model) -> ItemParams? {
             guard let url = entry.url else { return nil }
             let children: [ItemParams] = entry.directory && expanded.contains(AnyHashable(url))
-            ? sortFileItems(model.children(for: entry).compactMap { file(for: $0, root: root, in: model) })
+            ? sortFileItems(entry.children.compactMap { file(for: $0, root: root, in: model) })
             : []
 
             return .init(
@@ -49,7 +49,7 @@ struct FolderTree: Mapper {
             let isDirectory = entry.directory
             let isExpanded = expanded.contains(AnyHashable(url))
             let children: [ItemParams] = isDirectory && isExpanded
-            ? sortFileItems(model.children(for: entry).compactMap { file(for: $0, root: ref, in: model) })
+            ? sortFileItems(entry.children.compactMap { file(for: $0, root: ref, in: model) })
             : []
 
             return .init(
@@ -301,6 +301,8 @@ struct SpaceTree: Mapper {
     }
 
     static func parameters(_ model: any Model) -> Params {
+        let workspace = model.session.workspace
+
         func sorted(_ items: [ItemParams]) -> [ItemParams] {
             items.sorted {
                 let lhsBoundary = $0.ref?.type is Space.Type
@@ -322,14 +324,24 @@ struct SpaceTree: Mapper {
             )
         }
 
+        let spaces = Workspace.with(workspace, {
+            $0.spaces.map { space(for: $0, owner: workspace, in: model) }
+        }) ?? []
+
         return .init(
             nesting: .recursive,
             components: [
                 .init(
                     id: "spaces",
                     name: "Spaces",
-                    items: sorted(Workspace.with(model.session.workspace, {
-                        $0.spaces.map { space(for: $0, owner: model.session.workspace, in: model) } }) ?? [])
+                    items: [
+                        .init(
+                            ref: workspace,
+                            name: workspace.descriptor.name,
+                            image: "app",
+                            items: sorted(spaces)
+                        )
+                    ]
                 )
             ]
         )
@@ -373,32 +385,33 @@ struct SpaceGrid: Mapper {
         )
     }
 
-    static func parameters(_ model: any Model) -> Params {
-        let ref = model.session.origin
+    static func parameters(_ model: any Model) -> Params { content(model.session.origin) }
+
+    static func content(_ ref: Reference) -> Params {
         let scenes = Space.with(ref, { $0.scenes }) ?? []
         let spaces = Space.with(ref, { $0.spaces }) ?? []
 
         let structures: [ItemParams] = spaces
             .filter { $0.descriptor.published != false }
             .compactMap { space in
-                .init(
-                    ref: space,
-                    origin: space,
-                    name: space.descriptor.name,
-                    image: Iconography.icon(for: space).symbol
-                )
+                    .init(
+                        ref: space,
+                        origin: space,
+                        name: space.descriptor.name,
+                        image: Iconography.icon(for: space).symbol
+                    )
             }
 
         let content: [ItemParams] = scenes
             .filter { $0.descriptor.published != false }
             .compactMap { scene in
-            .init(
-                ref: scene,
-                origin: Scene.with(scene, { $0.owner }),
-                name: ref.descriptor.name,
-                image: Iconography.icon(for: scene).symbol
-            )
-        }
+                    .init(
+                        ref: scene,
+                        origin: Scene.with(scene, { $0.owner }),
+                        name: scene.descriptor.name,
+                        image: Iconography.icon(for: scene).symbol
+                    )
+            }
 
         return .init(
             layout: .grid,
@@ -478,7 +491,7 @@ struct SceneGroup: Mapper {
         }
 
         guard case .content(let scene) = model.session.focused, scene.type is Scene.Type
-                else { return .init(layout: .group) }
+        else { return .init(layout: .group) }
         let items = Scene.with(scene, { value in value.blocks.map { item(for: $0, owner: scene) } }) ?? []
 
         return .init(
@@ -487,7 +500,7 @@ struct SceneGroup: Mapper {
             description: scene.descriptor.description,
             layout: .group,
             nesting: .recursive,
-            header: true,
+            header: false,
             components: [
                 .init(
                     id: "outline",
@@ -810,7 +823,7 @@ struct SpaceGroup: Mapper {
             name: space.descriptor.name,
             description: space.descriptor.description,
             layout: .group,
-            header: true,
+            header: false,
             components: components
         )
     }
@@ -905,15 +918,6 @@ struct SidebarMapper: Mapper {
                             image: "clock"
                         ),
                     ]
-                ),
-                .init(
-                    id: "library",
-                    name: "Library",
-                    header: true,
-                    items: LibraryList
-                        .parameters(model)
-                        .components
-                        .flatMap { $0.items }
                 ),
                 .init(
                     id: "spaces",

@@ -54,7 +54,6 @@ struct Editor: View {
     func surface(_ model: any Model) -> some View {
         @Bindable var state = self.state
         let surface = AnySurface(panel: self, model: model)
-
         return surface.render(surface, parameters(model), controls(model))
             .scrollEdgeEffectStyle(.soft, for: .top)
             .safeAreaBar(edge: .bottom) { Filter(text: $state.filter) }

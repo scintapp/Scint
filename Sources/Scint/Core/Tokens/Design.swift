@@ -25,6 +25,7 @@ enum Typography {
 enum Design {
     enum Shape {
         static var tab: RoundedRectangle { RoundedRectangle(cornerRadius: 28, style: .continuous) }
+        static var badge: RoundedRectangle { Design.Shape.menu }
         static var block: RoundedRectangle { RoundedRectangle(cornerRadius: 12, style: .continuous) }
         static var bubble: RoundedRectangle { RoundedRectangle(cornerRadius: 16, style: .continuous) }
         static var node: RoundedRectangle { RoundedRectangle(cornerRadius: 14, style: .continuous) }
@@ -38,6 +39,8 @@ enum Design {
         static var block: Color { Color(red: 0.149, green: 0.149, blue: 0.153) }
         static var card: Color { Color(red: 0.149, green: 0.149, blue: 0.153) }
         static var hairline: Color { block.opacity(0.12) }
+        static var cardBorder: Color { Color.white.opacity(0.09) }
+        static var controlBorder: Color {Color.white.opacity(0.11) }
     }
 
     enum Background {
@@ -66,6 +69,7 @@ enum Design {
     }
 
     enum Tint {
+
         static var compose: Color { Color(red: 1.131, green: 0.880, blue: 1.499) }
         static var dispatch: Color { Color(red: 1.258, green: 1.087, blue: 1.547) }
         static var execute: Color { Color(red: 1.338, green: 0.817, blue: 0.947) }

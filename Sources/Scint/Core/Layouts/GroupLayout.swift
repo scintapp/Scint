@@ -42,8 +42,6 @@ extension View {
     }
 }
 
-
-
 struct GroupDivider: View { var body: some View { Divider().padding(.horizontal, 8) } }
 
 struct GroupToggle: View {

@@ -55,7 +55,7 @@ struct TranscriptOutput: View {
                 case .reasoning(let text):
                     TranscriptReasoning(content: text)
 
-                case .tool(let verb, let name):
+                case .tool(name: let name, verb: let verb):
                     TranscriptToolCall(verb: verb, name: name)
             }
         }
@@ -144,10 +144,32 @@ struct TranscriptEntry: View {
                         EmptyView()
                 }
             case .scene(let ref, _):
-                TranscriptInput(ref: ref)
+                TranscriptScene(ref: ref)
 
-            case .transcript:
-                EmptyView()
+            case .transcript(let ref, let created):
+                if let content = Transcript.with(ref, { transcript in
+                    VStack(alignment: .leading, spacing: Spacing.blockSpacing) {
+                        HStack(spacing: Spacing.messageExtraSpacing) {
+                            Text(ref.descriptor.name)
+                                .font(Typography.body.weight(.medium))
+                                .foregroundStyle(Design.Foreground.primary)
+                            Text("—")
+                            Text(created, style: .time)
+                        }
+                        .font(Typography.body)
+                        .foregroundStyle(Design.Foreground.tertiary)
+
+                        VStack(alignment: .leading, spacing: Spacing.blockSpacing) {
+                            ForEach(transcript.entries) { entry in
+                                TranscriptEntry(entry: entry)
+                            }
+                        }
+                        .padding(.leading, Spacing.quoteInset)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                }) {
+                    content
+                }
 
             case .value:
                 EmptyView()
@@ -157,7 +179,7 @@ struct TranscriptEntry: View {
     }
 }
 
-struct TranscriptInput: View {
+struct TranscriptScene: View {
     let ref: Reference
 
     var body: some View {
@@ -168,43 +190,39 @@ struct TranscriptInput: View {
                return input.rendered.trimmingCharacters(in: .whitespacesAndNewlines)
            }), !content.isEmpty {
 
-            HStack {
-                Spacer(minLength: 80)
+            HStack(alignment: .top, spacing: 6) {
                 Text(content)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Design.Foreground.secondary)
-                    .textSelection(.enabled)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(Design.Shape.bubble.fill(Design.Background.block.opacity(0.72)))
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(Design.Foreground.primary)
+                    .frame(maxWidth: 640, alignment: .leading)
+                    .padding(.leading, 4)
             }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .fill(Design.Border.cardBorder.opacity(0.33))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .stroke(Design.Border.controlBorder, lineWidth: 0.45)
+            )
         }
     }
 }
 
-struct TranscriptSurface: Surface {
-    var panel: any Panel
+struct TranscriptEntries: View {
     let model: any Model
 
-    var transcript: Reference? {
-        guard let context = model.session.origin.context else { return nil }
-        return context.transcript
-    }
+    var transcript: Reference? { model.session.transcript }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                if let transcript, let entries = Transcript.with(transcript, { $0 })?.entries {
-                    ForEach(entries) { entry in
-                        TranscriptEntry(entry: entry)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                    .frame(maxWidth: 660, alignment: .top)
-                } else {
-                    Spacer()
+        VStack(spacing: 16) {
+            if let transcript, let entries = Transcript.with(transcript, { $0.entries }) {
+                ForEach(entries) { entry in
+                    TranscriptEntry(entry: entry)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: 660, alignment: .top)
     }
 }

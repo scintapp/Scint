@@ -25,11 +25,8 @@ enum Focus: Codable, Equatable, Sendable {
 
 struct Open: Codable, Equatable, Sendable {
     var scenes: [Reference] = []
-
     var resolved: Value {
-        .collection([
-            "scenes": .sequence(scenes.map(Value.reference))
-        ])
+        .collection([ "scenes": .sequence(scenes.map(Value.reference)) ])
     }
 
     @discardableResult

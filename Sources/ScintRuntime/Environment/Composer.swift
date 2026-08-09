@@ -16,7 +16,11 @@ import Foundation
 
     func start(_ ref: Reference) -> Composition? {
         guard compose(ref) != nil else { return nil }
-        contexts.update(ref) { $0.start() }
+        contexts.update(ref) { context in
+            context.start { [weak self] signal, transcript in
+                self?.contexts.update(ref) { $0.complete(signal, from: transcript) }
+            }
+        }
         return resolve(ref)
     }
 
@@ -24,10 +28,6 @@ import Foundation
         guard contexts.get(ref) != nil else { return nil }
         contexts.update(ref) { $0.stop() }
         return resolve(ref)
-    }
-
-    func receive(_ signal: Signal, origin: Reference, transcript: Reference) {
-        contexts.update(origin) { $0.receive(signal, from: transcript) }
     }
 
     func resolve() -> [Composition] { contexts.keys().compactMap { resolve($0) } }

@@ -14,6 +14,7 @@ struct ScintStudio: View {
         } detail: {
             studio.content.surface(studio)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .toolbar(removing: .title)
         }
         .inspector(isPresented: $studio.inspector.state.presented) {
             studio.inspector.surface(studio)
@@ -51,17 +52,22 @@ struct ScintStudio: View {
     func parameters(_ model: any Model) -> Params { SpaceGrid.parameters(model) }
 
     func surface(_ model: any Model) -> some View {
-        AnySurface(panel: self, model: model)
+        Group {
+            if model.session.origin.type == Workspace.self { WorkspaceSurface(panel: self, model: model) }
+            else { SpaceSurface(panel: self, model: model) }
+        }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .toolbar(removing: .title)
+            .safeAreaBar(edge: .top) {
+                HStack {
+                    PathBar(model: model)
+                    Spacer()
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigation) { NavigationControls(model: model) }
-                ToolbarItem(placement: .navigation) { WorkspaceControls(model: model) }
-                    .sharedBackgroundVisibility(.hidden)
                 ToolbarSpacer(.flexible, placement: .primaryAction)
                 ToolbarItem(placement: .principal) { ContextControls(model: model) }
                 ToolbarSpacer(.flexible, placement: .primaryAction)
-                ToolbarItem(placement: .primaryAction) { PathMenuButton(model: model) }
             }
     }
 }

@@ -137,6 +137,7 @@ struct OutlineControls: View {
 
 struct ContextControls: View {
     let model: any Model
+
     var origin: Reference { model.session.origin }
     var context: Composition? { origin.context }
     var active: Bool { context?.state == .active }
@@ -146,23 +147,20 @@ struct ContextControls: View {
             Button { } label: {
                 Iconography
                     .icon(for: origin, size: 11)
+                    .frame(maxWidth: 30, maxHeight: 30, alignment: .center)
             }
-
-            Spacer().frame(width: 24)
 
             Button { } label: {
                 Text(origin.descriptor.name)
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
             }
-
-            Spacer().frame(width: 24)
 
             Button { } label: {
                 Image(systemName: "play.fill")
-                    .frame(maxWidth: 30, maxHeight: 30, alignment: .center)
                     .font(.system(size: 11))
+                    .frame(maxWidth: 30, maxHeight: 30, alignment: .center)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: 30, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: 30)
     }
 }

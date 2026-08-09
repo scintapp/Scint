@@ -199,7 +199,7 @@ import SwiftUI
         switch ref.type {
             case is Artifact.Type:
                 guard let artifact = Artifact.with(ref, { $0 })
-                else { return Icon(symbol: "", tint: Design.Tint.active, sizing: size) }
+                else { return Icon(symbol: "archivebox", tint: Design.Tint.active, sizing: size) }
                 return Iconography.icon(for: artifact.handler, size: size)
             case is Space.Type:
                 guard let space = Space.with(ref, { $0.harness }).flatMap({ $0 }), let harness = Harness.with(space, { $0.intent })
