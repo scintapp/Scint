@@ -47,7 +47,6 @@ struct ScintStudio: View {
 
 @Observable final class StudioContent: Frame {
     var state: AppState = .init()
-
     func controls(_ model: any Model) -> Controls { SpaceGrid.controls(model) }
     func parameters(_ model: any Model) -> Params { SpaceGrid.parameters(model) }
 
@@ -58,16 +57,19 @@ struct ScintStudio: View {
         }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaBar(edge: .top) {
-                HStack {
+                HStack(alignment: .center) {
                     PathBar(model: model)
                     Spacer()
+                    BadgesBar(model: model)
                 }
+                .frame(maxHeight: 30)
             }
             .toolbar {
                 ToolbarItem(placement: .navigation) { NavigationControls(model: model) }
                 ToolbarSpacer(.flexible, placement: .primaryAction)
                 ToolbarItem(placement: .principal) { ContextControls(model: model) }
                 ToolbarSpacer(.flexible, placement: .primaryAction)
+                ToolbarItem(placement: .primaryAction) { ContextToggle() }
             }
     }
 }
@@ -75,9 +77,7 @@ struct ScintStudio: View {
 @Observable final class StudioInspector: Frame {
     var state: AppState = .init()
     var surface: InspectorSurface = .workspace
-
     enum InspectorSurface: String, CaseIterable { case scene, space, workspace }
-
     func controls(_ model: any Model) -> Controls { SpaceGroup.controls(model) }
     func parameters(_ model: any Model) -> Params { SpaceGroup.parameters(model) }
 

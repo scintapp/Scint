@@ -2,19 +2,6 @@ import SwiftUI
 import Foundation
 
 
-
-@MainActor enum NewBuilder {
-    @ViewBuilder static func build(_ model: some Model, _ host: some Host) -> some View {
-        let controls: Controls = host.controls(model)
-        let params: Params = host.parameters(model)
-    }
-
-    @ViewBuilder static func build(_ host: some Host, _ controls: Controls, _ params: [NewParams]) -> some View { }
-    @ViewBuilder static func build(_ surface: some Surface, _ controls: Controls, _ params: [NewParams]) -> some View { }
-    @ViewBuilder static func build(_ section: some View, _ controls: Controls, _ params: [NewParams]) -> some View { }
-    @ViewBuilder static func build(_ item: some View, _ params: NewParams) -> some View { }
-}
-
 @MainActor enum Factory {
     @ViewBuilder static func build(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
         let nesting = params.nesting ?? .flat
@@ -269,7 +256,6 @@ import Foundation
         else if let tint = item.tint { Iconography.Icon(symbol: item.image, tint: tint) }
         else { Image(systemName: item.image) .foregroundStyle(.secondary) }
     }
-
 }
 
 extension Factory {
@@ -335,5 +321,136 @@ extension Factory {
         }
 
         return result
+    }
+}
+
+
+
+extension Factory {
+    static func build(_ panel: some Panel, _ params: PanelParams, _ controls: Controls) -> some View {
+        let components = build(controls.results?(panel.state.query) ?? [])
+        let items = components.flatMap(\.items)
+        let cursor = panel.state.cursor ?? items.first?.id
+
+        func move(_ delta: Int) {
+            guard !items.isEmpty else { return }
+            let current = items.firstIndex { $0.id == cursor } ?? 0
+            panel.state.cursor = items[(current + delta + items.count) % items.count].id
+        }
+
+        func commit() {
+            guard let item = items.first(where: { $0.id == cursor }) else { return }
+            if let onAction = controls.onAction { onAction(item) }
+            else { controls.onSelect?(item) }
+        }
+
+        func change(_ target: ItemParams) {
+            if let mode = target.key { panel.state.mode = mode }
+            panel.state.query = ""
+            panel.state.cursor = nil
+            controls.onChange?(params.selection ?? target, target)
+        }
+
+        func change(_ index: Int) {
+            guard params.items.indices.contains(index) else { return }
+            change(params.items[index])
+        }
+
+        func cycle() -> KeyPress.Result {
+            guard params.items.count > 1 else { return .ignored }
+            let current = params.items.firstIndex { $0.id == params.selection?.id } ?? 0
+            change((current + 1) % params.items.count)
+            return .handled
+        }
+
+        return PanelLayout {
+            if let input = params.input {
+                PanelInput(
+                    value: Binding(
+                        get: { panel.state.query },
+                        set: {
+                            panel.state.query = $0
+                            controls.onValueChange?(input, $0)
+                        }
+                    ),
+                    image: input.image,
+                    placeholder: input.name,
+                    onUpArrow: { move(-1); return .handled },
+                    onDownArrow: { move(+1); return .handled },
+                    onReturn: { commit(); return .handled },
+                    onTab: cycle
+                )
+            }
+
+            if !params.items.isEmpty {
+                PanelModes(items: params.items, selection: params.selection) { target in
+                    change(target)
+                }
+            }
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 2) {
+                        ForEach(components) { component in
+                            build(panel, component, controls)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 8)
+                }
+                .onChange(of: cursor) { _, id in
+                    guard let id else { return }
+                    proxy.scrollTo(id, anchor: .center)
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if params.pinnable {
+                PanelPin(pinned: panel.state.pinned) { panel.state.pinned.toggle() }
+            }
+        }
+        .environment(\.panelCursor, cursor)
+        .onChange(of: panel.state.query) { _, _ in panel.state.cursor = nil }
+        .onChange(of: params.selection?.id) { _, _ in panel.state.cursor = nil }
+        .background { PanelShortcuts(count: params.items.count) { change($0) } }
+    }
+
+    @ViewBuilder static func build(_ panel: some Panel, _ params: ComponentParams, _ controls: Controls) -> some View {
+        if !params.items.isEmpty {
+            if params.header && !params.name.isEmpty { PanelHeader(name: params.name) }
+            ForEach(params.items) { item in
+                build(panel, item, controls)
+            }
+        }
+    }
+
+    @ViewBuilder static func build(_ panel: some Panel, _ params: ItemParams, _ controls: Controls) -> some View {
+        PanelRow(params: params, selected: controls.selected?(params) ?? false) {
+            panel.state.cursor = params.id
+            controls.onSelect?(params)
+        }
+        .id(params.id)
+    }
+
+    static func build(_ groups: [ResultGroup]) -> [ComponentParams] {
+        groups.compactMap { group in
+            guard !group.results.isEmpty else { return nil }
+            return ComponentParams(
+                id: group.id.description,
+                name: group.name,
+                header: !group.name.isEmpty,
+                image: group.image,
+                items: group.results.map { result in
+                    let icon = Iconography.icon(for: result.ref)
+                    return ItemParams(
+                        ref: result.ref,
+                        name: result.name,
+                        image: icon.symbol,
+                        tint: icon.tint,
+                        description: result.description
+                    )
+                }
+            )
+        }
     }
 }

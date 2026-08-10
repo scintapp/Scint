@@ -105,7 +105,7 @@ actor Server {
         }
         guard let composition = runtime.context().first(where: { $0.structure.contextId == context }),
               composition.structure.type == Space.self,
-              composition.state == .active || composition.state == .running
+              composition.state == .active || composition.state == .working
         else {
             Self.logger.error("MCP \(method, privacy: .public) context \(context.uuidString, privacy: .public) unavailable -> 403")
             return Self.error(id, code: -32600, message: Error.unavailableContext.description, statusCode: 403)

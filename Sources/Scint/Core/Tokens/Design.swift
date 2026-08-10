@@ -77,9 +77,9 @@ enum Design {
         static var observe: Color { Color(red: 0.810, green: 1.191, blue: 1.443) }
         static var traverse: Color { Color(red: 0.748, green: 1.004, blue: 1.407) }
 
-        static var inactive: Color { Color(red: 0.620, green: 0.590, blue: 0.640) }
         static var active: Color { Color(red: 0.888, green: 0.954, blue: 1.127) }
-        static var running: Color { Color(red: 0.723, green: 0.781, blue: 0.809) }
+        static var working: Color { Color(red: 0.723, green: 0.781, blue: 0.809) }
+        static var inactive: Color { Color(red: 0.620, green: 0.590, blue: 0.640) }
         static var blocked: Color { Color(red: 0.801, green: 0.630, blue: 0.506) }
         static var failed: Color { Color(red: 0.796, green: 0.555, blue: 0.662) }
 

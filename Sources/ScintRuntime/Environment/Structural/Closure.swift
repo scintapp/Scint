@@ -41,7 +41,7 @@ struct Closure: Structural {
         var instance = Closure(.init(Self.self))
         instance.origin = owner
         instance.input = Scene.new(owner, input: true)
-        Descriptor.new(instance.ref, name: name, tags: ["closure"])
+        Descriptor.new(instance.ref, name: name, tags: ["closure"], published: false)
         Workspaces.shared.add(instance.ref, instance)
         if owner.type == Workspace.self { Workspace.update(owner, { $0.closure = instance.ref}) }
         else if owner.type == Space.self { Space.update(owner, { $0.closure = instance.ref}) }

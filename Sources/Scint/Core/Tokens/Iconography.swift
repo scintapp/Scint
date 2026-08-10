@@ -217,7 +217,7 @@ import SwiftUI
                 return Icon(symbol: "text.alignleft", tint: Design.Tint.scene, sizing: size)
             case is Transcript.Type:
                 for entry in Transcript.with(ref, { $0.entries }) ?? [] { return Iconography.icon(for: entry, size: size) }
-                return Icon(symbol: "rectangle.stack", tint: Design.Tint.running, sizing: size)
+                return Icon(symbol: "rectangle.stack", tint: Design.Tint.working, sizing: size)
             case is Workspace.Type:
                 return Icon(symbol: "cube.transparent", tint: Design.Tint.info, sizing: size)
             default:
@@ -245,7 +245,7 @@ import SwiftUI
             case is Scene.Type:
                 return Design.Tint.scene
             case is Transcript.Type:
-                return Design.Tint.running
+                return Design.Tint.working
             case is Space.Type:
                 guard let harness = Space.with(ref, { $0.harness }).flatMap({ $0 }),
                       let m = Harness.with(harness, { $0.intent })
@@ -312,7 +312,7 @@ import SwiftUI
                 switch entry {
                     case .signal: return Icon(symbol: "calendar", tint: Design.Tint.active)
                     case .scene: return Icon(symbol: "text.alignleft", tint: Design.Tint.scene)
-                    case .transcript: return Icon(symbol: "rectangle.stack", tint: Design.Tint.running)
+                    case .transcript: return Icon(symbol: "rectangle.stack", tint: Design.Tint.working)
                 }
             case .workspace:
                 return Icon(symbol: "cube.transparent", tint: Design.Tint.workspace)

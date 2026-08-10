@@ -6,7 +6,7 @@ struct Badge: View {
     var symbol: String?
     var tint: Color = Design.Tint.active
     var style: Style = .soft
-    var monospaced = false
+
 
     enum Style { case soft, neutral }
 
@@ -39,14 +39,14 @@ struct Badge: View {
     }
 
     private var font: Font {
-        .system(size: 10.5, weight: .medium, design: monospaced ? .monospaced : .default)
+        .system(size: 10, weight: .medium)
     }
 
     var body: some View {
         HStack(spacing: label.isEmpty ? 0 : 5) {
             if let symbol {
                 Image(systemName: symbol)
-                    .font(.system(size: 10.5, weight: .semibold))
+                    .font(.system(size: 10, weight: .medium))
                     .frame(width: label.isEmpty ? 18 : nil, height: 18)
             }
 
@@ -57,30 +57,33 @@ struct Badge: View {
                     .truncationMode(.middle)
             }
         }
-        .foregroundStyle(foreground)
+        .frame(maxHeight: 27)
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, label.isEmpty ? 3 : 7)
         .padding(.vertical, label.isEmpty ? 2 : 3)
-        .frame(minHeight: 22)
         .background(background)
         .clipShape(Design.Shape.badge)
         .overlay { Design.Shape.badge.strokeBorder(stroke, lineWidth: 0.75) }
     }
 }
 
-struct SpaceBadges: View {
+struct BadgesBar: View {
     let model: any Model
-
     var origin: Reference { model.session.origin }
 
     var body: some View {
-        HStack(spacing: 6) {
-            Badge("3", symbol: "text.alignleft", tint: Design.Tint.scene)
-            Badge("0/3", symbol: "checkmark.app", tint: Design.Tint.task)
-            Badge("4", symbol: "archivebox", tint: Design.Tint.artifact)
-            Badge("8", symbol: "switch.2", tint: Design.Tint.command)
-            Badge("Executing", symbol: "gear", tint: Design.Tint.execute)
-            Badge("Active", symbol: "app", tint: Design.Tint.active)
+        if origin.type != Workspace.self {
+            HStack(spacing: 6) {
+                Badge("0", symbol: "text.alignleft", tint: Design.Tint.scene)
+                Badge("0/3", symbol: "checkmark.app", tint: Design.Tint.task)
+                Badge("0", symbol: "archivebox", tint: Design.Tint.active, style: .neutral).opacity(0.6)
+                Badge("8", symbol: "switch.2", tint: Design.Tint.command)
+//                Badge("Executing", symbol: "gear", tint: Design.Tint.execute)
+//                Badge("Active", symbol: "app", tint: Design.Tint.active)
+            }
+            .frame(maxHeight: 30)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 6)
         }
-        .frame(maxHeight: 30)
     }
 }

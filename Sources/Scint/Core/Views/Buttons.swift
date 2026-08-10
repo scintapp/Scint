@@ -41,6 +41,7 @@ struct ActionButton: View {
     }
 }
 
+
 struct SceneButton: View {
     var body: some View {
         SwiftUI.Menu {
@@ -59,6 +60,17 @@ struct SceneButton: View {
         .buttonStyle(.plain)
     }
 }
+
+
+struct ContextToggle: View {
+    var body: some View {
+        Button { } label: {
+            Image(systemName: "list.dash.header.rectangle")
+        }
+        .labelsHidden()
+    }
+}
+
 
 struct SidebarToggle: View {
     @Binding var presented: Bool

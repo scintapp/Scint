@@ -3,9 +3,12 @@ import SwiftUI
 
 
 @Observable final class SearchPanel: Panel {
-    var key: AppKey = .studio
     var state: AppState = .init()
-    var mode: Mode = .everything
+
+    var mode: Mode {
+        get { Mode(rawValue: state.mode) ?? .everything }
+        set { state.mode = newValue.rawValue }
+    }
 
     enum Mode: String, CaseIterable {
         case everything, content, interfaces, workspace
@@ -21,18 +24,43 @@ import SwiftUI
                 case .workspace: "cube.transparent"
             }
         }
-    }
 
-    func parameters(_ model: any Model) -> Params {
-        switch mode {
-            case .everything: EverythingQuery.parameters(model)
-            case .content: ContentQuery.parameters(model)
-            case .interfaces: InterfacesQuery.parameters(model)
-            case .workspace: WorkspaceQuery.parameters(model)
+        var query: any Mapper.Type {
+            switch self {
+                case .everything: EverythingQuery.self
+                case .content: ContentQuery.self
+                case .interfaces: InterfacesQuery.self
+                case .workspace: WorkspaceQuery.self
+            }
         }
     }
 
-    func controls(_ model: any Model) -> Controls { PanelQuery.controls(model) }
-    func parameters(_ model: any Model) -> Params { PanelQuery.parameters(model) }
-    func surface(_ model: any Model) -> some View { SearchSurface(host: self, model: model) }
+    func parameters(_ model: any Model) -> Params {
+        let content = mode.query.parameters(model)
+        let modes = Mode.allCases.map { ItemParams(key: $0.rawValue, name: $0.label, image: $0.image) }
+
+        return .init(
+            id: PanelKey.search.id,
+            layout: content.layout,
+            nesting: content.nesting,
+            header: content.header,
+            panel: .init(
+                key: .search,
+                size: CGSize(width: 640, height: 480),
+                input: .init(key: "query", name: mode.placeholder, image: mode.image),
+                items: modes,
+                selection: modes.first { $0.key == mode.rawValue },
+                layout: .float,
+                dismissal: [.escape, .outsideClick],
+                movable: true,
+                resizable: false,
+                pinnable: false
+            ),
+            components: content.components
+        )
+    }
+
+    func controls(_ model: any Model) -> Controls { mode.query.controls(model) }
+
+    func surface(_ model: any Model) -> some View { PanelSurface(panel: self, model: model) }
 }

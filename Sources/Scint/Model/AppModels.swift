@@ -20,8 +20,10 @@ enum PanelKey: String, Identifiable, CaseIterable {
 
 @Observable final class AppState {
     var presented: Bool
+    var pinned: Bool = false
     var position: CGFloat
     var index: Int = 0
+    var mode: String = ""
     var query: String = ""
     var filter: String = ""
     var expanded: Set<AnyHashable>
@@ -47,22 +49,6 @@ enum PanelKey: String, Identifiable, CaseIterable {
             if let newValue { values[key] = AnyHashable(newValue) }
             else { values[key] = nil }
         }
-    }
-}
-
-@Observable @MainActor final class PanelsModel {
-    var actions: ActionsPanel
-    var assistant: AssistantPanel
-    var outline: OutlinePanel
-    var search: SearchPanel
-    var tasks: TasksPanel
-
-    init(_ resolver: ModelResolving) {
-        self.actions = .init()
-        self.assistant = .init()
-        self.outline = .init()
-        self.search = .init()
-        self.tasks = .init()
     }
 }
 

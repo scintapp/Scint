@@ -5,18 +5,12 @@ import SwiftUI
 
 @Observable @MainActor final class ScintModel {
     private(set) var models: [AppKey: any Model] = [:]
-    private(set) var panels: [PanelKey: any Panel] = [:]
     var controller: Controller = .init()
     var server: ServerModel = .init()
 
     func load() async {
         models[.editor] = EditorModel(Self.restore(.editor))
         models[.studio] = StudioModel(Self.restore(.studio))
-        panels[.actions] = ActionsPanel()
-        panels[.assistant] = AssistantPanel()
-        panels[.outline] = OutlinePanel()
-        panels[.search] = SearchPanel()
-        panels[.tasks] = TasksPanel()
 
         await SampleData.load(editor.session.workspace, for: .editor)
         await SampleData.load(studio.session.workspace, for: .studio)
@@ -26,8 +20,9 @@ import SwiftUI
 
     var editor: EditorModel { model(for: .editor) as! EditorModel }
     var studio: StudioModel { model(for: .studio) as! StudioModel }
+
     func model(for key: AppKey) -> any Model { models[key]! }
-    func panel(for key: PanelKey) -> any Panel { panels[key]! }
+    func panel(for key: PanelKey) -> any Panel { controller.panel(for: key) }
 
     func toggle(_ key: PanelKey, _ app: AppKey) {
         let defaults = PanelParams(key: key, size: CGSize(.init(width: 640, height: 480)))

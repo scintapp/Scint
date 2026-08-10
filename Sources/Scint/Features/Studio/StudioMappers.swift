@@ -491,7 +491,7 @@ struct SceneGroup: Mapper {
         }
 
         guard case .content(let scene) = model.session.focused, scene.type is Scene.Type
-        else { return .init(layout: .group) }
+                else { return .init(layout: .group) }
         let items = Scene.with(scene, { value in value.blocks.map { item(for: $0, owner: scene) } }) ?? []
 
         return .init(

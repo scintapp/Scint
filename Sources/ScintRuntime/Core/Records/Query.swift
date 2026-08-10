@@ -84,6 +84,7 @@ struct SearchResult: Codable, Sendable, Identifiable {
     }
 
     init?(descriptor: Descriptor, search: SearchRequest) {
+        guard descriptor.published else { return nil }
         guard search.filters
             .allSatisfy({ Query.matches($0, ref: descriptor.origin, tags: descriptor.tags) }) else {
             return nil

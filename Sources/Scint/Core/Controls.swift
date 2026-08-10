@@ -2,10 +2,25 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 
+struct ResultGroup: Identifiable {
+    let id: AnyHashable
+    let name: String
+    let image: String
+    let results: [SearchResult]
+
+    init(id: String, name: String = "", image: String = "", results: [SearchResult]) {
+        self.id = id
+        self.name = name
+        self.image = image
+        self.results = results
+    }
+}
+
 struct Controls {
     var onToggle: ((ItemParams) -> Void)?
     var onChange: ((_ item: ItemParams, _ selection: ItemParams) -> Void)?
     var onValueChange: ((_ item: ItemParams, _ value: String) -> Void)?
+    var results: ((_ input: String) -> [ResultGroup])?
     var focused: ((_ item: ItemParams) -> Bool)?
     var selected: ((_ item: ItemParams) -> Bool)?
     var onSelect: ((_ item: ItemParams) -> Void)?
@@ -42,6 +57,7 @@ struct Controls {
         onToggle: ((ItemParams) -> Void)? = nil,
         onChange: ((_ item: ItemParams, _ selection: ItemParams) -> Void)? = nil,
         onValueChange: ((_ item: ItemParams, _ value: String) -> Void)? = nil,
+        results: ((_ input: String) -> [ResultGroup])? = nil,
         focused: ((_ item: ItemParams) -> Bool)? = nil,
         selected: ((_ item: ItemParams) -> Bool)? = nil,
         onSelect: ((_ item: ItemParams) -> Void)? = nil,
@@ -77,6 +93,7 @@ struct Controls {
         self.onToggle = onToggle
         self.onChange = onChange
         self.onValueChange = onValueChange
+        self.results = results
         self.focused = focused
         self.selected = selected
         self.onSelect = onSelect

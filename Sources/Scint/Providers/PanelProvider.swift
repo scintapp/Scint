@@ -6,12 +6,6 @@ import SwiftUI
 
 extension Notification.Name { static let scintPanelEscape = Notification.Name("scintPanelEscape") }
 
-struct PanelDismissal: OptionSet, Hashable {
-    let rawValue: Int
-    static let escape = Self(rawValue: 1 << 0)
-    static let outsideClick = Self(rawValue: 1 << 1)
-}
-
 private struct Float<Content: View>: View {
     let content: Content
 
@@ -66,14 +60,22 @@ final class FloatingPanel: NSPanel {
     private var localMonitor: Any?
     private var globalMonitor: Any?
     private var dismissal: PanelDismissal = .escape
+    private var positioned = false
+    private let pinned: () -> Bool
     private let onVisibilityChange: ((Bool) -> Void)?
 
     var window: NSWindow { panel }
     var isVisible: Bool { panel.isVisible }
 
-    init(params: PanelParams, view: AnyView, onVisibilityChange: ((Bool) -> Void)? = nil) {
+    init(
+        params: PanelParams,
+        view: AnyView,
+        pinned: @escaping () -> Bool = { false },
+        onVisibilityChange: ((Bool) -> Void)? = nil
+    ) {
         hosting = NSHostingController(rootView: view)
         panel = FloatingPanel(contentRect: NSRect(origin: .zero, size: params.sizing.size))
+        self.pinned = pinned
         self.onVisibilityChange = onVisibilityChange
         panel.contentView = hosting.view
         super.init()
@@ -97,7 +99,10 @@ final class FloatingPanel: NSPanel {
     }
 
     func show() {
-        panel.center()
+        if !positioned {
+            panel.center()
+            positioned = true
+        }
         installEventMonitors()
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
@@ -112,12 +117,20 @@ final class FloatingPanel: NSPanel {
     }
 
     func configure(_ params: PanelParams) {
+        dismissal = params.dismissal
+        panel.isMovable = params.movable
+        panel.isMovableByWindowBackground = params.movable
+
+        if params.resizable { panel.styleMask.insert(.resizable) }
+        else { panel.styleMask.remove(.resizable) }
+
         panel.minSize = params.sizing.minimumSize ?? NSSize(width: 1, height: 1)
         panel.maxSize = params.sizing.maximumSize ?? NSSize(
             width: CGFloat.greatestFiniteMagnitude,
             height: CGFloat.greatestFiniteMagnitude
         )
-        resize(to: params.sizing.size)
+
+        if !params.resizable || !positioned { resize(to: params.sizing.size) }
         if panel.isVisible { installEventMonitors() }
     }
 
@@ -133,18 +146,19 @@ final class FloatingPanel: NSPanel {
 
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
             guard let self else { return event }
-            guard self.panel.isVisible else { return event }
-            let locationInScreen = NSEvent.mouseLocation
-            if !self.panel.frame.contains(locationInScreen) { self.hide() }
+            self.dismissOutside()
             return event
         }
 
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            guard let self else { return }
-            guard self.panel.isVisible else { return }
-            let locationInScreen = NSEvent.mouseLocation
-            if !self.panel.frame.contains(locationInScreen) { self.hide() }
+            self?.dismissOutside()
         }
+    }
+
+    private func dismissOutside() {
+        guard panel.isVisible, !pinned() else { return }
+        guard !panel.frame.contains(NSEvent.mouseLocation) else { return }
+        hide()
     }
 
     private func removeEventMonitors() {
@@ -165,11 +179,17 @@ final class FloatingPanel: NSPanel {
 
     init(controller: PanelProvider) { self.controller = controller }
 
-    static func load(params: PanelParams, view: AnyView, onVisibilityChange: ((Bool) -> Void)? = nil) -> PanelCoordinator {
+    static func load(
+        params: PanelParams,
+        view: AnyView,
+        pinned: @escaping () -> Bool = { false },
+        onVisibilityChange: ((Bool) -> Void)? = nil
+    ) -> PanelCoordinator {
         Self(
             controller: PanelProvider(
                 params: params,
                 view: view,
+                pinned: pinned,
                 onVisibilityChange: onVisibilityChange
             )
         )
@@ -185,6 +205,22 @@ final class FloatingPanel: NSPanel {
 
 @Observable @MainActor final class Controller {
     private(set) var coordinators: OrderedDictionary<AnyHashable, PanelCoordinator> = [:]
+
+    let actions: ActionsPanel = .init()
+    let assistant: AssistantPanel = .init()
+    let outline: OutlinePanel = .init()
+    let search: SearchPanel = .init()
+    let tasks: TasksPanel = .init()
+
+    func panel(for key: PanelKey) -> any Panel {
+        switch key {
+            case .actions: actions
+            case .assistant: assistant
+            case .outline: outline
+            case .search: search
+            case .tasks: tasks
+        }
+    }
 
     func coordinator(for key: PanelKey) -> PanelCoordinator? { coordinators[key] }
 
@@ -206,9 +242,11 @@ final class FloatingPanel: NSPanel {
             return existing
         }
 
+        let host = panel(for: key)
         let coordinator = PanelCoordinator.load(
             params: parameters,
             view: AnyView(Float(content: view)),
+            pinned: { [weak host] in host?.state.pinned ?? false },
             onVisibilityChange: onVisibilityChange
         )
         coordinators[key] = coordinator

@@ -3,6 +3,12 @@ import SwiftUI
 
 enum HostLayout: Hashable { case fixed, float }
 
+struct PanelDismissal: OptionSet, Hashable {
+    let rawValue: Int
+    static let escape = Self(rawValue: 1 << 0)
+    static let outsideClick = Self(rawValue: 1 << 1)
+}
+
 struct HostSizingParams: Hashable {
     let size: CGSize
     let minimumSize: CGSize?
@@ -118,7 +124,10 @@ struct PanelParams {
     let input: ItemParams?
     let items: [ItemParams]
     let selection: ItemParams?
-    let layout: HostLayout
+    let dismissal: PanelDismissal
+    let movable: Bool
+    let resizable: Bool
+    let pinnable: Bool
 
     init(
         key: PanelKey,
@@ -129,6 +138,10 @@ struct PanelParams {
         items: [ItemParams] = [],
         selection: ItemParams? = nil,
         layout: HostLayout = .fixed,
+        dismissal: PanelDismissal = [.escape, .outsideClick],
+        movable: Bool = true,
+        resizable: Bool = false,
+        pinnable: Bool = false,
     ) {
         self.key = key
         self.sizing = .init(
@@ -139,7 +152,10 @@ struct PanelParams {
         self.input = input
         self.items = items
         self.selection = selection
-        self.layout = layout
+        self.dismissal = dismissal
+        self.movable = movable
+        self.resizable = resizable
+        self.pinnable = pinnable
     }
 }
 
@@ -185,3 +201,4 @@ enum NewParams: Identifiable, Hashable {
     enum Host: Hashable { case framed, floating(CGFloat, CGFloat) }
     var id: AnyHashable { switch self { case .host(let id, _, _), .section(let id, _, _), .item(let id): id } }
 }
+

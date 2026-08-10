@@ -3,11 +3,11 @@ import Foundation
 
 struct Composition: Codable, Sendable {
     let structure: Reference
-
-    enum State: Codable, Sendable, Equatable { case inactive, active, running }
-
     private var context: Context? { Composer.shared.context(structure) }
-    var intents: [Intent] { context?.intents ?? [] }
+    private var intents: [Intent] { context?.intents ?? [] }
+
+    enum State: Codable, Sendable, Equatable { case active, working, inactive }
+
     var harness: Reference? { context?.harness }
     var transcript: Reference { context?.transcript ?? structure }
 
@@ -23,6 +23,6 @@ struct Composition: Codable, Sendable {
 
     var state: State {
         guard let intents = context?.intents, !intents.isEmpty else { return .inactive }
-        return intents.contains { !$0.observing } ? .running : .active
+        return intents.contains { !$0.observing } ? .working : .active
     }
 }
