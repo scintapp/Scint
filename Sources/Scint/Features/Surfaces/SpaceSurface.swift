@@ -16,12 +16,12 @@ struct SpaceHeader: View {
                 if origin.descriptor.description.isEmpty {
                     Text("Write a description...")
                         .font(Typography.message)
-                        .foregroundStyle(Design.Foreground.tertiary)
+                        .foregroundStyle(Design.Foreground.secondary)
                         .lineLimit(5)
                 } else {
                     Text(origin.descriptor.description)
                         .font(Typography.message)
-                        .foregroundStyle(Design.Foreground.tertiary)
+                        .foregroundStyle(Design.Foreground.quaternary)
                         .lineLimit(5)
                 }
             }
@@ -40,26 +40,8 @@ struct SpaceHeader: View {
     }
 }
 
-struct SpaceContent: Surface {
-    var ref: Reference? = nil
-    var panel: any Panel
-    var model: any Model
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            ScrollView(.horizontal) {
-                let surface = AnySurface(panel: panel, model: model)
-                let parameters = if let ref { SpaceGrid.content(ref) } else { panel.parameters(model) }
-                surface.render(surface, parameters, panel.controls(model))
-                    .scrollDisabled(true)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: 144)
-    }
-}
-
 struct SpaceSurface: Surface {
-    var panel: any Panel
+    var host: any Host
     var model: any Model
     var origin: Reference { model.session.origin }
     var context: Composition? { origin.context }
@@ -74,11 +56,10 @@ struct SpaceSurface: Surface {
                     TranscriptEntries(model: model)
                         .frame(alignment: .top)
                 }
+                .padding(.horizontal, 24)
+                Color.clear.frame(height: 64)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.horizontal, 24)
-            .padding(.top, 12)
-
 
             ComposeInput(model: model)
                 .frame(maxWidth: .infinity, alignment: .bottom)
@@ -86,6 +67,7 @@ struct SpaceSurface: Surface {
                 .padding(.bottom, 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .scrollEdgeEffectStyle(.hard, for: .top)
     }
 }
+

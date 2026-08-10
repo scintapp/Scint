@@ -7,47 +7,41 @@ enum Parser {
             return try parse(supplied, command: command)
         }
         if let harness = Harness.with(ref, { $0 }) {
-            return try parse(supplied, harness: harness, input: nil)
+            return try parse(supplied, harness: harness)
         }
         throw ParsingError.invalid("No functional object found for \(ref.id).")
     }
 
-    static func parse(_ origin: Reference, transcript: Reference, for harness: Reference) throws -> [String: Value] {
-        guard let harness = Harness.with(harness, { $0 }) else {
-            throw RuntimeError.context(.missing(harness))
+    static func parse(_ origin: Reference, for harnessRef: Reference) throws -> [String] {
+        guard let harness = Harness.with(harnessRef, { $0 }) else {
+            throw RuntimeError.context(.missing(harnessRef))
         }
-        guard let closureRef = Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure }),
-              let closure = Closure.with(closureRef, { $0 })
+        guard let structure = Space.with(origin, { (config: $0.config, rendered: $0.rendered) })
+                ?? Workspace.with(origin, { (config: $0.config, rendered: $0.rendered) })
         else { throw RuntimeError.context(.missing(origin)) }
+        guard let command = Command.with(harness.command, { $0 }) else {
+            throw RuntimeError.context(.missing(harness.command))
+        }
 
-        var supplied: [String: Value] = [:]
+        var harnessSupplied: [String: Value] = [:]
         for parameter in harness.parameters {
             switch parameter {
                 case .argument(let name, _, _, _), .requirement(let name, _, _), .target(let name, _, _):
-                    supplied[name] = closure.config[name]
+                    harnessSupplied[name] = name == "prompt" ? .string(structure.rendered) : structure.config[name]
                 case .command:
                     break
             }
         }
 
-        let inputs = Transcript.with(transcript) { transcript in
-            transcript.entries.compactMap { entry -> Reference? in
-                guard case .scene(let ref, _) = entry else { return nil }
-                return ref
-            }
-        } ?? []
-        let rendered = inputs.compactMap { ref -> String? in
-            guard let value = Scene.with(ref, { $0.rendered }), !value.isEmpty else { return nil }
-            return "# \(ref.descriptor.name)\n\(value)"
+        var commandSupplied: [String: Value] = [:]
+        for parameter in command.parameters {
+            guard case .argument(let name, _, _, _) = parameter else { continue }
+            commandSupplied[name] = structure.config[name]
         }
-        let artifacts = Transcript.with(transcript, { $0.output("artifacts") }).flatMap { $0 }?.references ?? []
-        let renderedArtifacts = artifacts.compactMap { ref -> String? in
-            guard let value = Artifact.with(ref, { $0.rendered }), !value.isEmpty else { return nil }
-            return "# \(ref.descriptor.name)\n\(value)"
-        }
-        let context = (renderedArtifacts + rendered).joined(separator: "\n\n")
-        let input = context.isEmpty ? nil : Value.string(context)
-        return try parse(supplied, harness: harness, input: input)
+
+        let commandValues = try parse(commandSupplied, command: command)
+        let harnessValues = try parse(harnessSupplied, harness: harness)
+        return command.rendered(with: commandValues) + harness.rendered(with: harnessValues)
     }
 
     private static func parse(_ supplied: [String: Value], command: Command) throws -> [String: Value] {
@@ -71,10 +65,9 @@ enum Parser {
         return parsed
     }
 
-    private static func parse(_ supplied: [String: Value], harness: Harness, input: Value?) throws -> [String: Value] {
+    private static func parse(_ supplied: [String: Value], harness: Harness) throws -> [String: Value] {
         var parsed: [String: Value] = [:]
         var expected: Set<String> = []
-        var input = input
 
         for parameter in harness.parameters {
             switch parameter {
@@ -82,9 +75,6 @@ enum Parser {
                     expected.insert(name)
                     if let value = supplied[name] {
                         parsed[name] = try type.construct(value, name: name)
-                    } else if required, let value = input {
-                        parsed[name] = try type.construct(value, name: name)
-                        input = nil
                     } else if let defaultValue {
                         parsed[name] = try type.construct(defaultValue, name: name)
                     } else if required {

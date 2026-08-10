@@ -159,7 +159,7 @@ Presentation parameters form a shallow tree:
 
 ```text
 Params
-├── PanelParams        floating size, input, modes, selection
+├── HostParams        floating size, input, modes, selection
 └── ComponentParams[]  named sections
     └── ItemParams[]   references, entries, paths, labels, values, children
 ```
@@ -188,7 +188,7 @@ does not infer authority from its appearance.
 
 ### Panel, Surface, and Builder
 
-A `Panel` owns presentation-only state in `StateContainer`: visibility, split position,
+A `Panel` owns presentation-only state in `AppState`: visibility, split position,
 filter and query text, expanded identifiers, and small keyed values. It then chooses
 the active mapper and surface. For example, `StudioSidebar` switches among workspace,
 transcript, and library mappings without changing the shell that hosts them.

@@ -3,7 +3,7 @@ import SwiftUI
 
 struct SpacePreviewCard: Surface {
     var model: any Model
-    var panel: any Panel
+    var host: any Host
     var ref: Reference
 
     var context: Composition? { ref.context }
@@ -46,7 +46,7 @@ struct SpacePreviewCard: Surface {
                 .buttonStyle(.plain)
             }
 
-            SpaceContent(ref: ref, panel: panel, model: model)
+            SpaceContent(ref: ref, host: host, model: model)
                 .frame(width: 500, height: 144, alignment: .topLeading)
                 .scaleEffect(0.72, anchor: .topLeading)
                 .frame(width: 360, height: 104, alignment: .topLeading)
@@ -151,7 +151,7 @@ struct SpacePreviewCard: Surface {
 }
 
 struct WorkspaceSurface: Surface {
-    var panel: any Panel
+    var host: any Host
     let model: any Model
 
     var spaces: [Reference] {
@@ -175,7 +175,7 @@ struct WorkspaceSurface: Surface {
         ScrollView {
             LazyVGrid(columns: columns, alignment: .leading, spacing: 20) {
                 ForEach(spaces) { space in
-                    SpacePreviewCard(model: model, panel: panel, ref: space)
+                    SpacePreviewCard(model: model, host: host, ref: space)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .top)

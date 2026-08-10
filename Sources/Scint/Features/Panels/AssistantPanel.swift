@@ -3,10 +3,11 @@ import SwiftUI
 
 
 @Observable final class AssistantPanel: Panel {
-    var state: StateContainer = .init()
+    var key: AppKey = .studio
+    var state: AppState = .init()
 
     func surface(_ model: any Model) -> some View {
-        ComposeSurface(panel: self, model: model)
+        ComposeSurface(host: self, model: model)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

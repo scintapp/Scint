@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-struct PanelRow: View {
+struct hostRow: View {
     let name: String
     let description: String
     let image: String
@@ -64,7 +64,7 @@ struct PanelRow: View {
     }
 }
 
-struct PanelInput: View {
+struct hostInput: View {
     @Binding var value: String
     @FocusState var focused: Bool
 
@@ -110,15 +110,15 @@ struct PanelInput: View {
 }
 
 struct SearchSurface: Surface {
-    var panel: any Panel
+    var host: any Host
     let model: any Model
 
-    private var search: SearchPanel { panel as! SearchPanel }
+    private var search: SearchPanel { host as! SearchPanel }
 
     var body: some View {
         let search = self.search
-        let params = panel.parameters(model)
-        let controls = panel.controls(model)
+        let params = host.parameters(model)
+        let controls = host.controls(model)
         let items = params.components.flatMap(\.items)
         let surfaces = params.panel?.items ?? []
         let selection = params.panel?.selection
@@ -126,12 +126,12 @@ struct SearchSurface: Surface {
 
         func move(_ delta: Int) {
             guard !items.isEmpty else { return }
-            panel.state.index = (panel.state.index + delta + items.count) % items.count
+            host.state.index = (host.state.index + delta + items.count) % items.count
         }
 
         func commit() {
-            guard items.indices.contains(panel.state.index) else { return }
-            let item = items[panel.state.index]
+            guard items.indices.contains(host.state.index) else { return }
+            let item = items[host.state.index]
             if let onAction = controls.onAction { onAction(item) }
             else { controls.onSelect?(item) }
         }
@@ -150,9 +150,9 @@ struct SearchSurface: Surface {
 
         return VStack(alignment: .leading, spacing: 0) {
             if let input = params.panel?.input {
-                PanelInput(
+                hostInput(
                     value: Binding(
-                        get: { panel.state.query },
+                        get: { host.state.query },
                         set: { controls.onValueChange?(input, $0) }
                     ),
                     image: input.image,
@@ -181,14 +181,14 @@ struct SearchSurface: Surface {
                                 let startIndex = params.components.prefix(componentIndex).reduce(0) { $0 + $1.items.count }
                                 ForEach(Array(component.items.enumerated()), id: \.element.id) { offset, item in
                                     let absoluteIndex = startIndex + offset
-                                    PanelRow(
+                                    hostRow(
                                         name: item.name,
                                         description: item.description,
                                         image: item.image,
                                         tint: item.tint ?? Design.Tint.active,
-                                        isSelected: absoluteIndex == panel.state.index,
+                                        isSelected: absoluteIndex == host.state.index,
                                         onTap: {
-                                            panel.state.index = absoluteIndex
+                                            host.state.index = absoluteIndex
                                             controls.onSelect?(item)
                                         }
                                     )
@@ -200,15 +200,15 @@ struct SearchSurface: Surface {
                     .padding(.horizontal, 8)
                     .padding(.bottom, 8)
                 }
-                .onChange(of: panel.state.index) { _, newIndex in
+                .onChange(of: host.state.index) { _, newIndex in
                     guard items.indices.contains(newIndex) else { return }
                     proxy.scrollTo(items[newIndex].id, anchor: .center)
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .onChange(of: panel.state.query) { _, _ in panel.state.index = 0 }
-        .onChange(of: search.mode) { _, _ in panel.state.index = 0 }
+        .onChange(of: host.state.query) { _, _ in host.state.index = 0 }
+        .onChange(of: search.mode) { _, _ in host.state.index = 0 }
         .background {
             ZStack {
                 ForEach(0..<min(surfaces.count, 9), id: \.self) { index in
@@ -224,3 +224,179 @@ struct SearchSurface: Surface {
         }
     }
 }
+
+
+
+
+//
+//struct SpaceHeader: View {
+//    var model: any Model
+//
+//    var origin: Reference { model.session.origin }
+//    var context: Composition? { origin.context }
+//
+//    var body: some View {
+//        Spacer().frame(height: Spacing.blockSpacing * 2)
+//        HStack(alignment: .top, spacing: Spacing.blockSpacing * 2) {
+//            VStack(alignment: .leading, spacing: Spacing.blockSpacing) {
+//                Text(origin.descriptor.name)
+//                    .font(.title.weight(.semibold))
+//                    .foregroundStyle(Design.Foreground.primary)
+//                if !origin.descriptor.description.isEmpty {
+//                    Text(origin.descriptor.description)
+//                        .font(Typography.body)
+//                        .foregroundStyle(Design.Foreground.secondary)
+//                        .lineLimit(2)
+//                }
+//            }
+//            .frame(maxWidth: 520, alignment: .leading)
+//
+//            Spacer(minLength: 24)
+//
+//            VStack(alignment: .trailing, spacing: Spacing.blockSpacing) {
+//                HStack(spacing: Spacing.messageExtraSpacing) {
+//                    switch context?.state {
+//                        case .running:
+//                            Image(systemName: "circle.fill")
+//                                .font(.system(size: 7))
+//                                .foregroundStyle(Design.Tint.running)
+//                            Text("Running")
+//                                .fontWeight(.medium)
+//                                .foregroundStyle(Design.Foreground.primary)
+//
+//                        case .active:
+//                            Image(systemName: "circle.fill")
+//                                .font(.system(size: 7))
+//                                .foregroundStyle(Design.Tint.active)
+//                            Text("Active")
+//                                .fontWeight(.medium)
+//                                .foregroundStyle(Design.Foreground.primary)
+//
+//                        case .inactive, nil:
+//                            Image(systemName: "circle.fill")
+//                                .font(.system(size: 7))
+//                                .foregroundStyle(Design.Tint.inactive)
+//                            Text("Ready")
+//                                .fontWeight(.medium)
+//                                .foregroundStyle(Design.Foreground.primary)
+//                    }
+//
+//                    if let transcript = context?.intentTranscript {
+//                        Text("·")
+//                            .foregroundStyle(Design.Foreground.quaternary)
+//                        Text(transcript.descriptor.name)
+//                            .foregroundStyle(Design.Foreground.secondary)
+//                            .lineLimit(1)
+//                    }
+//                }
+//                .font(Typography.body)
+//
+//                HStack(spacing: Spacing.messageExtraSpacing) {
+//                    Text("\(context?.intents.count ?? 0) active")
+//
+//                    if let details = Space.with(origin, { space in
+//                        Group {
+//                            Text("·")
+//                            Text("\(space.scenes.filter { $0.descriptor.published != false }.count) contents")
+//                            Text("·")
+//                            Text("\(space.spaces.filter { $0.descriptor.published != false }.count) spaces")
+//
+//                            if let harness = space.harness {
+//                                Text("·")
+//                                HStack(spacing: 5) {
+//                                    Iconography.icon(for: harness, size: 10)
+//                                    Text(harness.descriptor.name)
+//                                }
+//                            }
+//                        }
+//                    }) {
+//                        details
+//                    }
+//                }
+//                .font(Typography.body)
+//                .foregroundStyle(Design.Foreground.tertiary)
+//                .lineLimit(1)
+//            }
+//            .frame(maxWidth: 520, alignment: .trailing)
+//        }
+//        .frame(maxWidth: .infinity)
+//    }
+//}
+//
+//struct SpaceContent: Surface {
+//    var host: any Host
+//    var model: any Model
+//    var ref: Reference? = nil
+//
+//    var body: some View {
+//        VStack(alignment: .leading) {
+//            ScrollView(.horizontal) {
+//                let surface = AnySurface(host: host, model: model)
+//                let parameters = if let ref { SpaceGrid.content(ref) } else { host.parameters(model) }
+//                surface.render(surface, parameters, host.controls(model))
+//                    .scrollDisabled(true)
+//            }
+//        }
+//        .frame(maxWidth: .infinity, maxHeight: 144, alignment: .topLeading)
+//    }
+//}
+//
+//struct SpaceSurface: Surface {
+//    var host: any Host
+//    var model: any Model
+//
+//    var origin: Reference { model.session.origin }
+//    var context: Composition? { origin.context }
+//    var transcript: Reference? {
+//        if let context { return context.transcript }
+//
+//        return Runtime.shared.transcripts(for: origin)
+//            .filter { ref in
+//                Transcript.with(ref) { transcript in
+//                    transcript.entries.contains { entry in
+//                        guard case .event(_, .composed(let source), _) = entry else { return false }
+//                        return source == origin
+//                    }
+//                } == true
+//            }
+//            .min { $0.descriptor.created < $1.descriptor.created }
+//    }
+//    var active: Bool? { context?.state == .active }
+//
+//    var body: some View {
+//        ScrollView {
+//            VStack(alignment: .leading, spacing: Spacing.blockSpacing * 2) {
+//                SpaceHeader(model: model)
+//
+//                VStack(alignment: .leading, spacing: Spacing.blockSpacing) {
+//                    Text("Contents")
+//                        .font(.title2.weight(.medium))
+//                        .foregroundStyle(Design.Foreground.primary)
+//
+//                    SpaceContent(host: host, model: model)
+//                }
+//
+//                VStack(alignment: .leading, spacing: Spacing.blockSpacing) {
+//                    Text("Activity")
+//                        .font(.title2.weight(.medium))
+//                        .foregroundStyle(Design.Foreground.primary)
+//
+//                    if let transcript,
+//                       let activity = Transcript.with(transcript, { transcript in
+//                           LazyVStack(alignment: .leading, spacing: Spacing.blockSpacing * 2) {
+//                               ForEach(transcript.entries) { entry in
+//                                   TranscriptEntry(entry: entry)
+//                               }
+//                           }
+//                           .frame(maxWidth: .infinity, alignment: .topLeading)
+//                       }) {
+//                        activity
+//                    }
+//                }
+//            }
+//            .frame(maxWidth: .infinity, alignment: .topLeading)
+//            .padding(.bottom, Spacing.blockSpacing * 2)
+//        }
+//        .scrollEdgeEffectStyle(.soft, for: .top)
+//    }
+//}

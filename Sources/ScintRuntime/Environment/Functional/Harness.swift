@@ -49,14 +49,6 @@ struct Harness: Functional {
         }
     }
 
-    func start(_ origin: Reference, transcript: Reference, output: @escaping (Signal) -> Void) throws -> (pid: Int32, error: String?)? {
-        let values = try Parser.parse(origin, transcript: transcript, for: ref)
-        let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        return Command.with(command) { command in
-            command.dispatch(rendered: command.rendered(with: values) + rendered(with: values), environment: environment, output: output)
-        } ?? nil
-    }
-
     func stop(pid: Int32) -> Bool {
         Runtime.shared.services.removeOutputHandler(pid: pid)
         return Runtime.shared.services.stop(pid: pid)

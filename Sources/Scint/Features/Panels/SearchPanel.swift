@@ -3,7 +3,8 @@ import SwiftUI
 
 
 @Observable final class SearchPanel: Panel {
-    var state: StateContainer = .init()
+    var key: AppKey = .studio
+    var state: AppState = .init()
     var mode: Mode = .everything
 
     enum Mode: String, CaseIterable {
@@ -22,7 +23,16 @@ import SwiftUI
         }
     }
 
+    func parameters(_ model: any Model) -> Params {
+        switch mode {
+            case .everything: EverythingQuery.parameters(model)
+            case .content: ContentQuery.parameters(model)
+            case .interfaces: InterfacesQuery.parameters(model)
+            case .workspace: WorkspaceQuery.parameters(model)
+        }
+    }
+
     func controls(_ model: any Model) -> Controls { PanelQuery.controls(model) }
     func parameters(_ model: any Model) -> Params { PanelQuery.parameters(model) }
-    func surface(_ model: any Model) -> some View { SearchSurface(panel: self, model: model) }
+    func surface(_ model: any Model) -> some View { SearchSurface(host: self, model: model) }
 }

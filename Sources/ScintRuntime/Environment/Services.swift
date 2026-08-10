@@ -93,6 +93,7 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
     }
 
     func start(_ command: String, arguments: [String] = [], environment: [String: String] = [:], timeout: TimeInterval = 5.0) -> (pid: Int32, error: String?)? {
+        print("Sending command: \(command) with args: \(arguments.joined()) to XPC.")
         var result: (pid: Int32, error: String?)?
         let done = DispatchSemaphore(value: 0)
 

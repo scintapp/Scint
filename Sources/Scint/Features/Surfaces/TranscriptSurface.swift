@@ -118,6 +118,29 @@ struct TranscriptToolCall: View {
     }
 }
 
+struct TranscriptInput: View {
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text(text)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(Design.Foreground.primary)
+                .frame(maxWidth: 640, alignment: .leading)
+                .padding(.leading, 4)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .fill(Design.Border.cardBorder.opacity(0.33))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .stroke(Design.Border.controlBorder, lineWidth: 0.45)
+        )
+    }
+}
+
 struct TranscriptEntry: View {
     let entry: Transcript.Entry
 
@@ -125,10 +148,10 @@ struct TranscriptEntry: View {
         switch entry {
             case .event(_, let signal, _):
                 switch signal {
-                    case .composed:
+                    case .composed(let ref):
                         EmptyView()
 
-                    case .started:
+                    case .started(let ref):
                         EmptyView()
 
                     case .updated(let value):
@@ -167,15 +190,29 @@ struct TranscriptEntry: View {
                         .padding(.leading, Spacing.quoteInset)
                     }
                     .frame(maxWidth: .infinity, alignment: .topLeading)
-                }) {
-                    content
+                }) { content }
+
+            case .value(let key, let value, _):
+                if key == "prompt" {
+                    TranscriptInput(text: value.property.stringRepresentation)
                 }
-
-            case .value:
-                EmptyView()
-
-
         }
+    }
+}
+
+struct TranscriptEntries: View {
+    let model: any Model
+    var transcript: Reference? { model.session.transcript }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            if let transcript, let entries = Transcript.with(transcript, { $0.entries }) {
+                ForEach(entries) { entry in
+                    TranscriptEntry(entry: entry)
+                }
+            }
+        }
+        .frame(maxWidth: 660, alignment: .top)
     }
 }
 
@@ -207,22 +244,5 @@ struct TranscriptScene: View {
                     .stroke(Design.Border.controlBorder, lineWidth: 0.45)
             )
         }
-    }
-}
-
-struct TranscriptEntries: View {
-    let model: any Model
-
-    var transcript: Reference? { model.session.transcript }
-
-    var body: some View {
-        VStack(spacing: 16) {
-            if let transcript, let entries = Transcript.with(transcript, { $0.entries }) {
-                ForEach(entries) { entry in
-                    TranscriptEntry(entry: entry)
-                }
-            }
-        }
-        .frame(maxWidth: 660, alignment: .top)
     }
 }

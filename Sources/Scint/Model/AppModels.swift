@@ -2,91 +2,85 @@ import Foundation
 import SwiftUI
 
 
-enum AppKey: String, CaseIterable {
-    case assistant, builder, editor, panels, studio
-    var prefix: String { "scint." }
-    var value: String { self.prefix + self.rawValue }
+enum AppKey: String, Identifiable, CaseIterable {
+    case editor, studio
+    var id: String { self.model }
+    var app: String { self.rawValue }
+    var model: String { "scint" }
+    var namespace: String { "\(app).\(model)" }
 }
 
-@Observable @MainActor final class EditorModel: Model {
-    var sidebar: EditorSidebar
-    var content: EditorContent
-    var inspector: EditorInspector
-    var session: Session
+enum PanelKey: String, Identifiable, CaseIterable {
+    case actions, assistant, outline, search, tasks
+    var id: String { self.panel }
+    var panel: String { self.rawValue }
+    var model: String { "scint" }
+    var namespace: String { "\(model).panels.\(panel)" }
+}
 
-    init(_ session: Session) {
-        self.sidebar = .init()
-        self.content = .init()
-        self.inspector = .init()
-        self.session = session
+@Observable final class AppState {
+    var presented: Bool
+    var position: CGFloat
+    var index: Int = 0
+    var query: String = ""
+    var filter: String = ""
+    var expanded: Set<AnyHashable>
+    var values: Values
+
+    init(presented: Bool? = false, position: CGFloat? = 0, expanded: Set<AnyHashable>? = [], values: Values? = [:]) {
+        self.presented = presented ?? false
+        self.position = position ?? 0
+        self.expanded = expanded ?? []
+        self.values = values ?? [:]
+    }
+
+    func isExpanded(_ id: AnyHashable) -> Bool { expanded.contains(id) }
+
+    func setExpanded(_ id: AnyHashable) {
+        if expanded.contains(id) { expanded.remove(id) }
+        else { expanded.insert(id) }
+    }
+
+    subscript<Value: Hashable>(_ key: AnyHashable, as type: Value.Type) -> Value? {
+        get { values[key]?.base as? Value }
+        set {
+            if let newValue { values[key] = AnyHashable(newValue) }
+            else { values[key] = nil }
+        }
     }
 }
 
-@Observable @MainActor final class PanelsModel: Model {
+@Observable @MainActor final class PanelsModel {
     var actions: ActionsPanel
     var assistant: AssistantPanel
     var outline: OutlinePanel
     var search: SearchPanel
     var tasks: TasksPanel
-    var session: Session
-    var controller: Controller
 
-    init(_ session: Session) {
+    init(_ resolver: ModelResolving) {
         self.actions = .init()
         self.assistant = .init()
         self.outline = .init()
         self.search = .init()
         self.tasks = .init()
+    }
+}
+
+@Observable @MainActor final class EditorModel: Model {
+    var session: Session
+    var content: EditorContent
+
+    init(_ session: Session) {
+        self.content = .init()
         self.session = session
-        self.controller = .init()
-    }
-
-    func toggleActions() {
-        let parameters = self.search.parameters(self)
-        guard let panel = parameters.panel else { return }
-        controller.toggle(parameters.id, parameters: panel, view: self.actions.surface(self)) {
-            [weak self] presented in self?.actions.state.presented = presented
-        }
-    }
-
-    func toggleAssistant() {
-        let parameters = self.search.parameters(self)
-        guard let panel = parameters.panel else { return }
-        controller.toggle(parameters.id, parameters: panel, view: self.assistant.surface(self)) {
-            [weak self] presented in self?.assistant.state.presented = presented
-        }
-    }
-
-    func toggleOutline() {
-        let parameters = self.search.parameters(self)
-        guard let panel = parameters.panel else { return }
-        controller.toggle(parameters.id, parameters: panel, view: self.outline.surface(self)) {
-            [weak self] presented in self?.outline.state.presented = presented
-        }
-    }
-
-    func toggleSearch() {
-        let parameters = self.search.parameters(self)
-        guard let panel = parameters.panel else { return }
-        controller.toggle(parameters.id, parameters: panel, view: self.search.surface(self)) {
-            [weak self] presented in self?.search.state.presented = presented
-        }
-    }
-
-    func toggleTasks() {
-        let parameters = self.search.parameters(self)
-        guard let panel = parameters.panel else { return }
-        controller.toggle(parameters.id, parameters: panel, view: self.tasks.surface(self)) {
-            [weak self] presented in self?.tasks.state.presented = presented
-        }
     }
 }
 
 @Observable @MainActor final class StudioModel: Model {
+    var session: Session
     var sidebar: StudioSidebar
     var content: StudioContent
     var inspector: StudioInspector
-    var session: Session
 
     init(_ session: Session) {
         self.sidebar = .init()

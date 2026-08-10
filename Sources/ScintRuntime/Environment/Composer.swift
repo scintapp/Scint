@@ -9,8 +9,11 @@ import Foundation
 
     func compose(_ ref: Reference) -> Composition? {
         guard ref.type == Workspace.self || ref.type == Space.self else { return nil }
-        guard Context.harness(for: ref) != nil else { return nil }
-        if contexts.get(ref) == nil { contexts.set(ref, Context.new(ref)) }
+        if contexts.get(ref) == nil {
+            let context = Context.new(ref)
+            guard context.harness != nil else { return nil }
+            contexts.set(ref, context)
+        }
         return resolve(ref)
     }
 
@@ -26,14 +29,18 @@ import Foundation
 
     func stop(_ ref: Reference) -> Composition? {
         guard contexts.get(ref) != nil else { return nil }
-        contexts.update(ref) { $0.stop() }
+        contexts.update(ref) { context in
+            context.stop { [weak self] signal, transcript in
+                self?.contexts.update(ref) { $0.complete(signal, from: transcript) }
+            }
+        }
         return resolve(ref)
     }
 
     func resolve() -> [Composition] { contexts.keys().compactMap { resolve($0) } }
 
     func resolve(_ ref: Reference) -> Composition? {
-        guard contexts.get(ref) != nil, Context.harness(for: ref) != nil else { return nil }
+        guard contexts.get(ref)?.harness != nil else { return nil }
         return Composition(structure: ref)
     }
 }

@@ -180,65 +180,8 @@ struct EverythingQuery: Mapper {
 }
 
 struct PanelQuery: Mapper {
-    static func controls(_ model: any Model) -> Controls {
-        guard let panel = (model as? PanelsModel)?.search else { return .init() }
-
-        var controls = switch panel.mode {
-            case .everything: EverythingQuery.controls(model)
-            case .content: ContentQuery.controls(model)
-            case .interfaces: InterfacesQuery.controls(model)
-            case .workspace: WorkspaceQuery.controls(model)
-        }
-
-        let onChange = controls.onChange
-        let onValueChange = controls.onValueChange
-        let onSelect = controls.onSelect
-        let onAction = controls.onAction
-
-        controls.onChange = { item, selection in
-            guard let key = selection.key, let mode = SearchPanel.Mode(rawValue: key) else {
-                onChange?(item, selection)
-                return
-            }
-            panel.mode = mode
-            panel.state.query = ""
-        }
-
-        controls.onValueChange = { item, value in
-            guard item.key == "query" else {
-                onValueChange?(item, value)
-                return
-            }
-            panel.state.query = value
-        }
-
-        controls.onSelect = { item in
-            onSelect?(item)
-            panel.state.query = ""
-        }
-
-        controls.onAction = { item in
-            if let onAction { onAction(item) }
-            else { onSelect?(item) }
-            panel.state.query = ""
-        }
-        return controls
-    }
-
+    static func controls(_ model: any Model) -> Controls { .init() }
     static func parameters(_ model: any Model) -> Params {
-        guard let panel = (model as? PanelsModel)?.search else { return .init() }
-
-        let content = switch panel.mode {
-            case .everything: EverythingQuery.parameters(model)
-            case .content: ContentQuery.parameters(model)
-            case .interfaces: InterfacesQuery.parameters(model)
-            case .workspace: WorkspaceQuery.parameters(model)
-        }
-
-        let surfaces = SearchPanel.Mode.allCases.map { surface in
-            ItemParams(key: surface.rawValue, name: surface.label, image: surface.image)
-        }
-
         return .init(
             id: "panel",
             ref: content.ref,
@@ -248,6 +191,7 @@ struct PanelQuery: Mapper {
             nesting: content.nesting,
             header: content.header,
             panel: .init(
+                key: .actions,
                 size: CGSize(width: 640, height: 480),
                 input: .init(
                     key: "query",
@@ -262,75 +206,4 @@ struct PanelQuery: Mapper {
             components: content.components
         )
     }
-
-//    static func controls(_ model: any Model) -> Controls {
-//        let panel = model.panel
-//        var controls = switch panel.model {
-//            case .everything: SearchMap.controls(model)
-//            case .content: ContentPalette.controls(model)
-//            case .interfaces: InterfacesMap.controls(model)
-//            case .workspace: StructuresMap.controls(model)
-//        }
-//
-//        let onChange = controls.onChange
-//        let onValueChange = controls.onValueChange
-//        let onSelect = controls.onSelect
-//        let onAction = controls.onAction
-//
-//        controls.onChange = { item, selection in
-//            guard let key = selection.key, let model = Palette.PanelsModel(rawValue: key) else {
-//                onChange?(item, selection)
-//                return
-//            }
-//            panel.model = model
-//            panel.query = ""
-//        }
-//        controls.onValueChange = { item, value in
-//            guard item.key == "query" else {
-//                onValueChange?(item, value)
-//                return
-//            }
-//            panel.query = value
-//        }
-//        controls.onAction = { item in
-//            if let onAction { onAction(item) }
-//            else { onSelect?(item) }
-//            panel.query = ""
-//        }
-//        return controls
-//    }
-
-//    static func parameters(_ model: any Model) -> Params {
-//        let panel = model.panel
-//        let content = switch panel.model {
-//            case .everything: SearchMap.parameters(model)
-//            case .content: ContentPalette.parameters(model)
-//            case .interfaces: InterfacesMap.parameters(model)
-//            case .workspace: StructuresMap.parameters(model)
-//        }
-//
-//        return .init(
-//            id: "panel",
-//            ref: content.ref,
-//            name: content.name,
-//            description: content.description,
-//            layout: content.layout,
-//            nesting: content.nesting,
-//            header: content.header,
-//            panel: .init(
-//                size: CGSize(width: 640, height: 480),
-//                input: .init(
-//                    key: "query",
-//                    name: panel.model.placeholder,
-//                    image: panel.model.image,
-//                    value: panel.query
-//                ),
-//                items: Palette.PanelsModel.allCases.map(surface),
-//                selection: surface(panel.model),
-//                layout: .float,
-//                dismissal: [.escape]
-//            ),
-//            components: content.components
-//        )
-//    }
 }

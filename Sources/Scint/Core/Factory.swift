@@ -4,21 +4,12 @@ import Foundation
 
 
 @MainActor enum NewBuilder {
-    @ViewBuilder static func build(_ model: some Model, _ panel: some Panel) -> some View {
-        let controls: Controls = panel.controls(model)
-        let params: NewParams = panel.parameters(model)
-
-        switch params {
-            case .panel(_, _, let params):
-                build(panel, controls, params)
-            case .section(_, _, let params):
-                build(panel, controls, params)
-            case .item:
-                build(EmptyView(), params)
-        }
+    @ViewBuilder static func build(_ model: some Model, _ host: some Host) -> some View {
+        let controls: Controls = host.controls(model)
+        let params: Params = host.parameters(model)
     }
 
-    @ViewBuilder static func build(_ panel: some Panel, _ controls: Controls, _ params: [NewParams]) -> some View { }
+    @ViewBuilder static func build(_ host: some Host, _ controls: Controls, _ params: [NewParams]) -> some View { }
     @ViewBuilder static func build(_ surface: some Surface, _ controls: Controls, _ params: [NewParams]) -> some View { }
     @ViewBuilder static func build(_ section: some View, _ controls: Controls, _ params: [NewParams]) -> some View { }
     @ViewBuilder static func build(_ item: some View, _ params: NewParams) -> some View { }

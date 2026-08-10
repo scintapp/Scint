@@ -1,9 +1,9 @@
 import SwiftUI
 
 
-enum PanelLayout: Hashable { case fixed, float }
+enum HostLayout: Hashable { case fixed, float }
 
-struct PanelSizingParams: Hashable {
+struct HostSizingParams: Hashable {
     let size: CGSize
     let minimumSize: CGSize?
     let maximumSize: CGSize?
@@ -113,21 +113,24 @@ struct ComponentParams: Identifiable, Hashable {
 }
 
 struct PanelParams {
-    let sizing: PanelSizingParams
+    let key: PanelKey
+    let sizing: HostSizingParams
     let input: ItemParams?
     let items: [ItemParams]
     let selection: ItemParams?
-    let layout: PanelLayout
+    let layout: HostLayout
 
     init(
+        key: PanelKey,
         size: CGSize,
         minimumSize: CGSize? = nil,
         maximumSize: CGSize? = nil,
         input: ItemParams? = nil,
         items: [ItemParams] = [],
         selection: ItemParams? = nil,
-        layout: PanelLayout = .fixed,
+        layout: HostLayout = .fixed,
     ) {
+        self.key = key
         self.sizing = .init(
             size: size,
             minimumSize: minimumSize,
@@ -162,7 +165,7 @@ struct Params: Identifiable {
         panel: PanelParams? = nil,
         components: [ComponentParams] = []
     ) {
-        self.id = id ?? AnyHashable("panel")
+        self.id = id ?? AnyHashable("host")
         self.ref = ref
         self.name = name
         self.description = description
@@ -176,9 +179,9 @@ struct Params: Identifiable {
 }
 
 enum NewParams: Identifiable, Hashable {
-    case panel(id: AnyHashable, panel: Panel? = .framed, params: [NewParams])
+    case host(id: AnyHashable, panel: Host? = .framed, params: [NewParams])
     case section(id: AnyHashable, layout: Layout? = .list, params: [NewParams])
     case item(id: AnyHashable)
-    enum Panel: Hashable { case framed, floating(CGFloat, CGFloat) }
-    var id: AnyHashable { switch self { case .panel(let id, _, _), .section(let id, _, _), .item(let id): id } }
+    enum Host: Hashable { case framed, floating(CGFloat, CGFloat) }
+    var id: AnyHashable { switch self { case .host(let id, _, _), .section(let id, _, _), .item(let id): id } }
 }

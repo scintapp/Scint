@@ -29,11 +29,11 @@ extension KeyboardShortcuts.Name {
         KeyboardShortcuts.onKeyDown(for: .tasks) { Task { @MainActor in self.tasks() } }
     }
 
-    private func actions() { if let scint { return scint.toggleActions() } }
-    private func assistant() { if let scint { return scint.toggleAssistant() } }
-    private func outline() { if let scint { return scint.toggleOutline() } }
-    private func search() { if let scint { return scint.toggleSearch() } }
-    private func tasks() { if let scint { return scint.toggleTasks() } }
+    private func actions() { if let scint { scint.toggle(.actions, .studio) } }
+    private func assistant() { if let scint { scint.toggle(.assistant, .studio) } }
+    private func outline() { if let scint { scint.toggle(.outline, .editor) } }
+    private func search() { if let scint { scint.toggle(.search, .studio) } }
+    private func tasks() { if let scint { scint.toggle(.tasks, .studio) } }
 
     private func sync(_ name: KeyboardShortcuts.Name) {
         guard name.shortcut == nil else { return }

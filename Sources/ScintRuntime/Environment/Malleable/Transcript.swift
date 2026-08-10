@@ -16,7 +16,7 @@ struct Transcript: Malleable {
             switch self {
                 case .event(let id, _, _): id
                 case .scene(let ref, _): ref
-                case .value(let key, _, _): key
+                case .value(let key, _, let date): "\(key):\(date.timeIntervalSinceReferenceDate)"
                 case .transcript(let ref, _): ref
             }
         }

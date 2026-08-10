@@ -25,14 +25,14 @@ struct ScintStudio: View {
     }
 }
 
-@Observable final class StudioSidebar: Panel {
-    var state: StateContainer = .init(presented: true)
+@Observable final class StudioSidebar: Frame {
+    var state: AppState = .init(presented: true)
 
     func controls(_ model: any Model) -> Controls { SidebarMapper.controls(model) }
     func parameters(_ model: any Model) -> Params { SidebarMapper.parameters(model) }
 
     func surface(_ model: any Model) -> some View {
-        AnySurface(panel: self, model: model)
+        AnySurface(host: self, model: model)
             .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar(removing: .sidebarToggle)
             .toolbar {
@@ -45,16 +45,16 @@ struct ScintStudio: View {
     }
 }
 
-@Observable final class StudioContent: Panel {
-    var state: StateContainer = .init()
+@Observable final class StudioContent: Frame {
+    var state: AppState = .init()
 
     func controls(_ model: any Model) -> Controls { SpaceGrid.controls(model) }
     func parameters(_ model: any Model) -> Params { SpaceGrid.parameters(model) }
 
     func surface(_ model: any Model) -> some View {
         Group {
-            if model.session.origin.type == Workspace.self { WorkspaceSurface(panel: self, model: model) }
-            else { SpaceSurface(panel: self, model: model) }
+            if model.session.origin.type == Workspace.self { WorkspaceSurface(host: self, model: model) }
+            else { SpaceSurface(host: self, model: model) }
         }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaBar(edge: .top) {
@@ -72,8 +72,8 @@ struct ScintStudio: View {
     }
 }
 
-@Observable final class StudioInspector: Panel {
-    var state: StateContainer = .init()
+@Observable final class StudioInspector: Frame {
+    var state: AppState = .init()
     var surface: InspectorSurface = .workspace
 
     enum InspectorSurface: String, CaseIterable { case scene, space, workspace }
@@ -82,7 +82,7 @@ struct ScintStudio: View {
     func parameters(_ model: any Model) -> Params { SpaceGroup.parameters(model) }
 
     func surface(_ model: any Model) -> some View {
-        AnySurface(panel: self, model: model)
+        AnySurface(host: self, model: model)
             .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar {
                 @Bindable var state = self.state

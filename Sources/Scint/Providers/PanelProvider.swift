@@ -186,22 +186,22 @@ final class FloatingPanel: NSPanel {
 @Observable @MainActor final class Controller {
     private(set) var coordinators: OrderedDictionary<AnyHashable, PanelCoordinator> = [:]
 
-    func coordinator(for id: AnyHashable) -> PanelCoordinator? { coordinators[id] }
+    func coordinator(for key: PanelKey) -> PanelCoordinator? { coordinators[key] }
 
-    func presented(_ id: AnyHashable) -> Bool { coordinators[id]?.isVisible ?? false }
+    func presented(_ key: PanelKey) -> Bool { coordinators[key]?.isVisible ?? false }
 
-    func toggle(_ id: AnyHashable, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) {
-        coordinator(for: id, parameters: parameters, view: view, onVisibilityChange: onVisibilityChange).toggle()
+    func toggle(_ key: PanelKey, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) {
+        coordinator(for: key, parameters: parameters, view: view, onVisibilityChange: onVisibilityChange).toggle()
     }
 
-    func show(_ id: AnyHashable, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) {
-        coordinator(for: id, parameters: parameters, view: view, onVisibilityChange: onVisibilityChange).show()
+    func show(_ key: PanelKey, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) {
+        coordinator(for: key, parameters: parameters, view: view, onVisibilityChange: onVisibilityChange).show()
     }
 
-    func hide(_ id: AnyHashable) { coordinators[id]?.hide() }
+    func hide(_ key: PanelKey) { coordinators[key]?.hide() }
 
-    private func coordinator(for id: AnyHashable, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)?) -> PanelCoordinator {
-        if let existing = coordinators[id] {
+    private func coordinator(for key: PanelKey, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)?) -> PanelCoordinator {
+        if let existing = coordinators[key] {
             existing.update(parameters)
             return existing
         }
@@ -211,7 +211,7 @@ final class FloatingPanel: NSPanel {
             view: AnyView(Float(content: view)),
             onVisibilityChange: onVisibilityChange
         )
-        coordinators[id] = coordinator
+        coordinators[key] = coordinator
         return coordinator
     }
 }

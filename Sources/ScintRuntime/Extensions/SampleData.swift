@@ -6,10 +6,7 @@ enum SampleData {
 
     static func load(_ workspace: Reference, for key: AppKey) async {
         switch key {
-            case .assistant: await assistant(workspace)
-            case .builder: await builder(workspace)
             case .editor: await editor(workspace)
-            case .panels: await panels(workspace)
             case .studio: await studio(workspace)
         }
     }
@@ -20,13 +17,29 @@ enum SampleData {
     static func panels(_ workspace: Reference) async { }
     static func studio(_ workspace: Reference) async {
         let hasWorkspaces = Workspace.with(workspace, { !$0.spaces.isEmpty }) ?? false
-        guard !hasWorkspaces else { return }
-        
         let codexHarness = interfaces.codexHarness
         let assistantHarness = interfaces.assistantHarness
+        let mistralMessages = interfaces.mistralMessages
+        let researchCommands = [
+            interfaces.searchTextFiles,
+            interfaces.inspectFileMetadata,
+            interfaces.fetchURLHeaders
+        ]
+
+        if hasWorkspaces {
+            let researchDesk = Runtime.shared.context(from: workspace).first {
+                $0.type == Space.self && $0.descriptor.name == "Research Desk"
+            }
+            if let researchDesk {
+                Space.update(researchDesk) { space in
+                    for command in researchCommands { space.add(command) }
+                }
+            }
+            return
+        }
 
         Workspace.update(workspace, { ws in
-            let components = [assistantHarness]
+            let components = [assistantHarness, mistralMessages]
             for component in components { ws.add(component) }
             ws.name = "Scint"
         })
@@ -118,7 +131,7 @@ enum SampleData {
             body: [
                 "Turn a topic prompt into a research brief with a working question, audience context, source plan, and expected use of the finished work.",
             ],
-            components: [codexHarness],
+            components: [codexHarness, interfaces.searchTextFiles, interfaces.fetchURLHeaders],
             tasks: [
                 ("State the working question before collecting sources.", false),
                 ("Limit initial source categories to primary, expert, and counterexample.", false),
@@ -133,7 +146,7 @@ enum SampleData {
             body: [
                 "The output is a source ledger. It does not need to be elegant, but it needs to be traceable."
             ],
-            components: [codexHarness],
+            components: [codexHarness, interfaces.inspectFileMetadata],
             tasks: [
                 ("Record author, date, publisher, and reason for inclusion.", false),
                 ("Mark sources that are useful for framing but weak as evidence.", false),
@@ -145,7 +158,7 @@ enum SampleData {
             researchDesk,
             description: "Reusable research methods for source-led writing and strategic analysis.",
             scenes: [researchBrief, reliabilityNotes],
-            components: [codexHarness],
+            components: [codexHarness] + researchCommands,
             harness: codexHarness
         )
 

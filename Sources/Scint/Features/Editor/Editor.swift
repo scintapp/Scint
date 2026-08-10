@@ -3,29 +3,11 @@ import SwiftUI
 
 struct Editor: View {
     @Environment(ScintModel.self) var scint
-
-    var body: some View {
-        @Bindable var editor = scint.editor
-
-        NavigationSplitView {
-            editor.sidebar.surface(editor)
-                .frame(maxWidth: 400, maxHeight: .infinity)
-                .toolbar(removing: .sidebarToggle)
-        } detail: {
-            editor.content.surface(editor)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .inspector(isPresented: $editor.inspector.state.presented) {
-            editor.inspector.surface(editor)
-                .frame(maxWidth: 400, maxHeight: .infinity)
-                .inspectorColumnWidth(ideal: 300, max: 440)
-        }
-        .environment(scint)
-    }
+    var body: some View { scint.editor.content.surface(scint.editor) }
 }
 
-@Observable final class EditorSidebar: Panel {
-    var state: StateContainer = .init(presented: true)
+@Observable final class EditorSidebar: Frame {
+    var state: AppState = .init(presented: true)
     var surface: SidebarSurface = .workspace
 
     enum SidebarSurface: CaseIterable {
@@ -53,7 +35,7 @@ struct Editor: View {
 
     func surface(_ model: any Model) -> some View {
         @Bindable var state = self.state
-        let surface = AnySurface(panel: self, model: model)
+        let surface = AnySurface(host: self, model: model)
         return surface.render(surface, parameters(model), controls(model))
             .scrollEdgeEffectStyle(.soft, for: .top)
             .safeAreaBar(edge: .bottom) { Filter(text: $state.filter) }
@@ -66,7 +48,7 @@ struct Editor: View {
 }
 
 @Observable final class EditorContent: Panel {
-    var state: StateContainer = .init()
+    var state: AppState = .init()
 
     func surface(_ model: any Model) -> some View {
         ScrollView {
@@ -97,13 +79,13 @@ struct Editor: View {
 }
 
 @Observable final class EditorInspector: Panel {
-    var state: StateContainer = .init()
+    var state: AppState = .init()
     enum InspectorSurface: String, CaseIterable { case scene, space, workspace }
     func controls(_ model: any Model) -> Controls { SceneGroup.controls(model) }
     func parameters(_ model: any Model) -> Params { SceneGroup.parameters(model)}
 
     func surface(_ model: any Model) -> some View {
-        AnySurface(panel: self, model: model)
+        AnySurface(host: self, model: model)
             .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar {
                 @Bindable var state = self.state

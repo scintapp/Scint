@@ -70,7 +70,14 @@ extension Runtime {
 extension Runtime {
     func compose(_ ref: Reference) -> Composition? { Composer.shared.compose(ref) }
 
-    func start(_ ref: Reference) -> Composition? { Composer.shared.start(ref) }
+    func start(_ ref: Reference, config: Config) -> Composition? {
+        let closure = Space.with(ref, { $0.closure }) ?? Workspace.with(ref, { $0.closure })
+        guard let closure else { return nil }
+        Closure.update(closure) { closure in
+            for (key, value) in config { closure.config[key] = value }
+        }
+        return Composer.shared.start(ref)
+    }
 
     func stop(_ ref: Reference) -> Composition? { Composer.shared.stop(ref) }
 

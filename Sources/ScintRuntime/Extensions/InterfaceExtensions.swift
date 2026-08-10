@@ -12,7 +12,11 @@ enum SampleInterfaces {
         let anthropicDocs: Reference
         let openAIDocs: Reference
         let anthropicMessages: Reference
+        let mistralMessages: Reference
         let openAIResponses: Reference
+        let searchTextFiles: Reference
+        let inspectFileMetadata: Reference
+        let fetchURLHeaders: Reference
         let assistantHarness: Reference
         let claudeCodeHarness: Reference
         let codexHarness: Reference
@@ -32,8 +36,12 @@ enum SampleInterfaces {
             existing(name, as: Artifact.self) ?? Artifact.register(name, url)
         }
 
-        func command(_ name: String, _ artifact: Reference, _ parameters: [Command.Parameter]) -> Reference {
-            existing(name, as: Command.self) ?? Command.register(name, exec: artifact, params: parameters)
+        func command(_ name: String, _ artifact: Reference, _ parameters: [Command.Parameter], description: String? = nil) -> Reference {
+            let reference = existing(name, as: Command.self) ?? Command.register(name, exec: artifact, params: parameters)
+            if let description {
+                Catalog.shared.update(reference) { descriptor in descriptor.description = description }
+            }
+            return reference
         }
 
         func harness(_ name: String, _ command: Reference, _ intent: Harness.Intent, _ parameters: [Harness.Parameter]) -> Reference {
@@ -45,10 +53,57 @@ enum SampleInterfaces {
         let fish = artifact("fish", URL(fileURLWithPath: "/opt/homebrew/bin/fish"))
         let zsh = artifact("zsh", URL(fileURLWithPath: "/bin/zsh"))
         let curl = artifact("curl", URL(fileURLWithPath: "/usr/bin/curl"))
+        let grep = artifact("grep", URL(fileURLWithPath: "/usr/bin/grep"))
+        let mdls = artifact("mdls", URL(fileURLWithPath: "/usr/bin/mdls"))
 
         let anthropicDocs = artifact("Claude Platform Docs", URL(string: "https://platform.claude.com/docs/en/home")!)
         let openAIDocs = artifact("OpenAI Platform Docs", URL(string: "https://platform.openai.com/docs")!)
         let desktopFolder = artifact("Desktop", home.appendingPathComponent("Desktop", isDirectory: true))
+
+        let searchTextFiles = command(
+            "Search Text Files",
+            grep,
+            [
+                .fixed(.string("-R")),
+                .fixed(.string("-n")),
+                .fixed(.string("-I")),
+                .fixed(.string("-e")),
+                .argument(name: "query", type: .string(""), required: true),
+                .argument(name: "path", type: .string(""), required: true)
+            ],
+            description: "Recursively search text files below a local path and return matching file names, line numbers, and lines."
+        )
+
+        let inspectFileMetadata = command(
+            "Inspect File Metadata",
+            mdls,
+            [
+                .argument(
+                    name: "attribute",
+                    type: .collection(["-name": .string("")]),
+                    required: false,
+                    default: nil
+                ),
+                .argument(name: "path", type: .string(""), required: true)
+            ],
+            description: "Inspect Spotlight metadata for a local file, optionally limiting output to one metadata attribute."
+        )
+
+        let fetchURLHeaders = command(
+            "Fetch URL Headers",
+            curl,
+            [
+                .fixed(.string("--fail-with-body")),
+                .fixed(.string("--silent")),
+                .fixed(.string("--show-error")),
+                .fixed(.string("--location")),
+                .fixed(.string("--head")),
+                .fixed(.string("--max-time")),
+                .fixed(.string("20")),
+                .argument(name: "url", type: .string(""), required: true)
+            ],
+            description: "Follow redirects and return HTTP response headers for a URL with a twenty-second timeout."
+        )
 
         let anthropicMessages = command(
             "Anthropic Messages",
@@ -80,6 +135,19 @@ enum SampleInterfaces {
                 .fixed(.string("-d")),
                 .fixed(.string(#"{"model":"gpt-5.6","input":"$PROMPT"}"#))
             ]
+        )
+
+        let mistralMessages = command(
+            "Mistral Messages",
+            curl,
+            [
+                .fixed(.string("-sN")),
+                .fixed(.string("https://api.mistral.ai/v1/chat/completions")),
+                .fixed(.string("-H")),
+               .fixed(.string("Content-Type: application/json")),
+                .fixed(.string("Authorization: Bearer $MISTRAL_API_KEY")),
+                .fixed(.string(#"{"model":"mistral-large-latest""gpt-5.6","input":"$PROMPT"}"#))
+           ]
         )
 
         let assistantHarness = harness(
@@ -384,7 +452,11 @@ enum SampleInterfaces {
             anthropicDocs: anthropicDocs,
             openAIDocs: openAIDocs,
             anthropicMessages: anthropicMessages,
+            mistralMessages: mistralMessages,
             openAIResponses: openAIResponses,
+            searchTextFiles: searchTextFiles,
+            inspectFileMetadata: inspectFileMetadata,
+            fetchURLHeaders: fetchURLHeaders,
             assistantHarness: assistantHarness,
             claudeCodeHarness: claudeCodeHarness,
             codexHarness: codexHarness,

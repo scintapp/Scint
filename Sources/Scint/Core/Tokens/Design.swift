@@ -48,6 +48,7 @@ enum Design {
         static var block: Color { Color(red: 0.123, green: 0.126, blue: 0.135) }
         static var card: Color { Color(red: 0.095, green: 0.095, blue: 0.095) }
         static var console: Color { Color(red: 0.095, green: 0.095, blue: 0.095) }
+        static var canvas: Color { Color(red: 0.095, green: 0.095, blue: 0.095) }
         static var detail: Color { Color(red: 0.098, green: 0.098, blue: 0.095) }
         static var editor: Color { Color(red: 0.095, green: 0.095, blue: 0.095) }
         static var menu: Color { Color(red: 0.162, green: 0.165, blue: 0.169, opacity: 0.36) }
