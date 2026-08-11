@@ -1,48 +1,6 @@
 import SwiftUI
 
 
-enum SpaceState {
-    case active
-    case inactive
-    case working
-
-    init(_ context: Composition?) {
-        guard let state = context?.state else { self = .inactive; return }
-        switch state {
-            case .inactive: self = .inactive
-            case .active, .working: self = .working
-        }
-    }
-
-    var title: String {
-        switch self {
-            case .active: "Ready"
-            case .inactive: "Paused"
-            case .working: "Running"
-        }
-    }
-
-    var tint: Color {
-        switch self {
-            case .active: Design.Tint.active
-            case .working: Design.Tint.working
-            case .inactive: Design.Tint.inactive
-
-        }
-    }
-
-    var symbol: String {
-        switch self {
-            case .active: "circle.dotted"
-            case .working: "circle.fill"
-            case .inactive: "pause.fill"
-
-        }
-    }
-
-    var active: Bool { self == .working }
-}
-
 struct SpaceCardButton<Label: View>: View {
     var accented = false
     let action: () -> Void
@@ -90,7 +48,7 @@ struct SpaceContent: Surface {
 
 struct SpacePreviewBadges: View {
     let ref: Reference
-    let state: SpaceState
+    let state: Composition.State?
 
     private var scenes: Int { Space.with(ref, { $0.scenes.count }) ?? 0 }
     private var artifacts: Int { Space.with(ref, { $0.artifacts.count }) ?? 0 }
@@ -104,7 +62,12 @@ struct SpacePreviewBadges: View {
 
             Spacer(minLength: 6)
 
-            Badge(state.title, symbol: state.symbol, tint: state.tint)
+            switch state {
+                case .working: Badge("Running", symbol: "circle.fill", tint: Design.Tint.working)
+                case .active: Badge("Active", symbol: "circle.dotted", tint: Design.Tint.active)
+                case .inactive: Badge("Idle", symbol: "pause.fill", tint: Design.Tint.inactive)
+                case nil: Badge("Ready", symbol: "circle.dotted", tint: Design.Tint.info, style: .neutral)
+            }
         }
         .frame(height: 22)
     }
@@ -116,7 +79,8 @@ struct SpacePreviewCard: Surface {
     var ref: Reference
 
     var context: Composition? { ref.context }
-    var state: SpaceState { .init(context) }
+    var state: Composition.State? { context?.state }
+    var stoppable: Bool { state == .working || state == .active }
 
     private var activity: String {
         if let transcript = context?.intentTranscript { return transcript.descriptor.name }
@@ -162,10 +126,10 @@ struct SpacePreviewCard: Surface {
                 }
 
                 SpaceCardButton {
-                    if state.active { let _ = Runtime.shared.stop(ref) }
+                    if stoppable { let _ = Runtime.shared.stop(ref) }
                     else { let _ = model.start(ref) }
                 } label: {
-                    Label(state.active ? "Pause" : "Run", systemImage: state.active ? "pause.fill" : "play.fill")
+                    Label(stoppable ? "Pause" : "Run", systemImage: stoppable ? "pause.fill" : "play.fill")
                 }
 
                 SwiftUI.Menu {
@@ -196,8 +160,8 @@ struct SpacePreviewCard: Surface {
         .background(Design.Shape.card.fill(Design.Background.raised))
         .overlay(
             Design.Shape.card.strokeBorder(
-                state.active ? Design.Tint.compose.opacity(0.72) : Design.Border.cardBorder,
-                lineWidth: state.active ? 1.25 : 0.75
+                state == .working ? Design.Tint.compose.opacity(0.72) : Design.Border.cardBorder,
+                lineWidth: state == .working ? 1.25 : 0.75
             )
         )
         .contentShape(Design.Shape.card)

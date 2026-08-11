@@ -21,6 +21,7 @@ enum PanelKey: String, Identifiable, CaseIterable {
 @Observable final class AppState {
     var presented: Bool
     var pinned: Bool = false
+    var detail: Bool = false
     var position: CGFloat
     var index: Int = 0
     var mode: String = ""

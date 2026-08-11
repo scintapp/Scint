@@ -30,9 +30,9 @@ struct ComposeInput: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .glassEffect(.clear, in: Design.Shape.input)
+                    .background(Design.Background.console.opacity(0.7))
                     .opacity(0.7)
             }
-            controls
         }
         .frame(maxWidth: 660)
     }
@@ -58,5 +58,3 @@ struct ComposeSurface: Surface {
         .scrollEdgeEffectStyle(.soft, for: .top)
     }
 }
-
-

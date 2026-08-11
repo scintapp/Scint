@@ -9,7 +9,9 @@ enum TranscriptContent {
     init?(_ value: Value) {
         let content = value.rendered.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty, content != "Reading additional input from stdin..." else { return nil }
-        guard let properties = Properties.load(content) else { self = .message(content); return }
+        guard let properties = Properties.load(content)
+                else { self = .message(content); return }
+
         guard properties["type"]?.string?.lowercased() == "item.completed" else { return nil }
 
         switch properties["item.type"]?.string?.lowercased() {
@@ -38,392 +40,256 @@ enum TranscriptContent {
                 return nil
         }
     }
+}
 
-    var isTool: Bool {
-        if case .tool = self { return true }
-        return false
+struct TranscriptBlock: View {
+    enum Style: Equatable {
+        case input
+        case message(detail: String? = nil)
+        case reasoning
+        case tool(verb: String)
+    }
+
+    let text: String
+    var style: Style = .message()
+    var failed = false
+
+    private var markdown: AttributedString {
+        (try? AttributedString(
+            markdown: text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(text)
+    }
+
+    var body: some View {
+        switch style {
+            case .input:
+                Text(text)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Design.Foreground.primary)
+                    .lineSpacing(Spacing.lineSpacingBody)
+                    .frame(maxWidth: 640, alignment: .leading)
+                    .padding(.leading, 4)
+                    .padding(12)
+                    .background(Design.Shape.bubble.fill(Design.Background.raised))
+                    .overlay(Design.Shape.bubble.strokeBorder(Design.Border.cardBorder, lineWidth: 1))
+                    .padding(.top, 6)
+
+            case .message(nil):
+                Text(markdown)
+                    .font(Typography.message)
+                    .foregroundStyle(failed ? Design.Foreground.secondary : Design.Foreground.primary)
+                    .lineSpacing(Spacing.lineSpacingMessage)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 4)
+
+            case .message(.some(let detail)):
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(markdown)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Design.Foreground.primary)
+                        .lineSpacing(Spacing.lineSpacingMessage)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+
+                    Rectangle()
+                        .fill(Design.Border.cardBorder)
+                        .frame(height: 1)
+
+                    HStack(spacing: 9) {
+                        Image(systemName: "checkmark.rectangle.stack.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Design.Foreground.accent)
+
+                        Text(detail)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Design.Tint.working)
+
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
+                }
+                .background(Design.Shape.node.fill(Design.Background.raised))
+                .overlay(Design.Shape.node.strokeBorder(Design.Border.cardBorder, lineWidth: 1))
+                .padding(.vertical, 6)
+
+            case .reasoning:
+                Text(text)
+                    .font(.system(size: 12).italic())
+                    .foregroundStyle(Design.Foreground.tertiary)
+                    .lineSpacing(Spacing.lineSpacingBody)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 12)
+                    .padding(.vertical, 4)
+
+            case .tool(let verb):
+                HStack(spacing: 10) {
+                    Image(systemName: "switch.2")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Design.Foreground.secondary)
+                        .frame(maxWidth: 26, maxHeight: 26)
+
+                    Text("\(verb) \(text)")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Design.Foreground.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+
+                    Spacer(minLength: 0)
+                }
+                .frame(height: 30)
+                .padding(.leading, 12)
+        }
     }
 }
 
-enum TranscriptState {
-    case running
-    case completed
-    case failed
-
-    init(_ transcript: Transcript) {
-        guard let last = transcript.entries.last, last.terminal else { self = .running; return }
-        if case .event(_, .failed(_), _) = last { self = .failed }
-        else { self = .completed }
-    }
-
-    var title: String {
-        switch self {
-            case .running: "Running"
-            case .completed: "Completed"
-            case .failed: "Failed"
-        }
-    }
-
-    var tint: Color {
-        switch self {
-            case .running: Design.Tint.working
-            case .completed: Design.Tint.active
-            case .failed: Design.Tint.failed
-        }
-    }
-
-    var symbol: String {
-        switch self {
-            case .running: "circle.dotted"
-            case .completed: "checkmark.rectangle.stack.fill"
-            case .failed: "exclamationmark.triangle.fill"
-        }
-    }
-}
-
-private extension Transcript.Entry {
-    var branch: Reference? {
-        guard case .transcript(let ref, _) = self else { return nil }
-        return ref
-    }
-
-    var isInput: Bool {
-        switch self {
-            case .value(let key, _, _): key == "prompt"
-            case .scene(let ref, _): ref.descriptor.tags.contains("input")
-            default: false
-        }
-    }
-
-    var isOutput: Bool {
-        guard case .value(let key, _, _) = self else { return false }
-        return key != "prompt"
-    }
-
-    var isAction: Bool {
-        guard case .event(_, .updated(let value), _) = self else { return false }
-        return TranscriptContent(value)?.isTool == true
-    }
-}
-
-struct TranscriptRunHeader: View {
+struct TranscriptHeader: View {
     let name: String
-    let state: TranscriptState
     let created: Date?
     let duration: String?
-    let expanded: Bool
+    let collapsed: Bool
     let onToggle: () -> Void
+    var raw: Bool = false
+    var onRaw: (() -> Void)? = nil
 
     var body: some View {
-        Button(action: onToggle) {
-            HStack(spacing: 8) {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
-                    .rotationEffect(.degrees(expanded ? 90 : 0))
-                    .frame(width: 12)
+        HStack(spacing: 10) {
+            Button(action: onToggle) {
+                HStack(spacing: 10) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .rotationEffect(.degrees(collapsed ? 0 : 90))
+                        .frame(width: 14)
 
-                Image(systemName: "circle.fill")
-                    .font(.system(size: 6))
-                    .foregroundStyle(state.tint)
+                    Text(name)
+                        .foregroundStyle(Design.Foreground.secondary)
+                        .lineLimit(1)
 
-                Text(name)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Design.Foreground.secondary)
-                    .lineLimit(1)
+                    if let created { Text(created, style: .time) }
+                    if let duration { Text(duration) }
 
-                if let created { Text(created, style: .time) }
-                if let duration { Text(duration) }
-
-                Spacer(minLength: 0)
+                    Rectangle()
+                        .fill(Design.Border.cardBorder)
+                        .frame(height: 0.5)
+                }
+                .contentShape(Rectangle())
             }
-            .font(Typography.body)
-            .foregroundStyle(Design.Foreground.tertiary)
-            .frame(height: 22)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .animation(.easeOut(duration: 0.12), value: expanded)
-    }
-}
+            .buttonStyle(.plain)
 
-struct TranscriptInput: View {
-    let text: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 6) {
-            Text(text)
-                .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(Design.Foreground.primary)
-                .lineSpacing(Spacing.lineSpacingBody)
-                .frame(maxWidth: 640, alignment: .leading)
-                .padding(.leading, 4)
-        }
-        .padding(12)
-        .background(Design.Shape.bubble.fill(Design.Border.cardBorder.opacity(0.33)))
-        .overlay(Design.Shape.bubble.strokeBorder(Design.Border.controlBorder, lineWidth: 0.45))
-    }
-}
-
-struct TranscriptMessage: View {
-    let content: String
-    var failed = false
-
-    var body: some View {
-        let text = (try? AttributedString(markdown: content, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(content)
-
-        return Text(text)
-            .font(.system(size: 14))
-            .foregroundStyle(failed ? Design.Foreground.secondary : Design.Foreground.primary)
-            .lineSpacing(Spacing.lineSpacingMessage)
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 2)
-            .padding(.vertical, 4)
-    }
-}
-
-struct TranscriptOutput: View {
-    let value: Value
-    var failed = false
-
-    var body: some View {
-        if let content = TranscriptContent(value) {
-            switch content {
-                case .message(let text):
-                    TranscriptMessage(content: text, failed: failed)
-
-                case .reasoning(let text):
-                    TranscriptReasoning(content: text)
-
-                case .tool(name: let name, verb: let verb):
-                    TranscriptToolCall(verb: verb, name: name)
+            if let onRaw {
+                Button(action: onRaw) {
+                    Image(systemName: raw ? "curlybraces.square.fill" : "curlybraces.square")
+                        .font(.system(size: 12))
+                        .foregroundStyle(raw ? Design.Foreground.secondary : Design.Foreground.tertiary)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(raw ? "Show rendered transcript" : "Show raw signals")
             }
         }
+        .font(.system(size: 12))
+        .foregroundStyle(Design.Foreground.tertiary)
+        .frame(height: 24)
+        .animation(.easeOut(duration: 0.12), value: collapsed)
     }
 }
 
-struct TranscriptReasoning: View {
-    let content: String
+struct TranscriptRaw: View {
+    let entries: [Transcript.Entry]
 
-    var body: some View {
-        Text(content)
-            .font(.system(size: 13).italic())
-            .foregroundStyle(Design.Foreground.tertiary)
-            .lineSpacing(Spacing.lineSpacingBody)
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(Design.Shape.block.fill(Design.Background.block.opacity(0.34)))
-    }
-}
-
-struct TranscriptToolCall: View {
-    let verb: String
-    let name: String
-
-    private let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
-
-    var body: some View {
-        HStack(spacing: 9) {
-            Image(systemName: "switch.2")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Design.Tint.command)
-                .frame(width: 22, height: 22)
-                .background(shape.fill(Design.Tint.command.opacity(0.10)))
-
-            Text(verb)
-                .font(Typography.label)
-                .foregroundStyle(Design.Foreground.tertiary)
-
-            Text(name)
-                .font(Typography.monoSmall)
-                .foregroundStyle(Design.Foreground.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-
-            Spacer(minLength: 0)
-        }
-        .frame(height: 30)
-    }
-}
-
-struct TranscriptOutputRow: View {
-    let name: String
-    let detail: String
-
-    var body: some View {
-        HStack(spacing: 9) {
-            Image(systemName: "doc.badge.checkmark")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Design.Tint.artifact)
-
-            Text(name)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Design.Foreground.primary)
-                .lineLimit(1)
-
-            Text(detail)
-                .font(Typography.monoSmall)
-                .foregroundStyle(Design.Foreground.tertiary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-
-            Spacer(minLength: 0)
+    private func line(_ entry: Transcript.Entry) -> (kind: String, text: String) {
+        switch entry {
+            case .event(_, let signal, _):
+                switch signal {
+                    case .composed(let ref): return ("composed", ref.descriptor.name)
+                    case .started(let ref): return ("started", ref.descriptor.name)
+                    case .stopped(let ref): return ("stopped", ref.descriptor.name)
+                    case .updated(let value): return ("updated", value.rendered.joined(separator: "\n"))
+                    case .completed(let value): return ("completed", value?.rendered.joined(separator: "\n") ?? "")
+                    case .failed(let value): return ("failed", value.rendered.joined(separator: "\n"))
+                }
+            case .scene(let ref, _): return ("scene", ref.descriptor.name)
+            case .value(let key, let value, _): return (key, value.rendered.joined(separator: "\n"))
+            case .transcript(let ref, _): return ("transcript", ref.descriptor.name)
         }
     }
-}
-
-struct TranscriptScene: View {
-    let ref: Reference
 
     var body: some View {
-        if ref.descriptor.tags.contains("input"),
-           let content = Scene.with(ref, { scene in
-               var input = scene
-               if !input.blocks.isEmpty { input.delete(at: input.blocks.index(before: input.blocks.endIndex)) }
-               return input.rendered.trimmingCharacters(in: .whitespacesAndNewlines)
-           }), !content.isEmpty {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(entries) { entry in
+                let line = line(entry)
 
-            TranscriptInput(text: content)
-        }
-    }
-}
+                HStack(alignment: .top, spacing: 8) {
+                    Text(entry.created, format: .dateTime.hour().minute().second())
+                        .foregroundStyle(Design.Foreground.quaternary)
 
-struct TranscriptSummary: View {
-    let state: TranscriptState
-    let actions: Int
-    let duration: String?
-    let outputs: [Transcript.Entry]
-
-    private var detail: String {
-        var parts = [actions == 1 ? "1 action" : "\(actions) actions"]
-        if let duration { parts.append(duration) }
-        return parts.joined(separator: "  ·  ")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: state.symbol)
-                    .font(.system(size: 13))
-                    .foregroundStyle(state.tint)
-                    .frame(width: 32, height: 32)
-                    .background(Design.Shape.block.fill(state.tint.opacity(0.14)))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(state.title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Design.Foreground.primary)
-
-                    Text(detail)
-                        .font(.system(size: 11.5, weight: .medium))
+                    Text(line.kind)
                         .foregroundStyle(Design.Foreground.tertiary)
+                        .frame(width: 76, alignment: .leading)
+
+                    Text(line.text)
+                        .foregroundStyle(Design.Foreground.secondary)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                Spacer(minLength: 0)
-            }
-            .padding(14)
-
-            if !outputs.isEmpty {
-                Rectangle()
-                    .fill(Design.Border.controlBorder)
-                    .frame(height: 0.45)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(outputs) { entry in
-                        if case .value(let key, let value, _) = entry {
-                            TranscriptOutputRow(name: key, detail: value.rendered.joined(separator: " "))
-                        }
-                    }
-                }
-                .padding(14)
             }
         }
+        .font(.system(size: 11, design: .monospaced))
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Design.Shape.bubble.fill(Design.Border.cardBorder.opacity(0.33)))
-        .overlay(Design.Shape.bubble.strokeBorder(Design.Border.controlBorder, lineWidth: 0.45))
-    }
-}
-
-struct TranscriptRun: View {
-    @State private var expanded = true
-    let ref: Reference
-    var created: Date? = nil
-
-    private var entries: [Transcript.Entry] { Transcript.with(ref, { $0.entries }) ?? [] }
-    private var state: TranscriptState { Transcript.with(ref, { TranscriptState($0) }) ?? .completed }
-    private var started: Date? { Transcript.with(ref, { $0.started }).flatMap { $0 } }
-    private var stopped: Date? { Transcript.with(ref, { $0.stopped }).flatMap { $0 } }
-    private var activity: [Transcript.Entry] { entries.filter { !$0.isInput && !$0.isOutput } }
-    private var outputs: [Transcript.Entry] { entries.filter(\.isOutput) }
-    private var actions: Int { entries.filter(\.isAction).count }
-
-    private var duration: String? {
-        guard let started, let stopped else { return nil }
-        let seconds = Int(stopped.timeIntervalSince(started).rounded())
-        guard seconds > 0 else { return nil }
-        return seconds < 60 ? "\(seconds)s" : "\(seconds / 60)m \(seconds % 60)s"
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.blockSpacing) {
-            if let input = entries.first(where: \.isInput) {
-                TranscriptEntry(entry: input)
-            }
-
-            TranscriptRunHeader(
-                name: ref.descriptor.name,
-                state: state,
-                created: created ?? started,
-                duration: duration,
-                expanded: expanded,
-                onToggle: { expanded.toggle() }
-            )
-
-            if expanded {
-                VStack(alignment: .leading, spacing: Spacing.messageExtraSpacing) {
-                    ForEach(activity) { entry in
-                        TranscriptEntry(entry: entry)
-                    }
-                }
-                .padding(.leading, Spacing.quoteInset)
-            }
-
-            if state != .running {
-                TranscriptSummary(state: state, actions: actions, duration: duration, outputs: outputs)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
 
 struct TranscriptEntry: View {
     let entry: Transcript.Entry
+    var detail: String? = nil
+
+    @ViewBuilder private func output(_ value: Value, failed: Bool) -> some View {
+        switch TranscriptContent(value) {
+            case .message(let text): TranscriptBlock(text: text, style: .message(detail: detail), failed: failed)
+            case .reasoning(let text): TranscriptBlock(text: text, style: .reasoning)
+            case .tool(let name, let verb): TranscriptBlock(text: name, style: .tool(verb: verb))
+            case nil: EmptyView()
+        }
+    }
+
+    // The input scene drops its trailing block — that is the composer's live edit,
+    // not part of what was sent.
+    private func input(_ ref: Reference) -> String? {
+        guard ref.descriptor.tags.contains("input") else { return nil }
+        let content = Scene.with(ref) { scene in
+            var input = scene
+            if !input.blocks.isEmpty { input.delete(at: input.blocks.index(before: input.blocks.endIndex)) }
+            return input.rendered.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        guard let content, !content.isEmpty else { return nil }
+        return content
+    }
 
     var body: some View {
         switch entry {
             case .event(_, let signal, _):
                 switch signal {
-                    case .composed(_), .started(_), .completed(_), .stopped(_):
-                        EmptyView()
-
-                    case .updated(let value):
-                        TranscriptOutput(value: value)
-
-                    case .failed(let value):
-                        TranscriptOutput(value: value, failed: true)
+                    case .composed, .started, .completed, .stopped: EmptyView()
+                    case .updated(let value): output(value, failed: false)
+                    case .failed(let value): output(value, failed: true)
                 }
 
             case .scene(let ref, _):
-                TranscriptScene(ref: ref)
+                if let text = input(ref) { TranscriptBlock(text: text, style: .input) }
 
             case .transcript(let ref, let created):
-                TranscriptRun(ref: ref, created: created)
+                TranscriptView(ref: ref, created: created)
 
             case .value(let key, let value, _):
                 if key == "prompt" {
-                    TranscriptInput(text: value.property.stringRepresentation)
+                    TranscriptBlock(text: value.property.stringRepresentation, style: .input)
                 }
         }
     }
@@ -431,23 +297,110 @@ struct TranscriptEntry: View {
 
 struct TranscriptEntries: View {
     let model: any Model
-    var transcript: Reference? { model.session.transcript }
 
-    private var entries: [Transcript.Entry] {
-        guard let transcript else { return [] }
-        return Transcript.with(transcript, { $0.entries }) ?? []
+    private var transcript: Reference? {
+        model.session.origin.context?.transcript ?? model.session.transcript
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            if entries.contains(where: { $0.branch != nil }) {
+        VStack(alignment: .leading, spacing: 0) {
+            if let transcript, let entries = Transcript.with(transcript, { $0.entries }) {
                 ForEach(entries) { entry in
                     TranscriptEntry(entry: entry)
                 }
-            } else if let transcript, !entries.isEmpty {
-                TranscriptRun(ref: transcript)
             }
         }
         .frame(maxWidth: 660, alignment: .top)
+    }
+}
+
+struct TranscriptView: View {
+    @State private var collapsed = false
+    @State private var raw = false
+
+    let ref: Reference
+    var created: Date? = nil
+
+    var body: some View {
+        if let transcript = Transcript.with(ref, { $0 }) {
+            let entries = transcript.entries
+            let responses = responses(in: entries)
+
+            // Spacing lives on the entry views, not here — structural events
+            // render nothing and would otherwise leave gaps behind.
+            VStack(alignment: .leading, spacing: 0) {
+                TranscriptHeader(
+                    name: ref.descriptor.name,
+                    created: created ?? transcript.started,
+                    duration: elapsed(from: transcript.started, to: transcript.stopped),
+                    collapsed: collapsed,
+                    onToggle: { collapsed.toggle() },
+                    raw: raw,
+                    onRaw: { raw.toggle() }
+                )
+
+                if !collapsed {
+                    if raw {
+                        TranscriptRaw(entries: entries)
+                    } else {
+                        ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                            TranscriptEntry(entry: entry, detail: responses[index])
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .padding(.vertical, 10)
+        }
+    }
+
+    // The closing message of each turn — the last agent message before a terminal
+    // signal — is blocked out with the turn's tally. Everything still in flight floats.
+    private func responses(in entries: [Transcript.Entry]) -> [Int: String] {
+        var result: [Int: String] = [:]
+        var message: Int?
+        var actions = 0
+        var opened: Date?
+
+        for (index, entry) in entries.enumerated() {
+            switch entry {
+                case .value(let key, _, let date) where key == "prompt":
+                    message = nil
+                    actions = 0
+                    opened = date
+
+                case .event(_, let signal, let date):
+                    if signal.terminal {
+                        if let message { result[message] = tally(actions, from: opened, to: date) }
+                        message = nil
+                        actions = 0
+                        opened = nil
+                    } else if case .updated(let value) = signal, let content = TranscriptContent(value) {
+                        switch content {
+                            case .tool: actions += 1
+                            case .message: message = index
+                            case .reasoning: break
+                        }
+                    }
+
+                default:
+                    break
+            }
+        }
+
+        return result
+    }
+
+    private func tally(_ actions: Int, from: Date?, to: Date?) -> String {
+        var parts = [actions == 1 ? "1 action" : "\(actions) actions"]
+        if let duration = elapsed(from: from, to: to) { parts.append(duration) }
+        return parts.joined(separator: "  ·  ")
+    }
+
+    private func elapsed(from: Date?, to: Date?) -> String? {
+        guard let from, let to else { return nil }
+        let seconds = Int(to.timeIntervalSince(from).rounded())
+        guard seconds > 0 else { return nil }
+        return seconds < 60 ? "\(seconds)s" : "\(seconds / 60)m \(seconds % 60)s"
     }
 }

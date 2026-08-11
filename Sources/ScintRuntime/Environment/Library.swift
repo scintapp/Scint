@@ -8,15 +8,14 @@ final class Library: Sendable {
 
     func store(for ref: Reference) -> (any Bounding)? {
         switch ref.type {
-        case is any Malleable.Type: return content
-        case is any Functional.Type: return interfaces
-        default: return nil
+            case is any Malleable.Type: return content
+            case is any Functional.Type: return interfaces
+            default: return nil
         }
     }
 
     func load() async throws {
         let settings = Runtime.shared.settings.persistence
-
         func read(_ dir: URL) async throws -> [StorableObject] {
             var out: [StorableObject] = []
             for url in try await Persistence.shared.files(in: dir) {

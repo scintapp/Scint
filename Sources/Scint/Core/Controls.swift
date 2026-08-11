@@ -21,6 +21,7 @@ struct Controls {
     var onChange: ((_ item: ItemParams, _ selection: ItemParams) -> Void)?
     var onValueChange: ((_ item: ItemParams, _ value: String) -> Void)?
     var results: ((_ input: String) -> [ResultGroup])?
+    var detail: ((_ item: ItemParams) -> Params)?
     var focused: ((_ item: ItemParams) -> Bool)?
     var selected: ((_ item: ItemParams) -> Bool)?
     var onSelect: ((_ item: ItemParams) -> Void)?
@@ -58,6 +59,7 @@ struct Controls {
         onChange: ((_ item: ItemParams, _ selection: ItemParams) -> Void)? = nil,
         onValueChange: ((_ item: ItemParams, _ value: String) -> Void)? = nil,
         results: ((_ input: String) -> [ResultGroup])? = nil,
+        detail: ((_ item: ItemParams) -> Params)? = nil,
         focused: ((_ item: ItemParams) -> Bool)? = nil,
         selected: ((_ item: ItemParams) -> Bool)? = nil,
         onSelect: ((_ item: ItemParams) -> Void)? = nil,
@@ -94,6 +96,7 @@ struct Controls {
         self.onChange = onChange
         self.onValueChange = onValueChange
         self.results = results
+        self.detail = detail
         self.focused = focused
         self.selected = selected
         self.onSelect = onSelect

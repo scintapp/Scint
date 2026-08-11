@@ -44,6 +44,7 @@ import Foundation
     }
 }
 
+
 @Observable final class Index<Element: Keyable>: @unchecked Sendable {
     private var entries: [Reference: Element] = [:]
     private var refsById: [UUID: Reference] = [:]

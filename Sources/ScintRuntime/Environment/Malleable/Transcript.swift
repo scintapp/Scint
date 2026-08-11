@@ -45,16 +45,19 @@ struct Transcript: Malleable {
     var started: Date? { entries.first?.created }
     var stopped: Date? { entries.last(where: \.terminal)?.created }
 
-    var rendered: [String] {
-        entries.map { entry in
+    var rendered: String {
+        let lines = entries.map { entry -> String in
+            let time = entry.created.formatted(date: .omitted, time: .standard)
+
             switch entry {
-                case .event(_, let signal, _): signal.rendered
-                case .scene(let ref, _): Scene.with(ref, { $0.rendered }) ?? ""
-                case .value(let key, let value, _): "\(key)=\(value.rendered.joined(separator: " "))"
-                case .transcript(let ref, _): ref.descriptor.name
+                case .event(_, let signal, _): return "\(time) \(signal.rendered)"
+                case .scene(let ref, _): return "\(time) scene \(ref.descriptor.name)\n\(Runtime.shared.rendered(ref))"
+                case .value(let key, let value, _): return "\(time) \(key) = \(value.rendered.joined(separator: " "))"
+                case .transcript(let ref, _): return "\(time) transcript \(ref.descriptor.name)"
             }
         }
-        .filter { !$0.isEmpty }
+
+        return (["\(ref.descriptor.name) (transcript)"] + lines).joined(separator: "\n")
     }
 
     mutating func insert(_ signal: Signal) {

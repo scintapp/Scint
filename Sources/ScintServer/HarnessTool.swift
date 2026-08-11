@@ -100,19 +100,28 @@ struct ServerTool: Sendable {
         } ?? []
     }
 
+    // Interfaces resolve and render; they do not start processes. This path runs
+    // outside a Context, so it owns the launch itself.
     private func dispatch(_ values: [String: Value], output: @escaping (Signal) -> Void) -> (pid: Int32, error: String?)? {
-        let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
+        let arguments: [String]
+        let artifact: Reference
+
         if let command = Command.with(interface, { $0 }) {
-            return command.dispatch(rendered: command.rendered(with: values), environment: environment, output: output)
+            arguments = command.rendered(with: values)
+            artifact = command.artifact
+        } else if let harness = Harness.with(interface, { $0 }),
+                  let command = Command.with(harness.command, { $0 }) {
+            arguments = command.rendered(with: values) + harness.rendered(with: values)
+            artifact = command.artifact
+        } else {
+            return nil
         }
-        guard let harness = Harness.with(interface, { $0 }) else { return nil }
-        return Command.with(harness.command) { command in
-            command.dispatch(
-                rendered: command.rendered(with: values) + harness.rendered(with: values),
-                environment: environment,
-                output: output
-            )
-        } ?? nil
+
+        guard let executable = Artifact.with(artifact, { $0.handler.executable }) ?? nil else { return nil }
+        let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
+        let result = Runtime.shared.services.start(executable, arguments: arguments, environment: environment)
+        if let pid = result?.pid, result?.error == nil { Runtime.shared.services.output(pid: pid, output) }
+        return result
     }
 
     private func supplied(_ values: Properties) throws -> [String: Value] {

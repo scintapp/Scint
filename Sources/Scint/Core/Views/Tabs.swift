@@ -34,7 +34,7 @@ import SwiftUI
 //struct SidebarTabs: View {
 //    let sidebar: StudioSidebar
 //
-//    func effect(_ surface: StudioSidebar.SidebarSurface) -> some View {
+//    func effect(_ surface: StudioSidebar) -> some View {
 //        Design.Shape.tab
 //            .inset(by: 2)
 //            .contentShape(Design.Shape.tab)

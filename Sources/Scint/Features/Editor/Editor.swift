@@ -8,27 +8,6 @@ struct Editor: View {
 
 @Observable final class EditorSidebar: Frame {
     var state: AppState = .init(presented: true)
-    var surface: SidebarSurface = .workspace
-
-    enum SidebarSurface: CaseIterable {
-        case workspace, transcripts, library
-
-        var label: String {
-            switch self {
-                case .workspace: "Workspace"
-                case .transcripts: "Transcripts"
-                case .library: "Library"
-            }
-        }
-
-        var image: String {
-            switch self {
-                case .workspace: "cube.transparent"
-                case .transcripts: "bubble.left.and.text.bubble.right"
-                case .library: "books.vertical"
-            }
-        }
-    }
 
     func controls(_ model: any Model) -> Controls { FolderTree.controls(model) }
     func parameters(_ model: any Model) -> Params { FolderTree.parameters(model) }
@@ -51,30 +30,13 @@ struct Editor: View {
     var state: AppState = .init()
 
     func surface(_ model: any Model) -> some View {
-        ScrollView {
-            Color.clear.frame(height: 32)
-            VStack {
-                if let scene = model.session.scene {
-                    EditorComponent(scene)
-                        .id(scene)
-                        .frame(maxWidth: 680, alignment: .topLeading)
-                } else {
-                    Text("Nothing Open")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Design.Foreground.primary)
-                }
+        EditorSurface(host: self, model: model)
+            .safeAreaBar(edge: .bottom) { EditorBar(model: model) }
+            .toolbar {
+                ToolbarItem(placement: .navigation) { NavigationControls(model: model) }
+                ToolbarSpacer(.flexible, placement: .primaryAction)
+                ToolbarItem(placement: .primaryAction) { PathControls(model: model) }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, 24)
-            Color.clear.frame(height: 64)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .safeAreaBar(edge: .bottom) { EditorBar(model: model) }
-        .toolbar {
-            ToolbarItem(placement: .navigation) { NavigationControls(model: model) }
-            ToolbarSpacer(.flexible, placement: .primaryAction)
-            ToolbarItem(placement: .primaryAction) { PathControls(model: model) }
-        }
     }
 }
 

@@ -29,15 +29,18 @@ struct Scene: Malleable {
         self.owner = ref
     }
 
-    var rendered: String {
+    var rendered: String { rendered(depth: 0) }
+
+    /// Embedded scenes expand inline; the depth cap bounds both cycles and context size.
+    func rendered(depth: Int) -> String {
         blocks.map { block in
             switch block {
                 case .artifact(let ref):
-                    Artifact.with(ref, { $0.rendered }) ?? ""
+                    Runtime.shared.rendered(ref)
                 case .command(let ref):
-                    Command.with(ref, { _ in "Scint.command.\(ref.id.uuidString.lowercased())" }) ?? ""
+                    Runtime.shared.rendered(ref)
                 case .scene(let ref):
-                    Scene.with(ref, { $0.rendered }) ?? ""
+                    depth >= 2 ? ref.descriptor.name : (Scene.with(ref, { $0.rendered(depth: depth + 1) }) ?? "")
                 case .task(_, let string, let done):
                     "[\(done ? "x" : " ")] \(string)"
                 case .text(_, let string):

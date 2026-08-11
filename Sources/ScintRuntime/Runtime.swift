@@ -55,6 +55,21 @@ extension Runtime {
         store(for: Reference(T.self))?.all(as: type) ?? []
     }
 
+    func rendered(_ ref: Reference) -> String {
+        switch ref.type {
+            case is Artifact.Type: return Artifact.with(ref, { $0.rendered }) ?? ""
+            case is Command.Type: return Command.with(ref, { $0.rendered }) ?? ""
+            case is Harness.Type: return Harness.with(ref, { $0.rendered }) ?? ""
+            case is Scene.Type: return Scene.with(ref, { $0.rendered }) ?? ""
+            case is Transcript.Type: return Transcript.with(ref, { $0.rendered }) ?? ""
+            case is Closure.Type: return Closure.with(ref, { $0.rendered }) ?? ""
+            case is Bridge.Type: return Bridge.with(ref, { $0.rendered }) ?? ""
+            case is Space.Type: return Space.with(ref, { $0.rendered }) ?? ""
+            case is Workspace.Type: return Workspace.with(ref, { $0.rendered }) ?? ""
+            default: return ""
+        }
+    }
+
     func search(_ text: String = "", limit: Int = 20) -> SearchResults {
         let search = SearchRequest(text)
         let results = Catalog.shared.values().compactMap { SearchResult(descriptor: $0, search: search) }

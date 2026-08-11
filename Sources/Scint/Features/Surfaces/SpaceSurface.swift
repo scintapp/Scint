@@ -145,22 +145,34 @@ struct SpaceContext: Surface {
 
     private var sources: [Reference] { scenes }
 
+    private var status: String {
+        switch context?.state {
+            case .working: return "Running"
+            case .active: return "Active"
+            case .inactive: return "Idle"
+            case nil: return "Not composed"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
             SpaceContextSection("Activity") {
-                if let latest, let state = Transcript.with(latest, { TranscriptState($0) }) {
-                    row(latest) {
-                        SpaceContextRow(
-                            name: latest.descriptor.name,
-                            detail: state.title,
-                            symbol: state.symbol,
-                            tint: state.tint
-                        )
-                    }
+                if let latest {
+                    row(latest) { SpaceContextRow(ref: latest, detail: status) }
                 } else {
-                    placeholder("No runs yet")
+                    placeholder(status)
+                }
+            }
+
+            if !spaces.isEmpty {
+                separator
+
+                SpaceContextSection("Spaces", count: spaces.count) {
+                    ForEach(spaces.prefix(5)) { ref in
+                        row(ref) { SpaceContextRow(ref: ref, detail: detail(for: ref)) }
+                    }
                 }
             }
 
@@ -288,3 +300,6 @@ struct SpaceSurface: Surface {
         .scrollEdgeEffectStyle(.hard, for: .top)
     }
 }
+
+
+

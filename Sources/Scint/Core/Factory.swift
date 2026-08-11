@@ -338,10 +338,18 @@ extension Factory {
             panel.state.cursor = items[(current + delta + items.count) % items.count].id
         }
 
+        let selection = items.first { $0.id == cursor }
+        let detail = panel.state.detail ? selection.flatMap { controls.detail?($0) } : nil
+
         func commit() {
-            guard let item = items.first(where: { $0.id == cursor }) else { return }
-            if let onAction = controls.onAction { onAction(item) }
-            else { controls.onSelect?(item) }
+            guard let selection else { return }
+            controls.onSelect?(selection)
+        }
+
+        func lens() -> KeyPress.Result {
+            guard selection != nil, controls.detail != nil else { return .ignored }
+            panel.state.detail.toggle()
+            return .handled
         }
 
         func change(_ target: ItemParams) {
@@ -364,8 +372,15 @@ extension Factory {
         }
 
         return PanelLayout {
-            if let input = params.input {
-                PanelInput(
+            if let detail {
+                PanelDetail(params: detail) {
+                    ForEach(detail.components) { component in
+                        build(panel, component, controls)
+                    }
+                }
+            } else {
+                if let input = params.input {
+                    PanelInput(
                     value: Binding(
                         get: { panel.state.query },
                         set: {
@@ -373,34 +388,35 @@ extension Factory {
                             controls.onValueChange?(input, $0)
                         }
                     ),
-                    image: input.image,
-                    placeholder: input.name,
-                    onUpArrow: { move(-1); return .handled },
-                    onDownArrow: { move(+1); return .handled },
-                    onReturn: { commit(); return .handled },
-                    onTab: cycle
-                )
-            }
-
-            if !params.items.isEmpty {
-                PanelModes(items: params.items, selection: params.selection) { target in
-                    change(target)
+                        image: input.image,
+                        placeholder: input.name,
+                        onUpArrow: { move(-1); return .handled },
+                        onDownArrow: { move(+1); return .handled },
+                        onReturn: { commit(); return .handled },
+                        onTab: lens
+                    )
                 }
-            }
 
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 2) {
-                        ForEach(components) { component in
-                            build(panel, component, controls)
-                        }
+                if !params.items.isEmpty {
+                    PanelModes(items: params.items, selection: params.selection) { target in
+                        change(target)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
                 }
-                .onChange(of: cursor) { _, id in
-                    guard let id else { return }
-                    proxy.scrollTo(id, anchor: .center)
+
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 2) {
+                            ForEach(components) { component in
+                                build(panel, component, controls)
+                            }
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 8)
+                    }
+                    .onChange(of: cursor) { _, id in
+                        guard let id else { return }
+                        proxy.scrollTo(id, anchor: .center)
+                    }
                 }
             }
         }
@@ -410,6 +426,11 @@ extension Factory {
             }
         }
         .environment(\.panelCursor, cursor)
+        .onReceive(NotificationCenter.default.publisher(for: .scintPanelEscape)) { escape in
+            guard panel.state.detail else { return }
+            (escape.object as? PanelEscapeEvent)?.handled = true
+            panel.state.detail = false
+        }
         .onChange(of: panel.state.query) { _, _ in panel.state.cursor = nil }
         .onChange(of: params.selection?.id) { _, _ in panel.state.cursor = nil }
         .background { PanelShortcuts(count: params.items.count) { change($0) } }
@@ -426,8 +447,11 @@ extension Factory {
 
     @ViewBuilder static func build(_ panel: some Panel, _ params: ItemParams, _ controls: Controls) -> some View {
         PanelRow(params: params, selected: controls.selected?(params) ?? false) {
-            panel.state.cursor = params.id
-            controls.onSelect?(params)
+            if params.trailingKind == .button { controls.onAction?(params) }
+            else {
+                panel.state.cursor = params.id
+                controls.onSelect?(params)
+            }
         }
         .id(params.id)
     }

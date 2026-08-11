@@ -3,12 +3,6 @@ import SwiftUI
 
 enum HostLayout: Hashable { case fixed, float }
 
-struct PanelDismissal: OptionSet, Hashable {
-    let rawValue: Int
-    static let escape = Self(rawValue: 1 << 0)
-    static let outsideClick = Self(rawValue: 1 << 1)
-}
-
 struct HostSizingParams: Hashable {
     let size: CGSize
     let minimumSize: CGSize?
@@ -19,6 +13,12 @@ struct HostSizingParams: Hashable {
         self.minimumSize = minimumSize
         self.maximumSize = maximumSize
     }
+}
+
+struct PanelDismissal: OptionSet, Hashable {
+    let rawValue: Int
+    static let escape = Self(rawValue: 1 << 0)
+    static let outsideClick = Self(rawValue: 1 << 1)
 }
 
 struct ItemParams: Identifiable, Hashable {

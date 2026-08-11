@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 
 
-
 @Observable @MainActor final class ScintModel {
     private(set) var models: [AppKey: any Model] = [:]
     var controller: Controller = .init()

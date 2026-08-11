@@ -38,7 +38,28 @@ indirect enum Value: Codable, Sendable, Equatable {
         }
     }
 
-    var rendered: [String] { render(nested: false) }
+    var rendered: [String] { render() }
+
+    /// The shape of a parameter template, as an agent reads it: `--flag <a|b|c>`.
+    var described: String {
+        switch self {
+            case .bool: return "<true|false>"
+            case .integer: return "<integer>"
+            case .decimal: return "<number>"
+            case .string(let value): return value.isEmpty ? "<string>" : "<\(value)>"
+            case .reference(let ref): return "<\(ref.type.map { "\($0)" } ?? "reference")>"
+            case .sequence(let values):
+                if values.isEmpty { return "<reference>" }
+                if values.count == 1 { return "\(values[0].described)..." }
+                let choices = values.compactMap { if case .string(let value) = $0 { value } else { nil } }
+                return choices.count == values.count ? "<\(choices.joined(separator: "|"))>" : "<\(values.map(\.described).joined(separator: "|"))>"
+            case .collection(let values):
+                return values.keys.sorted().map { key in
+                    guard let value = values[key] else { return key }
+                    return "\(key) \(value.described)"
+                }.joined(separator: " ")
+        }
+    }
 
     var references: [Reference] {
         switch self {
@@ -110,29 +131,22 @@ indirect enum Value: Codable, Sendable, Equatable {
         }
     }
 
-    private func render(nested: Bool) -> [String] {
+    private func render() -> [String] {
         switch self {
             case .bool(let value): return [String(value)]
             case .integer(let value): return [String(value)]
             case .decimal(let value): return [String(describing: value)]
             case .string(let value): return [value]
-            case .sequence(let values): return values.flatMap { $0.render(nested: nested) }
+            case .sequence(let values): return values.flatMap { $0.render() }
             case .collection(let values):
                 return values.keys.sorted().flatMap { key -> [String] in
                     guard let value = values[key] else { return [] }
-                    let rendered = value.render(nested: true)
-                    if nested { return ["\(key)=\(rendered.joined(separator: ","))"] }
-                    return [key] + rendered
+                    let rendered = value.render()
+                    return ["\(key)=\(rendered.joined(separator: ","))"]
                 }
             case .reference(let ref):
-                switch ref.type {
-                    case is Artifact.Type: return [Artifact.with(ref, { $0.rendered }) ?? ""]
-                    case is Command.Type: return Command.with(ref, { $0.rendered }) ?? []
-                    case is Harness.Type: return Harness.with(ref, { $0.rendered }) ?? []
-                    case is Scene.Type: return [Scene.with(ref, { $0.rendered }) ?? ""]
-                    case is Transcript.Type: return Transcript.with(ref, { $0.rendered }) ?? []
-                    default: return []
-                }
+                let rendered = Runtime.shared.rendered(ref)
+                return rendered.isEmpty ? [] : [rendered]
         }
     }
 }

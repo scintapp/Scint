@@ -186,6 +186,60 @@ struct PanelRow: View {
     }
 }
 
+struct PanelDetail<Content: View>: View {
+    let params: Params
+    let content: Content
+
+    init(params: Params, @ViewBuilder content: () -> Content) {
+        self.params = params
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                if let ref = params.ref { Iconography.icon(for: ref, size: 22) }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(params.name)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(Design.Foreground.primary)
+                        .lineLimit(1)
+
+                    if !params.description.isEmpty {
+                        Text(params.description)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Design.Foreground.tertiary)
+                            .lineLimit(2)
+                    }
+                }
+
+                Spacer()
+
+                Text("esc")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Design.Foreground.tertiary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Design.Shape.tab.fill(.tertiary.opacity(0.25)))
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 16)
+
+            Rectangle()
+                .frame(maxWidth: .infinity, maxHeight: 0.5)
+                .padding(.horizontal, 4)
+                .opacity(0.17)
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 2) { content }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 8)
+            }
+        }
+    }
+}
+
 struct PanelPin: View {
     let pinned: Bool
     let onToggle: () -> Void

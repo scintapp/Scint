@@ -61,7 +61,7 @@ struct Artifact: Functional {
 
         var executable: String? {
             guard resolvable else { return nil }
-            return url?.path()
+            return url?.path(percentEncoded: false)
         }
 
         static func classify(_ url: URL?) -> Handler {

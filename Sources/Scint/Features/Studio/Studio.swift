@@ -47,30 +47,34 @@ struct ScintStudio: View {
 
 @Observable final class StudioContent: Frame {
     var state: AppState = .init()
+    var content: Content = .workspace
+    enum Content: CaseIterable { case space, workspace, editor }
     func controls(_ model: any Model) -> Controls { SpaceGrid.controls(model) }
     func parameters(_ model: any Model) -> Params { SpaceGrid.parameters(model) }
 
     func surface(_ model: any Model) -> some View {
         Group {
-            if model.session.origin.type == Workspace.self { WorkspaceSurface(host: self, model: model) }
-            else { SpaceSurface(host: self, model: model) }
+            switch content {
+                case .editor: Editor()
+                case .space: SpaceSurface(host: self, model: model)
+                case .workspace: WorkspaceSurface(host: self, model: model)
+            }
         }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .safeAreaBar(edge: .top) {
-                HStack(alignment: .center) {
-                    PathBar(model: model)
-                    Spacer()
-                    BadgesBar(model: model)
-                }
-                .frame(maxHeight: 30)
+        .safeAreaBar(edge: .top) {
+            HStack(alignment: .center) {
+                PathBar(model: model)
+                Spacer()
+                BadgesBar(model: model)
             }
-            .toolbar {
-                ToolbarItem(placement: .navigation) { NavigationControls(model: model) }
-                ToolbarSpacer(.flexible, placement: .primaryAction)
-                ToolbarItem(placement: .principal) { ContextControls(model: model) }
-                ToolbarSpacer(.flexible, placement: .primaryAction)
-                ToolbarItem(placement: .primaryAction) { ContextToggle() }
-            }
+            .frame(maxHeight: 30)
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigation) { NavigationControls(model: model) }
+            ToolbarSpacer(.flexible, placement: .primaryAction)
+            ToolbarItem(placement: .principal) { ContextControls(model: model) }
+            ToolbarSpacer(.flexible, placement: .primaryAction)
+            ToolbarItem(placement: .primaryAction) { ContextToggle() }
+        }
     }
 }
 

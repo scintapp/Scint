@@ -31,10 +31,20 @@ struct Closure: Structural {
     var rendered: String {
         var refs = scenes.filter { !$0.descriptor.tags.contains("input") }
         if input.type == Scene.self { refs.append(input) }
-        return refs.compactMap { ref -> String? in
-            guard let content = Scene.with(ref, { $0.rendered }), !content.isEmpty else { return nil }
-            return "# \(ref.descriptor.name)\n\(content)"
-        }.joined(separator: "\n\n")
+
+        let content = refs.compactMap { ref -> String? in
+            let rendered = Runtime.shared.rendered(ref)
+            guard !rendered.isEmpty else { return nil }
+            return "# \(ref.descriptor.name)\n\(rendered)"
+        }
+
+        let available = (harnesses.sorted { $0.descriptor.name < $1.descriptor.name }
+                         + commands.sorted { $0.descriptor.name < $1.descriptor.name })
+            .map { Runtime.shared.rendered($0) }
+            .filter { !$0.isEmpty }
+
+        let capabilities = available.isEmpty ? [] : ["# Available Interfaces\n" + available.joined(separator: "\n\n")]
+        return (content + capabilities).joined(separator: "\n\n")
     }
 
     static func new(_ name: String, owner: Reference) -> Reference {
