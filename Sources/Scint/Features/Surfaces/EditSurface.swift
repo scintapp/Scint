@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-struct EditorSurface: Surface {
+struct EditSurface: Surface {
     var host: any Host
     var model: any Model
 
@@ -9,9 +9,9 @@ struct EditorSurface: Surface {
         ScrollView {
             Color.clear.frame(height: 32)
             VStack {
-                if let scene = model.session.scene {
-                    EditorComponent(scene)
-                        .id(scene)
+                if let material = model.session.material {
+                    EditorComponent(material)
+                        .id(material)
                         .frame(maxWidth: 680, alignment: .topLeading)
                 } else {
                     Text("Nothing Open")

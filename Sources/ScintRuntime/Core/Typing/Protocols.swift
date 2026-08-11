@@ -20,9 +20,9 @@ protocol Persisting: Sendable { func encode<T: Resolvable>(_ type: T.Type) throw
 protocol Bounding: Sendable { func store(for ref: Reference?) -> Store?; var stores: [Store] { get } }
 protocol Indexing: Sendable {}
 
-protocol ExpressibleThings: ExpressibleByStringLiteral, ExpressibleByBooleanLiteral, ExpressibleByNilLiteral {}
+protocol ExpressibleMaterials: ExpressibleByStringLiteral, ExpressibleByBooleanLiteral, ExpressibleByNilLiteral {}
 protocol ExpressibleNumbers: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {}
-protocol Expressible: ExpressibleNumbers, ExpressibleThings {}
+protocol Expressible: ExpressibleNumbers, ExpressibleMaterials {}
 protocol Convertible: Sendable { var property: Property { get } }
 
 @objc protocol ServiceProviding {

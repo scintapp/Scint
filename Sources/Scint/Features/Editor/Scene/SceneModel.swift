@@ -3,42 +3,42 @@ import Foundation
 import SwiftUI
 
 
-@Observable final class SceneModel {
+@Observable final class MaterialModel {
     let ref: Reference
     var selection: Set<AnyHashable> = []
-    var blocks: [Scene.Block] { Scene.with(ref, { $0.blocks }) ?? [] }
+    var blocks: [Material.Block] { Material.with(ref, { $0.blocks }) ?? [] }
 
     init(_ ref: Reference) { self.ref = ref }
 
-    func block(id: AnyHashable) -> Scene.Block? {
-        Scene.with(ref, { $0.blocks.first { $0.id == id } }) ?? nil
+    func block(id: AnyHashable) -> Material.Block? {
+        Material.with(ref, { $0.blocks.first { $0.id == id } }) ?? nil
     }
 
     func index(for id: AnyHashable) -> Int? {
-        Scene.with(ref, { $0.blocks.firstIndex { $0.id == id } }) ?? nil
+        Material.with(ref, { $0.blocks.firstIndex { $0.id == id } }) ?? nil
     }
     func isSelected(_ id: AnyHashable) -> Bool { selection.contains(id) }
     func select(_ id: AnyHashable?) { selection = id.map { Set([$0]) } ?? [] }
 
     @discardableResult
     func write(_ text: String, to id: AnyHashable) -> Bool {
-        Scene.update(ref) { scene -> Bool in
-            guard let index = scene.blocks.firstIndex(where: { $0.id == id }),
-                  case .text(let blockID, let previous) = scene.blocks[index],
+        Material.update(ref) { material -> Bool in
+            guard let index = material.blocks.firstIndex(where: { $0.id == id }),
+                  case .text(let blockID, let previous) = material.blocks[index],
                   previous != text
             else { return false }
-            scene.update(.text(blockID, text), at: index)
+            material.update(.text(blockID, text), at: index)
             return true
         } ?? false
     }
 
     @discardableResult
-    func insert(_ blocks: [Scene.Block], replacing range: NSRange, in id: AnyHashable) -> (id: AnyHashable, caret: NSRange?)? {
+    func insert(_ blocks: [Material.Block], replacing range: NSRange, in id: AnyHashable) -> (id: AnyHashable, caret: NSRange?)? {
         guard !blocks.isEmpty else { return nil }
 
-        return Scene.update(ref) { scene -> (AnyHashable, NSRange?)? in
-            guard let index = scene.blocks.firstIndex(where: { $0.id == id }),
-                  case .text(let textID, let text) = scene.blocks[index]
+        return Material.update(ref) { material -> (AnyHashable, NSRange?)? in
+            guard let index = material.blocks.firstIndex(where: { $0.id == id }),
+                  case .text(let textID, let text) = material.blocks[index]
             else { return nil }
 
             let length = (text as NSString).length
@@ -53,7 +53,7 @@ import SwiftUI
                 let replacement = insertedText.joined()
                 let next = (text as NSString).replacingCharacters(in: replacementRange, with: replacement)
                 let caret = NSRange(location: location + (replacement as NSString).length, length: 0)
-                scene.update(.text(textID, next), at: index)
+                material.update(.text(textID, next), at: index)
                 return (textID, caret)
             }
 
@@ -63,44 +63,44 @@ import SwiftUI
             var insertion = blocks
             if !before.isEmpty { insertion.insert(.text(textID, before), at: 0) }
             if !after.isEmpty { insertion.append(.text(UUID(), after)) }
-            scene.delete(at: index)
-            scene.insert(insertion, at: index)
+            material.delete(at: index)
+            material.insert(insertion, at: index)
             return (blocks[blocks.index(before: blocks.endIndex)].id, nil)
         } ?? nil
     }
 
     @discardableResult
-    func update(_ block: Scene.Block, replacing id: AnyHashable) -> AnyHashable? {
-        Scene.update(ref) { scene -> AnyHashable? in
-            guard let index = scene.blocks.firstIndex(where: { $0.id == id }) else { return nil }
-            scene.update(block, at: index)
-            return scene.blocks.indices.contains(index) ? scene.blocks[index].id : nil
+    func update(_ block: Material.Block, replacing id: AnyHashable) -> AnyHashable? {
+        Material.update(ref) { material -> AnyHashable? in
+            guard let index = material.blocks.firstIndex(where: { $0.id == id }) else { return nil }
+            material.update(block, at: index)
+            return material.blocks.indices.contains(index) ? material.blocks[index].id : nil
         } ?? nil
     }
 
     @discardableResult
     func delete(_ ids: Set<AnyHashable>) -> AnyHashable? {
-        Scene.update(ref) { scene -> AnyHashable? in
-            let indices = scene.blocks.indices.filter { ids.contains(scene.blocks[$0].id) }
+        Material.update(ref) { material -> AnyHashable? in
+            let indices = material.blocks.indices.filter { ids.contains(material.blocks[$0].id) }
             guard let first = indices.first else { return nil }
-            for index in indices.reversed() { scene.delete(at: index) }
-            guard !scene.blocks.isEmpty else { return nil }
-            return scene.blocks[min(max(first - 1, 0), scene.blocks.count - 1)].id
+            for index in indices.reversed() { material.delete(at: index) }
+            guard !material.blocks.isEmpty else { return nil }
+            return material.blocks[min(max(first - 1, 0), material.blocks.count - 1)].id
         } ?? nil
     }
 
     @discardableResult
     func mergeText(at id: AnyHashable) -> (id: AnyHashable, caret: NSRange)? {
-        Scene.update(ref) { scene -> (AnyHashable, NSRange)? in
-            guard let index = scene.blocks.firstIndex(where: { $0.id == id }),
-                  index > scene.blocks.startIndex,
-                  case .text(_, let text) = scene.blocks[index],
-                  case .text(let previousID, let previous) = scene.blocks[index - 1]
+        Material.update(ref) { material -> (AnyHashable, NSRange)? in
+            guard let index = material.blocks.firstIndex(where: { $0.id == id }),
+                  index > material.blocks.startIndex,
+                  case .text(_, let text) = material.blocks[index],
+                  case .text(let previousID, let previous) = material.blocks[index - 1]
             else { return nil }
 
             let caret = NSRange(location: (previous as NSString).length, length: 0)
-            scene.update(.text(previousID, previous + text), at: index - 1)
-            scene.delete(at: index)
+            material.update(.text(previousID, previous + text), at: index - 1)
+            material.delete(at: index)
             return (previousID, caret)
         } ?? nil
     }
@@ -108,10 +108,10 @@ import SwiftUI
     @discardableResult
     func insertText(at index: Int) -> AnyHashable? {
         let id = UUID()
-        return Scene.update(ref) { scene -> AnyHashable? in
-            let insertion = min(max(index, scene.blocks.startIndex), scene.blocks.endIndex)
-            scene.insert(.text(id, ""), at: insertion)
-            return scene.blocks.indices.contains(insertion) ? scene.blocks[insertion].id : nil
+        return Material.update(ref) { material -> AnyHashable? in
+            let insertion = min(max(index, material.blocks.startIndex), material.blocks.endIndex)
+            material.insert(.text(id, ""), at: insertion)
+            return material.blocks.indices.contains(insertion) ? material.blocks[insertion].id : nil
         } ?? nil
     }
 }
@@ -123,8 +123,8 @@ import SwiftUI
     }
 }
 
-struct SceneView: View {
-    @Environment(SceneModel.self) private var scene
+struct MaterialView: View {
+    @Environment(MaterialModel.self) private var material
     let editing: AnyHashable?
     let selection: (AnyHashable) -> NSRange?
     let onTextChange: (AnyHashable, String, NSRange) -> Void
@@ -138,12 +138,12 @@ struct SceneView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            ForEach(scene.blocks) { block in
-                SceneBlock(
+            ForEach(material.blocks) { block in
+                MaterialBlock(
                     block: block,
                     selection: selection(block.id),
                     isEditing: editing == block.id,
-                    isSelected: editing == nil && scene.isSelected(block.id),
+                    isSelected: editing == nil && material.isSelected(block.id),
                     onTextChange: { onTextChange(block.id, $0, $1) },
                     onSelectionChange: { onSelectionChange(block.id, $0) },
                     onCaretRectChange: { onCaretRectChange(block.id, $0) },

@@ -201,21 +201,21 @@ struct PreviewGroup: Mapper {
     }
 }
 
-struct ScenesTree: Mapper {
+struct MaterialsTree: Mapper {
     static func controls(_ model: any Model) -> Controls {
         return .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                return model.session.scene == ref || model.session.selected.selected(ref)
+                return model.session.material == ref || model.session.selected.selected(ref)
             },
             onSelect: { item in
-                guard let ref = item.ref, ref.type is Scene.Type else { return }
+                guard let ref = item.ref, ref.type is Material.Type else { return }
                 model.select(ref)
             },
             itemPalette: { item in
                 item.path == nil ? Action.itemItems(for: item) : []
             }, itemLeadingAccessory: { item, _ in
-                guard let ref = item.ref, ref.type is Scene.Type else { return nil }
+                guard let ref = item.ref, ref.type is Material.Type else { return nil }
                 return AnyView(
                     Button {
                         model.session.close(ref)
@@ -238,7 +238,7 @@ struct ScenesTree: Mapper {
 
     static func parameters(_ model: any Model) -> Params {
         var order: [Reference: Int] = [:]
-        for (index, ref) in model.session.opened.scenes.enumerated() {
+        for (index, ref) in model.session.opened.materials.enumerated() {
             order[ref] = index
         }
 
@@ -247,8 +247,8 @@ struct ScenesTree: Mapper {
             return order[ref] ?? .max
         }
 
-        let items = model.session.opened.scenes.compactMap { ref -> ItemParams? in
-            guard ref.type is Scene.Type else { return nil }
+        let items = model.session.opened.materials.compactMap { ref -> ItemParams? in
+            guard ref.type is Material.Type else { return nil }
             return .init(
                 ref: ref,
                 name: ref.descriptor.name,
@@ -265,8 +265,8 @@ struct ScenesTree: Mapper {
             nesting: .flat,
             components: [
                 .init(
-                    id: "scenes",
-                    name: "Scenes",
+                    id: "materials",
+                    name: "Materials",
                     header: false,
                     items: items
                 )
@@ -388,7 +388,7 @@ struct SpaceGrid: Mapper {
     static func parameters(_ model: any Model) -> Params { content(model.session.origin) }
 
     static func content(_ ref: Reference) -> Params {
-        let scenes = Space.with(ref, { $0.scenes }) ?? []
+        let materials = Space.with(ref, { $0.materials }) ?? []
         let spaces = Space.with(ref, { $0.spaces }) ?? []
 
         let structures: [ItemParams] = spaces
@@ -402,14 +402,14 @@ struct SpaceGrid: Mapper {
                     )
             }
 
-        let content: [ItemParams] = scenes
+        let content: [ItemParams] = materials
             .filter { $0.descriptor.published != false }
-            .compactMap { scene in
+            .compactMap { material in
                     .init(
-                        ref: scene,
-                        origin: Scene.with(scene, { $0.owner }),
-                        name: scene.descriptor.name,
-                        image: Iconography.icon(for: scene).symbol
+                        ref: material,
+                        origin: Material.with(material, { $0.owner }),
+                        name: material.descriptor.name,
+                        image: Iconography.icon(for: material).symbol
                     )
             }
 
@@ -419,14 +419,14 @@ struct SpaceGrid: Mapper {
                 .init(
                     id: "space",
                     header: false,
-                    items: structures + content.filter { $0.ref?.type == Scene.self && $0.name != "Input" }
+                    items: structures + content.filter { $0.ref?.type == Material.self && $0.name != "Input" }
                 ),
             ]
         )
     }
 }
 
-struct SceneGroup: Mapper {
+struct MaterialGroup: Mapper {
     static func controls(_ model: any Model) -> Controls {
         .init(
             selected: { item in
@@ -442,7 +442,7 @@ struct SceneGroup: Mapper {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        func item(for block: Scene.Block, owner: Reference) -> ItemParams {
+        func item(for block: Material.Block, owner: Reference) -> ItemParams {
             let icon = Iconography.icon(for: block)
 
             switch block {
@@ -464,9 +464,9 @@ struct SceneGroup: Mapper {
                         image: icon.symbol,
                         tint: icon.tint
                     )
-                case .scene(let ref):
-                    let children = Scene.with(ref, { scene in
-                        scene.blocks.map { item(for: $0, owner: ref) }
+                case .material(let ref):
+                    let children = Material.with(ref, { material in
+                        material.blocks.map { item(for: $0, owner: ref) }
                     }) ?? []
 
                     return .init(
@@ -490,14 +490,14 @@ struct SceneGroup: Mapper {
             }
         }
 
-        guard case .content(let scene) = model.session.focused, scene.type is Scene.Type
+        guard case .content(let material) = model.session.focused, material.type is Material.Type
                 else { return .init(layout: .group) }
-        let items = Scene.with(scene, { value in value.blocks.map { item(for: $0, owner: scene) } }) ?? []
+        let items = Material.with(material, { value in value.blocks.map { item(for: $0, owner: material) } }) ?? []
 
         return .init(
-            ref: scene,
-            name: scene.descriptor.name,
-            description: scene.descriptor.description,
+            ref: material,
+            name: material.descriptor.name,
+            description: material.descriptor.description,
             layout: .group,
             nesting: .recursive,
             header: false,
@@ -769,7 +769,7 @@ struct SpaceGroup: Mapper {
         let commandLoaderIcon = Iconography.Icon(symbol: "switch.2", tint: Design.Tint.command)
         let loaderIcon = Iconography.Icon(symbol: "gear.badge.checkmark", tint: Design.Tint.command)
 
-        var components: [ComponentParams] = [
+        var components: [SectionParams] = [
             .init(
                 id: "harnesses",
                 name: "Harnesses",

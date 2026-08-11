@@ -43,7 +43,7 @@ flowchart LR
     Stores -.->|"observation invalidates view"| Mapper
 ```
 
-The loop has no long-lived copy of a `Space`, `Scene`, `Harness`, or `Transcript`.
+The loop has no long-lived copy of a `Space`, `Material`, `Harness`, or `Transcript`.
 Runtime stores retain the values; the application retains references. When observable
 runtime or session state changes, SwiftUI evaluates the surface again, its mapper
 resolves the references again, and the next parameter tree describes the next view.
@@ -57,7 +57,7 @@ runtime.
 A runtime `Reference` is both an address and a join point. From the same handle, Scint
 can:
 
-- resolve the concrete value through `Workspace.with`, `Space.with`, `Scene.with`, or
+- resolve the concrete value through `Workspace.with`, `Space.with`, `Material.with`, or
   another typed accessor;
 - read its `Descriptor` for a name, description, tags, framing, and iconography;
 - determine whether it is structural, malleable, or functional;
@@ -65,7 +65,7 @@ can:
 - move or share it through drag and drop without serializing the complete value; and
 - ask the runtime for the live `Composition` associated with its context.
 
-The framework therefore does not need a `SpaceViewModel`, `SceneViewModel`, and
+The framework therefore does not need a `SpaceViewModel`, `MaterialViewModel`, and
 `HarnessViewModel` that can drift away from their stores. A mapper can resolve the
 current value and retain the same reference as presentation identity:
 
@@ -104,7 +104,7 @@ mixing all four into a single SwiftUI hierarchy:
 | Type | Responsibility |
 | --- | --- |
 | `Model` | Supplies the shared `Session` and `FileProvider`, plus common focus, selection, open, search, compose, and start operations |
-| `Session` | Holds application state as references: focus, selection axes, open scenes and transcripts, and navigation history |
+| `Session` | Holds application state as references: focus, selection axes, open materials and transcripts, and navigation history |
 | `Mapper` | Resolves current runtime and session state into `Params` and `Controls` |
 | `Params` | Describes what a surface should present during this evaluation |
 | `Controls` | Describes the interactions, mutations, wrappers, and permissions available to that surface |
@@ -131,10 +131,10 @@ closure already carries that decision.
 
 `Session` owns UI truth, not runtime truth. Its selection has independent axes for a
 structure, functional interface, malleable content, entry identifier, and URL. It also
-tracks typed focus, open scene and transcript references, and a bounded back/forward
+tracks typed focus, open material and transcript references, and a bounded back/forward
 history of selections.
 
-Keeping these as references matters. A scene can remain open while its blocks change; a
+Keeping these as references matters. A material can remain open while its blocks change; a
 space can stay selected while its closure changes; a transcript can remain visible as
 signals arrive. Session state identifies *which* value the user means, while the mapper
 asks the runtime what that value contains now.
@@ -148,7 +148,7 @@ questions:
 - `controls(_:)`: what may the user do with it?
 
 Studio mappers resolve workspace topology, open documents, library contents,
-transcripts, harness configuration, and scene blocks. Palette mappers issue catalog
+transcripts, harness configuration, and material blocks. Palette mappers issue catalog
 searches and regroup the results as content, interfaces, or structures. Because mapper
 evaluation happens inside a SwiftUI surface, reads from observable stores and session
 objects participate in view invalidation.
@@ -164,7 +164,7 @@ Params
     └── ItemParams[]   references, entries, paths, labels, values, children
 ```
 
-`ItemParams` can identify a runtime value by reference, a scene or transcript entry by
+`ItemParams` can identify a runtime value by reference, a material or transcript entry by
 UUID, a filesystem child by URL, or a synthetic control by key. It carries labels,
 icons, counts, values, trailing-control kinds, and recursive children, but remains an
 immutable description of one evaluation.
@@ -188,7 +188,7 @@ does not infer authority from its appearance.
 
 ### Panel, Surface, and Builder
 
-A `Panel` owns presentation-only state in `AppState`: visibility, split position,
+A `Panel` owns presentation-only state in `PanelState`: visibility, split position,
 filter and query text, expanded identifiers, and small keyed values. It then chooses
 the active mapper and surface. For example, `StudioSidebar` switches among workspace,
 transcript, and library mappings without changing the shell that hosts them.
@@ -211,7 +211,7 @@ enough:
 
 | Surface | Specialized responsibility |
 | --- | --- |
-| `EditorSurface` | Hosts the block editor for the active `Scene` reference |
+| `EditorSurface` | Hosts the block editor for the active `Material` reference |
 | `ComposerSurface` | Resolves an active `Transcript` and renders its inputs, messages, reasoning, tool calls, and failures |
 | `SearchSurface` | Adds keyboard navigation, query input, result selection, and search-mode switching |
 | Space and workspace canvases | Reuse mapped params and controls inside the split Studio canvas |
@@ -224,25 +224,25 @@ their domain identity.
 The application session is not only navigation state. At execution time, Scint makes
 the relevant part of it explicit context.
 
-`Session.rendered` encodes the current focus, selection, and open scene/transcript
+`Session.rendered` encodes the current focus, selection, and open material/transcript
 references as a runtime `Value`. When `Model.start(_:)` is called, the framework:
 
-1. resolves the selected workspace or space's current input scene;
+1. resolves the selected workspace or space's current input material;
 2. requires authored input to be present;
 3. appends the rendered session value to that input;
 4. calls `Runtime.shared.start(origin)`;
 5. receives the live `Composition`; and
 6. opens its current intent transcript in the session.
 
-The runtime then attaches the input scene to the new intent transcript and rotates the
-origin to a fresh input scene. The visible application state has crossed the boundary
+The runtime then attaches the input material to the new intent transcript and rotates the
+origin to a fresh input material. The visible application state has crossed the boundary
 as data, while the resulting transcript returns as another reference the application
 already knows how to present.
 
 That creates a complete loop:
 
 ```text
-user-authored Scene + rendered Session
+user-authored Material + rendered Session
                     ↓
              Runtime Context / Intent
                     ↓
@@ -265,9 +265,9 @@ session shared by the principal application regions:
 
 | Region | What it maps |
 | --- | --- |
-| Sidebar | Nested spaces, filesystem locations, open scenes, transcripts, and library interfaces |
-| Scene | Workspace or space contents, the active scene editor, and the active transcript composer |
-| Inspector | Harnesses, commands, configuration, files, and scene structure for the focused reference |
+| Sidebar | Nested spaces, filesystem locations, open materials, transcripts, and library interfaces |
+| Material | Workspace or space contents, the active material editor, and the active transcript composer |
+| Inspector | Harnesses, commands, configuration, files, and material structure for the focused reference |
 | Palette | Ranked catalog search across content, interfaces, and workspace topology |
 
 The main window is a native `NavigationSplitView` with a SwiftUI inspector and a
@@ -303,7 +303,7 @@ For the runtime process model itself, see [ScintRuntime](ScintRuntime.md).
 
 ```text
 Sources/Scint/
-├── Scint.swift                 App entry point and scenes
+├── Scint.swift                 App entry point and materials
 ├── ScintModel.swift            Runtime boot and top-level coordination
 ├── ScintMenu.swift             Menu-bar status surface
 ├── Core/
@@ -321,14 +321,14 @@ Sources/Scint/
 └── Features/
     ├── Studio/                 Main workspace, panels, and mappers
     ├── Palette/                Search model, mappings, and panels
-    ├── Editor/                 Block-based Scene editor
+    ├── Editor/                 Block-based Material editor
     └── Surfaces/               Composer, editor, and search surfaces
 ```
 
 ## Current edges
 
 Scint is an active systems prototype. The reference-driven view path is in use across
-the sidebar, canvases, inspector, library, transcript browser, and palette. Scene
+the sidebar, canvases, inspector, library, transcript browser, and palette. Material
 editing, runtime search, context configuration, composition, transcript rendering,
 reference transfer, persistence, MCP projection, and XPC execution all have implemented
 paths.

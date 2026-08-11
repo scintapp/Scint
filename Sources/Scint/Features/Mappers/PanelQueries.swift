@@ -8,7 +8,7 @@ struct DetailQuery: Mapper {
         guard let ref = item.ref else { return .init() }
         let structural = ref.type is Space.Type || ref.type is Workspace.Type
 
-        func about() -> ComponentParams {
+        func about() -> SectionParams {
             var items: [ItemParams] = [
                 .init(key: "kind", name: "Kind", trailingKind: .value, value: ref.type.map { "\($0)" } ?? "Unknown"),
                 .init(key: "updated", name: "Updated", trailingKind: .value, value: ref.descriptor.updated.formatted(date: .abbreviated, time: .shortened))
@@ -19,11 +19,11 @@ struct DetailQuery: Mapper {
             return .init(id: "about", name: "About", items: items)
         }
 
-        func contents() -> ComponentParams {
-            let refs = Space.with(ref, { $0.spaces + $0.scenes })
-            ?? Workspace.with(ref, { $0.spaces + $0.scenes })
-            ?? Scene.with(ref, { $0.blocks.compactMap { block in
-                if case .scene(let child) = block { return child }
+        func contents() -> SectionParams {
+            let refs = Space.with(ref, { $0.spaces + $0.materials })
+            ?? Workspace.with(ref, { $0.spaces + $0.materials })
+            ?? Material.with(ref, { $0.blocks.compactMap { block in
+                if case .material(let child) = block { return child }
                 if case .command(let child) = block { return child }
                 if case .artifact(let child) = block { return child }
                 return nil
@@ -39,7 +39,7 @@ struct DetailQuery: Mapper {
             )
         }
 
-        func actions() -> ComponentParams {
+        func actions() -> SectionParams {
             var verbs: [Verb] = [.open]
             if structural { verbs.append(.execute) }
             verbs.append(contentsOf: [.copy, .insert])
@@ -105,8 +105,8 @@ struct ContentQuery: Mapper {
 
                 return [
                     .init(
-                        id: "scenes",
-                        results: Array(found.filter { $0.ref.type is Scene.Type }.prefix(50))
+                        id: "materials",
+                        results: Array(found.filter { $0.ref.type is Material.Type }.prefix(50))
                     )
                 ]
             },
@@ -204,7 +204,7 @@ struct EverythingQuery: Mapper {
                 let found = model.search(input, limit: 200).all
                 let limit = 50 / 3
 
-                let content = found.filter { $0.ref.type is Scene.Type }
+                let content = found.filter { $0.ref.type is Material.Type }
                 let interfaces = found.filter { $0.ref.type is any Functional.Type }
                 let spaces = found.filter { $0.ref.type is Space.Type || $0.ref.type is Bridge.Type }
                 let workspace = found.filter { $0.ref == model.session.workspace }
@@ -234,11 +234,4 @@ struct EverythingQuery: Mapper {
             nesting: .flat
         )
     }
-}
-
-
-struct SearchQueries: Mapper {
-    static func controls(_ model: any Model) -> Controls { .init() }
-
-    static func parameters(_ model: any Model) -> Params { .init() }
 }

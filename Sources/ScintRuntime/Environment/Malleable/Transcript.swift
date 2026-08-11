@@ -8,14 +8,14 @@ struct Transcript: Malleable {
 
     enum Entry: Codable, Sendable, Identifiable, Equatable {
         case event(ActivityId, Signal, Date)
-        case scene(Reference, Date)
+        case material(Reference, Date)
         case value(String, Value, Date)
         case transcript(Reference, Date)
 
         var id: AnyHashable {
             switch self {
                 case .event(let id, _, _): id
-                case .scene(let ref, _): ref
+                case .material(let ref, _): ref
                 case .value(let key, _, let date): "\(key):\(date.timeIntervalSinceReferenceDate)"
                 case .transcript(let ref, _): ref
             }
@@ -24,7 +24,7 @@ struct Transcript: Malleable {
         var created: Date {
             switch self {
                 case .event(_, _, let date): date
-                case .scene(_, let date): date
+                case .material(_, let date): date
                 case .value(_, _, let date): date
                 case .transcript(_, let date): date
             }
@@ -51,7 +51,7 @@ struct Transcript: Malleable {
 
             switch entry {
                 case .event(_, let signal, _): return "\(time) \(signal.rendered)"
-                case .scene(let ref, _): return "\(time) scene \(ref.descriptor.name)\n\(Runtime.shared.rendered(ref))"
+                case .material(let ref, _): return "\(time) material \(ref.descriptor.name)\n\(Runtime.shared.rendered(ref))"
                 case .value(let key, let value, _): return "\(time) \(key) = \(value.rendered.joined(separator: " "))"
                 case .transcript(let ref, _): return "\(time) transcript \(ref.descriptor.name)"
             }
@@ -64,9 +64,9 @@ struct Transcript: Malleable {
         entries.append(.event(.init(), signal, .now))
     }
 
-    mutating func insert(_ scene: Reference) {
-        if Scene.with(scene, { $0 }) != nil {
-            entries.append(.scene(scene, .now))
+    mutating func insert(_ material: Reference) {
+        if Material.with(material, { $0 }) != nil {
+            entries.append(.material(material, .now))
         }
     }
 

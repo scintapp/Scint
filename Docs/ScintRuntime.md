@@ -62,10 +62,10 @@ or a second store. It maps over a structure and the context currently indexed fo
 spaces can own other spaces, producing a nested topology of contextual worlds. Every
 workspace and space points to a `Closure` containing:
 
-- an ordered collection of malleable content, including `Scene`s and `Transcript`s;
+- an ordered collection of malleable content, including `Material`s and `Transcript`s;
 - a set of functional interfaces, including `Artifact`s, `Command`s, and `Harness`es;
 - an ordered configuration dictionary; and
-- a distinguished input scene.
+- a distinguished input material.
 
 The structure's active harness sits outside the closure. A closure may make several
 harnesses available, but the structure selects the one that presently gives the place
@@ -82,7 +82,7 @@ The domain families describe how values participate in that environment:
 | Family | Role | Concrete values |
 | --- | --- | --- |
 | `Structural` | Defines places, boundaries, ownership, and topology | `Workspace`, `Space`, `Closure`, `Bridge` |
-| `Malleable` | Supplies authorable information and execution history | `Scene`, `Transcript` |
+| `Malleable` | Supplies authorable information and execution history | `Material`, `Transcript` |
 | `Functional` | Describes resources and executable capabilities | `Artifact`, `Command`, `Harness` |
 | `Contextual` | Gives an authored place a keyed running form | `Context` and the intent-specific values |
 
@@ -211,11 +211,11 @@ In concrete terms:
    context.
 2. The context creates an intent transcript, wraps the harness in the matching `Intent`
    case, and inserts the branch into the root transcript.
-3. It attaches the closure's ordinary scenes and current input scene to the branch, then
-   rotates the closure to a new input scene. The work being launched is now connected to
+3. It attaches the closure's ordinary materials and current input material to the branch, then
+   rotates the closure to a new input material. The work being launched is now connected to
    the input that produced it.
 4. The context records `.started(harness)` and adds the intent to its live set.
-5. `Parser` reads values named by the harness from `Closure.config`, renders the scenes
+5. `Parser` reads values named by the harness from `Closure.config`, renders the materials
    referenced by the branch, and validates or constructs values against the recursive
    `Value` schemas declared by harness parameters.
 6. `Harness` and `Command` render those values into arguments. The command resolves its
@@ -237,7 +237,7 @@ of the intent, and anchors the result beneath the context that produced it.
 or a second execution engine. Its job is narrower:
 
 - collect named values from closure configuration;
-- render the input scenes already attached to an intent transcript;
+- render the input materials already attached to an intent transcript;
 - bind that input to required harness arguments;
 - apply defaults and fixed requirements;
 - construct values according to declared `Value` shapes; and
@@ -286,13 +286,13 @@ describe values independently of their concrete stores.
 Callers retain references rather than long-lived snapshots:
 
 ```swift
-let brief = Scene.new(space, name: "Research Brief")
+let brief = Material.new(space, name: "Research Brief")
 
-Scene.update(brief) { scene in
-    scene.insert(.text(UUID(), "Compare the primary sources."), at: nil)
+Material.update(brief) { material in
+    material.insert(.text(UUID(), "Compare the primary sources."), at: nil)
 }
 
-let prompt = Scene.with(brief) { $0.rendered }
+let prompt = Material.with(brief) { $0.rendered }
 ```
 
 `with` scopes a read to the appropriate store. `update` writes the changed value back
@@ -335,7 +335,7 @@ let composed = Runtime.shared.compose(space)
 let running = Runtime.shared.start(space)
 
 let reachable = Runtime.shared.context(from: space)
-let results = Runtime.shared.search("research !scene")
+let results = Runtime.shared.search("research !material")
 
 let stopped = Runtime.shared.stop(space)
 await Runtime.shared.save()
@@ -358,7 +358,7 @@ Sources/ScintRuntime/
 ├── Environment/
 │   ├── Contextual/      Composer, Composition, Context, Intent, Parser
 │   ├── Functional/      Artifact, Command, Harness
-│   ├── Malleable/       Scene, Transcript
+│   ├── Malleable/       Material, Transcript
 │   ├── Structural/      Workspace, Space, Closure, Bridge
 │   ├── Catalog.swift
 │   ├── Library.swift

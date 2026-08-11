@@ -4,22 +4,22 @@ import SwiftUI
 private enum GridItemRole: Equatable {
     case item
     case space
-    case scene(Reference)
+    case material(Reference)
 
-    var isScene: Bool {
-        if case .scene = self { return true }
+    var isMaterial: Bool {
+        if case .material = self { return true }
         return false
     }
 
     var reference: Reference? {
-        if case .scene(let ref) = self { return ref }
+        if case .material(let ref) = self { return ref }
         return nil
     }
 
     init(_ ref: Reference?) {
         switch ref?.type {
             case is Space.Type: self = .space
-            case is Scene.Type: self = ref.map(Self.scene) ?? .item
+            case is Material.Type: self = ref.map(Self.material) ?? .item
             default: self = .item
         }
     }

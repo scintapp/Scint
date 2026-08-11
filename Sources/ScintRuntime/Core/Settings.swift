@@ -31,7 +31,7 @@ struct PersistenceSettings: Sendable {
 
     private func typePath(for ref: Reference) -> String {
         let name = switch ref.type {
-            case is Scene.Type: "scenes"
+            case is Material.Type: "materials"
             case is Transcript.Type: "transcripts"
             case is Artifact.Type: "artifacts"
             case is Command.Type: "commands"
@@ -90,7 +90,7 @@ struct PersistenceSettings: Sendable {
 
     private func directory<T: Resolvable>(for type: T.Type) -> String {
         switch type {
-            case is Scene.Type: return "scenes"
+            case is Material.Type: return "materials"
             case is Artifact.Type: return "artifacts"
             case is Command.Type: return "commands"
             case is Harness.Type: return "harnesses"

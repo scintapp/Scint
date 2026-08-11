@@ -60,7 +60,7 @@ extension Runtime {
             case is Artifact.Type: return Artifact.with(ref, { $0.rendered }) ?? ""
             case is Command.Type: return Command.with(ref, { $0.rendered }) ?? ""
             case is Harness.Type: return Harness.with(ref, { $0.rendered }) ?? ""
-            case is Scene.Type: return Scene.with(ref, { $0.rendered }) ?? ""
+            case is Material.Type: return Material.with(ref, { $0.rendered }) ?? ""
             case is Transcript.Type: return Transcript.with(ref, { $0.rendered }) ?? ""
             case is Closure.Type: return Closure.with(ref, { $0.rendered }) ?? ""
             case is Bridge.Type: return Bridge.with(ref, { $0.rendered }) ?? ""

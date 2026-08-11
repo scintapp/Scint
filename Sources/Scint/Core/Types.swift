@@ -19,18 +19,13 @@ enum Nesting: String, CaseIterable { case recursive, single, flat }
 }
 
 @MainActor protocol ModelResolving: AnyObject {
-    func model(for key: AppKey) -> any Model
+    func model(for key: ModelKey) -> any Model
 }
 
 @MainActor protocol Host: AnyObject {
-    var state: AppState { get set }
+    var state: PanelState { get set }
     func controls(_ model: any Model) -> Controls
     func parameters(_ model: any Model) -> Params
-}
-
-@MainActor protocol Frame: Host {
-    associatedtype Surface
-    func surface(_ model: any Model) -> Surface
 }
 
 @MainActor protocol Panel: Host {
@@ -39,7 +34,6 @@ enum Nesting: String, CaseIterable { case recursive, single, flat }
 }
 
 @MainActor protocol Surface: View {
-    associatedtype Frame = Host
     associatedtype Panel = Host
     var host: Host { get set }
     var model: any Model { get }
@@ -73,11 +67,11 @@ extension Model {
 
     func start(_ ref: Reference) -> Composition? {
         let input = Space.with(ref, { $0.input }).flatMap { $0 } ?? Workspace.with(ref, { $0.input }).flatMap { $0 }
-        guard let input, let prompt = Scene.with(input, { $0.rendered }), !prompt.isEmpty else { return nil }
+        guard let input, let prompt = Material.with(input, { $0.rendered }), !prompt.isEmpty else { return nil }
         var config: Config = ["prompt": .string(prompt), "session": session.rendered]
         if let transcript = session.transcript { config["transcript"] = .reference(transcript) }
         guard let composition = Runtime.shared.start(ref, config: config) else { return nil }
-        Scene.update(input) { $0.clear() }
+        Material.update(input) { $0.clear() }
         if let transcript = composition.intentTranscript { focus(transcript) }
         return composition
     }
@@ -101,11 +95,6 @@ extension Model {
 extension Mapper {
     static func controls(_ model: any Model) -> Controls { .init() }
     static func parameters(_ model: any Model) -> Params { .init() }
-}
-
-extension Frame {
-    func controls(_ model: any Model) -> Controls { .init() }
-    func parameters(_ model: any Model) -> Params { .init() }
 }
 
 extension Panel {

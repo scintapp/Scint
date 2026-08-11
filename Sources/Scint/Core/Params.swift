@@ -1,25 +1,6 @@
 import SwiftUI
 
 
-enum HostLayout: Hashable { case fixed, float }
-
-struct HostSizingParams: Hashable {
-    let size: CGSize
-    let minimumSize: CGSize?
-    let maximumSize: CGSize?
-
-    init(size: CGSize, minimumSize: CGSize? = nil, maximumSize: CGSize? = nil) {
-        self.size = size
-        self.minimumSize = minimumSize
-        self.maximumSize = maximumSize
-    }
-}
-
-struct PanelDismissal: OptionSet, Hashable {
-    let rawValue: Int
-    static let escape = Self(rawValue: 1 << 0)
-    static let outsideClick = Self(rawValue: 1 << 1)
-}
 
 struct ItemParams: Identifiable, Hashable {
     let ref: Reference?
@@ -91,7 +72,7 @@ struct ItemParams: Identifiable, Hashable {
     }
 }
 
-struct ComponentParams: Identifiable, Hashable {
+struct SectionParams: Identifiable, Hashable {
     let id: AnyHashable
     let name: String
     let header: Bool
@@ -120,7 +101,7 @@ struct ComponentParams: Identifiable, Hashable {
 
 struct PanelParams {
     let key: PanelKey
-    let sizing: HostSizingParams
+    let sizing: Sizing
     let input: ItemParams?
     let items: [ItemParams]
     let selection: ItemParams?
@@ -129,26 +110,33 @@ struct PanelParams {
     let resizable: Bool
     let pinnable: Bool
 
+    enum Kind { case floating, fixed }
+
+    struct Sizing: Hashable {
+        let size: CGSize
+        let min: CGSize?
+        let max: CGSize?
+
+        init(size: CGSize, min: CGSize? = nil, max: CGSize? = nil) {
+            self.size = size
+            self.min = min
+            self.max = max
+        }
+    }
+
     init(
         key: PanelKey,
-        size: CGSize,
-        minimumSize: CGSize? = nil,
-        maximumSize: CGSize? = nil,
+        sizing: Sizing,
         input: ItemParams? = nil,
         items: [ItemParams] = [],
         selection: ItemParams? = nil,
-        layout: HostLayout = .fixed,
         dismissal: PanelDismissal = [.escape, .outsideClick],
         movable: Bool = true,
         resizable: Bool = false,
         pinnable: Bool = false,
     ) {
         self.key = key
-        self.sizing = .init(
-            size: size,
-            minimumSize: minimumSize,
-            maximumSize: maximumSize
-        )
+        self.sizing = sizing
         self.input = input
         self.items = items
         self.selection = selection
@@ -166,7 +154,7 @@ struct Params: Identifiable {
     let description: String
     let header: Bool
     let panel: PanelParams?
-    let components: [ComponentParams]
+    let components: [SectionParams]
     let layout: Layout?
     let nesting: Nesting?
 
@@ -179,7 +167,7 @@ struct Params: Identifiable {
         nesting: Nesting? = .flat,
         header: Bool? = false,
         panel: PanelParams? = nil,
-        components: [ComponentParams] = []
+        components: [SectionParams] = []
     ) {
         self.id = id ?? AnyHashable("host")
         self.ref = ref

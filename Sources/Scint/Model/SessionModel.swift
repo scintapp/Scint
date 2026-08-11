@@ -14,9 +14,9 @@ import Foundation
         self.navigation.reset(to: selected)
     }
 
-    var scene: Reference? {
+    var material: Reference? {
         guard let content = selected.content else { return nil }
-        guard content.type is Scene.Type, opened.scenes.contains(content) else { return nil }
+        guard content.type is Material.Type, opened.materials.contains(content) else { return nil }
         return content
     }
 

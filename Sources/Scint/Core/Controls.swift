@@ -38,7 +38,7 @@ struct Controls {
     var itemPalette: ((_ item: ItemParams) -> [Item])?
     var wrapLink: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)?
     var wrapSection: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)?
-    var wrapHeader: ((_ view: AnyView, _ section: ComponentParams) -> AnyView)?
+    var wrapHeader: ((_ view: AnyView, _ section: SectionParams) -> AnyView)?
     var itemLeadingAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)?
     var sectionLeadingAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)?
     var itemAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)?
@@ -52,7 +52,7 @@ struct Controls {
     var canDrag: ((_ item: ItemParams) -> Bool)?
     var dropTypes: ((_ item: ItemParams) -> [UTType])?
     var onDrop: ((_ providers: [NSItemProvider], _ target: ItemParams) -> Bool)?
-    var onScenePosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)?
+    var onMaterialPosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)?
 
     init(
         onToggle: ((ItemParams) -> Void)? = nil,
@@ -76,7 +76,7 @@ struct Controls {
         itemPalette: ((_ item: ItemParams) -> [Item])? = nil,
         wrapLink: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)? = nil,
         wrapSection: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)? = nil,
-        wrapHeader: ((_ view: AnyView, _ section: ComponentParams) -> AnyView)? = nil,
+        wrapHeader: ((_ view: AnyView, _ section: SectionParams) -> AnyView)? = nil,
         itemLeadingAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)? = nil,
         sectionLeadingAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)? = nil,
         itemAccessory: ((_ item: ItemParams, _ depth: Int) -> AnyView?)? = nil,
@@ -90,7 +90,7 @@ struct Controls {
         canDrag: ((_ item: ItemParams) -> Bool)? = nil,
         dropTypes: ((_ item: ItemParams) -> [UTType])? = nil,
         onDrop: ((_ providers: [NSItemProvider], _ target: ItemParams) -> Bool)? = nil,
-        onScenePosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)? = nil
+        onMaterialPosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)? = nil
     ) {
         self.onToggle = onToggle
         self.onChange = onChange
@@ -127,7 +127,7 @@ struct Controls {
         self.canDrag = canDrag
         self.dropTypes = dropTypes
         self.onDrop = onDrop
-        self.onScenePosition = onScenePosition
+        self.onMaterialPosition = onMaterialPosition
     }
 
     var isEditable: Bool {

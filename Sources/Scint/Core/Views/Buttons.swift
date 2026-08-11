@@ -42,12 +42,12 @@ struct ActionButton: View {
 }
 
 
-struct SceneButton: View {
+struct MaterialButton: View {
     var body: some View {
         SwiftUI.Menu {
             //            ForEach(models, id: \.self) { model in
             Button {  } label: { Label("Space", systemImage: "square.grid.2x2") }
-            Button {  } label: { Label("Scene", systemImage: "square.grid.2x2") }
+            Button {  } label: { Label("Material", systemImage: "square.grid.2x2") }
             //                .disabled(selection == model)
         } label: {
             Image(systemName: "square.grid.2x2")

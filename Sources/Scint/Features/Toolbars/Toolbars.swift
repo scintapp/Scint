@@ -47,14 +47,14 @@ struct NavigationControls: View {
         ControlGroup {
             Button {
                 if let selection = model.session.back() {
-                    if let content = selection.content, content.type is Scene.Type { model.focus(content) }
+                    if let content = selection.content, content.type is Material.Type { model.focus(content) }
                     else if let structure = selection.structure { model.focus(structure) }
                 }
             } label: { Image(systemName: "chevron.backward") }
                 .disabled(!model.session.navigation.canGoBack)
             Button {
                 if let selection = model.session.forward() {
-                    if let content = selection.content, content.type is Scene.Type { model.focus(content) }
+                    if let content = selection.content, content.type is Material.Type { model.focus(content) }
                     else if let structure = selection.structure { model.focus(structure) }
                 }
             } label: { Image(systemName: "chevron.forward") }
@@ -66,14 +66,14 @@ struct NavigationControls: View {
 
 struct EditorBar: View {
     var model: any Model
-    var ref: Reference { model.session.scene ?? model.session.origin }
+    var ref: Reference { model.session.material ?? model.session.origin }
 
     var words: String { "\(metrics.words) \(metrics.words == 1 ? "Word" : "Words")" }
     var tasks: String { "\(metrics.completedTasks) of \(metrics.totalTasks) \(metrics.totalTasks == 1 ? "Task" : "Tasks")" }
     var metrics: (words: Int, completedTasks: Int, totalTasks: Int) {
-        Scene.with(ref) { scene in
-            let words = scene.rendered.split(whereSeparator: { $0.isWhitespace }).count
-            let tasks = scene.blocks.compactMap { block -> Bool? in
+        Material.with(ref) { material in
+            let words = material.rendered.split(whereSeparator: { $0.isWhitespace }).count
+            let tasks = material.blocks.compactMap { block -> Bool? in
                 guard case .task(_, _, let completed) = block else { return nil }
                 return completed }
             return (words, tasks.filter { $0 }.count, tasks.count)
@@ -98,7 +98,7 @@ struct OutlineControls: View {
 
     var refs: [Reference] {
         model.session.navigation.path(for: model.session.selected, in: model.session.workspace)
-            .filter { $0.type != Scene.self }
+            .filter { $0.type != Material.self }
     }
 
     var body: some View {

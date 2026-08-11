@@ -14,11 +14,11 @@ enum MenuSearch {
         }.prefix(12).map { $0 }
     }
 
-    static func block(for ref: Reference) -> Scene.Block? {
+    static func block(for ref: Reference) -> Material.Block? {
         switch ref.type {
         case is Artifact.Type: return .artifact(ref)
         case is Command.Type: return .command(ref)
-        case is Scene.Type: return .scene(ref)
+        case is Material.Type: return .material(ref)
         default: return nil
         }
     }

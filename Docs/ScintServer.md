@@ -91,7 +91,7 @@ Scint.harness.<reference-id>
 ```
 
 The complete lowercase UUID is used. Descriptor names remain human-facing titles and
-may change without changing protocol identity. Scene command rendering uses the same
+may change without changing protocol identity. Material command rendering uses the same
 naming rule without a registry or mapping.
 
 ## Schemas and arguments
@@ -141,9 +141,9 @@ Updated values become text content; a failed signal produces a tool execution er
 Unknown tool names and malformed JSON-RPC requests are protocol errors. Runtime parsing,
 launch, and process failures are tool execution errors surfaced to the agentic process.
 
-## Scene integration
+## Material integration
 
-`Scene.Block.command` renders the deterministic MCP tool name
+`Material.Block.command` renders the deterministic MCP tool name
 `Scint.command.<reference-id>` instead of the Command's process invocation fragments.
 Rendering still requires the reference to resolve to a Command. It does not execute the
 Command, create an Intent, or maintain a separate interface mapping.

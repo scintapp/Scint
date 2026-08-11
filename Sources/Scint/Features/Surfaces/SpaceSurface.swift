@@ -131,8 +131,8 @@ struct SpaceContext: Surface {
         Space.with(origin, { $0.artifacts }) ?? Workspace.with(origin, { $0.artifacts }) ?? []
     }
 
-    private var scenes: [Reference] {
-        (Space.with(origin, { $0.scenes }) ?? Workspace.with(origin, { $0.scenes }) ?? [])
+    private var materials: [Reference] {
+        (Space.with(origin, { $0.materials }) ?? Workspace.with(origin, { $0.materials }) ?? [])
             .filter { $0.descriptor.published != false && !$0.descriptor.tags.contains("input") }
     }
 
@@ -143,7 +143,7 @@ struct SpaceContext: Surface {
             .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
     }
 
-    private var sources: [Reference] { scenes }
+    private var sources: [Reference] { materials }
 
     private var status: String {
         switch context?.state {
@@ -255,7 +255,7 @@ struct SpaceContext: Surface {
 
         switch ref.type {
             case is Artifact.Type: return Artifact.with(ref, { $0.handler.directory }) == true ? "Directory" : "File"
-            case is Scene.Type: return "Scene"
+            case is Material.Type: return "Material"
             case is Space.Type: return "Space"
             default: return ref.descriptor.name
         }

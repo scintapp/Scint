@@ -1,7 +1,7 @@
 import Foundation
 
 
-struct Scene: Malleable {
+struct Material: Malleable {
     let ref: Reference
     var owner: Reference
     private(set) var blocks: [Block] = []
@@ -9,7 +9,7 @@ struct Scene: Malleable {
     enum Block: Codable, Sendable, Identifiable, Equatable {
         case artifact(Reference)
         case command(Reference)
-        case scene(Reference)
+        case material(Reference)
         case task(UUID, String, Bool)
         case text(UUID, String)
 
@@ -17,7 +17,7 @@ struct Scene: Malleable {
             switch self {
                 case .artifact(let ref): return ref
                 case .command(let ref): return ref
-                case .scene(let ref): return ref
+                case .material(let ref): return ref
                 case .task(let id, _, _): return id
                 case .text(let id, _): return id
             }
@@ -31,7 +31,6 @@ struct Scene: Malleable {
 
     var rendered: String { rendered(depth: 0) }
 
-    /// Embedded scenes expand inline; the depth cap bounds both cycles and context size.
     func rendered(depth: Int) -> String {
         blocks.map { block in
             switch block {
@@ -39,8 +38,8 @@ struct Scene: Malleable {
                     Runtime.shared.rendered(ref)
                 case .command(let ref):
                     Runtime.shared.rendered(ref)
-                case .scene(let ref):
-                    depth >= 2 ? ref.descriptor.name : (Scene.with(ref, { $0.rendered(depth: depth + 1) }) ?? "")
+                case .material(let ref):
+                    depth >= 2 ? ref.descriptor.name : (Material.with(ref, { $0.rendered(depth: depth + 1) }) ?? "")
                 case .task(_, let string, let done):
                     "[\(done ? "x" : " ")] \(string)"
                 case .text(_, let string):
@@ -57,7 +56,7 @@ struct Scene: Malleable {
         switch block {
             case .artifact(let ref): if ref.type == Artifact.self { blocks.insert(block, at: insertion) }
             case .command(let ref): if ref.type == Command.self { blocks.insert(block, at: insertion) }
-            case .scene(let ref): if ref.type == Scene.self { blocks.insert(block, at: insertion) }
+            case .material(let ref): if ref.type == Material.self { blocks.insert(block, at: insertion) }
             case .task: blocks.insert(block, at: insertion)
             case .text: blocks.insert(block, at: insertion)
         }
@@ -89,11 +88,11 @@ struct Scene: Malleable {
 
     mutating func clear() { blocks = [] }
 
-    static func new(_ owner: Reference, name: String = "New Scene") -> Reference {
+    static func new(_ owner: Reference, name: String = "New Material") -> Reference {
         guard owner.type == Space.self || owner.type == Workspace.self else { RuntimeError.fatal() }
         var instance = Self(.init(Self.self))
         instance.owner = owner
-        Descriptor.new(instance.ref, name: name, tags: ["scene"])
+        Descriptor.new(instance.ref, name: name, tags: ["material"])
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
         if owner.type == Workspace.self { Workspace.with(owner, { $0.add(instance.ref) }) }
         else {  Space.with(owner, { $0.add(instance.ref) }) }

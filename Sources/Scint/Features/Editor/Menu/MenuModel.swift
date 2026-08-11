@@ -3,7 +3,7 @@ import SwiftUI
 
 
 struct MenuInsertion {
-    let blocks: [Scene.Block]
+    let blocks: [Material.Block]
     let target: AnyHashable
     let replacementRange: NSRange
 }
@@ -20,7 +20,7 @@ enum MenuFormKind: Equatable {
     case link
     case artifact
     case command
-    case scene
+    case material
 
     var name: String {
         switch self {
@@ -28,7 +28,7 @@ enum MenuFormKind: Equatable {
             case .link: return "Link"
             case .artifact: return "Artifact"
             case .command: return "Command"
-            case .scene: return "Scene"
+            case .material: return "Material"
         }
     }
 
@@ -38,7 +38,7 @@ enum MenuFormKind: Equatable {
             case .link: return "link"
             case .artifact: return "folder.badge.plus"
             case .command: return "curlybraces"
-            case .scene: return "textformat"
+            case .material: return "textformat"
         }
     }
 
@@ -48,7 +48,7 @@ enum MenuFormKind: Equatable {
         switch self {
             case .task: return "Task"
             case .link: return "URL"
-            case .artifact, .command, .scene: return "Search \(name.lowercased())s"
+            case .artifact, .command, .material: return "Search \(name.lowercased())s"
         }
     }
 }
@@ -125,9 +125,9 @@ enum MenuItem: Identifiable, Equatable {
 
 @Observable final class MenuModel {
     private(set) var items: [MenuItem] = []
-    private let scene: SceneModel
+    private let material: MaterialModel
     private let fixedItems: [MenuItem]
-    private let makeBlocks: (MenuItem) -> [Scene.Block]?
+    private let makeBlocks: (MenuItem) -> [Material.Block]?
     private var target: AnyHashable?
 
     var kind: MenuKind = .fixed
@@ -139,8 +139,8 @@ enum MenuItem: Identifiable, Equatable {
     var formPrimary = ""
     var formCompleted = false
 
-    init(scene: SceneModel, items: [MenuItem], makeBlocks: @escaping (MenuItem) -> [Scene.Block]?) {
-        self.scene = scene
+    init(material: MaterialModel, items: [MenuItem], makeBlocks: @escaping (MenuItem) -> [Material.Block]?) {
+        self.material = material
         self.fixedItems = items
         self.makeBlocks = makeBlocks
         self.items = items
@@ -177,7 +177,7 @@ enum MenuItem: Identifiable, Equatable {
         refreshItems()
     }
 
-    func edit(_ block: Scene.Block, anchorRect: CGRect) {
+    func edit(_ block: Material.Block, anchorRect: CGRect) {
         target = block.id
         replacementRange = NSRange(location: 0, length: 0)
         self.anchorRect = anchorRect
@@ -200,8 +200,8 @@ enum MenuItem: Identifiable, Equatable {
             case .command:
                 kind = .update(.command)
                 formPrimary = ""
-            case .scene:
-                kind = .update(.scene)
+            case .material:
+                kind = .update(.material)
                 formPrimary = ""
             case .text:
                 close()
@@ -256,7 +256,7 @@ enum MenuItem: Identifiable, Equatable {
 
     func commitSelection() -> (AnyHashable, NSRange?)? {
         switch kind {
-            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.scene):
+            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.material):
                 guard let item = selectedItem else { return nil }
                 return commit(item)
             case .create(let form), .update(let form):
@@ -277,12 +277,12 @@ enum MenuItem: Identifiable, Equatable {
                 })
             case .dynamic:
                 return MenuSearch.items(for: query)
-            case .update(let form) where form == .artifact || form == .command || form == .scene:
+            case .update(let form) where form == .artifact || form == .command || form == .material:
                 return MenuSearch.items(for: query) { ref in
                     switch form {
                         case .artifact: return ref.type == Artifact.self
                         case .command: return ref.type == Command.self
-                        case .scene: return ref.type == Scene.self
+                        case .material: return ref.type == Material.self
                         default: return false
                     }
                 }
@@ -300,13 +300,13 @@ enum MenuItem: Identifiable, Equatable {
         if case .fixed = kind, item.commandID == "new-task" { openCreate(.task); return nil }
         if case .fixed = kind, item.commandID == "new-link" { openCreate(.link); return nil }
 
-        let blocks: [Scene.Block]
+        let blocks: [Material.Block]
         if let ref = item.ref, let block = MenuSearch.block(for: ref) { blocks = [block] }
         else if let built = makeBlocks(item), !built.isEmpty { blocks = built }
         else { return nil }
 
         if case .update = kind {
-            guard let target, let block = blocks.first, let id = scene.update(block, replacing: target) else { return nil }
+            guard let target, let block = blocks.first, let id = material.update(block, replacing: target) else { return nil }
             close()
             return (id, nil)
         }
@@ -326,11 +326,11 @@ enum MenuItem: Identifiable, Equatable {
 
     private func commitForm(_ form: MenuFormKind) -> (AnyHashable, NSRange?)? {
         let value = formPrimary.trimmingCharacters(in: .whitespacesAndNewlines)
-        let block: Scene.Block
+        let block: Material.Block
 
         switch form {
             case .task:
-                if case .update = kind, let target, case .task(let id, _, _) = scene.block(id: target) {
+                if case .update = kind, let target, case .task(let id, _, _) = material.block(id: target) {
                     block = .task(id, value.isEmpty ? "Task" : value, formCompleted)
                 } else {
                     block = .task(UUID(), value.isEmpty ? "Task" : value, formCompleted)
@@ -338,12 +338,12 @@ enum MenuItem: Identifiable, Equatable {
             case .link:
                 guard let url = normalizedURL(from: value) else { return nil }
                 block = .artifact(Artifact.register(url.host(percentEncoded: false) ?? url.absoluteString, url))
-            case .artifact, .command, .scene:
+            case .artifact, .command, .material:
                 return nil
         }
 
         if case .update = kind {
-            guard let target, let id = scene.update(block, replacing: target) else { return nil }
+            guard let target, let id = material.update(block, replacing: target) else { return nil }
             close()
             return (id, nil)
         }
@@ -353,7 +353,7 @@ enum MenuItem: Identifiable, Equatable {
     }
 
     private func apply(_ insertion: MenuInsertion) -> (AnyHashable, NSRange?)? {
-        let result = scene.insert(insertion.blocks, replacing: insertion.replacementRange, in: insertion.target)
+        let result = material.insert(insertion.blocks, replacing: insertion.replacementRange, in: insertion.target)
         if result != nil { close() }
         return result
     }

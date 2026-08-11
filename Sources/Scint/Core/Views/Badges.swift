@@ -74,7 +74,7 @@ struct BadgesBar: View {
     var body: some View {
         if origin.type != Workspace.self {
             HStack(spacing: 6) {
-                Badge("0", symbol: "text.alignleft", tint: Design.Tint.scene)
+                Badge("0", symbol: "text.alignleft", tint: Design.Tint.material)
                 Badge("0/3", symbol: "checkmark.app", tint: Design.Tint.task)
                 Badge("0", symbol: "archivebox", tint: Design.Tint.active, style: .neutral).opacity(0.6)
                 Badge("8", symbol: "switch.2", tint: Design.Tint.command)

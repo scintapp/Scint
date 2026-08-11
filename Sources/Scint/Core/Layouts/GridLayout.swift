@@ -4,22 +4,22 @@ import SwiftUI
 private enum GridItemRole: Equatable {
     case item
     case space
-    case scene(Reference)
+    case material(Reference)
 
-    var isScene: Bool {
-        if case .scene = self { return true }
+    var isMaterial: Bool {
+        if case .material = self { return true }
         return false
     }
 
     var reference: Reference? {
-        if case .scene(let ref) = self { return ref }
+        if case .material(let ref) = self { return ref }
         return nil
     }
 
     init(_ ref: Reference?) {
         switch ref?.type {
             case is Space.Type: self = .space
-            case is Scene.Type: self = ref.map(Self.scene) ?? .item
+            case is Material.Type: self = ref.map(Self.material) ?? .item
             default: self = .item
         }
     }
@@ -71,8 +71,8 @@ struct GridIcon: View {
     }
 
     @ViewBuilder private var glyph: some View {
-        if let ref, ref.type is Scene.Type {
-            SceneGlyph(ref: ref)
+        if let ref, ref.type is Material.Type {
+            MaterialGlyph(ref: ref)
         } else if let ref {
             spaceGlyph(ref)
         } else {
@@ -170,12 +170,12 @@ struct GridIcon: View {
                 return []
         }
 
-        let scenes = contents.1.flatMap { Closure.with($0, { $0.content.filter { $0.type is Scene.Type } }) } ?? []
-        return contents.0 + scenes
+        let materials = contents.1.flatMap { Closure.with($0, { $0.content.filter { $0.type is Material.Type } }) } ?? []
+        return contents.0 + materials
     }
 }
 
-struct SceneGlyph: View {
+struct MaterialGlyph: View {
     let ref: Reference
     var width: CGFloat = 42
     var height: CGFloat = 54
@@ -183,7 +183,7 @@ struct SceneGlyph: View {
     var body: some View {
         let page = RoundedRectangle(cornerRadius: 6, style: .continuous)
         let icon = Iconography.icon(for: ref, size: 15)
-        let content = Scene.with(ref, { $0.rendered }) ?? ""
+        let content = Material.with(ref, { $0.rendered }) ?? ""
 
         Text(content)
             .font(.system(size: 3, weight: .light))
@@ -198,7 +198,7 @@ struct SceneGlyph: View {
     }
 }
 
-//struct SceneStackIcon: View {
+//struct MaterialStackIcon: View {
 //    let refs: [Reference]
 //    let expanded: Bool
 //    let onToggle: () -> Void
@@ -210,7 +210,7 @@ struct SceneGlyph: View {
 //            VStack {
 //                ZStack {
 //                    ForEach(Array(refs.prefix(3).enumerated().reversed()), id: \.element) { index, ref in
-//                        SceneGlyph(ref: ref, width: 40, height: 52)
+//                        MaterialGlyph(ref: ref, width: 40, height: 52)
 //                            .rotationEffect(.degrees(rotation(for: index)))
 //                            .offset(x: offset(for: index).width, y: offset(for: index).height)
 //                    }
@@ -228,7 +228,7 @@ struct SceneGlyph: View {
 //                }
 //                .frame(width: 66, height: 66)
 //
-//                Text("Scenes\n\(refs.count) items")
+//                Text("Materials\n\(refs.count) items")
 //                    .font(.system(size: 12, weight: .medium))
 //                    .foregroundStyle(.primary.opacity(0.9))
 //                    .multilineTextAlignment(.center)
@@ -239,7 +239,7 @@ struct SceneGlyph: View {
 //            .contentShape(shape)
 //        }
 //        .buttonStyle(.plain)
-//        .help(expanded ? "Collapse scenes" : "Show \(refs.count) scenes")
+//        .help(expanded ? "Collapse materials" : "Show \(refs.count) materials")
 //    }
 //
 //    private func rotation(for index: Int) -> Double {
@@ -269,9 +269,9 @@ struct GridLayout<Content: View>: View {
     var body: some View {
         Group(subviews: content()) { subviews in
             let spaces = subviews.filter { $0.containerValues.gridItem == .space }
-            let scenes = subviews.filter { $0.containerValues.gridItem.isScene }
+            let materials = subviews.filter { $0.containerValues.gridItem.isMaterial }
             let items = subviews.filter { $0.containerValues.gridItem == .item }
-            let refs = scenes.compactMap(\.containerValues.gridItem.reference)
+            let refs = materials.compactMap(\.containerValues.gridItem.reference)
 
             HStack(alignment: .top, spacing: 8) {
                 if !items.isEmpty {
@@ -281,7 +281,7 @@ struct GridLayout<Content: View>: View {
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                 } else { Spacer(minLength: 0) }
 
-                if !spaces.isEmpty || !scenes.isEmpty {
+                if !spaces.isEmpty || !materials.isEmpty {
                     VStack(spacing: 8) {
                         ForEach(spaces) { $0 }
                     }

@@ -6,11 +6,11 @@ import SwiftUI
 extension UTType {
     nonisolated static let workspace = UTType(exportedAs: "com.kaechle.scint.workspace")
     nonisolated static let space = UTType(exportedAs: "com.kaechle.scint.space")
-    nonisolated static let scene = UTType(exportedAs: "com.kaechle.scint.scene")
+    nonisolated static let material = UTType(exportedAs: "com.kaechle.scint.material")
     nonisolated static let artifact = UTType(exportedAs: "com.kaechle.scint.artifact")
     nonisolated static let control = UTType(exportedAs: "com.kaechle.scint.control")
     nonisolated static let service = UTType(exportedAs: "com.kaechle.scint.service")
-    nonisolated static var scint: [UTType] { [.workspace, .space, .scene, .artifact, .control, .service] }
+    nonisolated static var scint: [UTType] { [.workspace, .space, .material, .artifact, .control, .service] }
 }
 
 enum ReferenceTransfer {
@@ -64,7 +64,7 @@ enum ReferenceTransfer {
             case is Space.Type: Space.with(ref, { _ in true }) == true
             case is Closure.Type: Closure.with(ref, { _ in true }) == true
             case is Bridge.Type: Bridge.with(ref, { _ in true }) == true
-            case is Scene.Type: Scene.with(ref, { _ in true }) == true
+            case is Material.Type: Material.with(ref, { _ in true }) == true
             case is Transcript.Type: Transcript.with(ref, { _ in true }) == true
             case is Artifact.Type: Artifact.with(ref, { _ in true }) == true
             case is Command.Type: Command.with(ref, { _ in true }) == true
@@ -143,11 +143,11 @@ enum ReferenceTransfer {
         switch ref.type {
             case is Space.Type:
                 return Space.update(ref) { $0.attach(to: owner) } != nil
-            case is Artifact.Type, is Scene.Type, is Transcript.Type, is any Functional.Type:
+            case is Artifact.Type, is Material.Type, is Transcript.Type, is any Functional.Type:
                 if let space = Space.with(owner, { $0 }) { space.add(ref) }
                 else if let workspace = Workspace.with(owner, { $0 }) { workspace.add(ref) }
                 else { return false }
-                if ref.type is Scene.Type { Scene.update(ref) { $0.owner = owner } }
+                if ref.type is Material.Type { Material.update(ref) { $0.owner = owner } }
                 return true
             default:
                 return false
@@ -167,7 +167,7 @@ enum ReferenceTransfer {
         switch ref.type {
             case is Workspace.Type: .workspace
             case is Space.Type: .space
-            case is Scene.Type: .scene
+            case is Material.Type: .material
             case is Artifact.Type: .artifact
             case is Command.Type: .control
             case is Harness.Type: .service

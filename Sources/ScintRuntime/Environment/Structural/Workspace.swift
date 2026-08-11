@@ -19,11 +19,11 @@ struct Workspace: Structural {
     var artifacts: [Reference] { Closure.with(closure, { $0 })?.artifacts ?? [] }
     var commands: [Reference] { Closure.with(closure, { $0 })?.commands ?? [] }
     var harnesses: [Reference] { Closure.with(closure, { $0 })?.harnesses ?? [] }
-    var scenes: [Reference] { Closure.with(closure, { $0 })?.scenes ?? [] }
+    var materials: [Reference] { Closure.with(closure, { $0 })?.materials ?? [] }
     var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
     var directories: [Reference] { Closure.with(closure, { $0 })?.directories ?? [] }
     var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
-    var components: [Reference] { artifacts + commands + harnesses + scenes + transcripts }
+    var components: [Reference] { artifacts + commands + harnesses + materials + transcripts }
     var input: Reference? {
         get { Closure.with(closure, { $0.input }) }
         set {
@@ -31,7 +31,7 @@ struct Workspace: Structural {
             Closure.update(closure) {
                 $0.content.removeAll { $0 == input }
                 $0.content.insert(input, at: 0)
-                $0.input = Scene.new(ref, input: true)
+                $0.input = Material.new(ref, input: true)
             }
         }
     }

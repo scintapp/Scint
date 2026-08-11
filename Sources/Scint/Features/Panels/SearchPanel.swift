@@ -3,7 +3,7 @@ import SwiftUI
 
 
 @Observable final class SearchPanel: Panel {
-    var state: AppState = .init()
+    var state: PanelState = .init()
 
     var mode: Mode {
         get { Mode(rawValue: state.mode) ?? .everything }
@@ -46,11 +46,10 @@ import SwiftUI
             header: content.header,
             panel: .init(
                 key: .search,
-                size: CGSize(width: 640, height: 480),
+                sizing: .init(size: .init(width: 640, height: 480)),
                 input: .init(key: "query", name: mode.placeholder, image: mode.image),
                 items: modes,
                 selection: modes.first { $0.key == mode.rawValue },
-                layout: .float,
                 dismissal: [.escape, .outsideClick],
                 movable: true,
                 resizable: false,

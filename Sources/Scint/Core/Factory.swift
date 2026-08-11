@@ -25,7 +25,7 @@ import Foundation
         build(surface, controls, view: AnyView(view))
     }
 
-    @ViewBuilder static func build(_ surface: some Surface, controls: Controls, params: ComponentParams, layout: Layout, nesting: Nesting) -> some View {
+    @ViewBuilder static func build(_ surface: some Surface, controls: Controls, params: SectionParams, layout: Layout, nesting: Nesting) -> some View {
         switch layout {
             case .group:
                 GroupLayout(title: params.name, footer: params.footer) {
@@ -436,7 +436,7 @@ extension Factory {
         .background { PanelShortcuts(count: params.items.count) { change($0) } }
     }
 
-    @ViewBuilder static func build(_ panel: some Panel, _ params: ComponentParams, _ controls: Controls) -> some View {
+    @ViewBuilder static func build(_ panel: some Panel, _ params: SectionParams, _ controls: Controls) -> some View {
         if !params.items.isEmpty {
             if params.header && !params.name.isEmpty { PanelHeader(name: params.name) }
             ForEach(params.items) { item in
@@ -456,10 +456,10 @@ extension Factory {
         .id(params.id)
     }
 
-    static func build(_ groups: [ResultGroup]) -> [ComponentParams] {
+    static func build(_ groups: [ResultGroup]) -> [SectionParams] {
         groups.compactMap { group in
             guard !group.results.isEmpty else { return nil }
-            return ComponentParams(
+            return SectionParams(
                 id: group.id.description,
                 name: group.name,
                 header: !group.name.isEmpty,

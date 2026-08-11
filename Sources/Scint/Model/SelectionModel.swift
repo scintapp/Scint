@@ -24,16 +24,16 @@ enum Focus: Codable, Equatable, Sendable {
 }
 
 struct Open: Codable, Equatable, Sendable {
-    var scenes: [Reference] = []
+    var materials: [Reference] = []
     var resolved: Value {
-        .collection([ "scenes": .sequence(scenes.map(Value.reference)) ])
+        .collection([ "materials": .sequence(materials.map(Value.reference)) ])
     }
 
     @discardableResult
     mutating func open(_ ref: Reference) -> Bool {
         switch ref.type {
-            case is Scene.Type:
-                if !scenes.contains(ref) { scenes.append(ref) }
+            case is Material.Type:
+                if !materials.contains(ref) { materials.append(ref) }
                 return true
             default:
                 return false
@@ -42,9 +42,9 @@ struct Open: Codable, Equatable, Sendable {
 
     @discardableResult
     mutating func close(_ ref: Reference) -> Bool {
-        let scenesCount = scenes.count
-        scenes.removeAll { $0 == ref }
-        return scenes.count != scenesCount
+        let materialsCount = materials.count
+        materials.removeAll { $0 == ref }
+        return materials.count != materialsCount
     }
 }
 

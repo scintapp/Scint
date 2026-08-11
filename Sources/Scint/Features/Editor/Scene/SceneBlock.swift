@@ -256,10 +256,10 @@ struct TaskBlock: View {
     }
 }
 
-struct SceneBlock: View {
+struct MaterialBlock: View {
     @Environment(\.editorFocus) private var focus
     @State private var isHovered = false
-    let block: Scene.Block
+    let block: Material.Block
     let selection: NSRange?
     let isEditing: Bool
     let isSelected: Bool
@@ -271,7 +271,7 @@ struct SceneBlock: View {
     let onEdit: () -> Void
     let onCommand: (Selector, NSRange, Int) -> Bool
 
-    func firstPreview(_ entries: [Scene.Block]) -> String {
+    func firstPreview(_ entries: [Material.Block]) -> String {
         var snippets: [String] = []
 
         for entry in entries {
@@ -310,8 +310,8 @@ struct SceneBlock: View {
                     snippets.append(Artifact.with(ref, { $0.name }) ?? "")
                 case .command(let ref):
                     snippets.append(Command.with(ref, { $0.name }) ?? "")
-                case .scene(let ref):
-                    snippets.append(Scene.with(ref, { $0.name }) ?? "")
+                case .material(let ref):
+                    snippets.append(Material.with(ref, { $0.name }) ?? "")
             }
 
             snippets = snippets
@@ -388,19 +388,19 @@ struct SceneBlock: View {
         return (artifacts, arguments)
     }
 
-    func scene(_ ref: Reference) -> some View {
+    func material(_ ref: Reference) -> some View {
         let shape = Design.Shape.block
-        let name = Scene.with(ref, { $0.name }) ?? "Scene"
-        let description = Scene.with(ref, { $0.description }) ?? ""
-        let blocks = Scene.with(ref, { $0.blocks }) ?? []
-        let facts = sceneFacts(blocks)
+        let name = Material.with(ref, { $0.name }) ?? "Material"
+        let description = Material.with(ref, { $0.description }) ?? ""
+        let blocks = Material.with(ref, { $0.blocks }) ?? []
+        let facts = materialFacts(blocks)
 
         return HStack(alignment: .center, spacing: 12) {
             RoundedRectangle(cornerRadius: 99, style: .continuous)
-                .fill(Design.Tint.scene.opacity(0.76))
+                .fill(Design.Tint.material.opacity(0.76))
                 .frame(width: 3)
 
-            Iconography.Icon(symbol: "text.alignleft", tint: Design.Tint.scene, sizing: 18)
+            Iconography.Icon(symbol: "text.alignleft", tint: Design.Tint.material, sizing: 18)
                 .frame(width: 28, height: 28)
 
             VStack(alignment: .leading, spacing: 4) {
@@ -420,7 +420,7 @@ struct SceneBlock: View {
 
             HStack(alignment: .center, spacing: 6) {
                 ForEach(Array(facts.prefix(3)).indices, id: \.self) { index in
-                    Badge(facts[index], tint: Design.Tint.scene, style: .neutral)
+                    Badge(facts[index], tint: Design.Tint.material, style: .neutral)
                 }
             }
             .fixedSize(horizontal: true, vertical: false)
@@ -434,7 +434,7 @@ struct SceneBlock: View {
         .overlay { shape.strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75) }
     }
 
-    func sceneFacts(_ entries: [Scene.Block]) -> [String] {
+    func materialFacts(_ entries: [Material.Block]) -> [String] {
         let texts = entries.filter { if case .text = $0 { true } else { false } }.count
         let tasks = entries.filter { if case .task = $0 { true } else { false } }.count
         let done = entries.filter { if case .task(_, _, true) = $0 { true } else { false } }.count
@@ -454,7 +454,7 @@ struct SceneBlock: View {
         case .artifact(let ref): ArtifactBlock(ref: ref)
         case .command(let ref): command(ref)
         case .text(_, let content): TextBlock(content: content)
-        case .scene(let ref): scene(ref)
+        case .material(let ref): material(ref)
         case .task(_, let content, let completed): TaskBlock(content: content, completed: completed)
         }
     }

@@ -2,13 +2,13 @@ import Foundation
 
 
 final class Content: Bounding {
-    let scenes = Store()
+    let materials = Store()
     let transcripts = Store()
-    var stores: [Store] { [scenes, transcripts] }
+    var stores: [Store] { [materials, transcripts] }
     
     func store(for ref: Reference?) -> Store? {
         switch ref?.type {
-            case is Scene.Type: return scenes
+            case is Material.Type: return materials
             case is Transcript.Type: return transcripts
             default: return nil
         }

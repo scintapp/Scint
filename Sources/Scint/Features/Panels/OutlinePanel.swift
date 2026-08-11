@@ -3,15 +3,16 @@ import SwiftUI
 
 
 @Observable final class OutlinePanel: Panel {
-    var state: AppState = .init()
+    var state: PanelState = .init()
 
     func parameters(_ model: any Model) -> Params {
         .init(
             panel: .init(
                 key: .outline,
-                size: CGSize(width: 360, height: 520),
-                minimumSize: CGSize(width: 280, height: 280),
-                layout: .float,
+                sizing: .init(
+                    size: CGSize(width: 360, height: 520),
+                    min: .init(CGSize(width: 360, height: 520),)
+                ),
                 dismissal: [.escape, .outsideClick],
                 resizable: true,
                 pinnable: true

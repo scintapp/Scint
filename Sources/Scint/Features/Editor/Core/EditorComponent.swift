@@ -10,7 +10,7 @@ struct TextEditor: View {
     @Environment(EditorState.self) private var editor
     @Environment(\.editorFocus) private var focus
     @State private var contentHeight: CGFloat = 0
-    private var scene: SceneModel { editor.scene }
+    private var material: MaterialModel { editor.material }
     let autofocus: Bool
     let minimumHeight: CGFloat
     let maximumHeight: CGFloat?
@@ -59,10 +59,10 @@ struct TextEditor: View {
             Color.clear
                 .contentShape(Rectangle())
                 .onTapGesture(coordinateSpace: .named("canvas")) { point in
-                    editor.beginEditingFromSceneClick(at: point)
+                    editor.beginEditingFromMaterialClick(at: point)
                 }
 
-            SceneView(
+            MaterialView(
                 editing: editor.editing,
                 selection: editor.caretSelection(for:),
                 onTextChange: editor.write,
@@ -74,7 +74,7 @@ struct TextEditor: View {
                 onCommand: editor.handleInput,
                 onPanelChange: editor.updateEntryPanel
             )
-            .environment(scene)
+            .environment(material)
         }
         .frame(maxWidth: .infinity, minHeight: minimumHeight, alignment: .topLeading)
     }
@@ -96,18 +96,18 @@ struct TextEditor: View {
     var body: some View {
         viewport
             .coordinateSpace(name: "canvas")
-            .onChange(of: editor.editing) { _, _ in focus.focus(editor.editing ?? scene.selection.first) }
-            .onChange(of: scene.selection) { _, _ in if editor.editing == nil { focus.focus(scene.selection.first) } }
+            .onChange(of: editor.editing) { _, _ in focus.focus(editor.editing ?? material.selection.first) }
+            .onChange(of: material.selection) { _, _ in if editor.editing == nil { focus.focus(material.selection.first) } }
             .onChange(of: editor.menu.isOpen) { _, isOpen in
                 guard !isOpen else { focus.focus(nil); return }
                 Task { @MainActor in
                     await Task.yield()
-                    focus.focus(editor.editing ?? scene.selection.first)
+                    focus.focus(editor.editing ?? material.selection.first)
                 }
             }
             .onAppear {
                 editor.activateTrailingText()
-                if autofocus { focus.focus(editor.editing ?? scene.selection.first) }
+                if autofocus { focus.focus(editor.editing ?? material.selection.first) }
             }
             .onDisappear { editor.deactivate() }
             .overlay(alignment: .topLeading) {
@@ -126,13 +126,13 @@ struct EditorComponent: View {
     let maximumHeight: CGFloat?
     let menuPlacement: EditorMenuPlacement
 
-    init(_ scene: Reference, minimumHeight: CGFloat = 0, maximumHeight: CGFloat? = nil, menuPlacement: EditorMenuPlacement = .caret) {
+    init(_ material: Reference, minimumHeight: CGFloat = 0, maximumHeight: CGFloat? = nil, menuPlacement: EditorMenuPlacement = .caret) {
         self.minimumHeight = minimumHeight
         self.maximumHeight = maximumHeight
         self.menuPlacement = menuPlacement
         _state = State(
             initialValue: EditorState(
-                scene: scene,
+                material: material,
                 menuItems: MenuSurface.menu,
                 makeBlocks: MenuSurface.build(for:)
             )

@@ -214,7 +214,7 @@ struct TranscriptRaw: View {
                     case .completed(let value): return ("completed", value?.rendered.joined(separator: "\n") ?? "")
                     case .failed(let value): return ("failed", value.rendered.joined(separator: "\n"))
                 }
-            case .scene(let ref, _): return ("scene", ref.descriptor.name)
+            case .material(let ref, _): return ("material", ref.descriptor.name)
             case .value(let key, let value, _): return (key, value.rendered.joined(separator: "\n"))
             case .transcript(let ref, _): return ("transcript", ref.descriptor.name)
         }
@@ -259,12 +259,12 @@ struct TranscriptEntry: View {
         }
     }
 
-    // The input scene drops its trailing block — that is the composer's live edit,
+    // The input material drops its trailing block — that is the composer's live edit,
     // not part of what was sent.
     private func input(_ ref: Reference) -> String? {
         guard ref.descriptor.tags.contains("input") else { return nil }
-        let content = Scene.with(ref) { scene in
-            var input = scene
+        let content = Material.with(ref) { material in
+            var input = material
             if !input.blocks.isEmpty { input.delete(at: input.blocks.index(before: input.blocks.endIndex)) }
             return input.rendered.trimmingCharacters(in: .whitespacesAndNewlines)
         }
@@ -281,7 +281,7 @@ struct TranscriptEntry: View {
                     case .failed(let value): output(value, failed: true)
                 }
 
-            case .scene(let ref, _):
+            case .material(let ref, _):
                 if let text = input(ref) { TranscriptBlock(text: text, style: .input) }
 
             case .transcript(let ref, let created):

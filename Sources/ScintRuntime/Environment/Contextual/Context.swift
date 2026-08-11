@@ -98,14 +98,12 @@ struct Composing: Contextual {
 
     private func start(_ signal: @escaping (Signal) -> Void) throws {
         guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
-        guard let artifact = Command.with(command, { $0.artifact }) else { throw RuntimeError.context(.missing(command)) }
-        guard let executable = Artifact.with(artifact, { $0.handler.executable }) ?? nil
-        else { throw RuntimeError.context(.functionNotFound(artifact.descriptor.name)) }
         let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        guard let result = Runtime.shared.services.start(executable, arguments: arguments, environment: environment)
-        else { throw RuntimeError.context(.startFailed("Service start returned no result.")) }
+        guard let dispatched = Command.with(command, { $0.dispatch(rendered: arguments, environment: environment, output: signal) })
+        else { throw RuntimeError.context(.missing(command)) }
+        guard let result = dispatched
+        else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
         if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-        Runtime.shared.services.output(pid: result.pid, signal)
     }
 
     private func receiver(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (Signal) -> Void {
@@ -156,14 +154,12 @@ struct Dispatching: Contextual {
 
     private func start(_ signal: @escaping (Signal) -> Void) throws {
         guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
-        guard let artifact = Command.with(command, { $0.artifact }) else { throw RuntimeError.context(.missing(command)) }
-        guard let executable = Artifact.with(artifact, { $0.handler.executable }) ?? nil
-        else { throw RuntimeError.context(.functionNotFound(artifact.descriptor.name)) }
         let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        guard let result = Runtime.shared.services.start(executable, arguments: arguments, environment: environment)
-        else { throw RuntimeError.context(.startFailed("Service start returned no result.")) }
+        guard let dispatched = Command.with(command, { $0.dispatch(rendered: arguments, environment: environment, output: signal) })
+        else { throw RuntimeError.context(.missing(command)) }
+        guard let result = dispatched
+        else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
         if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-        Runtime.shared.services.output(pid: result.pid, signal)
     }
 
     private func receiver(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (Signal) -> Void {
@@ -214,14 +210,12 @@ struct Executing: Contextual {
 
     private func start(_ signal: @escaping (Signal) -> Void) throws {
         guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
-        guard let artifact = Command.with(command, { $0.artifact }) else { throw RuntimeError.context(.missing(command)) }
-        guard let executable = Artifact.with(artifact, { $0.handler.executable }) ?? nil
-        else { throw RuntimeError.context(.functionNotFound(artifact.descriptor.name)) }
         let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        guard let result = Runtime.shared.services.start(executable, arguments: arguments, environment: environment)
-        else { throw RuntimeError.context(.startFailed("Service start returned no result.")) }
+        guard let dispatched = Command.with(command, { $0.dispatch(rendered: arguments, environment: environment, output: signal) })
+        else { throw RuntimeError.context(.missing(command)) }
+        guard let result = dispatched
+        else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
         if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-        Runtime.shared.services.output(pid: result.pid, signal)
     }
 
     private func receiver(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (Signal) -> Void {
@@ -274,14 +268,12 @@ struct Observing: Contextual {
 
     private func start(_ signal: @escaping (Signal) -> Void) throws {
         guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
-        guard let artifact = Command.with(command, { $0.artifact }) else { throw RuntimeError.context(.missing(command)) }
-        guard let executable = Artifact.with(artifact, { $0.handler.executable }) ?? nil
-        else { throw RuntimeError.context(.functionNotFound(artifact.descriptor.name)) }
         let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        guard let result = Runtime.shared.services.start(executable, arguments: arguments, environment: environment)
-        else { throw RuntimeError.context(.startFailed("Service start returned no result.")) }
+        guard let dispatched = Command.with(command, { $0.dispatch(rendered: arguments, environment: environment, output: signal) })
+        else { throw RuntimeError.context(.missing(command)) }
+        guard let result = dispatched
+        else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
         if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-        Runtime.shared.services.output(pid: result.pid, signal)
     }
 
     private func receiver(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (Signal) -> Void {
@@ -332,14 +324,12 @@ struct Traversing: Contextual {
 
     private func start(_ signal: @escaping (Signal) -> Void) throws {
         guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
-        guard let artifact = Command.with(command, { $0.artifact }) else { throw RuntimeError.context(.missing(command)) }
-        guard let executable = Artifact.with(artifact, { $0.handler.executable }) ?? nil
-        else { throw RuntimeError.context(.functionNotFound(artifact.descriptor.name)) }
         let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        guard let result = Runtime.shared.services.start(executable, arguments: arguments, environment: environment)
-        else { throw RuntimeError.context(.startFailed("Service start returned no result.")) }
+        guard let dispatched = Command.with(command, { $0.dispatch(rendered: arguments, environment: environment, output: signal) })
+        else { throw RuntimeError.context(.missing(command)) }
+        guard let result = dispatched
+        else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
         if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-        Runtime.shared.services.output(pid: result.pid, signal)
     }
 
     private func receiver(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (Signal) -> Void {

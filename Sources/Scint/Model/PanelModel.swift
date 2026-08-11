@@ -2,14 +2,6 @@ import Foundation
 import SwiftUI
 
 
-enum AppKey: String, Identifiable, CaseIterable {
-    case editor, studio
-    var id: String { self.model }
-    var app: String { self.rawValue }
-    var model: String { "scint" }
-    var namespace: String { "\(app).\(model)" }
-}
-
 enum PanelKey: String, Identifiable, CaseIterable {
     case actions, assistant, outline, search, tasks
     var id: String { self.panel }
@@ -18,7 +10,7 @@ enum PanelKey: String, Identifiable, CaseIterable {
     var namespace: String { "\(model).panels.\(panel)" }
 }
 
-@Observable final class AppState {
+@Observable final class PanelState {
     var presented: Bool
     var pinned: Bool = false
     var detail: Bool = false
@@ -55,7 +47,7 @@ enum PanelKey: String, Identifiable, CaseIterable {
 
 @Observable @MainActor final class EditorModel: Model {
     var session: Session
-    var content: EditorContent
+    var content: EditorPanel
 
     init(_ session: Session) {
         self.content = .init()
@@ -65,9 +57,9 @@ enum PanelKey: String, Identifiable, CaseIterable {
 
 @Observable @MainActor final class StudioModel: Model {
     var session: Session
-    var sidebar: StudioSidebar
-    var content: StudioContent
-    var inspector: StudioInspector
+    var sidebar: NavigatorPanel
+    var content: ContentPanel
+    var inspector: InspectorPanel
 
     init(_ session: Session) {
         self.sidebar = .init()

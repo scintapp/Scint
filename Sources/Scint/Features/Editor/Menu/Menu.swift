@@ -9,7 +9,7 @@ import SwiftUI
         case "link", "folder.badge.plus":
             Design.Tint.artifact
         case "textformat.size", "textformat.size.smaller", "textformat":
-            Design.Tint.scene
+            Design.Tint.material
         case "quote.opening":
             Design.Tint.info
         case "curlybraces":
@@ -59,7 +59,7 @@ enum MenuSurface {
         MenuItem.command(id: "add-files", label: "Files or Folders...", icon: "folder.badge.plus", keywords: ["file", "folder", "directory", "artifact", "open"])
     ]
 
-    @MainActor static func build(for item: MenuItem) -> [Scene.Block]? {
+    @MainActor static func build(for item: MenuItem) -> [Material.Block]? {
         guard let commandID = item.commandID else { return nil }
 
         switch commandID {
@@ -73,7 +73,7 @@ enum MenuSurface {
                 guard panel.runModal() == .OK else { return nil }
                 let entries = panel.urls.map { url in
                     let name = url.lastPathComponent.isEmpty ? "Artifact" : url.lastPathComponent
-                    return Scene.Block.artifact(Artifact.register(name, url))
+                    return Material.Block.artifact(Artifact.register(name, url))
                 }
                 return entries.isEmpty ? nil : entries
             case "heading-1": return [.text(UUID(), "# ")]
@@ -153,7 +153,7 @@ struct MenuList: View {
     var emptyTitle: String {
         switch menu.kind {
             case .fixed: return "No commands found"
-            case .dynamic, .update(.artifact), .update(.command), .update(.scene): return "No references found"
+            case .dynamic, .update(.artifact), .update(.command), .update(.material): return "No references found"
             case .create, .update: return ""
         }
     }
@@ -414,7 +414,7 @@ struct Menu: View {
     func focusInitialField(for kind: MenuKind) {
         let target: MenuFocus?
         switch kind {
-            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.scene):
+            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.material):
                 target = nil
             case .create, .update:
                 target = .formPrimary
@@ -430,7 +430,7 @@ struct Menu: View {
     var body: some View {
         Group {
             switch menu.kind {
-                case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.scene):
+                case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.material):
                     MenuList()
                 case .create(let kind):
                     MenuForm(kind: kind, updating: false, focus: $focus)

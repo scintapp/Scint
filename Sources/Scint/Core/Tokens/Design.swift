@@ -70,7 +70,6 @@ enum Design {
     }
 
     enum Tint {
-
         static var compose: Color { Color(red: 1.131, green: 0.880, blue: 1.499) }
         static var dispatch: Color { Color(red: 1.258, green: 1.087, blue: 1.547) }
         static var execute: Color { Color(red: 1.338, green: 0.817, blue: 0.947) }
@@ -91,7 +90,7 @@ enum Design {
         static var artifact: Color { Color(red: 0.858, green: 1.007, blue: 1.347) }
         static var command: Color { Color(red: 1.158, green: 1.009, blue: 1.447) }
         static var harness: Color { Color(red: 0.743, green: 0.901, blue: 0.920) }
-        static var scene: Color { Color(red: 1.463, green: 1.08887, blue: 0.980) }
+        static var material: Color { Color(red: 1.463, green: 1.08887, blue: 0.980) }
         static var space: Color { Color(red: 1.276, green: 1.36706, blue: 1.472) }
         static var task: Color { Color(red: 1.384, green: 0.817, blue: 0.947) }
         static var workspace: Color { Color(red: 1.277, green: 1.367, blue: 1.472) }

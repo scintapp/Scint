@@ -92,7 +92,7 @@ import SwiftUI
         case command(Parameter)
         case harness(Intent)
         case route
-        case scene(Block)
+        case material(Block)
         case space
         case transcript(Entry)
         case workspace
@@ -101,7 +101,7 @@ import SwiftUI
             case artifact
             case command
             case content
-            case scene
+            case material
             case task
         }
 
@@ -124,7 +124,7 @@ import SwiftUI
 
         enum Entry {
             case signal
-            case scene
+            case material
             case transcript
         }
 
@@ -155,9 +155,9 @@ import SwiftUI
         case traverse = "space.badge.magnifyingglass"
     }
 
-    static func icon(for block: Scene.Block, size: CGFloat = 14) -> Icon {
+    static func icon(for block: Material.Block, size: CGFloat = 14) -> Icon {
         switch block {
-            case .artifact(let ref), .command(let ref), .scene(let ref): Iconography.icon(for: ref, size: size)
+            case .artifact(let ref), .command(let ref), .material(let ref): Iconography.icon(for: ref, size: size)
             case .text: Icon(symbol: "line.3.horizontal", tint: Design.Tint.inactive, sizing: size)
             case .task(_, _, let done): Icon(symbol: done ? "checkmark.square" : "square", tint: Design.Tint.task, sizing: size)
         }
@@ -176,7 +176,7 @@ import SwiftUI
     static func icon(for entry: Transcript.Entry, size: CGFloat = 14) -> Icon {
         switch entry {
             case .event: Icon(symbol: "calendar", tint: Design.Tint.active, sizing: size)
-            case .scene(let ref, _): Iconography.icon(for: ref, size: size)
+            case .material(let ref, _): Iconography.icon(for: ref, size: size)
             case .transcript(let ref, _): Iconography.icon(for: ref, size: size)
             case .value: Icon(symbol: "info.circle", tint: Design.Foreground.tertiary, sizing: size)
         }
@@ -213,8 +213,8 @@ import SwiftUI
                 guard let intent = Harness.with(ref, { $0.intent })
                 else { return Icon(symbol: "gear", tint: Design.Tint.harness, sizing: size) }
                 return Iconography.icon(for: intent, size: size)
-            case is Scene.Type:
-                return Icon(symbol: "text.alignleft", tint: Design.Tint.scene, sizing: size)
+            case is Material.Type:
+                return Icon(symbol: "text.alignleft", tint: Design.Tint.material, sizing: size)
             case is Transcript.Type:
                 for entry in Transcript.with(ref, { $0.entries }) ?? [] { return Iconography.icon(for: entry, size: size) }
                 return Icon(symbol: "rectangle.stack", tint: Design.Tint.working, sizing: size)
@@ -227,7 +227,7 @@ import SwiftUI
     }
 
     static func symbol(for ref: Reference) -> String { icon(for: ref).symbol }
-    static func symbol(for block: Scene.Block) -> String { icon(for: block).symbol }
+    static func symbol(for block: Material.Block) -> String { icon(for: block).symbol }
     static func symbol(for entry: Transcript.Entry) -> String { icon(for: entry).symbol }
     static func symbol(for handle: Artifact.Handler) -> String { icon(for: handle).symbol }
     static func symbol(for intent: Harness.Intent) -> String { icon(for: intent).symbol }
@@ -242,8 +242,8 @@ import SwiftUI
                 return Design.Tint.space
             case is Harness.Type:
                 return Iconography.icon(for: ref).tint
-            case is Scene.Type:
-                return Design.Tint.scene
+            case is Material.Type:
+                return Design.Tint.material
             case is Transcript.Type:
                 return Design.Tint.working
             case is Space.Type:
@@ -298,12 +298,12 @@ import SwiftUI
                 }
             case .route:
                 return Icon(symbol: "app.connected.to.app.below.fill", tint: Design.Tint.space)
-            case .scene(let block):
+            case .material(let block):
                 switch block {
                     case .artifact: return Iconography.model(.artifact(.file))
                     case .command: return Icon(symbol: "switch.2", tint: Design.Tint.command)
-                    case .content: return Icon(symbol: "text.alignleft", tint: Design.Tint.scene)
-                    case .scene: return Icon(symbol: "text.alignleft", tint: Design.Tint.scene)
+                    case .content: return Icon(symbol: "text.alignleft", tint: Design.Tint.material)
+                    case .material: return Icon(symbol: "text.alignleft", tint: Design.Tint.material)
                     case .task: return Icon(symbol: "app", tint: Design.Tint.task)
                 }
             case .space:
@@ -311,7 +311,7 @@ import SwiftUI
             case .transcript(let entry):
                 switch entry {
                     case .signal: return Icon(symbol: "calendar", tint: Design.Tint.active)
-                    case .scene: return Icon(symbol: "text.alignleft", tint: Design.Tint.scene)
+                    case .material: return Icon(symbol: "text.alignleft", tint: Design.Tint.material)
                     case .transcript: return Icon(symbol: "rectangle.stack", tint: Design.Tint.working)
                 }
             case .workspace:

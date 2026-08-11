@@ -10,7 +10,7 @@ extension EnvironmentValues {
     }
 }
 
-extension AppState {
+extension PanelState {
     var cursor: AnyHashable? {
         get { self["cursor", as: AnyHashable.self] }
         set { self["cursor", as: AnyHashable.self] = newValue }

@@ -27,7 +27,7 @@ final class Library: Sendable {
         interfaces.decode(try await read(settings.interfaceDirectory(for: Artifact.self)))
         interfaces.decode(try await read(settings.interfaceDirectory(for: Command.self)))
         interfaces.decode(try await read(settings.interfaceDirectory(for: Harness.self)))
-        content.decode(try await read(settings.componentDirectory(for: Scene.self)))
+        content.decode(try await read(settings.componentDirectory(for: Material.self)))
         content.decode(try await read(settings.componentDirectory(for: Transcript.self)))
     }
 

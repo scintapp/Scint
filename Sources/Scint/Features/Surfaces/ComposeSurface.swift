@@ -32,6 +32,7 @@ struct ComposeInput: View {
                     .glassEffect(.clear, in: Design.Shape.input)
                     .background(Design.Background.console.opacity(0.7))
                     .opacity(0.7)
+                controls
             }
         }
         .frame(maxWidth: 660)

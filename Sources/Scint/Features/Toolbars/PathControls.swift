@@ -30,7 +30,7 @@ struct PathBar: View {
 
     var refs: [Reference] {
         model.session.navigation.path(for: model.session.selected, in: model.session.workspace)
-            .filter { $0.type != Scene.self }
+            .filter { $0.type != Material.self }
     }
 
     var body: some View {
@@ -56,7 +56,7 @@ struct PathControls: View {
     var refs: [Reference] {
         model.session.navigation.path(for: model.session.selected, in: workspace)
             .filter { $0.type != Workspace.self }
-            .filter { $0.type != Scene.self }
+            .filter { $0.type != Material.self }
     }
 
     var body: some View {

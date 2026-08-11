@@ -75,8 +75,8 @@ struct Item: Identifiable {
         return ReferenceTransfer.canPaste(payload.refs, move: payload.move, to: owner)
     }
 
-    static func createScene(in owner: Reference, model: any Model) {
-        let ref = Scene.new(owner, name: "New Scene")
+    static func createMaterial(in owner: Reference, model: any Model) {
+        let ref = Material.new(owner, name: "New Material")
         model.open(ref)
         Task { await Runtime.shared.save() }
     }
@@ -89,7 +89,7 @@ struct Item: Identifiable {
 
     static func surfaceItems(for owner: Reference) -> [Item] {
         [
-            .init(id: "new-scene", label: "New Scene", image: "text.alignleft") { Action.createScene(in: owner, model: $0) },
+            .init(id: "new-material", label: "New Material", image: "text.alignleft") { Action.createMaterial(in: owner, model: $0) },
             .init(id: "new-space", label: "New Space", image: "app") { Action.createSpace(in: owner, model: $0) },
             .init(id: "paste", label: "Paste", image: "clipboard", enabled: { _ in Action.canPaste(to: owner) }) { Action.paste(owner, in: $0) }
         ]

@@ -20,7 +20,7 @@ struct Registry: Sendable {
     private(set) var entriesByTypeName: [String: Registration] = [:]
 
     init() {
-        register(Scene.self)
+        register(Material.self)
         register(Transcript.self)
         register(Artifact.self)
         register(Command.self)

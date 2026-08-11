@@ -4,18 +4,18 @@ import SwiftUI
 private let anyRef = Reference(Workspace.self)
 
 class AnyModel: Model {
-    var frame: any Frame
+    var frame: any Panel
     var session: Session
 
     init(_ workspace: Reference) {
-        self.frame = AnyFrame()
+        self.frame = AnyPanel()
         self.session = .init(anyRef)
     }
 }
 
-class AnyFrame: Frame {
-    var state: AppState
-    init(state: AppState = .init()) { self.state = state }
+class AnyPanel: Panel {
+    var state: PanelState
+    init(state: PanelState = .init()) { self.state = state }
     func controls(_ model: any Model) -> Controls { .init() }
     func parameters(_ model: any Model) -> Params { .init() }
     func surface(_ model: any Model) -> some View { EmptyView() }

@@ -7,7 +7,7 @@ struct Scint: App {
     @State private var scint: ScintModel?
     @State private var loading = false
 
-    var body: some SwiftUI.Scene {
+    var body: some Scene {
         Window("Studio", id: "studio") {
             if let scint {
                 ScintStudio()

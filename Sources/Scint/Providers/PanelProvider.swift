@@ -6,6 +6,12 @@ import SwiftUI
 
 extension Notification.Name { static let scintPanelEscape = Notification.Name("scintPanelEscape") }
 
+struct PanelDismissal: OptionSet, Hashable {
+    let rawValue: Int
+    static let escape = Self(rawValue: 1 << 0)
+    static let outsideClick = Self(rawValue: 1 << 1)
+}
+
 private struct Float<Content: View>: View {
     let content: Content
 
@@ -67,12 +73,7 @@ final class FloatingPanel: NSPanel {
     var window: NSWindow { panel }
     var isVisible: Bool { panel.isVisible }
 
-    init(
-        params: PanelParams,
-        view: AnyView,
-        pinned: @escaping () -> Bool = { false },
-        onVisibilityChange: ((Bool) -> Void)? = nil
-    ) {
+    init( params: PanelParams, view: AnyView, pinned: @escaping () -> Bool = { false }, onVisibilityChange: ((Bool) -> Void)? = nil) {
         hosting = NSHostingController(rootView: view)
         panel = FloatingPanel(contentRect: NSRect(origin: .zero, size: params.sizing.size))
         self.pinned = pinned
@@ -124,8 +125,8 @@ final class FloatingPanel: NSPanel {
         if params.resizable { panel.styleMask.insert(.resizable) }
         else { panel.styleMask.remove(.resizable) }
 
-        panel.minSize = params.sizing.minimumSize ?? NSSize(width: 1, height: 1)
-        panel.maxSize = params.sizing.maximumSize ?? NSSize(
+        panel.minSize = params.sizing.min ?? NSSize(width: 1, height: 1)
+        panel.maxSize = params.sizing.max ?? NSSize(
             width: CGFloat.greatestFiniteMagnitude,
             height: CGFloat.greatestFiniteMagnitude
         )

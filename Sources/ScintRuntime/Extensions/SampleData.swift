@@ -4,7 +4,7 @@ import Foundation
 enum SampleData {
     static let interfaces = SampleInterfaces.load()
 
-    static func load(_ workspace: Reference, for key: AppKey) async {
+    static func load(_ workspace: Reference, for key: ModelKey) async {
         switch key {
             case .editor: await editor(workspace)
             case .studio: await studio(workspace)
@@ -45,37 +45,37 @@ enum SampleData {
         })
 
         func write(_ ref: Reference, title: String, body: [String], components: [Reference], tasks: [(String, Bool)]) {
-            Scene.update(ref) { scene in
-                scene.insert(.text(.init(), "# \(title)"), at: nil)
+            Material.update(ref) { material in
+                material.insert(.text(.init(), "# \(title)"), at: nil)
                 for paragraph in body {
-                    scene.insert(.text(.init(), paragraph), at: nil)
+                    material.insert(.text(.init(), paragraph), at: nil)
                 }
                 for component in components {
                     switch component.type {
-                        case is Artifact.Type: scene.insert(.artifact(component), at: nil)
-                        case is Command.Type: scene.insert(.command(component), at: nil)
-                        case is Scene.Type: scene.insert(.scene(component), at: nil)
+                        case is Artifact.Type: material.insert(.artifact(component), at: nil)
+                        case is Command.Type: material.insert(.command(component), at: nil)
+                        case is Material.Type: material.insert(.material(component), at: nil)
                         default: break
                     }
                 }
                 for task in tasks {
-                    scene.insert(.task(.init(), task.0, task.1), at: nil)
+                    material.insert(.task(.init(), task.0, task.1), at: nil)
                 }
             }
         }
 
         @discardableResult
-        func scene(_ name: String, owner: Reference, title: String, body: [String], components: [Reference], tasks: [(String, Bool)]) -> Reference {
-            let ref = Scene.new(owner, name: name)
+        func material(_ name: String, owner: Reference, title: String, body: [String], components: [Reference], tasks: [(String, Bool)]) -> Reference {
+            let ref = Material.new(owner, name: name)
             write(ref, title: title, body: body, components: components, tasks: tasks)
             return ref
         }
 
-        func configure(_ spaceRef: Reference, description: String, scenes: [Reference], components: [Reference], harness: Reference? = nil) {
+        func configure(_ spaceRef: Reference, description: String, materials: [Reference], components: [Reference], harness: Reference? = nil) {
             Space.update(spaceRef) { space in
                 space.description = description
                 if let harness { space.harness = harness }
-                for ref in scenes + components { space.add(ref) }
+                for ref in materials + components { space.add(ref) }
             }
         }
 
@@ -84,7 +84,7 @@ enum SampleData {
         let contentProduction = Space.new("Content Production", owner: contentStudio)
         let editorialCalendar = Space.new("Editorial Calendar", owner: contentProduction)
 
-        let editorialCharter = scene(
+        let editorialCharter = material(
             "Editorial System Charter",
             owner: contentProduction,
             title: "Editorial System Charter",
@@ -100,7 +100,7 @@ enum SampleData {
             ]
         )
 
-        let voiceRules = scene(
+        let voiceRules = material(
             "Voice and Evidence Rules",
             owner: contentProduction,
             title: "Voice and Evidence Rules",
@@ -118,13 +118,13 @@ enum SampleData {
 
         configure(
             contentProduction,
-            description: "Research, drafting, and publishing process scenes for a knowledge business.",
-            scenes: [editorialCharter, voiceRules],
+            description: "Research, drafting, and publishing process materials for a knowledge business.",
+            materials: [editorialCharter, voiceRules],
             components: [codexHarness],
             harness: codexHarness
         )
 
-        let researchBrief = scene(
+        let researchBrief = material(
             "Research Brief Template",
             owner: researchDesk,
             title: "Research Brief Template",
@@ -139,7 +139,7 @@ enum SampleData {
             ]
         )
 
-        let reliabilityNotes = scene(
+        let reliabilityNotes = material(
             "Source Reliability Notes",
             owner: researchDesk,
             title: "Source Reliability Notes",
@@ -157,12 +157,12 @@ enum SampleData {
         configure(
             researchDesk,
             description: "Reusable research methods for source-led writing and strategic analysis.",
-            scenes: [researchBrief, reliabilityNotes],
+            materials: [researchBrief, reliabilityNotes],
             components: [codexHarness] + researchCommands,
             harness: codexHarness
         )
 
-        let publishingCadence = scene(
+        let publishingCadence = material(
             "Publishing Cadence",
             owner: editorialCalendar,
             title: "Publishing Cadence",
@@ -177,7 +177,7 @@ enum SampleData {
             ]
         )
 
-        let draftReadiness = scene(
+        let draftReadiness = material(
             "Draft Readiness Checklist",
             owner: editorialCalendar,
             title: "Draft Readiness Checklist",
@@ -195,8 +195,8 @@ enum SampleData {
 
         configure(
             editorialCalendar,
-            description: "Planning scenes that keep publishing tied to research readiness and business timing.",
-            scenes: [publishingCadence, draftReadiness],
+            description: "Planning materials that keep publishing tied to research readiness and business timing.",
+            materials: [publishingCadence, draftReadiness],
             components: [codexHarness],
             harness: codexHarness
         )

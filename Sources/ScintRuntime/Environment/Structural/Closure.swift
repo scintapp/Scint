@@ -18,7 +18,7 @@ struct Closure: Structural {
     var artifacts: [Reference] { interfaces.filter { $0.type is Artifact.Type } }
     var commands: [Reference] { interfaces.filter { $0.type is Command.Type } }
     var harnesses: [Reference] { interfaces.filter { $0.type is Harness.Type } }
-    var scenes: [Reference] { content.filter { $0.type is Scene.Type } }
+    var materials: [Reference] { content.filter { $0.type is Material.Type } }
     var transcripts: [Reference] { content.filter { $0.type is Transcript.Type } }
 
     var directories: [Reference] {
@@ -29,8 +29,8 @@ struct Closure: Structural {
     }
 
     var rendered: String {
-        var refs = scenes.filter { !$0.descriptor.tags.contains("input") }
-        if input.type == Scene.self { refs.append(input) }
+        var refs = materials.filter { !$0.descriptor.tags.contains("input") }
+        if input.type == Material.self { refs.append(input) }
 
         let content = refs.compactMap { ref -> String? in
             let rendered = Runtime.shared.rendered(ref)
@@ -50,7 +50,7 @@ struct Closure: Structural {
     static func new(_ name: String, owner: Reference) -> Reference {
         var instance = Closure(.init(Self.self))
         instance.origin = owner
-        instance.input = Scene.new(owner, input: true)
+        instance.input = Material.new(owner, input: true)
         Descriptor.new(instance.ref, name: name, tags: ["closure"], published: false)
         Workspaces.shared.add(instance.ref, instance)
         if owner.type == Workspace.self { Workspace.update(owner, { $0.closure = instance.ref}) }

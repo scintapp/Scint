@@ -50,13 +50,13 @@ struct SpacePreviewBadges: View {
     let ref: Reference
     let state: Composition.State?
 
-    private var scenes: Int { Space.with(ref, { $0.scenes.count }) ?? 0 }
+    private var materials: Int { Space.with(ref, { $0.materials.count }) ?? 0 }
     private var artifacts: Int { Space.with(ref, { $0.artifacts.count }) ?? 0 }
     private var commands: Int { Space.with(ref, { $0.commands.count }) ?? 0 }
 
     var body: some View {
         HStack(spacing: 5) {
-            Badge("\(scenes)", symbol: "text.alignleft", tint: Design.Tint.scene)
+            Badge("\(materials)", symbol: "text.alignleft", tint: Design.Tint.material)
             Badge("\(artifacts)", symbol: "archivebox", tint: Design.Tint.artifact)
             Badge("\(commands)", symbol: "switch.2", tint: Design.Tint.command)
 

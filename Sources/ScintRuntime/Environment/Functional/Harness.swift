@@ -75,6 +75,11 @@ struct Harness: Functional {
         }
     }
 
+    func stop(pid: Int32) -> Bool {
+        Runtime.shared.services.removeOutputHandler(pid: pid)
+        return Runtime.shared.services.stop(pid: pid)
+    }
+
     static func register(_ name: String, command: Reference, intent: Intent, parameters: [Parameter] = []) -> Reference {
         let instance = Self(.init(Self.self), command: command, intent: intent, params: parameters)
         Descriptor.new(instance.ref, name: name, tags: ["harness"])

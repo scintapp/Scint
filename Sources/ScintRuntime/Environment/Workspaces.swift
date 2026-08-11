@@ -74,7 +74,7 @@ final class Workspaces: @unchecked Sendable {
             Catalog.shared.delete(closure)
             store(for: closure)?.remove(closure)
         }
-        if let input, input.type == Scene.self { try await Library.shared.delete(input) }
+        if let input, input.type == Material.self { try await Library.shared.delete(input) }
         try await save()
     }
 }
