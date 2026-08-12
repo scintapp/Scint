@@ -360,11 +360,9 @@ struct Context: Contextual {
     }
 
     var harness: Reference? {
-        let reference = Space.with(origin, { $0.harness }) ?? Workspace.with(origin, { $0.harness })
-        guard let reference,
-              Library.shared.store(for: reference)?.store(for: reference)?.keys().contains(reference) == true
+        guard let ref = Space.with(origin, { $0.harness }) ?? Workspace.with(origin, { $0.harness })
         else { return nil }
-        return reference
+        return ref
     }
 
     mutating func start(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
@@ -373,9 +371,8 @@ struct Context: Contextual {
 
         Transcript.update(transcript) { root in
             root.insert(.started(origin))
-            if !root.entries.contains(where: { if case .transcript(let ref, _) = $0 { ref == branch } else { false } }) {
-                root.insert(branch, .context(branch))
-            }
+            if !root.entries.contains(where: { if case .transcript(let ref, _) = $0 { ref == branch }
+            else { false } }) { root.insert(branch, .context(branch)) }
         }
 
         do {

@@ -1,8 +1,10 @@
 import SwiftUI
+import OSLog
 
 
 @main
 struct Scint: App {
+    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "App")
     @Environment(\.openWindow) private var openWindow
     @State private var scint: ScintModel?
     @State private var loading = false
@@ -57,7 +59,7 @@ struct Scint: App {
             await model.load()
             scint = model
         } catch {
-            print(error)
+            Self.logger.error("Runtime load failed: \(String(describing: error), privacy: .public)")
         }
     }
 }

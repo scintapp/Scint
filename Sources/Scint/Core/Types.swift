@@ -53,9 +53,7 @@ extension Model {
         select(ref)
     }
 
-    func load(_ workspace: Reference) async {
-        session.load(workspace)
-    }
+    func load(_ workspace: Reference) async { session.load(workspace) }
 
     func compose(_ ref: Reference) -> Composition? { Runtime.shared.compose(ref) }
 

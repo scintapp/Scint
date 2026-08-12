@@ -13,15 +13,15 @@ enum Parser {
     }
 
     static func parse(_ origin: Reference, for harnessRef: Reference, prompt: String) throws -> [String] {
-        guard let harness = Harness.with(harnessRef, { $0 }) else {
-            throw RuntimeError.context(.missing(harnessRef))
-        }
+        guard let harness = Harness.with(harnessRef, { $0 })
+        else { throw RuntimeError.context(.missing(harnessRef)) }
+
         guard let structure = Space.with(origin, { (config: $0.config, rendered: $0.rendered) })
                 ?? Workspace.with(origin, { (config: $0.config, rendered: $0.rendered) })
         else { throw RuntimeError.context(.missing(origin)) }
-        guard let command = Command.with(harness.command, { $0 }) else {
-            throw RuntimeError.context(.missing(harness.command))
-        }
+
+        guard let command = Command.with(harness.command, { $0 })
+        else { throw RuntimeError.context(.missing(harness.command)) }
 
         var harnessSupplied: [String: Value] = [:]
         for parameter in harness.parameters {

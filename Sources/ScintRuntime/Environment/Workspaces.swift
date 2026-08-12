@@ -1,7 +1,9 @@
 import Foundation
+import OSLog
 
 
 final class Workspaces: @unchecked Sendable {
+    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Workspaces")
     static let shared = Workspaces()
     private let structures: Structures = .init()
     var workspaces: [Reference] { structures.workspaces.keys() }
@@ -39,7 +41,9 @@ final class Workspaces: @unchecked Sendable {
             guard refs.count != 1 || !canonical.contains(source) else { return }
             try await save(refs)
             if !canonical.contains(source) { try await Persistence.shared.delete(at: url) }
-        } catch { print("Workspace load failed (\(url.lastPathComponent)): \(error)")}
+        } catch {
+            Self.logger.error("Workspace load failed (\(url.lastPathComponent, privacy: .public)): \(String(describing: error), privacy: .public)")
+        }
     }
 
     func load(_ values: [(any Resolvable, Descriptor)]) {
@@ -64,7 +68,10 @@ final class Workspaces: @unchecked Sendable {
     }
 
     func save(_ ref: Reference) async {
-        do { try await save([ref]) } catch { print("Workspace save failed for \(ref.id): \(error)") }
+        do { try await save([ref]) }
+        catch {
+            Self.logger.error("Workspace save failed for \(ref.id.uuidString, privacy: .public): \(String(describing: error), privacy: .public)")
+        }
     }
 
     func delete(_ ref: Reference) async throws {

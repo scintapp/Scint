@@ -12,6 +12,35 @@ enum Spacing {
     static let lineSpacingMessage: CGFloat = 5
     static let lineSpacingBody: CGFloat = 5
     static let lineSpacingMono: CGFloat = 4
+
+    /// Reference card metrics. Every card that shows an artifact, command, or
+    /// material measures itself from here, on the canvas and in a transcript alike.
+    enum Card {
+        static let rail: CGFloat = 3
+        static let icon: CGFloat = 18
+        static let iconFrame: CGFloat = 28
+        static let spacing: CGFloat = 12
+        static let paddingH: CGFloat = 13
+        static let paddingV: CGFloat = 12
+        static let height: CGFloat = 64
+        static let radius: CGFloat = 13
+        static let railOpacity: Double = 0.76
+        static let fillOpacity: Double = 0.28
+        static let borderOpacity: Double = 0.07
+        static let borderWidth: CGFloat = 0.75
+    }
+
+    /// Vertical rhythm for rendered markdown, shared by every prose surface.
+    enum Prose {
+        static let blockSpacing: CGFloat = 10
+        static let listSpacing: CGFloat = 4
+        static let listIndent: CGFloat = 8
+        static let lineSpacing: CGFloat = 6
+        static let quoteBar: CGFloat = 3
+        static let quoteInset: CGFloat = 12
+        static let codePadding: CGFloat = 12
+        static let codeRadius: CGFloat = 10
+    }
 }
 
 enum Typography {
@@ -20,6 +49,44 @@ enum Typography {
     static let label = Font.system(size: 10, weight: .medium)
     static let mono = Font.system(size: 12, design: .monospaced)
     static let monoSmall = Font.system(size: 11, design: .monospaced)
+
+    /// The prose scale, shared by every surface that renders markdown: the editor
+    /// while you type, rendered material blocks, and transcript messages.
+    ///
+    /// Sizes are raw so AppKit (`EditorThemer`) and SwiftUI (`MarkdownView`) can both
+    /// speak them; the `Font` accessors are for SwiftUI callers. Retune here and all
+    /// three surfaces move together.
+    enum Prose {
+        static let body: CGFloat = 14.6
+        static let h1: CGFloat = 24
+        static let h2: CGFloat = 21
+        static let h3: CGFloat = 18
+        static let code: CGFloat = 13.2
+        static let caption: CGFloat = 12
+
+        static var text: Font { .system(size: body) }
+        static var heading1: Font { .system(size: h1, weight: .heavy) }
+        static var heading2: Font { .system(size: h2, weight: .bold) }
+        static var heading3: Font { .system(size: h3, weight: .semibold) }
+        static var monospaced: Font { .system(size: code, design: .monospaced) }
+
+        static func heading(_ level: Int) -> Font {
+            switch level {
+                case 1: return heading1
+                case 2: return heading2
+                default: return heading3
+            }
+        }
+    }
+
+    /// Card typography, shared by `BlockCard` wherever it appears.
+    enum Card {
+        static let title = Font.system(size: 13.5, weight: .semibold)
+        static let detail = Font.system(size: 12.5, weight: .regular)
+        static func detail(_ design: Font.Design) -> Font {
+            .system(size: 12, weight: .medium, design: design)
+        }
+    }
 }
 
 enum Design {

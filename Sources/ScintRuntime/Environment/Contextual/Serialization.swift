@@ -1,27 +1,20 @@
 import Foundation
 
 
-/// The serialized context handed to a process, built once per intent start and
-/// rendered once. The same string is passed as the prompt argument and recorded in
-/// the branch transcript, so the view and the process read identical bytes.
 struct Serialization {
     let origin: Reference
     let branch: Reference
     var intent: Harness.Intent? = nil
 
-    /// Only composing sees beyond its own space; executing must not know topology exists.
     private var showsRelated: Bool { intent == .compose }
     private var showsObserved: Bool { intent == .observe }
 
     static let handleLength = 8
 
-    /// A truncated `storageId`: short enough to sit inside a document, stable across
-    /// renames. Resolution matches by prefix and demands a unique hit.
     static func handle(for ref: Reference) -> String {
         String(ref.storageId.uuidString.lowercased().replacingOccurrences(of: "-", with: "").prefix(handleLength))
     }
 
-    /// Materials belonging to a structure, excluding its live input.
     static func sheets(in origin: Reference) -> [(handle: String, ref: Reference)] {
         guard let closure = Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure })
         else { return [] }
@@ -65,8 +58,6 @@ struct Serialization {
             : "\(descriptor.name) — \(description)"
     }
 
-    /// Neighbours are summarised, never expanded — reaching into one is a deliberate
-    /// act through a capability, not something that happens by proximity.
     private var related: [String] {
         let children = Space.with(origin, { $0.spaces }) ?? Workspace.with(origin, { $0.spaces }) ?? []
         let summaries = children.map { ref -> String in
@@ -80,7 +71,6 @@ struct Serialization {
         return summaries + bridged
     }
 
-    /// Listed, not expanded — position in the document without the weight of it.
     private var content: [String] {
         Self.sheets(in: origin).map { handle, ref in
             let description = ref.descriptor.description.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -90,10 +80,6 @@ struct Serialization {
         }
     }
 
-    /// A continued thread is one thread. Branches chain through `owner`, so walking to
-    /// the space-owned root and flattening chronologically presents it as written.
-    /// A thread is the root plus every branch it has spawned. Turns are siblings
-    /// under a root, so climbing owners alone would only ever see the current one.
     private func entries(from start: Reference) -> [Transcript.Entry] {
         var root = start
         var depth = 0
@@ -120,7 +106,6 @@ struct Serialization {
         entries(from: start).compactMap(line)
     }
 
-    /// The watched space's most recent branch — what it just did, not its whole history.
     private var observed: [String] {
         guard let value = Space.with(origin, { $0.config["target"] })
                 ?? Workspace.with(origin, { $0.config["target"] }),
@@ -148,7 +133,6 @@ struct Serialization {
                         switch TranscriptContent(value) {
                             case .message(let text): return turn(time, "agent", text)
                             case .tool(let name, let verb): return turn(time, "agent", "\(verb) \(name)")
-                            // Reasoning is the process thinking aloud; it is not thread history.
                             case .reasoning, nil: return nil
                         }
                     case .failed(let value): return turn(time, "system", value.rendered.joined(separator: " "))
@@ -156,7 +140,6 @@ struct Serialization {
                     case .composed, .started, .stopped: return nil
                 }
 
-            // A prior serialization must never nest inside a new one.
             case .value(let key, _, _) where key == "context": return nil
             case .value(let key, let value, _):
                 let text = value.rendered.joined(separator: " ")

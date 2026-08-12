@@ -286,7 +286,9 @@ struct TranscriptsList: Mapper {
             },
             onSelect: { item in
                 guard let ref = item.ref, ref.type is Transcript.Type else { return }
+                guard let owner = Transcript.with(ref, { $0.owner }) else { return }
                 model.focus(ref)
+                model.select(owner)
             }
         )
     }
@@ -295,7 +297,6 @@ struct TranscriptsList: Mapper {
         let calendar = Calendar.autoupdatingCurrent
         let items = Runtime.shared.all(as: Transcript.self)
             .compactMap { ref, transcript -> Reference? in
-                // Branches are reached through their root, not listed beside it.
                 transcript.owner.type is Transcript.Type ? nil : ref
             }
 

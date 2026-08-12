@@ -116,7 +116,7 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
     }
 
     func start(_ command: String, arguments: [String] = [], environment: [String: String] = [:], timeout: TimeInterval = 5.0) -> (pid: Int32, error: String?)? {
-        print("Sending command: \(command) with args: \(arguments.joined()) to XPC.")
+        Self.logger.debug("Dispatching \(command, privacy: .public) \(arguments.joined(separator: " "), privacy: .public) to XPC")
         var result: (pid: Int32, error: String?)?
         let done = DispatchSemaphore(value: 0)
 
@@ -238,7 +238,7 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
 
     private func service() -> ServiceProviding {
         connection.remoteObjectProxyWithErrorHandler { error in
-            print("XPC error: \(error)")
+            Self.logger.error("XPC connection error: \(String(describing: error), privacy: .public)")
         } as! ServiceProviding
     }
 

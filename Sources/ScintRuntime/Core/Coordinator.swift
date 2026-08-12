@@ -1,8 +1,10 @@
 import Foundation
+import OSLog
 
 
 actor Coordinator {
     static let shared = Coordinator()
+    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Persistence")
     private var workspaceDirty: Set<Reference> = []
     private var libraryDirty: Set<Reference> = []
     private var task: Task<Void, Never>?
@@ -33,7 +35,7 @@ actor Coordinator {
             catch {
                 workspaceDirty.formUnion(workspaceRefs)
                 failed = true
-                print("Autosave failed for workspace: \(error)")
+                Self.logger.error("Autosave failed for workspace: \(String(describing: error), privacy: .public)")
             }
         }
         if !libraryRefs.isEmpty {
@@ -41,7 +43,7 @@ actor Coordinator {
             catch {
                 libraryDirty.formUnion(libraryRefs)
                 failed = true
-                print("Autosave failed for library: \(error)")
+                Self.logger.error("Autosave failed for library: \(String(describing: error), privacy: .public)")
             }
         }
         if failed { debounce() }

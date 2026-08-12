@@ -1,7 +1,9 @@
 import Foundation
+import OSLog
 
 
 final class Library: Sendable {
+    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Library")
     static let shared = Library()
     private let content: Content = .init()
     private let interfaces: Interfaces = .init()
@@ -35,7 +37,9 @@ final class Library: Sendable {
 
     func save(_ ref: Reference) async {
         do { try await save([ref]) }
-        catch { print("Save failed for \(ref.id): \(error)") }
+        catch {
+            Self.logger.error("Library save failed for \(ref.id.uuidString, privacy: .public): \(String(describing: error), privacy: .public)")
+        }
     }
 
     func save(_ refs: Set<Reference>) async throws {

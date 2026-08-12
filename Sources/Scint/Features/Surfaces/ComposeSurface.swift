@@ -14,7 +14,6 @@ struct ComposeInput: View {
                     .font(.system(size: 15, weight: .semibold))
             }
             .buttonBorderShape(.circle)
-            .buttonStyle(.glass)
             .keyboardShortcut(.return, modifiers: .command)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -29,7 +28,7 @@ struct ComposeInput: View {
                     .id(input)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .overlay(Design.Shape.input.strokeBorder(Design.Border.controlBorder, lineWidth: 0.5))
+                    .glassEffect(.regular, in: Design.Shape.input)
                 controls
                     .opacity(0.0)
             }

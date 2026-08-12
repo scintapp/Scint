@@ -10,8 +10,6 @@ import SwiftUI
     func load() async {
         models[.editor] = EditorModel(Self.restore(.editor))
         models[.studio] = StudioModel(Self.restore(.studio))
-        // A full save rewrites every persisted record; only worth it when seeding
-        // actually created something. Ongoing changes persist through Coordinator.
         var seeded = await SampleData.load(editor.session.workspace, for: .editor)
         seeded = await SampleData.load(studio.session.workspace, for: .studio) || seeded
         if seeded { await Runtime.shared.save() }
@@ -21,9 +19,7 @@ import SwiftUI
 
     var editor: EditorModel { model(for: .editor) as! EditorModel }
     var studio: StudioModel { model(for: .studio) as! StudioModel }
-
     func model(for key: ModelKey) -> any Model { models[key]! }
-    
     func panel(for key: PanelKey) -> any Panel { controller.panel(for: key) }
 
     func toggle(_ key: PanelKey, _ source: ModelKey) {

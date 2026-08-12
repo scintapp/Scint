@@ -23,9 +23,9 @@ struct Space: Structural {
     var materials: [Reference] { Closure.with(closure, { $0 })?.materials ?? [] }
     var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
     var directories: [Reference] { Closure.with(closure, { $0 })?.directories ?? [] }
-    var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
     var components: [Reference] { artifacts + commands + harnesses + materials + transcripts }
     var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
+    var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
 
     var input: Reference? {
         get { Closure.with(closure, { $0.input }) }
