@@ -73,9 +73,11 @@ final class Structures: Bounding {
                 case is Bridge.Type:
                     current = bridges.with(ref, as: Bridge.self, { $0.origin }) ?? nil
                 default:
+                    print("[TEMP workspace(for:)] nil — unhandled type \(String(describing: ref.type))") // TEMP
                     return nil
             }
         }
+        print("[TEMP workspace(for:)] nil — walk ended without a workspace for \(String(describing: ref.type))") // TEMP
         return nil
     }
 

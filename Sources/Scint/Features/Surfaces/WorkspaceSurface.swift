@@ -30,15 +30,15 @@ struct SpaceCardButton<Label: View>: View {
 
 struct SpaceContent: Surface {
     var ref: Reference? = nil
-    var host: any Host
+    var panel: any Panel
     var model: any Model
 
     var body: some View {
         VStack(alignment: .leading) {
             ScrollView(.horizontal) {
-                let surface = AnySurface(host: host, model: model)
-                let parameters = if let ref { SpaceGrid.content(ref) } else { host.parameters(model) }
-                surface.render(surface, parameters, host.controls(model))
+                let surface = AnySurface(panel: panel, model: model)
+                let parameters = if let ref { SpaceGrid.content(ref) } else { panel.parameters(model) }
+                surface.render(surface, parameters, panel.controls(model))
                     .scrollDisabled(true)
             }
         }
@@ -74,9 +74,9 @@ struct SpacePreviewBadges: View {
 }
 
 struct SpacePreviewCard: Surface {
-    var model: any Model
-    var host: any Host
     var ref: Reference
+    var model: any Model
+    var panel: any Panel
 
     var context: Composition? { ref.context }
     var state: Composition.State? { context?.state }
@@ -101,7 +101,7 @@ struct SpacePreviewCard: Surface {
             }
             .frame(height: 26)
 
-            SpaceContent(ref: ref, host: host, model: model)
+            SpaceContent(ref: ref, panel: panel, model: model)
                 .frame(width: 506, height: 144, alignment: .topLeading)
                 .scaleEffect(0.72, anchor: .topLeading)
                 .frame(width: 364, height: 104, alignment: .topLeading)
@@ -169,8 +169,8 @@ struct SpacePreviewCard: Surface {
 }
 
 struct WorkspaceSurface: Surface {
-    var host: any Host
-    let model: any Model
+    var panel: any Panel
+    var model: any Model
 
     var spaces: [Reference] {
         var pending = Array(Workspace.with(model.session.workspace, { $0.spaces }) ?? [])
@@ -196,7 +196,7 @@ struct WorkspaceSurface: Surface {
             VStack(alignment: .leading, spacing: 0) {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 20) {
                     ForEach(spaces) { space in
-                        SpacePreviewCard(model: model, host: host, ref: space)
+                        SpacePreviewCard(ref: space, model: model, panel: panel)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)

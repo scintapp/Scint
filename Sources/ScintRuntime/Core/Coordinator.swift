@@ -28,6 +28,7 @@ actor Coordinator {
         libraryDirty.removeAll()
 
         var failed = false
+        print("[TEMP flush] workspace=\(workspaceRefs.count) library=\(libraryRefs.count)") // TEMP
         if !workspaceRefs.isEmpty {
             do { try await Workspaces.shared.save(workspaceRefs) }
             catch {

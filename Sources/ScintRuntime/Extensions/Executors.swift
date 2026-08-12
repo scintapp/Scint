@@ -14,6 +14,7 @@ enum SampleInterfaces {
         let anthropicMessages: Reference
         let mistralMessages: Reference
         let openAIResponses: Reference
+        let concatSwiftRepo: Reference
         let searchTextFiles: Reference
         let inspectFileMetadata: Reference
         let fetchURLHeaders: Reference
@@ -55,10 +56,34 @@ enum SampleInterfaces {
         let curl = artifact("curl", URL(fileURLWithPath: "/usr/bin/curl"))
         let grep = artifact("grep", URL(fileURLWithPath: "/usr/bin/grep"))
         let mdls = artifact("mdls", URL(fileURLWithPath: "/usr/bin/mdls"))
+        let env = artifact("env", URL(fileURLWithPath: "/usr/bin/env"))
 
         let anthropicDocs = artifact("Claude Platform Docs", URL(string: "https://platform.claude.com/docs/en/home")!)
         let openAIDocs = artifact("OpenAI Platform Docs", URL(string: "https://platform.openai.com/docs")!)
         let desktopFolder = artifact("Desktop", home.appendingPathComponent("Desktop", isDirectory: true))
+
+        // A script needs no executable bit of its own: the command starts with a real
+        // executable, and the script arrives as a rendered reference.
+        let concatScript = artifact(
+            "Concat Swift Repo Script",
+            home.appendingPathComponent("Developer/Scripts/Concat.swift")
+        )
+
+        let concatSwiftRepo = command(
+            "Concat Swift Repo",
+            env,
+            [
+                .fixed(.string("swift")),
+                .fixed(.reference(concatScript)),
+                .argument(name: "directory", type: .string(""), required: true),
+                .argument(name: "output", type: .string(""), required: false, default: nil)
+            ],
+            description: """
+            Concatenate every Swift file below a directory into one annotated text file. \
+            Takes the directory to scan and, optionally, the output file path — supply it, \
+            since the default is relative to an unspecified working directory.
+            """
+        )
 
         let searchTextFiles = command(
             "Search Text Files",
@@ -454,6 +479,7 @@ enum SampleInterfaces {
             anthropicMessages: anthropicMessages,
             mistralMessages: mistralMessages,
             openAIResponses: openAIResponses,
+            concatSwiftRepo: concatSwiftRepo,
             searchTextFiles: searchTextFiles,
             inspectFileMetadata: inspectFileMetadata,
             fetchURLHeaders: fetchURLHeaders,

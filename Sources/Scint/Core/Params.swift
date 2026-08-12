@@ -1,7 +1,6 @@
 import SwiftUI
 
 
-
 struct ItemParams: Identifiable, Hashable {
     let ref: Reference?
     let key: String?
@@ -183,10 +182,9 @@ struct Params: Identifiable {
 }
 
 enum NewParams: Identifiable, Hashable {
-    case host(id: AnyHashable, panel: Host? = .framed, params: [NewParams])
+    case panel(id: AnyHashable, panel: Panel? = .framed, params: [NewParams])
     case section(id: AnyHashable, layout: Layout? = .list, params: [NewParams])
     case item(id: AnyHashable)
-    enum Host: Hashable { case framed, floating(CGFloat, CGFloat) }
-    var id: AnyHashable { switch self { case .host(let id, _, _), .section(let id, _, _), .item(let id): id } }
+    enum Panel: Hashable { case framed, floating(CGFloat, CGFloat) }
+    var id: AnyHashable { switch self { case .panel(let id, _, _), .section(let id, _, _), .item(let id): id } }
 }
-

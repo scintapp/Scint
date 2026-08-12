@@ -2,12 +2,44 @@ import Foundation
 import SwiftUI
 
 
+enum ModelKey: String, Identifiable, CaseIterable {
+    case editor, studio
+    var id: String { self.model }
+    var app: String { self.rawValue }
+    var model: String { "scint" }
+    var namespace: String { "\(app).\(model)" }
+}
+
 enum PanelKey: String, Identifiable, CaseIterable {
     case actions, assistant, outline, search, tasks
     var id: String { self.panel }
     var panel: String { self.rawValue }
     var model: String { "scint" }
     var namespace: String { "\(model).panels.\(panel)" }
+}
+
+@Observable @MainActor final class EditorModel: Model {
+    var session: Session
+    var content: EditorPanel
+
+    init(_ session: Session) {
+        self.content = .init()
+        self.session = session
+    }
+}
+
+@Observable @MainActor final class StudioModel: Model {
+    var session: Session
+    var sidebar: NavigatorPanel
+    var content: ContentPanel
+    var inspector: InspectorPanel
+
+    init(_ session: Session) {
+        self.sidebar = .init()
+        self.content = .init()
+        self.inspector = .init()
+        self.session = session
+    }
 }
 
 @Observable final class PanelState {
@@ -42,29 +74,5 @@ enum PanelKey: String, Identifiable, CaseIterable {
             if let newValue { values[key] = AnyHashable(newValue) }
             else { values[key] = nil }
         }
-    }
-}
-
-@Observable @MainActor final class EditorModel: Model {
-    var session: Session
-    var content: EditorPanel
-
-    init(_ session: Session) {
-        self.content = .init()
-        self.session = session
-    }
-}
-
-@Observable @MainActor final class StudioModel: Model {
-    var session: Session
-    var sidebar: NavigatorPanel
-    var content: ContentPanel
-    var inspector: InspectorPanel
-
-    init(_ session: Session) {
-        self.sidebar = .init()
-        self.content = .init()
-        self.inspector = .init()
-        self.session = session
     }
 }

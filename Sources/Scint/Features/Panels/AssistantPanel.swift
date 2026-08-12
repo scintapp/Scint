@@ -21,7 +21,7 @@ import SwiftUI
     }
 
     func surface(_ model: any Model) -> some View {
-        ComposeSurface(host: self, model: model)
+        ComposeSurface(panel: self, model: model)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

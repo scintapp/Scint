@@ -4,6 +4,18 @@ import Foundation
 @Observable final class Composer: @unchecked Sendable {
     static let shared = Composer()
     private let contexts = Index<Context>()
+    private var listeners: [@Sendable (Reference, Signal) -> Void] = []
+
+    /// Announces that a structure produced a terminal signal. The runtime holds no
+    /// opinion about who listens or why.
+    func onTerminal(_ listener: @escaping @Sendable (Reference, Signal) -> Void) {
+        listeners.append(listener)
+    }
+
+    private func announce(_ ref: Reference, _ signal: Signal) {
+        guard signal.terminal else { return }
+        for listener in listeners { listener(ref, signal) }
+    }
 
     func context(_ ref: Reference) -> Context? { contexts.get(ref) }
 
@@ -22,6 +34,7 @@ import Foundation
         contexts.update(ref) { context in
             context.start { [weak self] signal, transcript in
                 self?.contexts.update(ref) { $0.complete(signal, from: transcript) }
+                self?.announce(ref, signal)
             }
         }
         return resolve(ref)

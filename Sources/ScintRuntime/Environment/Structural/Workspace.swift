@@ -3,13 +3,15 @@ import Foundation
 
 struct Workspace: Structural {
     let ref: Reference
-    var spaces: Set<Reference> = []
+    var origin: Reference
     var bridges: Set<Reference> = []
+    var spaces: Set<Reference> = []
     var harness: Reference
     var closure: Reference
 
     init(_ ref: Reference = .init(Self.self)) {
         self.ref = ref
+        self.origin = ref
         self.closure = ref
         self.harness = ref
     }
@@ -41,8 +43,12 @@ struct Workspace: Structural {
         switch ref.type {
             case is Space.Type: Space.update(ref) { $0.attach(to: self.ref) }
             case is any Functional.Type: Closure.update(closure) { $0.interfaces.update(with: ref) }
+            case is Transcript.Type: // TEMP
+                print("[TEMP workspace.add] transcript case matched, closure=\(closure.storageId.uuidString.prefix(8))")
+                Closure.update(closure) { if !$0.transcripts.contains(ref) { $0.transcripts.append(ref) } }
+                print("[TEMP workspace.add] closure now holds \(Closure.with(closure, { $0.transcripts.count }) ?? -1) transcript(s)")
             case is any Malleable.Type: Closure.update(closure) { if !$0.content.contains(ref) { $0.content.append(ref) } }
-            default: break
+            default: print("[TEMP workspace.add] UNMATCHED type=\(String(describing: ref.type))") // TEMP
         }
     }
 
@@ -50,6 +56,7 @@ struct Workspace: Structural {
         switch ref.type {
             case is Space.Type: Space.update(ref) { $0.detach(from: self.ref) }
             case is any Functional.Type: Closure.update(closure) { $0.interfaces.remove(ref) }
+            case is Transcript.Type: Closure.update(closure) { $0.transcripts.removeAll { $0 == ref } }
             case is any Malleable.Type: Closure.update(closure) { $0.content.removeAll { $0 == ref } }
             default: break
         }

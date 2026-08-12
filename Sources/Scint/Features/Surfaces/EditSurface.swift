@@ -2,7 +2,7 @@ import SwiftUI
 
 
 struct EditSurface: Surface {
-    var host: any Host
+    var panel: any Panel
     var model: any Model
 
     var body: some View {

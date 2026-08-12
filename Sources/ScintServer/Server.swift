@@ -160,7 +160,8 @@ actor Server {
     static func listTools(_ id: Property, in origin: Reference) -> HTTPResponse {
         result(id, [
             "resultType": .string("complete"),
-            "tools": .array(ServerTool.all(in: origin).map(\.definition)),
+            "tools": .array(ServerTool.all(in: origin).map(\.definition)
+                            + ContentTool.all(in: origin).map(\.definition)),
             "ttlMs": .integer(0),
             "cacheScope": .string("private")
         ])
@@ -179,11 +180,14 @@ actor Server {
         } else {
             arguments = .object([String: Property]())
         }
-        guard let tool = ServerTool.find(name, in: origin) else {
+        let invocation: ServerTool.Invocation
+        if let tool = ServerTool.find(name, in: origin) {
+            invocation = await tool.call(arguments)
+        } else if let tool = ContentTool.find(name, in: origin) {
+            invocation = tool.call(arguments)
+        } else {
             return error(id, code: -32602, message: "Unknown tool: \(name)")
         }
-
-        let invocation = await tool.call(arguments)
         return result(id, [
             "resultType": .string("complete"),
             "content": .array([.object([

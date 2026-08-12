@@ -2,14 +2,11 @@ import SwiftUI
 
 
 typealias Values = [AnyHashable: AnyHashable]
+private let anyRef = Reference(Workspace.self)
 
 enum Layout: CaseIterable { case grid, group, list, table }
 enum Nesting: String, CaseIterable { case recursive, single, flat }
 
-@MainActor protocol Mapper {
-    static func controls(_ model: any Model) -> Controls
-    static func parameters(_ model: any Model) -> Params
-}
 
 @MainActor protocol Model: AnyObject {
     var session: Session { get set }
@@ -18,27 +15,24 @@ enum Nesting: String, CaseIterable { case recursive, single, flat }
     func open(_ ref: Reference)
 }
 
-@MainActor protocol ModelResolving: AnyObject {
-    func model(for key: ModelKey) -> any Model
-}
-
-@MainActor protocol Host: AnyObject {
+@MainActor protocol Panel: AnyObject {
+    associatedtype Surface
     var state: PanelState { get set }
     func controls(_ model: any Model) -> Controls
     func parameters(_ model: any Model) -> Params
-}
-
-@MainActor protocol Panel: Host {
-    associatedtype Surface
     func surface(_ model: any Model) -> Surface
 }
 
 @MainActor protocol Surface: View {
-    associatedtype Panel = Host
-    var host: Host { get set }
-    var model: any Model { get }
+    var panel: any Panel { get set }
+    var model: any Model { get set }
     func isExpanded(_ id: AnyHashable) -> Bool
     func setExpanded(_ id: AnyHashable)
+}
+
+@MainActor protocol Mapper {
+    static func controls(_ model: any Model) -> Controls
+    static func parameters(_ model: any Model) -> Params
 }
 
 extension Model {
@@ -104,6 +98,36 @@ extension Panel {
 
 extension Surface {
     var render: (Self, Params, Controls) -> some View { Factory.build(_ :_ :_ :) }
-    func isExpanded(_ id: AnyHashable) -> Bool { host.state.isExpanded(id) }
-    func setExpanded(_ id: AnyHashable) { host.state.setExpanded(id) }
+    func isExpanded(_ id: AnyHashable) -> Bool { panel.state.isExpanded(id) }
+    func setExpanded(_ id: AnyHashable) { panel.state.setExpanded(id) }
 }
+
+
+
+class AnyModel: Model {
+    var panel: any Panel
+    var session: Session
+
+    init(_ workspace: Reference) {
+        self.panel = AnyPanel()
+        self.session = .init(anyRef)
+    }
+}
+
+final class AnyPanel: Panel {
+    var state: PanelState
+    init(state: PanelState = .init()) { self.state = state }
+    func controls(_ model: any Model) -> Controls { .init() }
+    func parameters(_ model: any Model) -> Params { .init() }
+    func surface(_ model: any Model) -> some View { EmptyView() }
+}
+
+struct AnySurface: Surface {
+    var panel: any Panel
+    var model: any Model
+    var body: some View { render(self, panel.parameters(model), panel.controls(model)) }
+    var render: (Self, Params, Controls) -> some View { Factory.build(_ :_ :_ :) }
+    func isExpanded(_ id: AnyHashable) -> Bool { panel.state.isExpanded(id) }
+    func setExpanded(_ id: AnyHashable) { panel.state.setExpanded(id) }
+}
+

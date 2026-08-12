@@ -29,9 +29,9 @@ struct ComposeInput: View {
                     .id(input)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .glassEffect(.clear, in: Design.Shape.input)
-                    .background(Design.Background.console.opacity(0.7))
-                    .opacity(0.7)
+//                    .glassEffect(.clear, in: Design.Shape.input)
+//                    .glassEffect(.regular.tint(Design.Background.base.opacity(0.9)), in: Design.Shape.input)
+                    .overlay(Design.Shape.input.strokeBorder(Design.Border.controlBorder, lineWidth: 0.5))
                 controls
             }
         }
@@ -40,7 +40,7 @@ struct ComposeInput: View {
 }
 
 struct ComposeSurface: Surface {
-    var host: any Host
+    var panel: any Panel
     var model: any Model
 
     var body: some View {

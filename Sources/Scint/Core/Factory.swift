@@ -4,6 +4,14 @@ import Foundation
 
 @MainActor enum Factory {
     @ViewBuilder static func build(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
+        if let panel = params.panel {
+            build(surface.panel, panel, controls)
+        } else {
+            content(surface, params, controls)
+        }
+    }
+
+    private static func content(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
         let nesting = params.nesting ?? .flat
         let layout = params.layout ?? .list
 
@@ -22,7 +30,7 @@ import Foundation
             .scrollEdgeEffectStyle(.automatic, for: .top)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-        build(surface, controls, view: AnyView(view))
+        return build(surface, controls, view: AnyView(view))
     }
 
     @ViewBuilder static func build(_ surface: some Surface, controls: Controls, params: SectionParams, layout: Layout, nesting: Nesting) -> some View {
@@ -327,7 +335,7 @@ extension Factory {
 
 
 extension Factory {
-    static func build(_ panel: some Panel, _ params: PanelParams, _ controls: Controls) -> some View {
+    static func build(_ panel: any Panel, _ params: PanelParams, _ controls: Controls) -> some View {
         let components = build(controls.results?(panel.state.query) ?? [])
         let items = components.flatMap(\.items)
         let cursor = panel.state.cursor ?? items.first?.id
@@ -436,7 +444,7 @@ extension Factory {
         .background { PanelShortcuts(count: params.items.count) { change($0) } }
     }
 
-    @ViewBuilder static func build(_ panel: some Panel, _ params: SectionParams, _ controls: Controls) -> some View {
+    @ViewBuilder static func build(_ panel: any Panel, _ params: SectionParams, _ controls: Controls) -> some View {
         if !params.items.isEmpty {
             if params.header && !params.name.isEmpty { PanelHeader(name: params.name) }
             ForEach(params.items) { item in
@@ -445,7 +453,7 @@ extension Factory {
         }
     }
 
-    @ViewBuilder static func build(_ panel: some Panel, _ params: ItemParams, _ controls: Controls) -> some View {
+    @ViewBuilder static func build(_ panel: any Panel, _ params: ItemParams, _ controls: Controls) -> some View {
         PanelRow(params: params, selected: controls.selected?(params) ?? false) {
             if params.trailingKind == .button { controls.onAction?(params) }
             else {

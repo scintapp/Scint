@@ -10,7 +10,7 @@ struct Editor: View {
     var state: PanelState = .init()
 
     func surface(_ model: any Model) -> some View {
-        EditSurface(host: self, model: model)
+        EditSurface(panel: self, model: model)
             .safeAreaBar(edge: .bottom) { EditorBar(model: model) }
             .toolbar {
                 ToolbarItem(placement: .navigation) { NavigationControls(model: model) }

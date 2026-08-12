@@ -10,7 +10,7 @@ final class Runtime: @unchecked Sendable {
 
     func store(for ref: Reference) -> Store? {
         switch ref.type {
-            case is any Structural.Type: return Workspaces.shared.store(for: ref)
+            case is any Structural.Type: return Workspaces.shared.store(for: ref)?.store(for: ref)
             case is any Malleable.Type, is any Functional.Type: return Library.shared.store(for: ref)?.store(for: ref)
             default: return nil
         }
@@ -99,40 +99,6 @@ extension Runtime {
     func context() -> [Composition] { Composer.shared.resolve() }
 
     func context(for ref: Reference) -> Composition? { Composer.shared.resolve(ref) }
-
-    func context(from origin: Reference) -> Set<Reference> {
-        var context: Set<Reference> = [origin]
-        var pending: [Reference] = []
-        var visited: Set<Reference> = []
-
-        func include(_ closure: Reference) {
-            context.insert(closure)
-            Closure.with(closure) {
-                context.insert($0.input)
-                context.formUnion($0.content)
-                context.formUnion($0.interfaces)
-            }
-        }
-
-        if let workspace = Workspace.with(origin, { $0 }) {
-            include(workspace.closure)
-            pending.append(contentsOf: workspace.spaces)
-        } else if origin.type == Space.self {
-            pending.append(origin)
-        }
-
-        while let ref = pending.popLast() {
-            guard visited.insert(ref).inserted, let space = Space.with(ref, { $0 }) else { continue }
-            context.insert(ref)
-            include(space.closure)
-            pending.append(contentsOf: space.spaces)
-            for (route, target, _) in adjacent(from: ref) {
-                context.insert(route.ref)
-                pending.append(target)
-            }
-        }
-        return context
-    }
 
     func transcripts(for ref: Reference) -> [Reference] {
         all(as: Transcript.self)

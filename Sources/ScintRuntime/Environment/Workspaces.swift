@@ -6,7 +6,11 @@ final class Workspaces: @unchecked Sendable {
     private let structures: Structures = .init()
     var workspaces: [Reference] { structures.workspaces.keys() }
 
-    func store(for ref: Reference) -> Store? { structures.store(for: ref) }
+    /// Returns the container, not the bare store: mutations must route through
+    /// `Bounding`, which marks the reference dirty. A raw `Store` writes silently.
+    func store(for ref: Reference) -> (any Bounding)? {
+        structures.store(for: ref) != nil ? structures : nil
+    }
 
     func add(_ ref: Reference, _ value: Resolvable) { structures.add(ref, value) }
 

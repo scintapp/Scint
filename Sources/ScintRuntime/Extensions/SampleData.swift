@@ -4,10 +4,13 @@ import Foundation
 enum SampleData {
     static let interfaces = SampleInterfaces.load()
 
-    static func load(_ workspace: Reference, for key: ModelKey) async {
+    /// Reports whether anything was created, so callers can avoid a full save when
+    /// there was nothing to seed.
+    @discardableResult
+    static func load(_ workspace: Reference, for key: ModelKey) async -> Bool {
         switch key {
-            case .editor: await editor(workspace)
-            case .studio: await studio(workspace)
+            case .editor: await editor(workspace); return false
+            case .studio: return await studio(workspace)
         }
     }
 
@@ -15,28 +18,20 @@ enum SampleData {
     static func builder(_ workspace: Reference) async { }
     static func editor(_ workspace: Reference) async { }
     static func panels(_ workspace: Reference) async { }
-    static func studio(_ workspace: Reference) async {
-        let hasWorkspaces = Workspace.with(workspace, { !$0.spaces.isEmpty }) ?? false
+    @discardableResult
+    static func studio(_ workspace: Reference) async -> Bool {
+        guard Workspace.with(workspace, { $0.spaces.isEmpty }) ?? true else { return false }
+
         let codexHarness = interfaces.codexHarness
         let assistantHarness = interfaces.assistantHarness
         let mistralMessages = interfaces.mistralMessages
         let researchCommands = [
             interfaces.searchTextFiles,
             interfaces.inspectFileMetadata,
-            interfaces.fetchURLHeaders
+            interfaces.fetchURLHeaders,
+            interfaces.concatSwiftRepo
         ]
 
-        if hasWorkspaces {
-            let researchDesk = Runtime.shared.context(from: workspace).first {
-                $0.type == Space.self && $0.descriptor.name == "Research Desk"
-            }
-            if let researchDesk {
-                Space.update(researchDesk) { space in
-                    for command in researchCommands { space.add(command) }
-                }
-            }
-            return
-        }
 
         Workspace.update(workspace, { ws in
             let components = [assistantHarness, mistralMessages]
@@ -200,5 +195,7 @@ enum SampleData {
             components: [codexHarness],
             harness: codexHarness
         )
+
+        return true
     }
 }

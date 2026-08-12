@@ -9,7 +9,7 @@ import SwiftUI
     func parameters(_ model: any Model) -> Params { SpaceGroup.parameters(model) }
 
     func surface(_ model: any Model) -> some View {
-        AnySurface(host: self, model: model)
+        AnySurface(panel: self, model: model)
             .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar {
                 @Bindable var state = self.state

@@ -109,7 +109,7 @@ mixing all four into a single SwiftUI hierarchy:
 | `Params` | Describes what a surface should present during this evaluation |
 | `Controls` | Describes the interactions, mutations, wrappers, and permissions available to that surface |
 | `Panel` | Owns local presentation state and chooses the mapper and surface for one region of the app |
-| `Surface` | Hosts a panel and model, either through the shared builder or a specialized view |
+| `Surface` | Panels a panel and model, either through the shared builder or a specialized view |
 | `Builder` | Renders common parameter trees into consistent grid, group, list, or table layouts |
 
 This separation keeps runtime knowledge near the mapper and reusable view behavior near
@@ -159,7 +159,7 @@ Presentation parameters form a shallow tree:
 
 ```text
 Params
-├── HostParams        floating size, input, modes, selection
+├── PanelParams        floating size, input, modes, selection
 └── ComponentParams[]  named sections
     └── ItemParams[]   references, entries, paths, labels, values, children
 ```
@@ -211,7 +211,7 @@ enough:
 
 | Surface | Specialized responsibility |
 | --- | --- |
-| `EditorSurface` | Hosts the block editor for the active `Material` reference |
+| `EditorSurface` | Panels the block editor for the active `Material` reference |
 | `ComposerSurface` | Resolves an active `Transcript` and renders its inputs, messages, reasoning, tool calls, and failures |
 | `SearchSurface` | Adds keyboard navigation, query input, result selection, and search-mode switching |
 | Space and workspace canvases | Reuse mapped params and controls inside the split Studio canvas |

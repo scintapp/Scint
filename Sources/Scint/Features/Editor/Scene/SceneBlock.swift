@@ -30,7 +30,7 @@ struct TextContent: View {
 struct LinkBlock: View {
     @State var metadata: Metadata?
     let fallbackTitle: String
-    var host: String { url.host(percentEncoded: false) ?? url.absoluteString }
+    var panel: String { url.host(percentEncoded: false) ?? url.absoluteString }
     let url: URL
 
     struct Metadata {
@@ -43,7 +43,7 @@ struct LinkBlock: View {
         let provider = LPMetadataProvider()
         guard let metadata = try? await provider.startFetchingMetadata(for: url) else { return }
         let title = metadata.title?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let detail = metadata.url?.host(percentEncoded: false) ?? metadata.originalURL?.host(percentEncoded: false) ?? host
+        let detail = metadata.url?.host(percentEncoded: false) ?? metadata.originalURL?.host(percentEncoded: false) ?? panel
         self.metadata = .init(title: title?.isEmpty == false ? title! : fallbackTitle, detail: detail)
     }
 
@@ -60,7 +60,7 @@ struct LinkBlock: View {
 
             TextContent(
                 title: metadata?.title ?? fallbackTitle,
-                detail: metadata?.detail ?? host,
+                detail: metadata?.detail ?? panel,
                 design: .default,
                 truncation: .middle
             )

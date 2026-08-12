@@ -15,6 +15,17 @@ struct ScintStudio: View {
             studio.content.surface(studio)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .toolbar(removing: .title)
+                .safeAreaBar(edge: .top) {
+                    HStack(alignment: .center) {
+                        PathBar(model: studio)
+                        Spacer()
+                        BadgesBar(model: studio)
+                    }
+                    .frame(maxHeight: 30)
+                }
+                .toolbar {
+                    ToolbarItem(placement: .navigation) { NavigationControls(model: studio) }
+                }
         }
         .inspector(isPresented: $studio.inspector.state.presented) {
             studio.inspector.surface(studio)

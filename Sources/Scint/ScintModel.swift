@@ -2,14 +2,6 @@ import Foundation
 import SwiftUI
 
 
-enum ModelKey: String, Identifiable, CaseIterable {
-    case editor, studio
-    var id: String { self.model }
-    var app: String { self.rawValue }
-    var model: String { "scint" }
-    var namespace: String { "\(app).\(model)" }
-}
-
 @Observable @MainActor final class ScintModel {
     private(set) var models: [ModelKey: any Model] = [:]
     var controller: Controller = .init()
@@ -18,9 +10,12 @@ enum ModelKey: String, Identifiable, CaseIterable {
     func load() async {
         models[.editor] = EditorModel(Self.restore(.editor))
         models[.studio] = StudioModel(Self.restore(.studio))
-        await SampleData.load(editor.session.workspace, for: .editor)
-        await SampleData.load(studio.session.workspace, for: .studio)
-        await Runtime.shared.save()
+        // A full save rewrites every persisted record; only worth it when seeding
+        // actually created something. Ongoing changes persist through Coordinator.
+        var seeded = await SampleData.load(editor.session.workspace, for: .editor)
+        seeded = await SampleData.load(studio.session.workspace, for: .studio) || seeded
+        if seeded { await Runtime.shared.save() }
+        Observers.install()
         await server.start()
     }
 
@@ -32,7 +27,7 @@ enum ModelKey: String, Identifiable, CaseIterable {
     func panel(for key: PanelKey) -> any Panel { controller.panel(for: key) }
 
     func toggle(_ key: PanelKey, _ source: ModelKey) {
-        let defaults = PanelParams(key: key, sizing: .init(size: CGSize()))
+        let defaults = PanelParams(key: key, sizing: .init(size: CGSize(width: 640, height: 480)))
         let panel = panel(for: key)
         let model = model(for: source)
         let params = panel.parameters(model).panel ?? defaults

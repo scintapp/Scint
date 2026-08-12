@@ -12,7 +12,16 @@ enum TranscriptContent {
         guard let properties = Properties.load(content)
                 else { self = .message(content); return }
 
-        guard properties["type"]?.string?.lowercased() == "item.completed" else { return nil }
+        let kind = properties["type"]?.string?.lowercased()
+
+        // Claude Code streams envelopes rather than completed items.
+        if let kind, Self.claudeEnvelopes.contains(kind) {
+            guard let content = Self.claude(properties, kind: kind) else { return nil }
+            self = content
+            return
+        }
+
+        guard kind == "item.completed" else { return nil }
 
         switch properties["item.type"]?.string?.lowercased() {
             case "agent_message", "message":
@@ -39,6 +48,39 @@ enum TranscriptContent {
             default:
                 return nil
         }
+    }
+
+    private static let claudeEnvelopes: Set<String> = [
+        "assistant", "user", "result", "system", "rate_limit_event"
+    ]
+
+    /// Only assistant turns carry content worth showing: `system` and `rate_limit_event`
+    /// are setup noise, `user` echoes tool results already shown as the call, and
+    /// `result` repeats the final assistant text verbatim.
+    private static func claude(_ properties: Properties, kind: String) -> TranscriptContent? {
+        guard kind == "assistant", let blocks = properties["message.content"]?.array else { return nil }
+
+        for block in blocks {
+            guard let block = block.properties else { continue }
+            switch block["type"]?.string?.lowercased() {
+                case "text":
+                    guard let text = block["text"]?.string,
+                          !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+                    return .message(text)
+
+                case "thinking":
+                    guard let text = block["thinking"]?.string,
+                          !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+                    return .reasoning(text)
+
+                case "tool_use":
+                    return .tool(name: block["name"]?.string ?? "tool", verb: "Called")
+
+                default:
+                    continue
+            }
+        }
+        return nil
     }
 }
 
@@ -288,7 +330,7 @@ struct TranscriptEntry: View {
                 TranscriptView(ref: ref, created: created)
 
             case .value(let key, let value, _):
-                if key == "prompt" {
+                if key == "input" {
                     TranscriptBlock(text: value.property.stringRepresentation, style: .input)
                 }
         }

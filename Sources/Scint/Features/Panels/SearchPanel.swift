@@ -61,5 +61,5 @@ import SwiftUI
 
     func controls(_ model: any Model) -> Controls { mode.query.controls(model) }
 
-    func surface(_ model: any Model) -> some View { PanelSurface(panel: self, model: model) }
+    func surface(_ model: any Model) -> some View { AnySurface(panel: self, model: model) }
 }

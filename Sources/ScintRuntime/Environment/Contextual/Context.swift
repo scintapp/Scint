@@ -91,11 +91,6 @@ struct Composing: Contextual {
         catch { receive(.failed(.string(String(describing: error)))) }
     }
 
-    func stop(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        guard Runtime.shared.services.stop(context: origin.contextId) else { return }
-        receiver(terminal)(.stopped(harness))
-    }
-
     private func start(_ signal: @escaping (Signal) -> Void) throws {
         guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
         let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
@@ -114,6 +109,10 @@ struct Composing: Contextual {
                 if signal.terminal { terminal(signal, branch) }
             }
         }
+    }
+    func stop(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
+        guard Runtime.shared.services.stop(context: origin.contextId) else { return }
+        receiver(terminal)(.stopped(harness))
     }
 }
 
@@ -380,8 +379,15 @@ struct Context: Contextual {
         }
 
         do {
-            compose(branch)
-            let arguments = try Parser.parse(origin, for: harness)
+            let config = Space.with(origin, { $0.config }) ?? Workspace.with(origin, { $0.config }) ?? [:]
+            if case .string(let input)? = config["prompt"], !input.isEmpty {
+                Transcript.update(branch) { $0.insert("input", .string(input)) }
+            }
+
+            let kind = Harness.with(harness, { $0.intent })
+            let serialized = Serialization(origin: origin, branch: branch, intent: kind).rendered
+            Transcript.update(branch) { $0.insert("context", .string(serialized)) }
+            let arguments = try Parser.parse(origin, for: harness, prompt: serialized)
             guard let intent = intent(branch, arguments: arguments) else { return }
             intents.append(intent)
             intent.start(terminal)
@@ -403,7 +409,8 @@ struct Context: Contextual {
     }
 
     static func new(_ origin: Reference) -> Context {
-        if let transcript = Runtime.shared.transcripts(for: origin).first(where: { reference in
+        let roots = Space.with(origin, { $0.transcripts }) ?? Workspace.with(origin, { $0.transcripts }) ?? []
+        if let transcript = roots.first(where: { reference in
             Transcript.with(reference) { transcript in
                 transcript.entries.contains { entry in
                     if case .event(_, .composed(let source), _) = entry { source == origin } else { false }
@@ -416,19 +423,6 @@ struct Context: Contextual {
         let transcript = Transcript.new(origin.descriptor.name, owner: origin)
         Transcript.update(transcript) { $0.insert(.composed(origin)) }
         return Self(origin, transcript: transcript)
-    }
-
-    private func compose(_ transcript: Reference) {
-        guard let structure = Space.with(origin, { (config: $0.config, rendered: $0.rendered) })
-                ?? Workspace.with(origin, { (config: $0.config, rendered: $0.rendered) })
-        else { return }
-
-        Transcript.update(transcript) { transcript in
-            if !structure.rendered.isEmpty { transcript.insert("context", .string(structure.rendered)) }
-            for key in structure.config.keys.sorted() where key != "transcript" {
-                if let value = structure.config[key] { transcript.insert(key, value) }
-            }
-        }
     }
 
     private func intent(_ transcript: Reference, arguments: [String]) -> Intent? {
@@ -448,10 +442,10 @@ struct Context: Contextual {
            case .reference(let focused) = value,
            focused != transcript,
            !intents.contains(where: { $0.transcript == focused }),
-           Runtime.shared.transcripts(for: origin).contains(focused) {
+           (Space.with(origin, { $0.transcripts }) ?? Workspace.with(origin, { $0.transcripts }) ?? []).contains(focused) {
             return focused
         }
         let name = harness.flatMap { Harness.with($0, { "\($0.intent) Transcript".capitalized }) } ?? "Intent Transcript"
-        return Transcript.new(name, owner: origin)
+        return Transcript.new(name, owner: transcript)
     }
 }

@@ -29,9 +29,15 @@ import Foundation
         else { Workspace.with(origin, { $0.input }).flatMap { $0 } }
     }
 
+    var transcripts: [Reference] {
+        let roots = if origin.type == Space.self { Space.with(origin, { $0.transcripts }) ?? [] }
+        else { Workspace.with(origin, { $0.transcripts }) ?? [] }
+        return roots.sorted { $0.descriptor.created > $1.descriptor.created }
+    }
+
     var transcript: Reference? {
-        guard case .content(let ref) = focused, ref.type is Transcript.Type else { return nil }
-        return ref
+        if case .content(let ref) = focused, ref.type is Transcript.Type { return ref }
+        return transcripts.first
     }
 
     var rendered: Value {

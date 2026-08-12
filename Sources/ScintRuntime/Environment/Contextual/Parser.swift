@@ -12,7 +12,7 @@ enum Parser {
         throw ParsingError.invalid("No functional object found for \(ref.id).")
     }
 
-    static func parse(_ origin: Reference, for harnessRef: Reference) throws -> [String] {
+    static func parse(_ origin: Reference, for harnessRef: Reference, prompt: String) throws -> [String] {
         guard let harness = Harness.with(harnessRef, { $0 }) else {
             throw RuntimeError.context(.missing(harnessRef))
         }
@@ -27,7 +27,7 @@ enum Parser {
         for parameter in harness.parameters {
             switch parameter {
                 case .argument(let name, _, _, _), .requirement(let name, _, _), .target(let name, _, _):
-                    harnessSupplied[name] = name == "prompt" ? .string(structure.rendered) : structure.config[name]
+                    harnessSupplied[name] = name == "prompt" ? .string(prompt) : structure.config[name]
                 case .command:
                     break
             }

@@ -88,15 +88,19 @@ struct Transcript: Malleable {
     }
 
     static func new(_ name: String, owner: Reference) -> Reference {
-        guard owner.type == Space.self || owner.type == Workspace.self else { RuntimeError.fatal() }
+        guard owner.type == Space.self || owner.type == Workspace.self || owner.type == Transcript.self
+        else { RuntimeError.fatal() }
         var instance = Self(.init(Self.self))
         instance.owner = owner
         Descriptor.new(instance.ref, name: name, tags: ["transcript"])
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
         if owner.type == Workspace.self { guard let _ = Workspace.with(owner, { $0.add(instance.ref) })
         else { RuntimeError.fatal() } }
-        else { guard let _ = Space.with(owner, { $0.add(instance.ref) })
+        else if owner.type == Space.self { guard let _ = Space.with(owner, { $0.add(instance.ref) })
         else { RuntimeError.fatal() } }
+        // TEMP
+        let linked = Space.with(owner, { $0.transcripts }) ?? Workspace.with(owner, { $0.transcripts }) ?? []
+        print("[TEMP Transcript.new] \(name) owner=\(String(describing: owner.type)) linked=\(linked.count)")
         return instance.ref
     }
 }

@@ -2,6 +2,8 @@ import Foundation
 
 
 struct ServerTool: Sendable {
+    static let callTimeout: TimeInterval = 300
+
     struct Invocation: Sendable {
         let text: String
         let isError: Bool
@@ -35,10 +37,19 @@ struct ServerTool: Sendable {
         }
 
         let (stream, continuation) = AsyncStream<Signal>.makeStream()
-        guard let result = dispatch(values, output: { signal in
-            continuation.yield(signal)
-            if signal.terminal { continuation.finish() }
-        }) else {
+
+        // Services.start blocks on a semaphore. Off the cooperative pool, or it
+        // starves the threads the XPC reply needs to land on.
+        let started: (pid: Int32, error: String?)? = await withCheckedContinuation { resume in
+            DispatchQueue.global(qos: .userInitiated).async {
+                resume.resume(returning: dispatch(values, output: { signal in
+                    continuation.yield(signal)
+                    if signal.terminal { continuation.finish() }
+                }))
+            }
+        }
+
+        guard let result = started else {
             continuation.finish()
             return Invocation(text: "Scint tool could not be started.", isError: true)
         }
@@ -47,15 +58,36 @@ struct ServerTool: Sendable {
             return Invocation(text: error, isError: true)
         }
 
+        // A process that never reports termination must not hang the request.
+        let watchdog = Task {
+            try? await Task.sleep(for: .seconds(Self.callTimeout))
+            continuation.finish()
+        }
+        defer { watchdog.cancel() }
+
         var output: [String] = []
         var failed = false
+        var terminated = false
         for await signal in stream {
             switch signal {
                 case .updated(let value): output.append(contentsOf: value.rendered)
-                case .failed(let value): output.append(contentsOf: value.rendered); failed = true
-                case .stopped: failed = true
+                case .failed(let value): output.append(contentsOf: value.rendered); failed = true; terminated = true
+                case .stopped: failed = true; terminated = true
+                case .completed(let value):
+                    if let value { output.append(contentsOf: value.rendered) }
+                    terminated = true
                 default: break
             }
+        }
+
+        guard terminated else {
+            let partial = output.joined(separator: "\n")
+            return Invocation(
+                text: partial.isEmpty
+                    ? "Scint tool did not report completion within \(Int(Self.callTimeout))s."
+                    : "\(partial)\n\n[Scint: no completion within \(Int(Self.callTimeout))s; output may be partial.]",
+                isError: true
+            )
         }
         return Invocation(text: output.joined(separator: "\n"), isError: failed)
     }
