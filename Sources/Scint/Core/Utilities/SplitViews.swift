@@ -244,8 +244,10 @@ struct HSplit<Leading: View, Trailing: View>: NSViewRepresentable {
         applyHandleStyle(to: split)
         split.delegate = context.coordinator
         split.arrangesAllSubviews = true
-        split.addArrangedSubview(SplitHostingView(rootView: leading))
-        split.addArrangedSubview(SplitHostingView(rootView: trailing))
+        let leadingHost = SplitHostingView(rootView: leading)
+        let trailingHost = SplitHostingView(rootView: trailing)
+        split.addArrangedSubview(leadingHost)
+        split.addArrangedSubview(trailingHost)
         return split
     }
 

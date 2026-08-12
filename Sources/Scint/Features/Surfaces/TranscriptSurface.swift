@@ -1,89 +1,6 @@
 import SwiftUI
 
 
-enum TranscriptContent {
-    case message(String)
-    case reasoning(String)
-    case tool(name: String, verb: String)
-
-    init?(_ value: Value) {
-        let content = value.rendered.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !content.isEmpty, content != "Reading additional input from stdin..." else { return nil }
-        guard let properties = Properties.load(content)
-                else { self = .message(content); return }
-
-        let kind = properties["type"]?.string?.lowercased()
-
-        // Claude Code streams envelopes rather than completed items.
-        if let kind, Self.claudeEnvelopes.contains(kind) {
-            guard let content = Self.claude(properties, kind: kind) else { return nil }
-            self = content
-            return
-        }
-
-        guard kind == "item.completed" else { return nil }
-
-        switch properties["item.type"]?.string?.lowercased() {
-            case "agent_message", "message":
-                guard let text = properties["item.text"]?.string, !text.isEmpty else { return nil }
-                self = .message(text)
-
-            case "reasoning":
-                guard let text = properties["item.text"]?.string, !text.isEmpty else { return nil }
-                self = .reasoning(text)
-
-            case "command_execution", "command":
-                guard let command = properties["item.command"]?.string, !command.isEmpty else { return nil }
-                self = .tool(name: command, verb: "Ran")
-
-            case "mcp_tool_call":
-                let server = properties["item.server"]?.string ?? ""
-                let tool = properties["item.tool"]?.string ?? "tool"
-                self = .tool(name: server.isEmpty ? tool : "\(server).\(tool)", verb: "Called")
-
-            case "function_call", "function":
-                let name = properties["item.name"]?.string ?? "function"
-                self = .tool(name: name, verb: "Called")
-
-            default:
-                return nil
-        }
-    }
-
-    private static let claudeEnvelopes: Set<String> = [
-        "assistant", "user", "result", "system", "rate_limit_event"
-    ]
-
-    /// Only assistant turns carry content worth showing: `system` and `rate_limit_event`
-    /// are setup noise, `user` echoes tool results already shown as the call, and
-    /// `result` repeats the final assistant text verbatim.
-    private static func claude(_ properties: Properties, kind: String) -> TranscriptContent? {
-        guard kind == "assistant", let blocks = properties["message.content"]?.array else { return nil }
-
-        for block in blocks {
-            guard let block = block.properties else { continue }
-            switch block["type"]?.string?.lowercased() {
-                case "text":
-                    guard let text = block["text"]?.string,
-                          !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
-                    return .message(text)
-
-                case "thinking":
-                    guard let text = block["thinking"]?.string,
-                          !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
-                    return .reasoning(text)
-
-                case "tool_use":
-                    return .tool(name: block["name"]?.string ?? "tool", verb: "Called")
-
-                default:
-                    continue
-            }
-        }
-        return nil
-    }
-}
-
 struct TranscriptBlock: View {
     enum Style: Equatable {
         case input
@@ -106,16 +23,23 @@ struct TranscriptBlock: View {
     var body: some View {
         switch style {
             case .input:
-                Text(text)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Design.Foreground.primary)
-                    .lineSpacing(Spacing.lineSpacingBody)
-                    .frame(maxWidth: 640, alignment: .leading)
-                    .padding(.leading, 4)
-                    .padding(12)
-                    .background(Design.Shape.bubble.fill(Design.Background.raised))
-                    .overlay(Design.Shape.bubble.strokeBorder(Design.Border.cardBorder, lineWidth: 1))
-                    .padding(.top, 6)
+                HStack(spacing: 0) {
+                    Spacer(minLength: 48)
+
+                    Text(text)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Design.Foreground.primary)
+                        .lineSpacing(Spacing.lineSpacingBody)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Design.Shape.bubble.fill(Design.Background.raised))
+                        .overlay(Design.Shape.bubble.strokeBorder(Design.Border.cardBorder, lineWidth: 1))
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.top, 10)
+                .padding(.bottom, 4)
 
             case .message(nil):
                 Text(markdown)
@@ -128,37 +52,27 @@ struct TranscriptBlock: View {
                     .padding(.vertical, 4)
 
             case .message(.some(let detail)):
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text(markdown)
-                        .font(.system(size: 13))
-                        .foregroundStyle(Design.Foreground.primary)
+                        .font(Typography.message)
+                        .foregroundStyle(failed ? Design.Foreground.secondary : Design.Foreground.primary)
                         .lineSpacing(Spacing.lineSpacingMessage)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
 
-                    Rectangle()
-                        .fill(Design.Border.cardBorder)
-                        .frame(height: 1)
-
-                    HStack(spacing: 9) {
+                    HStack(spacing: 7) {
                         Image(systemName: "checkmark.rectangle.stack.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Design.Foreground.accent)
-
+                            .font(.system(size: 10))
                         Text(detail)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Design.Tint.working)
-
+                            .font(.system(size: 11))
                         Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
+                    .foregroundStyle(Design.Foreground.tertiary)
                 }
-                .background(Design.Shape.node.fill(Design.Background.raised))
-                .overlay(Design.Shape.node.strokeBorder(Design.Border.cardBorder, lineWidth: 1))
-                .padding(.vertical, 6)
+                .padding(.horizontal, 2)
+                .padding(.top, 4)
+                .padding(.bottom, 10)
 
             case .reasoning:
                 Text(text)
@@ -406,14 +320,16 @@ struct TranscriptView: View {
 
         for (index, entry) in entries.enumerated() {
             switch entry {
-                case .value(let key, _, let date) where key == "prompt":
+                case .value(let key, _, let date) where key == "input":
                     message = nil
                     actions = 0
                     opened = date
 
                 case .event(_, let signal, let date):
                     if signal.terminal {
-                        if let message { result[message] = tally(actions, from: opened, to: date) }
+                        if let message, let summary = tally(actions, from: opened, to: date) {
+                            result[message] = summary
+                        }
                         message = nil
                         actions = 0
                         opened = nil
@@ -433,7 +349,8 @@ struct TranscriptView: View {
         return result
     }
 
-    private func tally(_ actions: Int, from: Date?, to: Date?) -> String {
+    private func tally(_ actions: Int, from: Date?, to: Date?) -> String? {
+        guard actions > 0 else { return nil }
         var parts = [actions == 1 ? "1 action" : "\(actions) actions"]
         if let duration = elapsed(from: from, to: to) { parts.append(duration) }
         return parts.joined(separator: "  ·  ")

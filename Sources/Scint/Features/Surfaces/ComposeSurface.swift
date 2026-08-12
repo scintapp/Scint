@@ -29,10 +29,9 @@ struct ComposeInput: View {
                     .id(input)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-//                    .glassEffect(.clear, in: Design.Shape.input)
-//                    .glassEffect(.regular.tint(Design.Background.base.opacity(0.9)), in: Design.Shape.input)
                     .overlay(Design.Shape.input.strokeBorder(Design.Border.controlBorder, lineWidth: 0.5))
                 controls
+                    .opacity(0.0)
             }
         }
         .frame(maxWidth: 660)
@@ -56,6 +55,6 @@ struct ComposeSurface: Surface {
                 .padding(.bottom, 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .scrollEdgeEffectStyle(.hard, for: .top)
     }
 }

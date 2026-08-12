@@ -216,8 +216,7 @@ import SwiftUI
             case is Material.Type:
                 return Icon(symbol: "text.alignleft", tint: Design.Tint.material, sizing: size)
             case is Transcript.Type:
-                for entry in Transcript.with(ref, { $0.entries }) ?? [] { return Iconography.icon(for: entry, size: size) }
-                return Icon(symbol: "rectangle.stack", tint: Design.Tint.working, sizing: size)
+                return Icon(symbol: "text.bubble", tint: Design.Tint.working, sizing: size)
             case is Workspace.Type:
                 return Icon(symbol: "cube.transparent", tint: Design.Tint.info, sizing: size)
             default:

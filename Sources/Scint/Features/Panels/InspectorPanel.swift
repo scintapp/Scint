@@ -10,7 +10,7 @@ import SwiftUI
 
     func surface(_ model: any Model) -> some View {
         AnySurface(panel: self, model: model)
-            .scrollEdgeEffectStyle(.soft, for: .top)
+            .scrollEdgeEffectStyle(.hard, for: .top)
             .toolbar {
                 @Bindable var state = self.state
                 ToolbarSpacer(.flexible, placement: .primaryAction)

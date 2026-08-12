@@ -446,6 +446,15 @@ struct Context: Contextual {
             return focused
         }
         let name = harness.flatMap { Harness.with($0, { "\($0.intent) Transcript".capitalized }) } ?? "Intent Transcript"
+
+        // One branch per intent: turns accumulate in a single thread rather than
+        // sprouting a new branch for every message.
+        let branches = Transcript.with(transcript, { $0.entries })?.compactMap { entry -> Reference? in
+            guard case .transcript(let ref, _) = entry else { return nil }
+            return ref
+        } ?? []
+        if let existing = branches.first(where: { $0.descriptor.name == name }) { return existing }
+
         return Transcript.new(name, owner: transcript)
     }
 }

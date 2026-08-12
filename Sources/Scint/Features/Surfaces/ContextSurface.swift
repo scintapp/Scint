@@ -83,7 +83,7 @@ struct ContextSection<Content: View>: View {
 struct ContextSurface: Surface {
     var panel: any Panel
     var model: any Model
-    static let width: CGFloat = 288
+    static let width: CGFloat = 320
     var origin: Reference { model.session.origin }
     var context: Composition? { origin.context }
 
@@ -112,12 +112,23 @@ struct ContextSurface: Surface {
             case .working: return "Running"
             case .active: return "Active"
             case .inactive: return "Idle"
-            case nil: return "Not composed"
+            case nil: return "Ready"
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        ScrollView {
+            content
+                .padding(.horizontal, 18)
+                .padding(.top, 16)
+                .padding(.bottom, 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .scrollEdgeEffectStyle(.hard, for: .top)
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 16) {
             header
 
             ContextSection("Activity") {
@@ -160,10 +171,7 @@ struct ContextSurface: Surface {
                 }
             }
         }
-        .padding(14)
-        .frame(width: Self.width, alignment: .topLeading)
-        .background(Design.Shape.card.fill(Design.Background.raised))
-        .overlay(Design.Shape.card.strokeBorder(Design.Border.cardBorder, lineWidth: 0.75))
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private var header: some View {

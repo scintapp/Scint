@@ -307,7 +307,8 @@ enum SampleInterfaces {
                     .fixed(.string("--json")),
                     .fixed(.string("--color")),
                     .fixed(.string("never")),
-                    .fixed(.string("--skip-git-repo-check"))
+                    .fixed(.string("--skip-git-repo-check")),
+                    .fixed(.string("--dangerously-bypass-approvals-and-sandbox"))
                 ]
             ),
             .execute,

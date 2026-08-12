@@ -111,7 +111,9 @@ final class ProcessStore: @unchecked Sendable {
 
                     savedEmit(
                         pid,
-                        jsonString([
+                        // Leading newline: a partial line may still be buffered
+                        // downstream, and concatenation makes this unparseable.
+                        "\n" + jsonString([
                             "event": "terminated",
                             "pid": Int(pid),
                             "exitCode": Int(exitCode)

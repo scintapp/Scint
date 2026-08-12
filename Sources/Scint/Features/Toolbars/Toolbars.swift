@@ -135,41 +135,61 @@ struct OutlineControls: View {
     }
 }
 
+
+
 struct ContextControls: View {
-    let model: any Model
-    var origin: Reference { model.session.origin }
-    var context: Composition? { origin.context }
-    var active: Bool { context?.state == .active }
+    @Environment(ScintModel.self) var model
+    var ref: Reference { model.studio.session.selected.space ?? model.studio.session.workspace }
+
+    var composable: Bool {
+        guard let composable = Space.with(ref, { $0.composable }) else { return false }
+        return composable
+    }
+
+    var running: Bool {
+        if !composable { return false }
+        guard let context = model.studio.session.origin.context else { return false }
+        if context.state == .working { return true }
+        return false
+    }
 
     var body: some View {
-        HStack(alignment: .center) {
-            Button { } label: {
-                Iconography
-                    .icon(for: origin, size: 12)
-                    .frame(maxWidth: 30, maxHeight: 30, alignment: .center)
+        HStack {
+            ControlGroup {
+                Button { } label: {
+                    Iconography.icon(for: ref, size: 11)
+                }
+
+                Spacer()
+
+                Button { } label: {
+                    VStack(alignment: .center) {
+                        Text(ref.descriptor.name)
+                            .foregroundStyle(Design.Foreground.primary)
+                            .font(.system(size: 11))
+                        Text("Ready")
+                            .foregroundStyle(Design.Foreground.secondary)
+                            .font(.system(size: 9, weight: .medium))
+                    }
+                }
+
+                Spacer()
+
+                Button { } label: {
+                    if !composable {
+                        Image(systemName: "stop.fill")
+                            .foregroundStyle(Design.Foreground.tertiary)
+                    } else if composable && !running {
+                        Image(systemName: "play.fill")
+                    } else if composable && running {
+                        Image(systemName: "stop.fill")
+                            .foregroundStyle(Design.Foreground.primary)
+                    }
+                }
             }
-
-            Color.clear.frame(width: 30, height: 30)
-
-            Button { } label: {
-                Text(origin.descriptor.name)
-                    .frame(minWidth: 96)
-                    .font(.system(size: 13))
-            }
-
-
-            Button { } label: {
-                Image(systemName: "square.and.pencil")
-                    .font(.system(size: 12))
-                    .frame(maxWidth: 30, maxHeight: 30, alignment: .center)
-            }
-
-            Button { } label: {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 12))
-                    .frame(maxWidth: 30, maxHeight: 30, alignment: .center)
-            }
+            .controlGroupStyle(.navigation)
         }
-        .frame(maxWidth: .infinity, maxHeight: 30)
+        .frame(minWidth: 200)
     }
 }
+

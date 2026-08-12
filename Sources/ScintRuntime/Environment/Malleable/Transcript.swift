@@ -98,9 +98,6 @@ struct Transcript: Malleable {
         else { RuntimeError.fatal() } }
         else if owner.type == Space.self { guard let _ = Space.with(owner, { $0.add(instance.ref) })
         else { RuntimeError.fatal() } }
-        // TEMP
-        let linked = Space.with(owner, { $0.transcripts }) ?? Workspace.with(owner, { $0.transcripts }) ?? []
-        print("[TEMP Transcript.new] \(name) owner=\(String(describing: owner.type)) linked=\(linked.count)")
         return instance.ref
     }
 }

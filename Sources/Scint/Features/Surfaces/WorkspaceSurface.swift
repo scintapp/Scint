@@ -189,7 +189,7 @@ struct WorkspaceSurface: Surface {
     }
 
     var body: some View {
-        let columns = [GridItem(.adaptive(minimum: 400, maximum: 400), spacing: 20, alignment: .top)]
+        let columns = [GridItem(.adaptive(minimum: 360), spacing: 20, alignment: .top)]
 
         ScrollView {
             Color.clear.frame(height: 24)

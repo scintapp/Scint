@@ -90,6 +90,7 @@
 				ScintRuntime/Core/Records/Property.swift,
 				ScintRuntime/Core/Records/Query.swift,
 				ScintRuntime/Core/Records/Signal.swift,
+				ScintRuntime/Core/Records/TranscriptContent.swift,
 				ScintRuntime/Core/Records/Value.swift,
 				ScintRuntime/Core/Registry.swift,
 				ScintRuntime/Core/Settings.swift,

@@ -103,7 +103,12 @@ actor Server {
             Self.logger.error("MCP \(method, privacy: .public) missing context -> 401")
             return Self.error(id, code: -32600, message: "Scint context is required.", statusCode: 401)
         }
-        guard let composition = runtime.context().first(where: { $0.structure.contextId == context }),
+        // The runtime's stores are unsynchronized and mutated by the UI on the main
+        // actor. Every read here serializes onto it rather than racing the app.
+        let resolved = await MainActor.run {
+            runtime.context().first(where: { $0.structure.contextId == context })
+        }
+        guard let composition = resolved,
               composition.structure.type == Space.self,
               composition.state == .active || composition.state == .working
         else {
@@ -122,7 +127,7 @@ actor Server {
         switch method {
             case "initialize": response = Self.initialize(id)
             case "server/discover": response = Self.discover(id)
-            case "tools/list": response = Self.listTools(id, in: composition.structure)
+            case "tools/list": response = await Self.listTools(id, in: composition.structure)
             case "tools/call": response = await Self.callTool(id, params: params, in: composition.structure)
             default: response = Self.error(id, code: -32601, message: "Method not found: \(method)", statusCode: 404)
         }
@@ -157,11 +162,13 @@ actor Server {
         ])
     }
 
-    static func listTools(_ id: Property, in origin: Reference) -> HTTPResponse {
-        result(id, [
+    static func listTools(_ id: Property, in origin: Reference) async -> HTTPResponse {
+        let tools: [Property] = await MainActor.run {
+            ServerTool.all(in: origin).map(\.definition) + ContentTool.all(in: origin).map(\.definition)
+        }
+        return result(id, [
             "resultType": .string("complete"),
-            "tools": .array(ServerTool.all(in: origin).map(\.definition)
-                            + ContentTool.all(in: origin).map(\.definition)),
+            "tools": .array(tools),
             "ttlMs": .integer(0),
             "cacheScope": .string("private")
         ])
@@ -180,11 +187,17 @@ actor Server {
         } else {
             arguments = .object([String: Property]())
         }
+        // Resolution touches the runtime; the interface path then leaves the main
+        // actor before awaiting a process, so a long run never blocks the UI.
+        let found = await MainActor.run {
+            (interface: ServerTool.find(name, in: origin), content: ContentTool.find(name, in: origin))
+        }
+
         let invocation: ServerTool.Invocation
-        if let tool = ServerTool.find(name, in: origin) {
+        if let tool = found.interface {
             invocation = await tool.call(arguments)
-        } else if let tool = ContentTool.find(name, in: origin) {
-            invocation = tool.call(arguments)
+        } else if let tool = found.content {
+            invocation = await MainActor.run { tool.call(arguments) }
         } else {
             return error(id, code: -32602, message: "Unknown tool: \(name)")
         }
@@ -240,15 +253,15 @@ actor Server {
                 ])
             )
         }
-        guard request.header("Mcp-Method") == method else {
+        // These headers mirror the body for clients that send them. Absence is not a
+        // mismatch — no shipping client emits them yet — but disagreement still is.
+        if let header = request.header("Mcp-Method"), header != method {
             return error(id, code: -32020, message: "Header mismatch: Mcp-Method does not match the request body.", statusCode: 400)
         }
-        if method == "tools/call" {
-            guard let name = params["name"]?.string,
-                  request.header("Mcp-Name").flatMap(decodedHeader) == name
-            else {
-                return error(id, code: -32020, message: "Header mismatch: Mcp-Name does not match the request body.", statusCode: 400)
-            }
+        if method == "tools/call",
+           let header = request.header("Mcp-Name").flatMap(decodedHeader),
+           header != params["name"]?.string {
+            return error(id, code: -32020, message: "Header mismatch: Mcp-Name does not match the request body.", statusCode: 400)
         }
         return nil
     }

@@ -1,7 +1,9 @@
 import Foundation
+import OSLog
 
 
 final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Sendable {
+    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Services")
     private let connection: NSXPCConnection
     private var handlers: [Int32: (String) -> Void] = [:]
     private var pending: [Int32: [String]] = [:]
@@ -22,14 +24,19 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
     deinit { connection.invalidate() }
 
     func handle(pid: Int32, chunk: String) {
-        let handler = lock.withLock { () -> ((String) -> Void)? in
+        let delivery = lock.withLock { () -> (((String) -> Void)?, Bool) in
             guard let handler = handlers[pid], !draining.contains(pid) else {
                 pending[pid, default: []].append(chunk)
-                return nil
+                return (nil, true)
             }
-            return handler
+            return (handler, false)
         }
-        handler?(chunk)
+        if delivery.1 {
+            Self.logger.debug("Buffered \(chunk.utf8.count) bytes for pid \(pid) before handler readiness")
+        } else {
+            Self.logger.debug("Delivering \(chunk.utf8.count) bytes to pid \(pid)")
+        }
+        delivery.0?(chunk)
     }
 
     func output(pid: Int32, _ handler: @escaping (Signal) -> Void) {
@@ -40,10 +47,12 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
                 if signal.terminal { self.removeOutputHandler(pid: pid) }
             }
         }
-        lock.withLock {
+        let pendingCount = lock.withLock { () -> Int in
             handlers[pid] = receive
             draining.insert(pid)
+            return pending[pid]?.count ?? 0
         }
+        Self.logger.debug("Registered output handler for pid \(pid) with \(pendingCount) pending chunks")
 
         while let chunks = lock.withLock({ () -> [String]? in
             guard let chunks = pending.removeValue(forKey: pid), !chunks.isEmpty else {
@@ -76,15 +85,29 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
             }
             return parts.dropLast().map(String.init)
         }
-        return lines.compactMap(signal)
+        return lines.flatMap(signals)
     }
 
-    private func signal(_ line: String) -> Signal? {
+    /// A line is usually one thing, but a termination envelope can arrive appended to
+    /// a partial line of output. Losing it means the caller never sees a terminal
+    /// signal and waits out its timeout on a command that already succeeded.
+    private func signals(_ line: String) -> [Signal] {
         let value = line.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return nil }
+        guard !value.isEmpty else { return [] }
+        if let signal = terminal(value) { return [signal] }
+
+        if let brace = value.lastIndex(of: "{"), brace != value.startIndex, let signal = terminal(String(value[brace...])) {
+            let head = String(value[..<brace]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return head.isEmpty ? [signal] : [.updated(.string(head)), signal]
+        }
+
+        return [.updated(.string(value))]
+    }
+
+    private func terminal(_ value: String) -> Signal? {
         guard let properties = Properties.load(value),
               (properties["type"]?.string ?? properties["event"]?.string)?.lowercased() == "terminated"
-        else { return .updated(.string(value)) }
+        else { return nil }
         return properties["exitCode"]?.int == 0 ? .completed(nil) : .failed(.string(value))
     }
 

@@ -19,12 +19,22 @@ struct ScintStudio: View {
                     HStack(alignment: .center) {
                         PathBar(model: studio)
                         Spacer()
-                        BadgesBar(model: studio)
+                        ActionsBar(model: studio)
                     }
                     .frame(maxHeight: 30)
                 }
                 .toolbar {
                     ToolbarItem(placement: .navigation) { NavigationControls(model: studio) }
+                    ToolbarSpacer(.flexible, placement: .primaryAction)
+                    ToolbarItem(placement: .primaryAction) {
+                        Picker("Rail", selection: $studio.content.rail) {
+                            ForEach(ContentPanel.Rail.allCases) { rail in
+                                Label(rail.label, systemImage: rail.symbol).tag(rail)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelStyle(.iconOnly)
+                    }
                 }
         }
         .inspector(isPresented: $studio.inspector.state.presented) {
@@ -35,3 +45,4 @@ struct ScintStudio: View {
         .environment(scint)
     }
 }
+

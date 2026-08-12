@@ -399,7 +399,7 @@ struct SpaceGroup: Mapper {
             name: space.descriptor.name,
             description: space.descriptor.description,
             layout: .group,
-            header: false,
+            header: true,
             components: components
         )
     }

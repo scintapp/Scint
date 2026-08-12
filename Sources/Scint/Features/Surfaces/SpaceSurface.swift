@@ -42,34 +42,7 @@ struct SpaceSurface: Surface {
     var active: Bool? { context?.state == .active }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            ScrollView {
-                VStack(spacing: 0) {
-                    SpaceHeader(model: model)
-                        .frame(alignment: .top)
-
-                    HStack(alignment: .top, spacing: 20) {
-                        VStack(spacing: 0) {
-                            TranscriptEntries(model: model)
-                            Color.clear.frame(height: 64)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .top)
-
-                        ContextSurface(panel: panel, model: model)
-                    }
-                }
-                .padding(.horizontal, 24)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
-            ComposeInput(model: model)
-                .frame(maxWidth: .infinity, alignment: .bottom)
-                .padding(.leading, 24)
-                .padding(.trailing, ContextSurface.width + 44)
-                .padding(.bottom, 12)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .scrollEdgeEffectStyle(.hard, for: .top)
+        
     }
 }
 

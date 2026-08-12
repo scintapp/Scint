@@ -30,7 +30,7 @@ struct PathBar: View {
 
     var refs: [Reference] {
         model.session.navigation.path(for: model.session.selected, in: model.session.workspace)
-            .filter { $0.type != Material.self }
+            .filter { $0.type != Workspace.self }
     }
 
     var body: some View {

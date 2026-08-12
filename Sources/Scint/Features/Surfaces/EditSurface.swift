@@ -24,5 +24,6 @@ struct EditSurface: Surface {
             Color.clear.frame(height: 64)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .scrollEdgeEffectStyle(.hard, for: .top)
     }
 }

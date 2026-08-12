@@ -92,17 +92,26 @@ struct Serialization {
 
     /// A continued thread is one thread. Branches chain through `owner`, so walking to
     /// the space-owned root and flattening chronologically presents it as written.
+    /// A thread is the root plus every branch it has spawned. Turns are siblings
+    /// under a root, so climbing owners alone would only ever see the current one.
     private func entries(from start: Reference) -> [Transcript.Entry] {
-        var chain: [Reference] = []
-        var current: Reference? = start
-
-        while let ref = current, chain.count < 64 {
-            chain.append(ref)
-            let owner = Transcript.with(ref, { $0.owner })
-            current = owner?.type == Transcript.self ? owner : nil
+        var root = start
+        var depth = 0
+        while depth < 64,
+              let owner = Transcript.with(root, { $0.owner }),
+              owner.type == Transcript.self {
+            root = owner
+            depth += 1
         }
 
-        return chain.reversed()
+        var refs = [root]
+        refs += Transcript.with(root, { $0.entries })?.compactMap { entry -> Reference? in
+            guard case .transcript(let ref, _) = entry else { return nil }
+            return ref
+        } ?? []
+        if !refs.contains(start) { refs.append(start) }
+
+        return refs
             .flatMap { Transcript.with($0, { $0.entries }) ?? [] }
             .sorted { $0.created < $1.created }
     }
@@ -135,7 +144,13 @@ struct Serialization {
         switch entry {
             case .event(_, let signal, _):
                 switch signal {
-                    case .updated(let value): return turn(time, "agent", value.rendered.joined(separator: " "))
+                    case .updated(let value):
+                        switch TranscriptContent(value) {
+                            case .message(let text): return turn(time, "agent", text)
+                            case .tool(let name, let verb): return turn(time, "agent", "\(verb) \(name)")
+                            // Reasoning is the process thinking aloud; it is not thread history.
+                            case .reasoning, nil: return nil
+                        }
                     case .failed(let value): return turn(time, "system", value.rendered.joined(separator: " "))
                     case .completed(let value): return value.flatMap { turn(time, "system", $0.rendered.joined(separator: " ")) }
                     case .composed, .started, .stopped: return nil

@@ -270,70 +270,67 @@ struct SpaceTree: Mapper {
                 .init(
                     id: "spaces",
                     name: "Spaces",
-                    items: [
-                        .init(
-                            ref: workspace,
-                            name: workspace.descriptor.name,
-                            image: "app",
-                            items: sorted(spaces)
-                        )
-                    ]
+                    items: sorted(spaces)
                 )
             ]
         )
     }
 }
 
-//struct TranscriptsList: Mapper {
-//    static func controls(_ model: any Model) -> Controls {
-//        .init(
-//            selected: { item in
-//                guard let ref = item.ref else { return false }
-//                return model.session.transcript == ref
-//            },
-//            onSelect: { item in
-//                guard let ref = item.ref, ref.type is Transcript.Type else { return }
-//                model.focus(ref)
-//            }
-//        )
-//    }
-//
-//    static func parameters(_ model: any Model) -> Params {
-//
-//        let calendar = Calendar.autoupdatingCurrent
-//        let space = Space.with(model.session.origin, { $0.transcripts ?? [] }
-//            .map { ref -> (ref: Reference, date: Date) in
-//                let date = Transcript.with(ref, { $0.entries.last?.created ?? ref.descriptor.created })!
-//                return (ref, date)
-//            }
-//            .sorted { $0.date > $1.date }
-//
-//            .map { ref, date in
-//                let day: String
-//                if calendar.isDateInToday(date) { day = "Today" }
-//                else if calendar.isDateInYesterday(date) { day = "Yesterday" }
-//                else { day = date.formatted(.dateTime.month(.abbreviated).day()) }
-//
-//                return ItemParams(
-//                    ref: ref,
-//                    name: ref.descriptor.name,
-//                    description: "\(day), \(date.formatted(date: .omitted, time: .shortened))"
-//                )
-//            }
-//
-//        return .init(
-//            layout: .table,
-//            components: [
-//                .init(
-//                    id: "transcripts",
-//                    name: "Transcripts",
-//                    header: false,
-//                    items: items
-//                )
-//            ],
-//        )
-//    }
-//}
+struct TranscriptsList: Mapper {
+    static func controls(_ model: any Model) -> Controls {
+        .init(
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                return model.session.transcript == ref
+            },
+            onSelect: { item in
+                guard let ref = item.ref, ref.type is Transcript.Type else { return }
+                model.focus(ref)
+            }
+        )
+    }
+
+    static func parameters(_ model: any Model) -> Params {
+        let calendar = Calendar.autoupdatingCurrent
+        let items = Runtime.shared.all(as: Transcript.self)
+            .compactMap { ref, transcript -> Reference? in
+                // Branches are reached through their root, not listed beside it.
+                transcript.owner.type is Transcript.Type ? nil : ref
+            }
+
+            .map { ref -> (ref: Reference, date: Date) in
+                let date = Transcript.with(ref, { $0.entries.last?.created ?? ref.descriptor.created })!
+                return (ref, date)
+            }
+            .sorted { $0.date > $1.date }
+
+            .map { ref, date in
+                let day: String
+                if calendar.isDateInToday(date) { day = "Today" }
+                else if calendar.isDateInYesterday(date) { day = "Yesterday" }
+                else { day = date.formatted(.dateTime.month(.abbreviated).day()) }
+
+                return ItemParams(
+                    ref: ref,
+                    name: ref.descriptor.name,
+                    description: "\(day), \(date.formatted(date: .omitted, time: .shortened))"
+                )
+            }
+
+        return .init(
+            layout: .table,
+            components: [
+                .init(
+                    id: "transcripts",
+                    name: "Transcripts",
+                    header: false,
+                    items: items
+                )
+            ],
+        )
+    }
+}
 
 struct SidebarMapper: Mapper {
     static func controls(_ model: any Model) -> Controls {
@@ -374,6 +371,15 @@ struct SidebarMapper: Mapper {
                     ]
                 ),
                 .init(
+                    id: "activity",
+                    name: "Activity",
+                    header: true,
+                    items: TranscriptsList
+                        .parameters(model)
+                        .components
+                        .flatMap { $0.items }
+                ),
+                .init(
                     id: "spaces",
                     name: "Spaces",
                     header: true,
@@ -382,16 +388,9 @@ struct SidebarMapper: Mapper {
                         .components
                         .flatMap { $0.items }
                 ),
-                .init(
-                    id: "folders",
-                    name: "Folders",
-                    header: true,
-                    items: FolderTree
-                        .parameters(model)
-                        .components
-                        .flatMap { $0.items }
-                ),
             ]
         )
     }
 }
+
+

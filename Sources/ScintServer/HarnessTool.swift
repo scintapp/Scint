@@ -1,8 +1,10 @@
 import Foundation
+import OSLog
 
 
 struct ServerTool: Sendable {
-    static let callTimeout: TimeInterval = 300
+    static let callTimeout: TimeInterval = 25
+    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "MCPTool")
 
     struct Invocation: Sendable {
         let text: String
@@ -50,13 +52,16 @@ struct ServerTool: Sendable {
         }
 
         guard let result = started else {
+            Self.logger.error("Tool \(interface.id.uuidString, privacy: .public) dispatch timed out")
             continuation.finish()
             return Invocation(text: "Scint tool could not be started.", isError: true)
         }
         if let error = result.error, !error.isEmpty {
+            Self.logger.error("Tool \(interface.id.uuidString, privacy: .public) pid \(result.pid) failed to start: \(error, privacy: .public)")
             continuation.finish()
             return Invocation(text: error, isError: true)
         }
+        Self.logger.info("Tool \(interface.id.uuidString, privacy: .public) dispatched pid \(result.pid)")
 
         // A process that never reports termination must not hang the request.
         let watchdog = Task {
@@ -69,6 +74,7 @@ struct ServerTool: Sendable {
         var failed = false
         var terminated = false
         for await signal in stream {
+            Self.logger.debug("Tool \(self.interface.id.uuidString, privacy: .public) pid \(result.pid) signal terminal=\(signal.terminal)")
             switch signal {
                 case .updated(let value): output.append(contentsOf: value.rendered)
                 case .failed(let value): output.append(contentsOf: value.rendered); failed = true; terminated = true
@@ -81,6 +87,7 @@ struct ServerTool: Sendable {
         }
 
         guard terminated else {
+            Self.logger.error("Tool \(interface.id.uuidString, privacy: .public) pid \(result.pid) timed out after \(Int(Self.callTimeout))s with \(output.count) output lines")
             let partial = output.joined(separator: "\n")
             return Invocation(
                 text: partial.isEmpty
@@ -89,6 +96,7 @@ struct ServerTool: Sendable {
                 isError: true
             )
         }
+        Self.logger.info("Tool \(interface.id.uuidString, privacy: .public) pid \(result.pid) completed failed=\(failed) lines=\(output.count)")
         return Invocation(text: output.joined(separator: "\n"), isError: failed)
     }
 

@@ -40,6 +40,13 @@ enum PanelKey: String, Identifiable, CaseIterable {
         self.inspector = .init()
         self.session = session
     }
+
+    /// Opening a sheet is a request to edit it, so the rail follows.
+    func open(_ ref: Reference) {
+        guard session.open(ref) else { return }
+        if ref.type is Material.Type { content.rail = .editor }
+        select(ref)
+    }
 }
 
 @Observable final class PanelState {
