@@ -1,18 +1,34 @@
 import SwiftUI
 
 
-struct SplitPicker: View {
+struct ContentPicker: View {
+    let panel: ContentPanel
+
+    private func selection(for surface: ContentPanel.ContentSurface) -> Binding<Bool> {
+        Binding(
+            get: { panel.state.presented && panel.surface == surface },
+            set: { selected in
+                if selected {
+                    panel.surface = surface
+                    panel.state.presented = true
+                } else if panel.surface == surface {
+                    panel.state.presented = false
+                }
+            }
+        )
+    }
+
     var body: some View {
         ControlGroup {
-            Button { } label: {
-                Image(systemName: "square.text.square")
-            }
-
-            Button { } label: {
-                Image(systemName: "square.and.pencil")
+            ForEach(ContentPanel.ContentSurface.allCases) { surface in
+                Toggle(isOn: selection(for: surface)) {
+                    Image(systemName: surface.symbol)
+                }
             }
         }
         .controlGroupStyle(.navigation)
+        .foregroundStyle(Style.Foreground.primary)
+        .tint(Color(Style.Background.button))
     }
 }
 

@@ -7,7 +7,7 @@ private let anyRef = Reference(Workspace.self)
 enum Layout: CaseIterable { case grid, group, list, table }
 enum Nesting: String, CaseIterable { case recursive, single, flat }
 
-protocol PanelSurface: CaseIterable {}
+protocol PanelSurface: CaseIterable, Identifiable {}
 
 @MainActor protocol Mapper {
     static func controls(_ model: any Model) -> Controls

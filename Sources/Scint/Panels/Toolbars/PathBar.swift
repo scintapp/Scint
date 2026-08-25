@@ -10,9 +10,13 @@ struct PathButton: View {
     var body: some View {
         Button { model.select(ref) } label: {
             HStack {
-                Iconography.icon(for: ref, size: 11)
+                Iconography
+                    .icon(for: ref, size: 11)
 
-                if label { Text(ref.descriptor.name).font(.system(size: 12)) }
+                if label {
+                    Text(ref.descriptor.name)
+                        .font(.system(size: 12))
+                }
 
                 if !last {
                     Image(systemName: "chevron.compact.forward")
@@ -23,8 +27,8 @@ struct PathButton: View {
                 }
             }
         }
-        .buttonStyle(.plain)
-        .background {  }
+        .buttonStyle(.borderless)
+        .buttonBorderShape(.roundedRectangle(radius: 9))
     }
 }
 

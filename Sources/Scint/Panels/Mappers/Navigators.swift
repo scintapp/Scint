@@ -48,6 +48,11 @@ struct WorkspaceNavigator: Mapper {
                 guard let ref = item.ref else { return }
                 model.select(ref)
             },
+            sectionDropTarget: { section in
+                guard section.id == AnyHashable("spaces") else { return nil }
+                let workspace = model.session.workspace
+                return .init(ref: workspace, name: workspace.descriptor.name)
+            },
             itemPalette: { item in
                 item.path == nil ? Action.itemItems(for: item) : []
             }

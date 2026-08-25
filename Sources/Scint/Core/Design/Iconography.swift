@@ -256,69 +256,69 @@ import SwiftUI
         switch item {
             case .artifact(let handle):
                 switch handle {
-                    case .app: return Icon(symbol: "square.grid.2x2.fill", tint: Style.Tint.artifact)
-                    case .bookmark: return Icon(symbol: "bookmark", tint: Style.Tint.artifact)
-                    case .directory: return Icon(symbol: "folder", tint: Style.Tint.artifact)
-                    case .executable: return Icon(symbol: "terminal", tint: Style.Tint.artifact)
-                    case .file: return Icon(symbol: "doc", tint: Style.Tint.artifact)
-                    case .image: return Icon(symbol: "photo", tint: Style.Tint.artifact)
-                    case .script: return Icon(symbol: "scroll", tint: Style.Tint.artifact)
-                    case .skill: return Icon(symbol: "brain.head.profile", tint: Style.Tint.artifact)
+                    case .app: Icon(symbol: "square.grid.2x2.fill", tint: Style.Tint.artifact)
+                    case .bookmark: Icon(symbol: "bookmark", tint: Style.Tint.artifact)
+                    case .directory: Icon(symbol: "folder", tint: Style.Tint.artifact)
+                    case .executable: Icon(symbol: "terminal", tint: Style.Tint.artifact)
+                    case .file: Icon(symbol: "doc", tint: Style.Tint.artifact)
+                    case .image: Icon(symbol: "photo", tint: Style.Tint.artifact)
+                    case .script: Icon(symbol: "scroll", tint: Style.Tint.artifact)
+                    case .skill: Icon(symbol: "brain.head.profile", tint: Style.Tint.artifact)
                 }
 
             case .context(let intent):
                 switch intent {
-                    case .composer: return Iconography.model(.harness(.composer))
-                    case .dispatcher: return Iconography.model(.harness(.dispatcher))
-                    case .executor: return Iconography.model(.harness(.executor))
-                    case .observer: return Iconography.model(.harness(.observer))
-                    case .traverser: return Iconography.model(.harness(.traverser))
+                    case .composer: Iconography.model(.harness(.composer))
+                    case .dispatcher: Iconography.model(.harness(.dispatcher))
+                    case .executor: Iconography.model(.harness(.executor))
+                    case .observer: Iconography.model(.harness(.observer))
+                    case .traverser: Iconography.model(.harness(.traverser))
                 }
 
             case .closure:
-                return Icon(symbol: "rectangle.stack", tint: Style.Tint.info)
+                Icon(symbol: "rectangle.stack", tint: Style.Tint.info)
 
             case .command(let parameter):
                 switch parameter {
-                    case .argument: return Icon(symbol: "textformat", tint: Style.Tint.command)
-                    case .content(let ref), .interface(let ref), .structure(let ref): return icon(for: ref)
-                    case .properties: return Icon(symbol: "slider.horizontal.3", tint: Style.Tint.command)
-                    case .requirement: return Icon(symbol: "asterisk", tint: Style.Tint.request)
+                    case .argument: Icon(symbol: "textformat", tint: Style.Tint.command)
+                    case .content(let ref), .interface(let ref), .structure(let ref): icon(for: ref)
+                    case .properties: Icon(symbol: "slider.horizontal.3", tint: Style.Tint.command)
+                    case .requirement: Icon(symbol: "asterisk", tint: Style.Tint.request)
                 }
 
             case .harness(let intent):
                 switch intent {
-                    case .composer: return Icon(symbol: "space.badge.ellipsis", tint: Style.Tint.compose)
-                    case .dispatcher: return Icon(symbol: "space.badge.play", tint: Style.Tint.dispatch)
-                    case .executor: return Icon(symbol: "space.badge.sparkles", tint: Style.Tint.execute)
-                    case .observer: return Icon(symbol: "space.badge.eye", tint: Style.Tint.observe)
-                    case .traverser: return Icon(symbol: "space.badge.magnifyingglass", tint: Style.Tint.traverse)
+                    case .composer: Icon(symbol: "space.badge.ellipsis", tint: Style.Tint.compose)
+                    case .dispatcher: Icon(symbol: "space.badge.play", tint: Style.Tint.dispatch)
+                    case .executor: Icon(symbol: "space.badge.sparkles", tint: Style.Tint.execute)
+                    case .observer: Icon(symbol: "space.badge.eye", tint: Style.Tint.observe)
+                    case .traverser: Icon(symbol: "space.badge.magnifyingglass", tint: Style.Tint.traverse)
                 }
 
             case .route:
-                return Icon(symbol: "app.connected.to.app.below.fill", tint: Style.Tint.space)
+                Icon(symbol: "app.connected.to.app.below.fill", tint: Style.Tint.space)
 
             case .material(let block):
                 switch block {
-                    case .artifact: return Iconography.model(.artifact(.file))
-                    case .command: return Icon(symbol: "switch.2", tint: Style.Tint.command)
-                    case .content: return Icon(symbol: "text.alignleft", tint: Style.Tint.material)
-                    case .material: return Icon(symbol: "text.alignleft", tint: Style.Tint.material)
-                    case .task: return Icon(symbol: "app", tint: Style.Tint.task)
+                    case .artifact: Iconography.model(.artifact(.file))
+                    case .command: Icon(symbol: "switch.2", tint: Style.Tint.command)
+                    case .content: Icon(symbol: "text.alignleft", tint: Style.Tint.material)
+                    case .material: Icon(symbol: "text.alignleft", tint: Style.Tint.material)
+                    case .task: Icon(symbol: "app", tint: Style.Tint.task)
                 }
 
             case .space:
-                return Icon(symbol: "space.custom", tint: Style.Tint.space)
+                Icon(symbol: "space.custom", tint: Style.Tint.space)
 
             case .transcript(let entry):
                 switch entry {
-                    case .signal: return Icon(symbol: "calendar", tint: Style.Tint.active)
-                    case .material: return Icon(symbol: "text.alignleft", tint: Style.Tint.material)
-                    case .transcript: return Icon(symbol: "rectangle.stack", tint: Style.Tint.working)
+                    case .signal: Icon(symbol: "calendar", tint: Style.Tint.active)
+                    case .material: Icon(symbol: "text.alignleft", tint: Style.Tint.material)
+                    case .transcript: Icon(symbol: "rectangle.stack", tint: Style.Tint.working)
                 }
 
             case .workspace:
-                return Icon(symbol: "cube.transparent", tint: Style.Tint.workspace)
+                Icon(symbol: "cube.transparent", tint: Style.Tint.space)
         }
     }
 

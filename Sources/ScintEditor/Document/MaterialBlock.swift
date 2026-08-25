@@ -357,7 +357,7 @@ struct MaterialBlock: View {
 
             HStack(alignment: .center, spacing: 6) {
                 if facts.artifacts > 0 {
-                    Badge(
+                    BadgeButton(
                         label: "\(facts.artifacts) artifact\(facts.artifacts == 1 ? "" : "s")",
                         image: "",
                         tint: Style.Tint.command,
@@ -365,7 +365,7 @@ struct MaterialBlock: View {
                     )
                 }
                 if !args.isEmpty {
-                    Badge(label: args, image: "", tint: Style.Tint.command, active: false)
+                    BadgeButton(label: args, image: "", tint: Style.Tint.command, active: false)
                 }
             }
             .fixedSize(horizontal: true, vertical: false)
@@ -425,7 +425,7 @@ struct MaterialBlock: View {
 
             HStack(alignment: .center, spacing: 6) {
                 ForEach(Array(facts.prefix(3)).indices, id: \.self) { index in
-                    Badge(label: facts[index], image: "", tint: Style.Tint.material, active: false)
+                    BadgeButton(label: facts[index], image: "", tint: Style.Tint.material, active: false)
                 }
             }
             .fixedSize(horizontal: true, vertical: false)

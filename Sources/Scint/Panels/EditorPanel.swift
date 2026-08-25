@@ -18,16 +18,6 @@ import SwiftUI
     }
 
     func surface(_ model: any Model) -> some View {
-        switch surface {
-            case .edit:
-                EditSurface(panel: self, model: model)
-                    .safeAreaBar(edge: .bottom) { EditorBar(model: model) }
-                    .toolbar {
-                        ToolbarItem(placement: .navigation) { NavigationButtons(model: model) }
-                        ToolbarItem(placement: .principal) { ActivityBar() }
-                        ToolbarSpacer(.flexible, placement: .primaryAction)
-                        ToolbarItem(placement: .primaryAction) { SplitPicker() }
-                    }
-        }
+        EditSurface(panel: self, model: model)
     }
 }

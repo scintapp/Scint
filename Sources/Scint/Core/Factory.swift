@@ -4,129 +4,140 @@ import Foundation
 
 @MainActor enum Factory {
     @ViewBuilder static func build(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
-        if let panel = params.panel { build(surface.panel, panel, controls) }
-        else { content(surface, params, controls) }
-    }
+        if let panel = params.panel {
+            build(surface.panel, panel, controls)
+        } else {
+            let nesting = params.nesting ?? .flat
+            let layout = params.layout ?? .list
 
-    private static func content(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
-        let nesting = params.nesting ?? .flat
-        let layout = params.layout ?? .list
-
-        let view = ScrollView {
-            Color.clear.frame(height: 8)
-            VStack(alignment: .leading) {
-                build(params)
-                ForEach(params.sections) { component in
-                    build(surface, controls: controls, params: component, layout: layout, nesting: nesting)
-                        .padding(.bottom, 16)
+            let view = ScrollView {
+                Color.clear.frame(height: 8)
+                VStack(alignment: .leading) {
+                    build(params)
+                    ForEach(params.sections) { component in
+                        build(surface, controls: controls, params: component, layout: layout, nesting: nesting)
+                            .padding(.bottom, 16)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 8)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, 8)
-        }
-            .scrollEdgeEffectStyle(.automatic, for: .top)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .scrollEdgeEffectStyle(.automatic, for: .top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-        return build(surface, controls, view: AnyView(view))
+            build(surface, controls, view: AnyView(view))
+        }
     }
 
     @ViewBuilder static func build(_ surface: some Surface, controls: Controls, params: SectionParams, layout: Layout, nesting: Nesting) -> some View {
         switch layout {
             case .group:
-                GroupLayout(title: params.name, footer: params.footer) {
-                    ForEach(Array(params.items.enumerated()), id: \.element.id) { index, item in
-                        if index > 0 { GroupDivider() }
+                let view = AnyView(
+                    GroupLayout(title: params.name, footer: params.footer) {
+                        ForEach(Array(params.items.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 { GroupDivider() }
 
-                        let row = AnyView(
-                            GroupRow(
-                                label: item.name,
-                                description: item.trailingKind == .value && item.value == nil ? "" : item.description
-                            ) {
-                                build(item)
-                            } trailing: {
-                                build(controls, params: item)
-                            }
-                        )
-
-                        let view = AnyView(
-                            Group {
-                                if item.trailingKind == .button {
-                                    Button(action: { controls.onAction?(item) }) { row }
-                                        .buttonStyle(.plain)
-                                } else if (item.ref != nil || item.entryId != nil) && item.trailingKind == nil {
-                                    Button(action: { controls.onSelect?(item) }) { row }
-                                        .buttonStyle(.plain)
-                                } else {
-                                    row
+                            let row = AnyView(
+                                GroupRow(
+                                    label: item.name,
+                                    description: item.trailingKind == .value && item.value == nil ? "" : item.description
+                                ) {
+                                    build(item)
+                                } trailing: {
+                                    build(controls, params: item)
                                 }
-                            }
-                        )
+                            )
 
-                        build(surface, controls, params: item, view: view)
+                            let view = AnyView(
+                                Group {
+                                    if item.trailingKind == .button {
+                                        Button(action: { controls.onAction?(item) }) { row }
+                                            .buttonStyle(.plain)
+                                    } else if (item.ref != nil || item.entryId != nil) && item.trailingKind == nil {
+                                        Button(action: { controls.onSelect?(item) }) { row }
+                                            .buttonStyle(.plain)
+                                    } else {
+                                        row
+                                    }
+                                }
+                            )
+
+                            build(surface, controls, params: item, view: view)
+                        }
                     }
-                }
+                )
+                build(surface, controls, params: params, view: view)
 
             case .grid:
-                VStack(spacing: 0) {
-                    if params.header { ListHeader(name: params.name) }
-                    GridLayout {
-                        ForEach(params.items) { item in
-                            let view = AnyView(
-                                GridIcon(
-                                    name: item.name,
-                                    ref: item.ref,
-                                    image: item.image,
-                                    tint: item.tint,
-                                    focused: controls.focused?(item) ?? false,
-                                    onSelect: { controls.onSelect?(item) },
-                                    onOpen: { controls.onOpen?(item) }
+                let view = AnyView(
+                    VStack(spacing: 0) {
+                        if params.header { ListHeader(name: params.name) }
+                        GridLayout {
+                            ForEach(params.items) { item in
+                                let view = AnyView(
+                                    GridIcon(
+                                        name: item.name,
+                                        ref: item.ref,
+                                        image: item.image,
+                                        tint: item.tint,
+                                        focused: controls.focused?(item) ?? false,
+                                        onSelect: { controls.onSelect?(item) },
+                                        onOpen: { controls.onOpen?(item) }
+                                    )
                                 )
-                            )
 
-                            build(surface, controls, params: item, view: view)
+                                build(surface, controls, params: item, view: view)
+                            }
                         }
                     }
-                }
+                )
+                build(surface, controls, params: params, view: view)
 
             case .table:
-                VStack(spacing: 0) {
-                    if params.header { ListHeader(name: params.name) }
-                    TableLayout {
-                        ForEach(params.items) { item in
-                            let view = AnyView(
-                                TableRow(
-                                    title: item.name,
-                                    description: item.description,
-                                    selected: controls.selected?(item) ?? false,
-                                    onSelect: { controls.onSelect?(item) }
+                let view = AnyView(
+                    VStack(spacing: 0) {
+                        if params.header { ListHeader(name: params.name) }
+                        TableLayout {
+                            ForEach(params.items) { item in
+                                let view = AnyView(
+                                    TableRow(
+                                        title: item.name,
+                                        description: item.description,
+                                        selected: controls.selected?(item) ?? false,
+                                        onSelect: { controls.onSelect?(item) }
+                                    )
+                                )
+
+                                build(surface, controls, params: item, view: view)
+                            }
+                        }
+                    }
+                )
+                build(surface, controls, params: params, view: view)
+
+            case .list:
+                let view = AnyView(
+                    VStack(spacing: 0) {
+                        if params.header {
+                            let header = AnyView(
+                                ListHeader(
+                                    name: params.name,
+                                    onAdd: controls.canAddInline(sectionId: params.id)
+                                    ? { controls.onAddItem?(params.id, "") }
+                                    : nil
                                 )
                             )
 
-                            build(surface, controls, params: item, view: view)
+                            if let wrapHeader = controls.wrapHeader { wrapHeader(header, params) }
+                            else { header }
+                        }
+
+                        ForEach(params.items) { item in
+                            build(surface, controls: controls, params: item, nesting: nesting, depth: 0)
                         }
                     }
-                }
-
-            case .list:
-                VStack(spacing: 0) {
-                    if params.header {
-                        let header = AnyView(
-                            ListHeader(
-                                name: params.name,
-                                onAdd: controls.canAddInline(sectionId: params.id)
-                                ? { controls.onAddItem?(params.id, "") }
-                                : nil
-                            )
-                        )
-
-                        if let wrapHeader = controls.wrapHeader { wrapHeader(header, params) }
-                        else { header }
-                    }
-
-                    ForEach(params.items) { item in
-                        build(surface, controls: controls, params: item, nesting: nesting, depth: 0)
-                    }
-                }
+                )
+                build(surface, controls, params: params, view: view)
         }
     }
 
@@ -305,6 +316,20 @@ extension Factory {
         }
 
         return AnyView(view)
+    }
+
+    static func build(_ surface: some Surface, _ controls: Controls, params: SectionParams, view: AnyView) -> AnyView {
+        guard let target = controls.sectionDropTarget?(params) else { return view }
+        let types = controls.dropTypes?(target) ?? ReferenceTransfer.dropTypes(for: target)
+        guard !types.isEmpty else { return view }
+
+        return AnyView(
+            view
+                .contentShape(Rectangle())
+                .onDrop(of: types, isTargeted: nil) { providers in
+                    controls.onDrop?(providers, target) ?? ReferenceTransfer.handle(providers, target: target)
+                }
+        )
     }
 
     static func build(_ surface: some Surface, _ controls: Controls, params: ItemParams, view: AnyView) -> AnyView {

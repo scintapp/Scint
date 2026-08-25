@@ -38,17 +38,17 @@ import SwiftUI
 //
 //    var body: some View {
 //        HStack(spacing: 5) {
-//            Badge("\(materials)", symbol: "text.alignleft", tint: Style.Tint.material)
-//            Badge("\(artifacts)", symbol: "archivebox", tint: Style.Tint.artifact)
-//            Badge("\(commands)", symbol: "switch.2", tint: Style.Tint.command)
+//            BadgeButton("\(materials)", symbol: "text.alignleft", tint: Style.Tint.material)
+//            BadgeButton("\(artifacts)", symbol: "archivebox", tint: Style.Tint.artifact)
+//            BadgeButton("\(commands)", symbol: "switch.2", tint: Style.Tint.command)
 //
 //            Spacer(minLength: 6)
 //
 //            switch state {
-//                case .working: Badge("Running", symbol: "circle.fill", tint: Style.Tint.working)
-//                case .active: Badge("Active", symbol: "circle.dotted", tint: Style.Tint.active)
-//                case .inactive: Badge("Idle", symbol: "pause.fill", tint: Style.Tint.inactive)
-//                case nil: Badge("Ready", symbol: "circle.dotted", tint: Style.Tint.info, style: .neutral)
+//                case .working: BadgeButton("Running", symbol: "circle.fill", tint: Style.Tint.working)
+//                case .active: BadgeButton("Active", symbol: "circle.dotted", tint: Style.Tint.active)
+//                case .inactive: BadgeButton("Idle", symbol: "pause.fill", tint: Style.Tint.inactive)
+//                case nil: BadgeButton("Ready", symbol: "circle.dotted", tint: Style.Tint.info, style: .neutral)
 //            }
 //        }
 //        .frame(height: 22)

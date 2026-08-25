@@ -9,7 +9,7 @@ struct Separator: View {
     }
 }
 
-struct ContextHeader: View {
+struct DetailHeader: View {
     var model: any Model
 
     var body: some View {
@@ -31,7 +31,7 @@ struct ContextHeader: View {
     }
 }
 
-struct ContextRow: View {
+struct DetailRow: View {
     let name: String
     let detail: String
     let symbol: String
@@ -74,7 +74,7 @@ struct ContextRow: View {
     }
 }
 
-struct ContextSection<Content: View>: View {
+struct DetailSection<Content: View>: View {
     let title: String
     let count: Int?
     @ViewBuilder let content: () -> Content
@@ -148,39 +148,37 @@ struct DetailSurface: Surface {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            ScrollView {
-                VStack {
-                    ContextHeader(model: model)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                DetailHeader(model: model)
 
-                    if let transcript {
-                        ContextSection("Activity") { ContextRow(ref: transcript, detail: status) }
-                    }
+                if let transcript {
+                    DetailSection("Activity") { DetailRow(ref: transcript, detail: status) }
+                }
 
-                    if !spaces.isEmpty {
-                        Separator()
+                if !spaces.isEmpty {
+                    Separator()
 
-                        ContextSection("Spaces", count: spaces.count) {
-                            ForEach(spaces.prefix(5)) { ref in
-                                ContextRow(ref: ref, detail: detail(for: ref))
-                            }
+                    DetailSection("Spaces", count: spaces.count) {
+                        ForEach(spaces.prefix(5)) { ref in
+                            DetailRow(ref: ref, detail: detail(for: ref))
                         }
                     }
+                }
 
-                    if !materials.isEmpty {
-                        Separator()
+                if !materials.isEmpty {
+                    Separator()
 
-                        ContextSection("Sources", count: materials.count) {
-                            ForEach(materials.prefix(6)) { ref in
-                                ContextRow(ref: ref, detail: detail(for: ref))
-                            }
+                    DetailSection("Sources", count: materials.count) {
+                        ForEach(materials.prefix(6)) { ref in
+                            DetailRow(ref: ref, detail: detail(for: ref))
                         }
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .scrollEdgeEffectStyle(.hard, for: .top)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: 300, maxHeight: .infinity, alignment: .top)
+        .scrollEdgeEffectStyle(.hard, for: .top)
     }
 }

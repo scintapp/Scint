@@ -35,6 +35,7 @@ struct Controls {
     var onMove: ((_ id: AnyHashable, _ newParentId: AnyHashable, _ index: Int) -> Void)?
     var surfacePalette: (() -> [Item])?
     var surfaceDropTarget: (() -> ItemParams?)?
+    var sectionDropTarget: ((_ section: SectionParams) -> ItemParams?)?
     var itemPalette: ((_ item: ItemParams) -> [Item])?
     var wrapLink: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)?
     var wrapSection: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)?
@@ -73,6 +74,7 @@ struct Controls {
         onMove: ((_ id: AnyHashable, _ newParentId: AnyHashable, _ index: Int) -> Void)? = nil,
         surfacePalette: (() -> [Item])? = nil,
         surfaceDropTarget: (() -> ItemParams?)? = nil,
+        sectionDropTarget: ((_ section: SectionParams) -> ItemParams?)? = nil,
         itemPalette: ((_ item: ItemParams) -> [Item])? = nil,
         wrapLink: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)? = nil,
         wrapSection: ((_ view: AnyView, _ item: ItemParams, _ depth: Int) -> AnyView)? = nil,
@@ -110,6 +112,7 @@ struct Controls {
         self.onMove = onMove
         self.surfacePalette = surfacePalette
         self.surfaceDropTarget = surfaceDropTarget
+        self.sectionDropTarget = sectionDropTarget
         self.itemPalette = itemPalette
         self.wrapLink = wrapLink
         self.wrapSection = wrapSection

@@ -20,15 +20,15 @@ enum ModelKey: String, Identifiable, CaseIterable {
 
 @Observable final class PanelState {
     var presented: Bool
+    var position: CGFloat
     var pinned: Bool = false
     var detail: Bool = false
-    var position: CGFloat
-    var index: Int = 0
-    var surface: String = ""
     var query: String = ""
+    var index: Int = 0
     var filter: String = ""
     var expanded: Set<AnyHashable>
-    var values: Values
+    var surface: String = ""
+    var values: Values = [:]
 
     init(presented: Bool? = false, position: CGFloat? = 0, expanded: Set<AnyHashable>? = [], values: Values? = [:]) {
         self.presented = presented ?? false
@@ -85,7 +85,10 @@ enum ModelKey: String, Identifiable, CaseIterable {
 
     func open(_ ref: Reference) {
         guard session.open(ref) else { return }
-        if ref.type is Material.Type { content.surface = .editor }
+        if ref.type is Material.Type {
+            content.surface = .editor
+            content.state.presented = true
+        }
         select(ref)
     }
 }
