@@ -52,7 +52,9 @@ extension Runtime {
     }
 
     func all<T: Resolvable>(as type: T.Type) -> [(Reference, T)] {
-        store(for: Reference(T.self))?.all(as: type) ?? []
+        store(for: Reference(T.self))?
+            .all(as: type) ?? []
+            .filter { $0.0.descriptor.published == true }
     }
 
     func rendered(_ ref: Reference) -> String {

@@ -4,11 +4,8 @@ import Foundation
 
 @MainActor enum Factory {
     @ViewBuilder static func build(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
-        if let panel = params.panel {
-            build(surface.panel, panel, controls)
-        } else {
-            content(surface, params, controls)
-        }
+        if let panel = params.panel { build(surface.panel, panel, controls) }
+        else { content(surface, params, controls) }
     }
 
     private static func content(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
@@ -19,7 +16,7 @@ import Foundation
             Color.clear.frame(height: 8)
             VStack(alignment: .leading) {
                 build(params)
-                ForEach(params.components) { component in
+                ForEach(params.sections) { component in
                     build(surface, controls: controls, params: component, layout: layout, nesting: nesting)
                         .padding(.bottom, 16)
                 }
@@ -264,6 +261,26 @@ import Foundation
         else if let tint = item.tint { Iconography.Icon(symbol: item.image, tint: tint) }
         else { Image(systemName: item.image) .foregroundStyle(.secondary) }
     }
+
+    @ViewBuilder static func build(_ panel: any Panel, _ params: SectionParams, _ controls: Controls) -> some View {
+        if !params.items.isEmpty {
+            if params.header && !params.name.isEmpty { PanelHeader(name: params.name) }
+            ForEach(params.items) { item in
+                build(panel, item, controls)
+            }
+        }
+    }
+
+    @ViewBuilder static func build(_ panel: any Panel, _ params: ItemParams, _ controls: Controls) -> some View {
+        PanelRow(params: params, selected: controls.selected?(params) ?? false) {
+            if params.trailingKind == .button { controls.onAction?(params) }
+            else {
+                panel.state.cursor = params.id
+                controls.onSelect?(params)
+            }
+        }
+        .id(params.id)
+    }
 }
 
 extension Factory {
@@ -330,11 +347,7 @@ extension Factory {
 
         return result
     }
-}
 
-
-
-extension Factory {
     static func build(_ panel: any Panel, _ params: PanelParams, _ controls: Controls) -> some View {
         let components = build(controls.results?(panel.state.query) ?? [])
         let items = components.flatMap(\.items)
@@ -361,7 +374,7 @@ extension Factory {
         }
 
         func change(_ target: ItemParams) {
-            if let mode = target.key { panel.state.mode = mode }
+            if let mode = target.key { panel.state.surface = mode }
             panel.state.query = ""
             panel.state.cursor = nil
             controls.onChange?(params.selection ?? target, target)
@@ -382,7 +395,7 @@ extension Factory {
         return PanelLayout {
             if let detail {
                 PanelDetail(params: detail) {
-                    ForEach(detail.components) { component in
+                    ForEach(detail.sections) { component in
                         build(panel, component, controls)
                     }
                 }
@@ -442,26 +455,6 @@ extension Factory {
         .onChange(of: panel.state.query) { _, _ in panel.state.cursor = nil }
         .onChange(of: params.selection?.id) { _, _ in panel.state.cursor = nil }
         .background { PanelShortcuts(count: params.items.count) { change($0) } }
-    }
-
-    @ViewBuilder static func build(_ panel: any Panel, _ params: SectionParams, _ controls: Controls) -> some View {
-        if !params.items.isEmpty {
-            if params.header && !params.name.isEmpty { PanelHeader(name: params.name) }
-            ForEach(params.items) { item in
-                build(panel, item, controls)
-            }
-        }
-    }
-
-    @ViewBuilder static func build(_ panel: any Panel, _ params: ItemParams, _ controls: Controls) -> some View {
-        PanelRow(params: params, selected: controls.selected?(params) ?? false) {
-            if params.trailingKind == .button { controls.onAction?(params) }
-            else {
-                panel.state.cursor = params.id
-                controls.onSelect?(params)
-            }
-        }
-        .id(params.id)
     }
 
     static func build(_ groups: [ResultGroup]) -> [SectionParams] {

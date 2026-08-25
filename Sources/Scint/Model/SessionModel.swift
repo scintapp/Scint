@@ -10,49 +10,15 @@ import Foundation
 
     init(_ workspace: Reference) {
         self.workspace = workspace
-        self.selected = Selection(structure: workspace)
+        self.selected = Selection(space: workspace)
         self.navigation.reset(to: selected)
-    }
-
-    var material: Reference? {
-        guard let content = selected.content else { return nil }
-        guard content.type is Material.Type, opened.materials.contains(content) else { return nil }
-        return content
-    }
-
-    var origin: Reference {
-        selected.space ?? workspace
-    }
-
-    var input: Reference? {
-        if origin.type == Space.self { Space.with(origin, { $0.input }).flatMap { $0 } }
-        else { Workspace.with(origin, { $0.input }).flatMap { $0 } }
-    }
-
-    var transcripts: [Reference] {
-        let roots = if origin.type == Space.self { Space.with(origin, { $0.transcripts }) ?? [] }
-        else { Workspace.with(origin, { $0.transcripts }) ?? [] }
-        return roots.sorted { $0.descriptor.created > $1.descriptor.created }
-    }
-
-    var transcript: Reference? {
-        if case .content(let ref) = focused, ref.type is Transcript.Type { return ref }
-        return transcripts.first
-    }
-
-    var rendered: Value {
-        Value.collection([
-            "focused": focused.resolved,
-            "selected": selected.resolved,
-            "opened": opened.resolved
-        ])
     }
 
     mutating func load(_ workspace: Reference) {
         self.workspace = workspace
         opened = .init()
         focused = .nothing
-        let initial = Selection(structure: workspace)
+        let initial = Selection(space: workspace)
         selected = initial
         navigation.reset(to: initial)
     }
@@ -60,7 +26,7 @@ import Foundation
     mutating func focus(_ ref: Reference?) {
         guard let ref else { focused = .nothing; return }
         switch ref.type {
-            case is Workspace.Type, is Space.Type: focused = .structure(ref)
+            case is Workspace.Type, is Space.Type: focused = .space(ref)
             case is any Functional.Type: focused = .interface(ref)
             case is any Malleable.Type: focused = .content(ref)
             default: focused = .nothing
@@ -91,18 +57,18 @@ import Foundation
     }
 
     @discardableResult
-    mutating func back() -> Selection? {
-        guard let target = navigation.back() else { return nil }
+    mutating func forward() -> Selection? {
+        guard let target = navigation.forward() else { return nil }
         apply(target, push: false)
-        restore(target)
+        if let content = selected.content { opened.open(content) }
         return target
     }
 
     @discardableResult
-    mutating func forward() -> Selection? {
-        guard let target = navigation.forward() else { return nil }
+    mutating func back() -> Selection? {
+        guard let target = navigation.back() else { return nil }
         apply(target, push: false)
-        restore(target)
+        if let content = selected.content { opened.open(content) }
         return target
     }
 
@@ -113,11 +79,47 @@ import Foundation
         if push { navigation.push(next) }
         return true
     }
-
-    mutating private func restore(_ selected: Selection) {
-        guard let content = selected.content else { return }
-        opened.open(content)
-    }
 }
 
+extension Session {
+    var origin: Reference {
+        guard let ref = selected.space, ref.type is Space.Type else { return workspace }
+        return ref
+    }
 
+    var input: Reference? {
+        if origin.type == Space.self { Space.with(origin, { $0.input }).flatMap { $0 } }
+        else { Workspace.with(origin, { $0.input }).flatMap { $0 } }
+    }
+
+    var transcript: Reference? {
+        if case .content(let ref) = focused, ref.type is Transcript.Type { return ref }
+        return transcripts.first
+    }
+
+    var transcripts: [Reference] {
+        let roots = if origin.type == Space.self { Space.with(origin, { $0.transcripts }) ?? [] }
+        else { Workspace.with(origin, { $0.transcripts }) ?? [] }
+        return roots.sorted { $0.descriptor.created > $1.descriptor.created }
+    }
+
+    var material: Reference? {
+        guard let content = selected.content else { return nil }
+        guard content.type is Material.Type, opened.materials.contains(content) else { return nil }
+        return content
+    }
+
+    var materials: [Reference] {
+        let roots = if origin.type == Space.self { Space.with(origin, { $0.materials }) ?? [] }
+        else { Workspace.with(origin, { $0.materials }) ?? [] }
+        return roots.sorted { $0.descriptor.created > $1.descriptor.created }
+    }
+
+    var rendered: Value {
+        Value.collection([
+            "focused": focused.resolved,
+            "selected": selected.resolved,
+            "opened": opened.resolved
+        ])
+    }
+}

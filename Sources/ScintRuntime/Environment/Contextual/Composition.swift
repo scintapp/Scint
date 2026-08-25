@@ -6,7 +6,17 @@ struct Composition: Codable, Sendable {
     private var context: Context? { Composer.shared.context(structure) }
     private var intents: [Intent] { context?.intents ?? [] }
 
-    enum State: Codable, Sendable, Equatable { case active, working, inactive }
+    enum State: Codable, Sendable, Equatable {
+        case active, working, inactive
+
+        var label: String {
+            switch self {
+                case .active: "Active"
+                case .inactive: "Inactive"
+                case .working: "Working"
+            }
+        }
+    }
 
     var harness: Reference? { context?.harness }
     var transcript: Reference { context?.transcript ?? structure }

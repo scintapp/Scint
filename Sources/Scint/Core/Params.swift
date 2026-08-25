@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-struct ItemParams: Identifiable, Hashable {
+struct ItemParams: Hashable, Identifiable {
     let ref: Reference?
     let key: String?
     let owner: Reference?
@@ -71,7 +71,7 @@ struct ItemParams: Identifiable, Hashable {
     }
 }
 
-struct SectionParams: Identifiable, Hashable {
+struct SectionParams: Hashable, Identifiable {
     let id: AnyHashable
     let name: String
     let header: Bool
@@ -98,7 +98,7 @@ struct SectionParams: Identifiable, Hashable {
     }
 }
 
-struct PanelParams {
+struct PanelParams: Hashable, Identifiable {
     let key: PanelKey
     let sizing: Sizing
     let input: ItemParams?
@@ -108,6 +108,8 @@ struct PanelParams {
     let movable: Bool
     let resizable: Bool
     let pinnable: Bool
+
+    var id: PanelKey { key }
 
     enum Kind { case floating, fixed }
 
@@ -146,14 +148,14 @@ struct PanelParams {
     }
 }
 
-struct Params: Identifiable {
+struct Params: Hashable, Identifiable {
     let id: AnyHashable
     let ref: Reference?
     let name: String
     let description: String
     let header: Bool
     let panel: PanelParams?
-    let components: [SectionParams]
+    let sections: [SectionParams]
     let layout: Layout?
     let nesting: Nesting?
 
@@ -166,7 +168,7 @@ struct Params: Identifiable {
         nesting: Nesting? = .flat,
         header: Bool? = false,
         panel: PanelParams? = nil,
-        components: [SectionParams] = []
+        sections: [SectionParams] = []
     ) {
         self.id = id ?? AnyHashable("host")
         self.ref = ref
@@ -176,12 +178,12 @@ struct Params: Identifiable {
         self.nesting = nesting
         self.header = header ?? false
         self.panel = panel
-        self.components = components
+        self.sections = sections
 
     }
 }
 
-enum NewParams: Identifiable, Hashable {
+enum NewParams: Hashable, Identifiable {
     case panel(id: AnyHashable, panel: Panel? = .framed, params: [NewParams])
     case section(id: AnyHashable, layout: Layout? = .list, params: [NewParams])
     case item(id: AnyHashable)

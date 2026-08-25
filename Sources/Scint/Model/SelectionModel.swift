@@ -3,7 +3,7 @@ import Foundation
 
 enum Focus: Codable, Equatable, Sendable {
     case content(Reference)
-    case structure(Reference)
+    case space(Reference)
     case interface(Reference)
     case entry(UUID)
     case url(URL)
@@ -11,14 +11,10 @@ enum Focus: Codable, Equatable, Sendable {
 
     var resolved: Value {
         switch self {
-            case .content(let ref), .structure(let ref), .interface(let ref):
-                return .reference(ref)
-            case .entry(let id):
-                return .string(id.uuidString)
-            case .url(let url):
-                return .string(url.absoluteString)
-            case .nothing:
-                return .string("")
+            case .content(let ref), .space(let ref), .interface(let ref): .reference(ref)
+            case .entry(let id): .string(id.uuidString)
+            case .url(let url): .string(url.absoluteString)
+            case .nothing: .string("")
         }
     }
 }
@@ -49,7 +45,7 @@ struct Open: Codable, Equatable, Sendable {
 }
 
 struct Selection: Codable, Equatable, Sendable {
-    var structure: Reference?
+    var space: Reference?
     var interface: Reference?
     var content: Reference?
     var entry: UUID?
@@ -57,14 +53,9 @@ struct Selection: Codable, Equatable, Sendable {
 
     enum Axis: Sendable { case structure, interface, content, entry, path }
 
-    var space: Reference? {
-        guard let structure, structure.type is Space.Type else { return nil }
-        return structure
-    }
-
     var resolved: Value {
         var values: [String: Value] = [:]
-        if let structure { values["structure"] = .reference(structure) }
+        if let space { values["structure"] = .reference(space) }
         if let interface { values["interface"] = .reference(interface) }
         if let content { values["content"] = .reference(content) }
         if let entry { values["entry"] = .string(entry.uuidString) }
@@ -74,7 +65,7 @@ struct Selection: Codable, Equatable, Sendable {
 
     func selected(_ ref: Reference) -> Bool {
         switch ref.type {
-            case is Workspace.Type, is Space.Type: return structure == ref
+            case is Workspace.Type, is Space.Type: return space == ref
             case is any Functional.Type: return interface == ref && entry == nil && url == nil
             case is Transcript.Type: return false
             case is any Malleable.Type: return content == ref && entry == nil && url == nil
@@ -96,7 +87,7 @@ struct Selection: Codable, Equatable, Sendable {
         var next = self
         switch ref.type {
             case is Workspace.Type, is Space.Type:
-                next.structure = ref
+                next.space = ref
                 next.interface = nil
                 next.content = nil
                 next.entry = entry

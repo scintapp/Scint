@@ -7,17 +7,18 @@ private let anyRef = Reference(Workspace.self)
 enum Layout: CaseIterable { case grid, group, list, table }
 enum Nesting: String, CaseIterable { case recursive, single, flat }
 
+protocol PanelSurface: CaseIterable {}
 
-@MainActor protocol Model: AnyObject {
-    var session: Session { get set }
-    func focus(_ ref: Reference?)
-    func select(_ ref: Reference)
-    func open(_ ref: Reference)
+@MainActor protocol Mapper {
+    static func controls(_ model: any Model) -> Controls
+    static func parameters(_ model: any Model) -> Params
 }
 
 @MainActor protocol Panel: AnyObject {
     associatedtype Surface
+    associatedtype PanelSurface
     var state: PanelState { get set }
+    var surface: PanelSurface { get set }
     func controls(_ model: any Model) -> Controls
     func parameters(_ model: any Model) -> Params
     func surface(_ model: any Model) -> Surface
@@ -30,9 +31,27 @@ enum Nesting: String, CaseIterable { case recursive, single, flat }
     func setExpanded(_ id: AnyHashable)
 }
 
-@MainActor protocol Mapper {
-    static func controls(_ model: any Model) -> Controls
-    static func parameters(_ model: any Model) -> Params
+@MainActor protocol Model: AnyObject {
+    var session: Session { get set }
+    func focus(_ ref: Reference?)
+    func select(_ ref: Reference)
+    func open(_ ref: Reference)
+}
+
+extension Mapper {
+    static func controls(_ model: any Model) -> Controls { .init() }
+    static func parameters(_ model: any Model) -> Params { .init() }
+}
+
+extension Panel {
+    func controls(_ model: any Model) -> Controls { .init() }
+    func parameters(_ model: any Model) -> Params { .init() }
+}
+
+extension Surface {
+    var render: (Self, Params, Controls) -> some View { Factory.build(_ :_ :_ :) }
+    func isExpanded(_ id: AnyHashable) -> Bool { panel.state.isExpanded(id) }
+    func setExpanded(_ id: AnyHashable) { panel.state.setExpanded(id) }
 }
 
 extension Model {
@@ -84,25 +103,7 @@ extension Model {
     }
 }
 
-extension Mapper {
-    static func controls(_ model: any Model) -> Controls { .init() }
-    static func parameters(_ model: any Model) -> Params { .init() }
-}
-
-extension Panel {
-    func controls(_ model: any Model) -> Controls { .init() }
-    func parameters(_ model: any Model) -> Params { .init() }
-}
-
-extension Surface {
-    var render: (Self, Params, Controls) -> some View { Factory.build(_ :_ :_ :) }
-    func isExpanded(_ id: AnyHashable) -> Bool { panel.state.isExpanded(id) }
-    func setExpanded(_ id: AnyHashable) { panel.state.setExpanded(id) }
-}
-
-
-
-class AnyModel: Model {
+final class AnyModel: Model {
     var panel: any Panel
     var session: Session
 
@@ -114,6 +115,14 @@ class AnyModel: Model {
 
 final class AnyPanel: Panel {
     var state: PanelState
+    var surface: AnySurface = .any
+
+    enum AnySurface: String, CaseIterable, Identifiable {
+        case any
+        var id: String { rawValue }
+        var image: String { "text.rectangle" }
+    }
+
     init(state: PanelState = .init()) { self.state = state }
     func controls(_ model: any Model) -> Controls { .init() }
     func parameters(_ model: any Model) -> Params { .init() }

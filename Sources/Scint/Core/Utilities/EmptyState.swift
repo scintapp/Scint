@@ -21,7 +21,7 @@ struct EmptyState: View {
                     .foregroundStyle(.quaternary)
                 Text(title)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Design.Foreground.primary)
+                    .foregroundStyle(Style.Foreground.primary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             Spacer()

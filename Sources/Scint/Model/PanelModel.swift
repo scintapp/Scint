@@ -2,14 +2,6 @@ import Foundation
 import SwiftUI
 
 
-enum ModelKey: String, Identifiable, CaseIterable {
-    case editor, studio
-    var id: String { self.model }
-    var app: String { self.rawValue }
-    var model: String { "scint" }
-    var namespace: String { "\(app).\(model)" }
-}
-
 enum PanelKey: String, Identifiable, CaseIterable {
     case actions, assistant, outline, search, tasks
     var id: String { self.panel }
@@ -18,35 +10,12 @@ enum PanelKey: String, Identifiable, CaseIterable {
     var namespace: String { "\(model).panels.\(panel)" }
 }
 
-@Observable @MainActor final class EditorModel: Model {
-    var session: Session
-    var content: EditorPanel
-
-    init(_ session: Session) {
-        self.content = .init()
-        self.session = session
-    }
-}
-
-@Observable @MainActor final class StudioModel: Model {
-    var session: Session
-    var sidebar: NavigatorPanel
-    var content: ContentPanel
-    var inspector: InspectorPanel
-
-    init(_ session: Session) {
-        self.sidebar = .init()
-        self.content = .init()
-        self.inspector = .init()
-        self.session = session
-    }
-
-    /// Opening a sheet is a request to edit it, so the rail follows.
-    func open(_ ref: Reference) {
-        guard session.open(ref) else { return }
-        if ref.type is Material.Type { content.rail = .editor }
-        select(ref)
-    }
+enum ModelKey: String, Identifiable, CaseIterable {
+    case editor, studio
+    var id: String { self.model }
+    var app: String { self.rawValue }
+    var model: String { "scint" }
+    var namespace: String { "\(app).\(model)" }
 }
 
 @Observable final class PanelState {
@@ -55,7 +24,7 @@ enum PanelKey: String, Identifiable, CaseIterable {
     var detail: Bool = false
     var position: CGFloat
     var index: Int = 0
-    var mode: String = ""
+    var surface: String = ""
     var query: String = ""
     var filter: String = ""
     var expanded: Set<AnyHashable>
@@ -66,6 +35,11 @@ enum PanelKey: String, Identifiable, CaseIterable {
         self.position = position ?? 0
         self.expanded = expanded ?? []
         self.values = values ?? [:]
+    }
+
+    var bindable: Bindable<PanelState> {
+        @Bindable var state = self
+        return $state
     }
 
     func isExpanded(_ id: AnyHashable) -> Bool { expanded.contains(id) }
@@ -81,5 +55,37 @@ enum PanelKey: String, Identifiable, CaseIterable {
             if let newValue { values[key] = AnyHashable(newValue) }
             else { values[key] = nil }
         }
+    }
+}
+
+@Observable @MainActor final class EditorModel: Model {
+    var navigator: NavigatorPanel
+    var content: EditorPanel
+    var session: Session
+
+    init(_ session: Session) {
+        self.navigator = .init()
+        self.content = .init()
+        self.session = session
+    }
+}
+
+@Observable @MainActor final class StudioModel: Model {
+    var navigator: NavigatorPanel
+    var content: ContentPanel
+    var inspector: InspectorPanel
+    var session: Session
+
+    init(_ session: Session) {
+        self.navigator = .init()
+        self.content = .init()
+        self.inspector = .init()
+        self.session = session
+    }
+
+    func open(_ ref: Reference) {
+        guard session.open(ref) else { return }
+        if ref.type is Material.Type { content.surface = .editor }
+        select(ref)
     }
 }

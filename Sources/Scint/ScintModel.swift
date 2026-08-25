@@ -6,6 +6,11 @@ import SwiftUI
     private(set) var models: [ModelKey: any Model] = [:]
     var controller: Controller = .init()
     var server: ServerModel = .init()
+    var editor: EditorModel { model(for: .editor) as! EditorModel }
+    var studio: StudioModel { model(for: .studio) as! StudioModel }
+
+    func model(for key: ModelKey) -> any Model { models[key]! }
+    func panel(for key: PanelKey) -> any Panel { controller.panel(for: key) }
 
     func load() async {
         models[.editor] = EditorModel(Self.restore(.editor))
@@ -16,11 +21,6 @@ import SwiftUI
         Observers.install()
         await server.start()
     }
-
-    var editor: EditorModel { model(for: .editor) as! EditorModel }
-    var studio: StudioModel { model(for: .studio) as! StudioModel }
-    func model(for key: ModelKey) -> any Model { models[key]! }
-    func panel(for key: PanelKey) -> any Panel { controller.panel(for: key) }
 
     func toggle(_ key: PanelKey, _ source: ModelKey) {
         let defaults = PanelParams(key: key, sizing: .init(size: CGSize(width: 640, height: 480)))

@@ -4,18 +4,18 @@ import OSLog
 
 @main
 struct Scint: App {
-    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "App")
     @Environment(\.openWindow) private var openWindow
     @State private var scint: ScintModel?
     @State private var loading = false
+    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "App")
 
     var body: some Scene {
         Window("Studio", id: "studio") {
             if let scint {
-                ScintStudio()
+                Studio()
                     .environment(scint)
                     .environment(scint.studio)
-                    .background(Design.Background.console)
+                    .background(Style.Background.console)
                     .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
                     .focusable(false)
             } else {
@@ -29,7 +29,7 @@ struct Scint: App {
                 Editor()
                     .environment(scint)
                     .environment(scint.editor)
-                    .background(Design.Background.console)
+                    .background(Style.Background.console)
                     .focusable(false)
             }
             else {

@@ -4,8 +4,6 @@ import Foundation
 enum SampleData {
     static let interfaces = SampleInterfaces.load()
 
-    /// Reports whether anything was created, so callers can avoid a full save when
-    /// there was nothing to seed.
     @discardableResult
     static func load(_ workspace: Reference, for key: ModelKey) async -> Bool {
         switch key {

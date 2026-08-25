@@ -21,7 +21,7 @@ struct Bridge: Structural {
     var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
     var directories: [Reference] { Closure.with(closure, { $0 })?.directories ?? [] }
     var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
-    var components: [Reference] { artifacts + commands + harnesses + materials + transcripts }
+    var sections: [Reference] { artifacts + commands + harnesses + materials + transcripts }
 
     var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
 

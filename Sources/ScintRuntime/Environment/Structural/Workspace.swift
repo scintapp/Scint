@@ -25,7 +25,7 @@ struct Workspace: Structural {
     var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
     var directories: [Reference] { Closure.with(closure, { $0 })?.directories ?? [] }
     var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
-    var components: [Reference] { artifacts + commands + harnesses + materials + transcripts }
+    var sections: [Reference] { artifacts + commands + harnesses + materials + transcripts }
     var input: Reference? {
         get { Closure.with(closure, { $0.input }) }
         set {
