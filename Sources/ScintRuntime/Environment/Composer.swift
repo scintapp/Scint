@@ -6,13 +6,16 @@ import Foundation
     private let contexts = Index<Context>()
     private var listeners: [@Sendable (Reference, Signal) -> Void] = []
 
-    /// Announces that a structure produced a terminal signal. The runtime holds no
-    /// opinion about who listens or why.
+    @discardableResult
+    func load(_ refs: [Reference]) -> [Composition] {
+        refs.compactMap { compose($0) }
+    }
+
     func onTerminal(_ listener: @escaping @Sendable (Reference, Signal) -> Void) {
         listeners.append(listener)
     }
 
-    private func announce(_ ref: Reference, _ signal: Signal) {
+    func announce(_ ref: Reference, _ signal: Signal) {
         guard signal.terminal else { return }
         for listener in listeners { listener(ref, signal) }
     }

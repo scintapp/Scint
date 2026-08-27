@@ -19,6 +19,8 @@ final class Runtime: @unchecked Sendable {
     func load() async throws {
         try await Workspaces.shared.load()
         try await Library.shared.load()
+        let composables = all(as: Workspace.self).map { $0.0 } + all(as: Space.self).map { $0.0 }
+        Composer.shared.load(composables)
     }
 
     func save(_ ref: Reference? = nil) async {
@@ -85,7 +87,13 @@ extension Runtime {
 }
 
 extension Runtime {
+    @discardableResult
     func compose(_ ref: Reference) -> Composition? { Composer.shared.compose(ref) }
+
+    @discardableResult
+    func context() -> [Composition] { Composer.shared.resolve() }
+
+    func context(for ref: Reference) -> Composition? { Composer.shared.resolve(ref) }
 
     func start(_ ref: Reference, config: Config) -> Composition? {
         let closure = Space.with(ref, { $0.closure }) ?? Workspace.with(ref, { $0.closure })
@@ -95,10 +103,6 @@ extension Runtime {
     }
 
     func stop(_ ref: Reference) -> Composition? { Composer.shared.stop(ref) }
-
-    func context() -> [Composition] { Composer.shared.resolve() }
-
-    func context(for ref: Reference) -> Composition? { Composer.shared.resolve(ref) }
 }
 
 extension Runtime {

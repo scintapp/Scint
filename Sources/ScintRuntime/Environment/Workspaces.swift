@@ -20,6 +20,7 @@ final class Workspaces: @unchecked Sendable {
         let urls = try await Persistence.shared.files(in: settings.workspaces)
         for url in urls where url.pathExtension == "json" { await load(url) }
         if workspaces.isEmpty { Workspace.new("Workspace") }
+        
     }
 
     func load(_ ref: Reference) async { await load(Runtime.shared.settings.persistence.workspacePath(ref.storageId)) }
