@@ -10,7 +10,7 @@ import Foundation
 
     init(_ workspace: Reference) {
         self.workspace = workspace
-        self.selected = Selection(space: workspace)
+        self.selected = Selection(structure: workspace)
         self.navigation.reset(to: selected)
     }
 
@@ -18,7 +18,7 @@ import Foundation
         self.workspace = workspace
         opened = .init()
         focused = .nothing
-        let initial = Selection(space: workspace)
+        let initial = Selection(structure: workspace)
         selected = initial
         navigation.reset(to: initial)
     }
@@ -33,27 +33,22 @@ import Foundation
         }
     }
 
-    @discardableResult
-    mutating func select(_ ref: Reference) -> Bool {
+    mutating func select(_ ref: Reference) {
         apply(selected.selecting(ref))
     }
 
-    @discardableResult
-    mutating func select(_ ref: Reference, entry: UUID?, url: URL?) -> Bool {
-        return apply(selected.selecting(ref, entry: entry, url: url))
+    mutating func select(_ ref: Reference, entry: UUID?, url: URL?) {
+        apply(selected.selecting(ref, entry,  url))
     }
 
-    @discardableResult
-    mutating func open(_ ref: Reference) -> Bool {
-        return opened.open(ref)
+    mutating func open(_ ref: Reference) {
+        opened.open(ref)
     }
 
-    @discardableResult
-    mutating func close(_ ref: Reference) -> Bool {
-        guard opened.close(ref) else { return false }
+    mutating func close(_ ref: Reference) {
+        opened.close(ref)
         if selected.content == ref { selected = selected.clearing(.content) }
         if focused == .content(ref) { focused = .nothing }
-        return true
     }
 
     @discardableResult
@@ -83,8 +78,8 @@ import Foundation
 
 extension Session {
     var origin: Reference {
-        guard let ref = selected.space, ref.type is Space.Type else { return workspace }
-        return ref
+        if let ref = selected.structure, ref.type is Space.Type { return ref }
+        return workspace
     }
 
     var input: Reference? {
@@ -105,7 +100,7 @@ extension Session {
 
     var material: Reference? {
         guard let content = selected.content else { return nil }
-        guard content.type is Material.Type, opened.materials.contains(content) else { return nil }
+        guard content.type is Material.Type else { return nil }
         return content
     }
 

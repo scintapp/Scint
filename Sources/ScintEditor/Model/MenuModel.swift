@@ -155,9 +155,10 @@ enum MenuItem: Identifiable, Equatable {
 
     var size: CGSize {
         switch kind {
-            case .fixed, .dynamic: return CGSize(width: 256, height: 336)
-            case .create, .update(.task), .update(.link): return CGSize(width: 256, height: 160)
-            case .update: return CGSize(width: 256, height: 160)
+            case .fixed, .dynamic:
+                return CGSize(width: Style.Spacing.menuWidth, height: Style.Spacing.menuListHeight)
+            case .create, .update:
+                return CGSize(width: Style.Spacing.menuWidth, height: Style.Spacing.menuFormHeight)
         }
     }
 

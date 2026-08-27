@@ -2,6 +2,59 @@ import Foundation
 import SwiftUI
 
 
+struct MaterialView: View {
+    @Environment(MaterialModel.self) private var material
+    let editing: AnyHashable?
+    let selection: (AnyHashable) -> NSRange?
+    let onTextChange: (AnyHashable, String, NSRange) -> Void
+    let onSelectionChange: (AnyHashable, NSRange) -> Void
+    let onCaretRectChange: (AnyHashable, CGRect) -> Void
+    let onViewportRectChange: (AnyHashable, CGRect) -> Void
+    let onFocusGained: (AnyHashable) -> Void
+    let onEdit: (AnyHashable) -> Void
+    let onCommand: (Selector, NSRange, Int) -> Bool
+    let onPanelChange: (AnyHashable, CGRect) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Style.Spacing.md) {
+            ForEach(material.blocks) { block in
+                MaterialCard(
+                    block: block,
+                    selection: selection(block.id),
+                    isEditing: editing == block.id,
+                    isSelected: editing == nil && material.isSelected(block.id),
+                    onTextChange: { onTextChange(block.id, $0, $1) },
+                    onSelectionChange: { onSelectionChange(block.id, $0) },
+                    onCaretRectChange: { onCaretRectChange(block.id, $0) },
+                    onViewportRectChange: { onViewportRectChange(block.id, $0) },
+                    onFocusGained: { onFocusGained(block.id) },
+                    onEdit: { onEdit(block.id) },
+                    onCommand: onCommand
+                )
+                .id(block.id)
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: EntryPanelsKey.self,
+                            value: [block.id: proxy.frame(in: .named("canvas"))]
+                        )
+                    }
+                }
+            }
+        }
+        .onPreferenceChange(EntryPanelsKey.self) { frames in
+            for (id, frame) in frames { onPanelChange(id, frame) }
+        }
+    }
+}
+
+@MainActor private struct EntryPanelsKey: @MainActor PreferenceKey {
+    static let defaultValue: [AnyHashable: CGRect] = [:]
+    static func reduce(value: inout [AnyHashable: CGRect], nextValue: () -> [AnyHashable: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
 @Observable final class MaterialModel {
     let ref: Reference
     var selection: Set<AnyHashable> = []
@@ -112,58 +165,5 @@ import SwiftUI
             material.insert(.text(id, ""), at: insertion)
             return material.blocks.indices.contains(insertion) ? material.blocks[insertion].id : nil
         } ?? nil
-    }
-}
-
-@MainActor private struct EntryPanelsKey: @MainActor PreferenceKey {
-    static let defaultValue: [AnyHashable: CGRect] = [:]
-    static func reduce(value: inout [AnyHashable: CGRect], nextValue: () -> [AnyHashable: CGRect]) {
-        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
-    }
-}
-
-struct MaterialView: View {
-    @Environment(MaterialModel.self) private var material
-    let editing: AnyHashable?
-    let selection: (AnyHashable) -> NSRange?
-    let onTextChange: (AnyHashable, String, NSRange) -> Void
-    let onSelectionChange: (AnyHashable, NSRange) -> Void
-    let onCaretRectChange: (AnyHashable, CGRect) -> Void
-    let onViewportRectChange: (AnyHashable, CGRect) -> Void
-    let onFocusGained: (AnyHashable) -> Void
-    let onEdit: (AnyHashable) -> Void
-    let onCommand: (Selector, NSRange, Int) -> Bool
-    let onPanelChange: (AnyHashable, CGRect) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            ForEach(material.blocks) { block in
-                MaterialBlock(
-                    block: block,
-                    selection: selection(block.id),
-                    isEditing: editing == block.id,
-                    isSelected: editing == nil && material.isSelected(block.id),
-                    onTextChange: { onTextChange(block.id, $0, $1) },
-                    onSelectionChange: { onSelectionChange(block.id, $0) },
-                    onCaretRectChange: { onCaretRectChange(block.id, $0) },
-                    onViewportRectChange: { onViewportRectChange(block.id, $0) },
-                    onFocusGained: { onFocusGained(block.id) },
-                    onEdit: { onEdit(block.id) },
-                    onCommand: onCommand
-                )
-                .id(block.id)
-                .background {
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: EntryPanelsKey.self,
-                            value: [block.id: proxy.frame(in: .named("canvas"))]
-                        )
-                    }
-                }
-            }
-        }
-        .onPreferenceChange(EntryPanelsKey.self) { frames in
-            for (id, frame) in frames { onPanelChange(id, frame) }
-        }
     }
 }

@@ -1,35 +1,61 @@
 import SwiftUI
 
 
-enum EditorMenuPlacement: Equatable {
-    case caret
-    case centerTop
-}
+enum EditorMenuPlacement: Equatable { case caret, centerTop }
 
 struct TextEditor: View {
     @Environment(EditorState.self) private var editor
     @Environment(\.editorFocus) private var focus
+    @FocusState private var menuFocus: MenuFocus?
     @State private var contentHeight: CGFloat = 0
+
     private var material: MaterialModel { editor.material }
     let autofocus: Bool
     let minimumHeight: CGFloat
     let maximumHeight: CGFloat?
     let menuPlacement: EditorMenuPlacement
+    let onFocus: (AnyHashable) -> Void
 
-    init(autofocus: Bool = true, minimumHeight: CGFloat = 0, maximumHeight: CGFloat? = nil, menuPlacement: EditorMenuPlacement = .caret) {
+    init(
+        autofocus: Bool = true,
+        minimumHeight: CGFloat = 0,
+        maximumHeight: CGFloat? = nil,
+        menuPlacement: EditorMenuPlacement = .caret,
+        onFocus: @escaping (AnyHashable) -> Void
+    ) {
         self.autofocus = autofocus
         self.minimumHeight = minimumHeight
         self.maximumHeight = maximumHeight
         self.menuPlacement = menuPlacement
+        self.onFocus = onFocus
     }
 
-    private func menu(in size: CGSize) -> some View { Menu(position: menuPosition(in: size)) }
+    private func menu(in size: CGSize) -> some View {
+        let model = editor.menu
+        return Menu(
+            query: Binding(get: { model.query }, set: { model.query = $0 }),
+            formPrimary: Binding(get: { model.formPrimary }, set: { model.formPrimary = $0 }),
+            kind: model.kind,
+            items: model.items,
+            selectedID: model.selectedID,
+            size: model.size,
+            position: menuPosition(in: size),
+            focus: $menuFocus,
+            onMoveSelection: model.moveSelection,
+            onSelect: { item in
+                model.select(item)
+                editor.commitMenuSelection()
+            },
+            onCancel: model.close,
+            onCommit: editor.commitMenuSelection
+        )
+    }
 
     private func menuPosition(in size: CGSize) -> CGPoint {
         let menuWidth = editor.menu.size.width
         let menuHeight = editor.menu.size.height
-        let padding: CGFloat = 16
-        let gap: CGFloat = 6
+        let padding = Style.Spacing.xl
+        let gap = Style.Spacing.md
 
         if menuPlacement == .centerTop {
             let x = max(padding, (size.width - menuWidth) / 2)
@@ -69,7 +95,10 @@ struct TextEditor: View {
                 onSelectionChange: editor.setCaret,
                 onCaretRectChange: editor.updateCaretRect,
                 onViewportRectChange: editor.updateViewportRect,
-                onFocusGained: editor.focusGained,
+                onFocusGained: { id in
+                    editor.focusGained(id: id)
+                    onFocus(id)
+                },
                 onEdit: editor.editBlock,
                 onCommand: editor.handleInput,
                 onPanelChange: editor.updateEntryPanel
@@ -86,6 +115,7 @@ struct TextEditor: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
             }
+            
             .frame(height: min(max(contentHeight, minimumHeight), maximumHeight), alignment: .bottom)
             .scrollBounceBehavior(.basedOnSize)
         } else {
@@ -125,11 +155,19 @@ struct EditorComponent: View {
     let minimumHeight: CGFloat
     let maximumHeight: CGFloat?
     let menuPlacement: EditorMenuPlacement
+    let onFocus: (AnyHashable) -> Void
 
-    init(_ material: Reference, minimumHeight: CGFloat = 0, maximumHeight: CGFloat? = nil, menuPlacement: EditorMenuPlacement = .caret) {
+    init(
+        _ material: Reference,
+        minimumHeight: CGFloat = 0,
+        maximumHeight: CGFloat? = nil,
+        menuPlacement: EditorMenuPlacement = .caret,
+        onFocus: @escaping (AnyHashable) -> Void = { _ in }
+    ) {
         self.minimumHeight = minimumHeight
         self.maximumHeight = maximumHeight
         self.menuPlacement = menuPlacement
+        self.onFocus = onFocus
         _state = State(
             initialValue: EditorState(
                 material: material,
@@ -140,7 +178,12 @@ struct EditorComponent: View {
     }
 
     var body: some View {
-        TextEditor(minimumHeight: minimumHeight, maximumHeight: maximumHeight, menuPlacement: menuPlacement)
+        TextEditor(
+            minimumHeight: minimumHeight,
+            maximumHeight: maximumHeight,
+            menuPlacement: menuPlacement,
+            onFocus: onFocus
+        )
             .environment(state)
     }
 }

@@ -2,10 +2,10 @@ import SwiftUI
 
 
 @Observable final class ContentPanel: Panel {
-    var state: PanelState = .init(presented: true, position: 300)
-    var surface: ContentSurface = .detail
+    var state: PanelState = .init(presented: true, position: 340)
+    var surface: PanelSurface = .detail
 
-    enum ContentSurface: String, CaseIterable, Identifiable, Hashable {
+    enum PanelSurface: String, CaseIterable, Identifiable, Hashable {
         case detail, tasks, editor
 
         var id: String { rawValue }
@@ -27,10 +27,10 @@ import SwiftUI
             switch self.surface {
                 case .detail:
                     DetailSurface(panel: self, model: model)
-                        .frame(width: 300)
+                        .frame(width: 340)
                 case .tasks:
                     TasksSurface(panel: self, model: model)
-                        .frame(width: 300)
+                        .frame(width: 340)
                 case .editor:
                     EditSurface(panel: self, model: model)
                         .frame(width: self.state.position)
@@ -43,19 +43,22 @@ import SwiftUI
                 HStack(alignment: .center) {
                     PathBar(model: model)
                     Spacer()
-                    BadgeBar(model: model)
+                    switch surface {
+                        case .detail: BadgeBar(model: model)
+                        case .tasks: BadgeBar(model: model)
+                        case .editor: EditorBar(model: model)
+                    }
                 }
                 .frame(maxHeight: 30)
                 .padding(.horizontal, 8)
 
                 Rectangle()
-                    .fill(Style.Border.card)
+                    .fill(Style.Border.base)
                     .frame(height: 0.5)
             }
         }
         .toolbar {
             ToolbarItem(placement: .navigation) { NavigationButtons(model: model) }
-            ToolbarItem(placement: .principal) { ActivityBar() }
             ToolbarSpacer(.flexible, placement: .primaryAction)
             ToolbarItem(placement: .primaryAction) { ContentPicker(panel: self) }
         }

@@ -3,7 +3,7 @@ import Foundation
 
 struct Material: Malleable {
     let ref: Reference
-    var owner: Reference
+    var origin: Reference
     private(set) var blocks: [Block] = []
 
     enum Block: Codable, Sendable, Identifiable, Equatable {
@@ -26,7 +26,7 @@ struct Material: Malleable {
 
     init(_ ref: Reference = .init(Self.self)) {
         self.ref = ref
-        self.owner = ref
+        self.origin = ref
     }
 
     var rendered: String { rendered(depth: 0) }
@@ -91,7 +91,7 @@ struct Material: Malleable {
     static func new(_ owner: Reference, name: String = "New Material") -> Reference {
         guard owner.type == Space.self || owner.type == Workspace.self else { RuntimeError.fatal() }
         var instance = Self(.init(Self.self))
-        instance.owner = owner
+        instance.origin = owner
         Descriptor.new(instance.ref, name: name, tags: ["material"])
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
         if owner.type == Workspace.self { Workspace.with(owner, { $0.add(instance.ref) }) }
@@ -103,7 +103,7 @@ struct Material: Malleable {
         guard owner.type == Space.self || owner.type == Workspace.self
         else { RuntimeError.fatal() }
         var instance = Self(.init(Self.self))
-        instance.owner = owner
+        instance.origin = owner
         Descriptor.new(instance.ref, name: "Input", tags: ["input"], published: false)
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
         return instance.ref

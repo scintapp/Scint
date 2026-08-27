@@ -45,12 +45,14 @@ struct OutlineControls: View {
     }
 }
 
-struct EditorBar: View {
+struct StatusBar: View {
     var model: any Model
+
     var ref: Reference { model.session.material ?? model.session.origin }
 
     var words: String { "\(metrics.words) \(metrics.words == 1 ? "Word" : "Words")" }
     var tasks: String { "\(metrics.completedTasks) of \(metrics.totalTasks) \(metrics.totalTasks == 1 ? "Task" : "Tasks")" }
+
     var metrics: (words: Int, completedTasks: Int, totalTasks: Int) {
         Material.with(ref) { material in
             let words = material.rendered.split(whereSeparator: { $0.isWhitespace }).count
@@ -62,12 +64,26 @@ struct EditorBar: View {
     }
 
     var body: some View {
-        HStack(spacing: 15) {
+        HStack(spacing: 12) {
             Text(words)
             Text(tasks)
         }
         .frame(alignment: .center)
-        .foregroundStyle(Style.Foreground.secondary)
+        .foregroundStyle(Style.Foreground.muted)
+        .font(.callout)
+    }
+}
+
+struct EditorBar: View {
+    var model: any Model
+
+    var ref: Reference { model.session.material ?? model.session.origin }
+
+    var body: some View {
+        HStack(spacing: 12) {
+
+        }
+        .foregroundStyle(Style.Foreground.muted)
         .font(.callout)
     }
 }

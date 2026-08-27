@@ -2,18 +2,12 @@ import Foundation
 import SwiftUI
 
 
-@Observable @MainActor final class ServerModel {
-    let server: Server
+@Observable @MainActor final class HostModel {
+    let server: ContextServer = .init()
     var message: String? = ""
     var running: Bool = false
 
-    init() {
-        self.server = .init()
-        self.message = nil
-        self.running = false
-    }
-
-    func start() async {
+    func load() async {
         guard !running else { return }
         do {
             try await server.start()
@@ -24,7 +18,7 @@ import SwiftUI
         }
     }
 
-    func stop() async {
+    func unload() async {
         await server.stop()
         running = false
     }

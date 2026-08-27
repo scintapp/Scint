@@ -62,36 +62,36 @@ struct Item: Identifiable {
         clipboard = ([ref], origin, false)
     }
 
-    static func paste(_ owner: Reference, in model: any Model) {
+    static func paste(_ origin: Reference, in model: any Model) {
         guard let payload = clipboard else { return }
-        let pasted = ReferenceTransfer.paste(payload.refs, from: payload.origin, move: payload.move, to: owner)
+        let pasted = ReferenceTransfer.paste(payload.refs, by: payload.origin, move: payload.move, to: origin)
         if let pasted { model.select(pasted) }
         if payload.move { clipboard = nil }
         Task { await Runtime.shared.save() }
     }
 
-    static func canPaste(to owner: Reference) -> Bool {
+    static func canPaste(to origin: Reference) -> Bool {
         guard let payload = clipboard else { return false }
-        return ReferenceTransfer.canPaste(payload.refs, move: payload.move, to: owner)
+        return ReferenceTransfer.canPaste(payload.refs, move: payload.move, to: origin)
     }
 
-    static func createMaterial(in owner: Reference, model: any Model) {
-        let ref = Material.new(owner, name: "New Material")
+    static func createMaterial(in origin: Reference, model: any Model) {
+        let ref = Material.new(origin, name: "New Material")
         model.open(ref)
         Task { await Runtime.shared.save() }
     }
 
-    static func createSpace(in owner: Reference, model: any Model) {
-        let ref = Space.new("New Space", owner: owner)
+    static func createSpace(in origin: Reference, model: any Model) {
+        let ref = Space.new("New Space", origin: origin)
         model.select(ref)
         Task { await Runtime.shared.save() }
     }
 
-    static func surfaceItems(for owner: Reference) -> [Item] {
+    static func surfaceItems(for origin: Reference) -> [Item] {
         [
-            .init(id: "new-material", label: "New Material", image: "text.alignleft") { Action.createMaterial(in: owner, model: $0) },
-            .init(id: "new-space", label: "New Space", image: "app") { Action.createSpace(in: owner, model: $0) },
-            .init(id: "paste", label: "Paste", image: "clipboard", enabled: { _ in Action.canPaste(to: owner) }) { Action.paste(owner, in: $0) }
+            .init(id: "new-material", label: "New Material", image: "text.alignleft") { Action.createMaterial(in: origin, model: $0) },
+            .init(id: "new-space", label: "New Space", image: "app") { Action.createSpace(in: origin, model: $0) },
+            .init(id: "paste", label: "Paste", image: "clipboard", enabled: { _ in Action.canPaste(to: origin) }) { Action.paste(origin, in: $0) }
         ]
     }
 

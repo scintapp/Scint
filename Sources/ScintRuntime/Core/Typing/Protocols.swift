@@ -48,6 +48,6 @@ protocol Resolvable: Codable, Sendable { var ref: Reference { get } }
 protocol Keyable: Resolvable { var key: Key { get }; var origin: Reference { get } }
 protocol Composable: Resolvable { init(_ ref: Reference) }
 protocol Functional: Composable {}
-protocol Malleable: Composable { var owner: Reference { get set } }
-protocol Structural: Composable {}
+protocol Malleable: Composable { var origin: Reference { get set } }
+protocol Structural: Composable { var closure: Reference { get } }
 protocol Contextual: Keyable { init(_ origin: Reference); var transcript: Reference { get } }

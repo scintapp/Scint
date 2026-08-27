@@ -34,7 +34,7 @@ protocol PanelSurface: CaseIterable, Identifiable {}
 @MainActor protocol Model: AnyObject {
     var session: Session { get set }
     func focus(_ ref: Reference?)
-    func select(_ ref: Reference)
+    func select(_ ref: Reference, entry: UUID?, url: URL?)
     func open(_ ref: Reference)
 }
 
@@ -55,24 +55,23 @@ extension Surface {
 }
 
 extension Model {
-    func focus(_ ref: Reference?) { session.focus(ref) }
+    func load(_ workspace: Reference) async {
+        session.load(workspace)
+    }
 
-    func select(_ ref: Reference) {
-        session.select(ref)
+    func focus(_ ref: Reference?) {
         session.focus(ref)
     }
 
-    func select(_ ref: Reference, entry: UUID?, url: URL?) {
-        session.select(ref, entry: entry, url: url)
+    func select(_ ref: Reference, entry: UUID? = nil, url: URL? = nil) {
         session.focus(ref)
+        session.select(ref, entry: entry, url: url)
     }
 
     func open(_ ref: Reference) {
-        guard session.open(ref) else { return }
-        select(ref)
+        session.focus(ref)
+        session.open(ref)
     }
-
-    func load(_ workspace: Reference) async { session.load(workspace) }
 
     func compose(_ ref: Reference) -> Composition? { Runtime.shared.compose(ref) }
 
@@ -83,7 +82,6 @@ extension Model {
         if let transcript = session.transcript { config["transcript"] = .reference(transcript) }
         guard let composition = Runtime.shared.start(ref, config: config) else { return nil }
         Material.update(input) { $0.clear() }
-        if let transcript = composition.intentTranscript { focus(transcript) }
         return composition
     }
 
@@ -115,9 +113,9 @@ final class AnyModel: Model {
 
 final class AnyPanel: Panel {
     var state: PanelState
-    var surface: AnySurface = .any
+    var surface: PanelSurface = .any
 
-    enum AnySurface: String, CaseIterable, Identifiable {
+    enum PanelSurface: String, CaseIterable, Identifiable {
         case any
         var id: String { rawValue }
         var image: String { "text.rectangle" }
@@ -137,4 +135,3 @@ struct AnySurface: Surface {
     func isExpanded(_ id: AnyHashable) -> Bool { panel.state.isExpanded(id) }
     func setExpanded(_ id: AnyHashable) { panel.state.setExpanded(id) }
 }
-

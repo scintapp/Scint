@@ -4,12 +4,12 @@ import SwiftUI
 
 @Observable final class SearchPanel: Panel {
     var state: PanelState = .init()
-    var surface: SearchSurface {
-        get { SearchSurface(rawValue: state.surface) ?? .everything }
+    var surface: PanelSurface {
+        get { PanelSurface(rawValue: state.surface) ?? .everything }
         set { state.surface = newValue.rawValue }
     }
 
-    enum SearchSurface: String, CaseIterable {
+    enum PanelSurface: String, CaseIterable {
         case everything, content, interfaces, workspace
 
         var label: String { self.rawValue.capitalized }
@@ -38,7 +38,7 @@ import SwiftUI
 
     func parameters(_ model: any Model) -> Params {
         let content = surface.query.parameters(model)
-        let surfaces = SearchSurface.allCases.map { ItemParams(key: $0.rawValue, name: $0.label, image: $0.image) }
+        let surfaces = PanelSurface.allCases.map { ItemParams(key: $0.rawValue, name: $0.label, image: $0.image) }
 
         return .init(
             id: PanelKey.search.id,

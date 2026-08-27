@@ -2,8 +2,7 @@ import Foundation
 import OSLog
 
 
-
-actor Server {
+actor ContextServer {
     private let runtime: Runtime
     private let http = NetworkServer()
 

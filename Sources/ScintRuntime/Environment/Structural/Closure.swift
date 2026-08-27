@@ -16,11 +16,11 @@ struct Closure: Structural {
         self.input = ref
     }
 
-
+    var closure: Reference { self.ref }
     var artifacts: [Reference] { interfaces.filter { $0.type is Artifact.Type } }
     var commands: [Reference] { interfaces.filter { $0.type is Command.Type } }
-    var harnesses: [Reference] { interfaces.filter { $0.type is Harness.Type } }
     var materials: [Reference] { content.filter { $0.type is Material.Type } }
+    var harnesses: [Reference] { interfaces.filter { $0.type is Harness.Type } }
 
     var directories: [Reference] {
         artifacts.filter { Artifact.with($0, { $0.handler.directory }) == true }.sorted {

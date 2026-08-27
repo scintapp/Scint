@@ -12,10 +12,11 @@ struct Navigation: Codable, Equatable, Sendable {
 
     func path(for selection: Selection, in workspace: Reference? = nil) -> [Reference] {
         var refs: [Reference] = workspace.map { [$0] } ?? []
-        guard let structure = selection.space else { return refs }
+        guard let structure = selection.structure else { return refs }
         if structure.type is Workspace.Type { if refs.last != structure { refs.append(structure) } }
         else { refs.append(contentsOf: spaces(to: structure)) }
-        if let component = selection.content, pathable(component) { refs.append(component) }
+        if let content = selection.content, pathable(content) { refs.append(content) }
+        else if let interface = selection.interface { refs.append(interface) }
         return refs
     }
 

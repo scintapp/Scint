@@ -68,4 +68,3 @@ struct Reference: Codable, Sendable, Identifiable, Hashable {
     }
 }
 
-

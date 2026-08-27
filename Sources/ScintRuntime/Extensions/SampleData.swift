@@ -72,10 +72,10 @@ enum SampleData {
             }
         }
 
-        let contentStudio = Space.new("Content Studio", owner: workspace)
-        let researchDesk = Space.new("Research Desk", owner: contentStudio)
-        let contentProduction = Space.new("Content Production", owner: contentStudio)
-        let editorialCalendar = Space.new("Editorial Calendar", owner: contentProduction)
+        let contentStudio = Space.new("Content Studio", origin: workspace)
+        let researchDesk = Space.new("Research Desk", origin: contentStudio)
+        let contentProduction = Space.new("Content Production", origin: contentStudio)
+        let editorialCalendar = Space.new("Editorial Calendar", origin: contentProduction)
 
         let editorialCharter = material(
             "Editorial System Charter",

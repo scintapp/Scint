@@ -19,8 +19,8 @@ import SwiftUI
         private var sizing: CGFloat { custom ? size * 1.2 : size * 1.3 }
         private var radius: CGFloat { size * 0.3 }
         private var padding: CGFloat { custom ? size * 0.1 : 0 }
-        private var primary: Color { selected ? Style.Foreground.primary : Style.Foreground.secondary }
-        private var secondary: Color { selected ? tint : Style.Foreground.secondary }
+        private var primary: Color { selected ? Style.Foreground.base : Style.Foreground.muted }
+        private var secondary: Color { selected ? tint : Style.Foreground.muted }
         private var background: Color { selected ? tint.opacity(0.28) : tint.opacity(0.14) }
 
         var body: some View {
@@ -58,8 +58,8 @@ import SwiftUI
             self.active = active
         }
 
-        private var primary: Color { active ? Style.Foreground.primary : Style.Foreground.secondary }
-        private var secondary: Color { active ? tint : Style.Foreground.secondary }
+        private var primary: Color { active ? Style.Foreground.base : Style.Foreground.muted }
+        private var secondary: Color { active ? tint : Style.Foreground.muted }
         private var background: Color { active ? tint : tint.opacity(0.66) }
 
         var body: some View {
@@ -111,7 +111,7 @@ import SwiftUI
             case dispatcher
             case executor
             case observer
-            case traverser
+            case searcher
         }
 
         enum Entry {
@@ -144,7 +144,63 @@ import SwiftUI
         case dispatch = "space.badge.clock"
         case observe = "space.badge.eye"
         case execute = "space.badge.gearshape"
-        case traverse = "space.badge.magnifyingglass"
+        case search = "space.badge.magnifyingglass"
+    }
+
+    static func menuTint(for item: MenuItem) -> Color {
+        if let ref = item.ref { return accent(for: ref) }
+
+        switch item.commandID {
+            case "new-task", "checklist":
+                return Style.Tint.task
+            case "new-link", "add-files":
+                return Style.Tint.artifact
+            case "heading-1", "heading-2", "heading-3":
+                return Style.Tint.material
+            case "quote":
+                return Style.Tint.material
+            case "code-block":
+                return Style.Tint.command
+            default:
+                return Style.Tint.space
+        }
+    }
+
+    static func menuTint(for kind: MenuFormKind) -> Color {
+        switch kind {
+            case .task:
+                return Style.Tint.task
+            case .link, .artifact:
+                return Style.Tint.artifact
+            case .command:
+                return Style.Tint.command
+            case .material:
+                return Style.Tint.material
+        }
+    }
+
+    @ViewBuilder static func menuIcon(for item: MenuItem, selected: Bool) -> some View {
+        let icon = item.ref.map {
+            Icon(
+                symbol: symbol(for: $0),
+                tint: accent(for: $0),
+                sizing: Style.Spacing.xl,
+                selected: true
+            )
+        } ?? item.icon.map {
+            Icon(
+                symbol: $0,
+                tint: menuTint(for: item),
+                sizing: Style.Spacing.xl,
+                selected: true
+            )
+        }
+
+        if let icon {
+            icon
+                .frame(width: Style.Spacing.xxl, height: Style.Spacing.xxl)
+                .opacity(selected ? Style.Opacity.full : Style.Opacity.muted)
+        }
     }
 
     static func accent(for ref: Reference) -> Color {
@@ -154,21 +210,21 @@ import SwiftUI
             case is Command.Type:
                 return Style.Tint.command
             case is Bridge.Type:
-                return Style.Tint.space
+                return Style.Tint.bridge
             case is Harness.Type:
                 return Iconography.icon(for: ref).tint
             case is Material.Type:
                 return Style.Tint.material
             case is Transcript.Type:
-                return Style.Tint.working
+                return Style.Tint.transcript
             case is Space.Type:
                 guard
                     let harness = Space.with(ref, { $0.harness }).flatMap({ $0 }),
                     let m = Harness.with(harness, { $0.intent })
-                else { return Style.Tint.info }
+                else { return Style.Tint.space }
                 return Iconography.icon(for: m).tint
             case is Workspace.Type:
-                return Style.Tint.info
+                return Style.Tint.space
             default:
                 return Iconography.icon(for: ref).tint
         }
@@ -177,27 +233,27 @@ import SwiftUI
     static func icon(for block: Material.Block, size: CGFloat = 14) -> Icon {
         switch block {
             case .artifact(let ref), .command(let ref), .material(let ref): Iconography.icon(for: ref, size: size)
-            case .text: Icon(symbol: "line.3.horizontal", tint: Style.Tint.inactive, sizing: size)
+            case .text: Icon(symbol: "line.3.horizontal", tint: Style.Tint.material, sizing: size)
             case .task(_, _, let done): Icon(symbol: done ? "checkmark.square" : "square", tint: Style.Tint.task, sizing: size)
         }
     }
 
     static func icon(for intent: Harness.Intent, size: CGFloat = 14) -> Icon {
         switch intent {
-            case .compose: Icon(symbol: "space.custom", tint: Style.Tint.compose, sizing: size)
-            case .dispatch: Icon(symbol: "space.custom", tint: Style.Tint.dispatch, sizing: size)
-            case .observe: Icon(symbol: "space.custom", tint: Style.Tint.observe, sizing: size)
-            case .execute: Icon(symbol: "space.custom", tint: Style.Tint.execute, sizing: size)
-            case .traverse: Icon(symbol: "space.custom", tint: Style.Tint.traverse, sizing: size)
+            case .compose: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
+            case .dispatch: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
+            case .observe: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
+            case .execute: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
+            case .search: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
         }
     }
 
     static func icon(for entry: Transcript.Entry, size: CGFloat = 14) -> Icon {
         switch entry {
-            case .event: Icon(symbol: "calendar", tint: Style.Tint.active, sizing: size)
+            case .event: Icon(symbol: "calendar", tint: Style.Tint.transcript, sizing: size)
             case .material(let ref, _): Iconography.icon(for: ref, size: size)
             case .transcript(let ref, _): Iconography.icon(for: ref, size: size)
-            case .value: Icon(symbol: "info.circle", tint: Style.Foreground.tertiary, sizing: size)
+            case .value: Icon(symbol: "info.circle", tint: Style.Foreground.faint, sizing: size)
         }
     }
 
@@ -218,19 +274,19 @@ import SwiftUI
         switch ref.type {
             case is Artifact.Type:
                 guard let artifact = Artifact.with(ref, { $0 })
-                else { return Icon(symbol: "archivebox", tint: Style.Tint.active, sizing: size) }
+                else { return Icon(symbol: "archivebox", tint: Style.Tint.space, sizing: size) }
                 return Iconography.icon(for: artifact.handler, size: size)
 
             case is Space.Type:
                 guard let space = Space.with(ref, { $0.harness }).flatMap({ $0 }), let harness = Harness.with(space, { $0.intent })
-                else { return Icon(symbol: "space.custom", tint: Style.Tint.info, sizing: size) }
+                else { return Icon(symbol: "space.custom", tint: Style.Tint.space, sizing: size) }
                 return Iconography.icon(for: harness, size: size)
 
             case is Command.Type:
                 return Icon(symbol: "switch.2", tint: Style.Tint.command, sizing: size)
 
             case is Bridge.Type:
-                return Icon(symbol: "app.connected.to.app.below.fill", tint: Style.Tint.space, sizing: size)
+                return Icon(symbol: "app.connected.to.app.below.fill", tint: Style.Tint.bridge, sizing: size)
 
             case is Harness.Type:
                 guard let intent = Harness.with(ref, { $0.intent })
@@ -241,15 +297,15 @@ import SwiftUI
                 return Icon(symbol: "text.alignleft", tint: Style.Tint.material, sizing: size)
 
             case is Transcript.Type:
-                return Icon(symbol: "text.bubble", tint: Style.Tint.working, sizing: size)
+                return Icon(symbol: "text.bubble", tint: Style.Tint.transcript, sizing: size)
 
             case is Workspace.Type:
-                return Icon(symbol: "cube.transparent", tint: Style.Tint.info, sizing: size)
+                return Icon(symbol: "cube.transparent", tint: Style.Tint.space, sizing: size)
 
             default:
                 break
         }
-        return Icon(symbol: "space.custom", tint: Style.Tint.active)
+        return Icon(symbol: "space.custom", tint: Style.Tint.space)
     }
 
     static func model(_ item: Model) -> Icon {
@@ -272,31 +328,31 @@ import SwiftUI
                     case .dispatcher: Iconography.model(.harness(.dispatcher))
                     case .executor: Iconography.model(.harness(.executor))
                     case .observer: Iconography.model(.harness(.observer))
-                    case .traverser: Iconography.model(.harness(.traverser))
+                    case .searcher: Iconography.model(.harness(.searcher))
                 }
 
             case .closure:
-                Icon(symbol: "rectangle.stack", tint: Style.Tint.info)
+                Icon(symbol: "rectangle.stack", tint: Style.Tint.space)
 
             case .command(let parameter):
                 switch parameter {
                     case .argument: Icon(symbol: "textformat", tint: Style.Tint.command)
                     case .content(let ref), .interface(let ref), .structure(let ref): icon(for: ref)
                     case .properties: Icon(symbol: "slider.horizontal.3", tint: Style.Tint.command)
-                    case .requirement: Icon(symbol: "asterisk", tint: Style.Tint.request)
+                    case .requirement: Icon(symbol: "asterisk", tint: Style.Tint.command)
                 }
 
             case .harness(let intent):
                 switch intent {
-                    case .composer: Icon(symbol: "space.badge.ellipsis", tint: Style.Tint.compose)
-                    case .dispatcher: Icon(symbol: "space.badge.play", tint: Style.Tint.dispatch)
-                    case .executor: Icon(symbol: "space.badge.sparkles", tint: Style.Tint.execute)
-                    case .observer: Icon(symbol: "space.badge.eye", tint: Style.Tint.observe)
-                    case .traverser: Icon(symbol: "space.badge.magnifyingglass", tint: Style.Tint.traverse)
+                    case .composer: Icon(symbol: "space.badge.ellipsis", tint: Style.Tint.harness)
+                    case .dispatcher: Icon(symbol: "space.badge.play", tint: Style.Tint.harness)
+                    case .executor: Icon(symbol: "space.badge.sparkles", tint: Style.Tint.harness)
+                    case .observer: Icon(symbol: "space.badge.eye", tint: Style.Tint.harness)
+                    case .searcher: Icon(symbol: "space.badge.magnifyingglass", tint: Style.Tint.harness)
                 }
 
             case .route:
-                Icon(symbol: "app.connected.to.app.below.fill", tint: Style.Tint.space)
+                Icon(symbol: "app.connected.to.app.below.fill", tint: Style.Tint.bridge)
 
             case .material(let block):
                 switch block {
@@ -312,9 +368,9 @@ import SwiftUI
 
             case .transcript(let entry):
                 switch entry {
-                    case .signal: Icon(symbol: "calendar", tint: Style.Tint.active)
+                    case .signal: Icon(symbol: "calendar", tint: Style.Tint.transcript)
                     case .material: Icon(symbol: "text.alignleft", tint: Style.Tint.material)
-                    case .transcript: Icon(symbol: "rectangle.stack", tint: Style.Tint.working)
+                    case .transcript: Icon(symbol: "rectangle.stack", tint: Style.Tint.transcript)
                 }
 
             case .workspace:

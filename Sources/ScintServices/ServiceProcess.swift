@@ -40,11 +40,12 @@ final class ProcessStore: @unchecked Sendable {
             let expandedCommand = Self.expandVariables(in: sanitizedCommand, environment: mergedEnvironment)
             let expandedArguments = arguments.map { Self.expandVariables(in: $0, environment: mergedEnvironment) }
             let process = Process()
+            let errorPipe = Pipe()
             let outputPipe = Pipe()
             let inputPipe = Pipe()
 
             process.standardOutput = outputPipe
-            process.standardError = outputPipe
+            process.standardError = errorPipe
             process.standardInput = inputPipe
             process.environment = mergedEnvironment
             process.executableURL = URL(fileURLWithPath: expandedCommand)

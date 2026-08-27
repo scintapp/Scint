@@ -1,183 +1,6 @@
-import Foundation
-import SwiftUI
 import AppKit
+import SwiftUI
 
-
-final class FillSplitView: NSSplitView {
-    var fillDividerColor: NSColor = .clear {
-        didSet { needsDisplay = true }
-    }
-
-    var clipsVerticalDividerToSafeArea = false {
-        didSet { needsDisplay = true }
-    }
-
-    var fillDividerInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0) {
-        didSet { needsDisplay = true }
-    }
-
-    var fillDividerThickness: CGFloat? {
-        didSet {
-            needsLayout = true
-            needsDisplay = true
-        }
-    }
-
-    override var dividerColor: NSColor { fillDividerColor }
-    override var dividerThickness: CGFloat { fillDividerThickness ?? super.dividerThickness }
-
-    override func drawDivider(in rect: NSRect) {
-        fillDividerColor.setFill()
-        dividerVisibleRect(for: rect).fill()
-    }
-
-    func dividerVisibleRect(for rect: NSRect) -> NSRect {
-        insetRect(rect, by: resolvedDividerInsets)
-    }
-
-    func insetRect(_ rect: NSRect, by insets: NSEdgeInsets) -> NSRect {
-        let yInset = isFlipped ? insets.top : insets.bottom
-        return NSRect(
-            x: rect.minX + insets.left,
-            y: rect.minY + yInset,
-            width: max(0, rect.width - insets.left - insets.right),
-            height: max(0, rect.height - insets.top - insets.bottom)
-        )
-    }
-
-    private var resolvedDividerInsets: NSEdgeInsets {
-        var insets = fillDividerInsets
-        if clipsVerticalDividerToSafeArea, isVertical {
-            insets.top = max(insets.top, safeAreaInsets.top)
-        }
-        return insets
-    }
-}
-
-final class SplitHostingView<Content: View>: NSHostingView<Content> {}
-
-struct VSplit<Top: View, Bottom: View>: NSViewRepresentable {
-    @Binding var position: CGFloat
-    @Binding var presented: Bool
-
-    let top: Top
-    let bottom: Bottom
-    let collapsedHeight: CGFloat
-    let minTopHeight: CGFloat
-    let minBottomHeight: CGFloat
-
-    init(
-        _ presented: Binding<Bool>,
-        _ position: Binding<CGFloat>,
-        collapsedHeight: CGFloat = 30,
-        minTopHeight: CGFloat = 0,
-        minBottomHeight: CGFloat = 0,
-        @ViewBuilder top: () -> Top,
-        @ViewBuilder bottom: () -> Bottom
-    ) {
-        _position = position
-        _presented = presented
-        self.collapsedHeight = collapsedHeight
-        self.minTopHeight = minTopHeight
-        self.minBottomHeight = minBottomHeight
-        self.top = top()
-        self.bottom = bottom()
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-
-    func makeNSView(context: Self.Context) -> FillSplitView {
-        let split = FillSplitView()
-        split.isVertical = false
-        split.dividerStyle = .thin
-        split.delegate = context.coordinator
-        split.arrangesAllSubviews = true
-        split.addArrangedSubview(SplitHostingView(rootView: top))
-        split.addArrangedSubview(SplitHostingView(rootView: bottom))
-        return split
-    }
-
-    func updateNSView(_ split: FillSplitView, context: Self.Context) {
-        (split.arrangedSubviews[0] as? SplitHostingView<Top>)?.rootView = top
-        (split.arrangedSubviews[1] as? SplitHostingView<Bottom>)?.rootView = bottom
-        context.coordinator.parent = self
-        context.coordinator.apply(to: split)
-    }
-
-    @MainActor final class Coordinator: NSObject, NSSplitViewDelegate {
-        var parent: VSplit
-        private var lastAppliedPresented: Bool?
-        private var lastBounds: CGFloat = 0
-        private var isCollapsed: Bool { !parent.presented }
-
-        init(_ parent: VSplit) { self.parent = parent }
-
-        func apply(to split: NSSplitView) {
-            guard split.bounds.height > 0, split.arrangedSubviews.count == 2 else { return }
-
-            let total = split.bounds.height
-            let presentedChanged = lastAppliedPresented != parent.presented
-            let boundsChanged = abs(lastBounds - total) > 0.5
-            guard presentedChanged || boundsChanged else { return }
-
-            if presentedChanged, isCollapsed, let prev = lastAppliedPresented, prev == true {
-                let liveBottom = split.arrangedSubviews[1].frame.height
-                if liveBottom > parent.collapsedHeight + 1 {
-                    let saved = max(liveBottom, parent.minBottomHeight)
-                    if abs(parent.position - saved) > 0.5 {
-                        parent.position = saved
-                    }
-                }
-            }
-
-            lastAppliedPresented = parent.presented
-            lastBounds = total
-
-            let divider = split.dividerThickness
-            let savedOpenHeight = max(parent.position, parent.minBottomHeight)
-            let bottomHeight = isCollapsed ? parent.collapsedHeight : savedOpenHeight
-            let topHeight = max(parent.minTopHeight, total - bottomHeight - divider)
-
-            split.setPosition(topHeight, ofDividerAt: 0)
-        }
-
-        func splitViewDidResizeSubviews(_ notification: Notification) {
-            guard let split = notification.object as? NSSplitView else { return }
-            guard split.arrangedSubviews.count == 2 else { return }
-            guard split.bounds.height > 0 else { return }
-            guard parent.presented else { return }
-            let bottomHeight = split.arrangedSubviews[1].frame.height
-            guard bottomHeight > parent.collapsedHeight else { return }
-            let clampedHeight = max(bottomHeight, parent.minBottomHeight)
-            if abs(parent.position - clampedHeight) > 0.5 { parent.position = clampedHeight }
-        }
-
-        func splitView(_ splitView: NSSplitView, canCollapseSubview subview: NSView) -> Bool {
-            false
-        }
-
-        func splitView(_ splitView: NSSplitView, constrainSplitPosition proposedPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
-            let total = splitView.bounds.height
-            let divider = splitView.dividerThickness
-            let minTop = parent.minTopHeight
-            let maxTop = parent.presented
-                ? total - parent.minBottomHeight - divider
-                : total - parent.collapsedHeight - divider
-            return min(max(proposedPosition, minTop), maxTop)
-        }
-
-        func splitView(_ splitView: NSSplitView, effectiveRect proposedEffectiveRect: NSRect, forDrawnRect drawnRect: NSRect, ofDividerAt dividerIndex: Int) -> NSRect {
-            NSRect(
-                x: drawnRect.minX + 250,
-                y: drawnRect.minY,
-                width: max(0, drawnRect.width - 320),
-                height: drawnRect.height + 30
-            )
-        }
-    }
-}
 
 struct HSplitHandle: View {
     let onChanged: (DragGesture.Value) -> Void
@@ -190,7 +13,7 @@ struct HSplitHandle: View {
     var body: some View {
         ZStack(alignment: .leading) {
             Rectangle()
-                .fill(Style.Border.card)
+                .fill(Style.Border.base)
                 .frame(width: 1)
 
             Color.clear
@@ -228,7 +51,7 @@ struct HSplit<Leading: View, Trailing: View>: View {
     private let position: Binding<CGFloat>
     private let leading: Leading
     private let trailing: (HSplitHandle) -> Trailing
-    private let minimumPaneWidth: CGFloat = 280
+    private let minimumPaneWidth: CGFloat = 330
 
     init(
         _ presented: Binding<Bool>,
@@ -296,10 +119,7 @@ struct HSplit<Leading: View, Trailing: View>: View {
 
     private func resize(_ value: DragGesture.Value) {
         guard availableWidth > 0 else { return }
-        if dragStart == nil {
-            dragStart = trailingWidth > 0 ? trailingWidth : position.wrappedValue
-        }
-
+        if dragStart == nil { dragStart = trailingWidth > 0 ? trailingWidth : position.wrappedValue }
         let bounds = trailingBounds(total: availableWidth)
         let width = (dragStart ?? position.wrappedValue) - value.translation.width
         position.wrappedValue = min(max(width, bounds.lowerBound), bounds.upperBound)

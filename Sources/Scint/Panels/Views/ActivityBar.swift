@@ -3,7 +3,7 @@ import SwiftUI
 
 struct ActivityBar: View {
     @Environment(ScintModel.self) var model
-    var ref: Reference { model.studio.session.selected.space ?? model.studio.session.workspace }
+    var ref: Reference { model.studio.session.selected.structure ?? model.studio.session.workspace }
 
     var state: Composition.State {
         guard let context = model.studio.session.origin.context
@@ -23,10 +23,10 @@ struct ActivityBar: View {
 
             VStack {
                 Text(ref.descriptor.name)
-                    .foregroundStyle(Style.Foreground.primary)
+                    .foregroundStyle(Style.Foreground.base)
                     .font(.system(size: 11.5))
                 Text(state.label)
-                    .foregroundStyle(Style.Foreground.tertiary)
+                    .foregroundStyle(Style.Foreground.faint)
                     .font(.system(size: 9))
             }
 
@@ -41,7 +41,7 @@ struct ActivityBar: View {
             }
             .buttonStyle(.bordered)
             .buttonBorderShape(.circle)
-            .foregroundStyle(Style.Foreground.primary)
+            .foregroundStyle(Style.Foreground.base)
         }
     }
 }

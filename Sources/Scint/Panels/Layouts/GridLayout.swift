@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-private enum GridItemRole: Equatable {
+enum GridItemRole: Equatable {
     case item
     case space
     case material(Reference)
@@ -25,14 +25,35 @@ private enum GridItemRole: Equatable {
     }
 }
 
-private struct GridItemRoleKey: ContainerValueKey {
-    static let defaultValue: GridItemRole = .item
+extension ContainerValues {
+    struct Key: ContainerValueKey { static let defaultValue: GridItemRole = .item }
+
+    var gridItem: GridItemRole {
+        get { self[Key.self] }
+        set { self[Key.self] = newValue }
+    }
 }
 
-private extension ContainerValues {
-    var gridItem: GridItemRole {
-        get { self[GridItemRoleKey.self] }
-        set { self[GridItemRoleKey.self] = newValue }
+struct MaterialGlyph: View {
+    let ref: Reference
+    var width: CGFloat = 42
+    var height: CGFloat = 54
+
+    var body: some View {
+        let page = RoundedRectangle(cornerRadius: 6, style: .continuous)
+        let icon = Iconography.icon(for: ref, size: 15)
+        let content = Material.with(ref, { $0.rendered }) ?? ""
+
+        Text(content)
+            .font(.system(size: 3, weight: .light))
+            .lineSpacing(0)
+            .foregroundStyle(.black.opacity(0.9))
+            .padding(4)
+            .frame(width: width, height: height, alignment: .topLeading)
+            .glassEffect(.regular, in: page)
+            .background(page.fill(.primary.opacity(0.9)))
+            .overlay(page.strokeBorder(icon.tint.opacity(0.38), lineWidth: 0.5))
+            .clipShape(page)
     }
 }
 
@@ -45,7 +66,7 @@ struct GridIcon: View {
     let onSelect: () -> Void
     let onOpen: () -> Void
 
-    private let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+    let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
 
     var body: some View {
         VStack {
@@ -61,7 +82,7 @@ struct GridIcon: View {
                 .frame(maxWidth: 112, minHeight: 30, maxHeight: 34, alignment: .top)
         }
         .frame(width: 96, height: 112)
-        .background(shape.fill(focused ? Style.Tint.info.opacity(0.12) : Color.clear))
+        .background(shape.fill(focused ? Style.Tint.space.opacity(0.12) : Color.clear))
         .contentShape(shape)
         .gesture(
             TapGesture(count: 2)
@@ -70,7 +91,7 @@ struct GridIcon: View {
         )
     }
 
-    @ViewBuilder private var glyph: some View {
+    @ViewBuilder var glyph: some View {
         if let ref, ref.type is Material.Type {
             MaterialGlyph(ref: ref)
         } else if let ref {
@@ -78,13 +99,13 @@ struct GridIcon: View {
         } else {
             Iconography.Icon(
                 symbol: image,
-                tint: tint ?? Style.Tint.active,
+                tint: tint ?? Style.Tint.space,
                 sizing: 20
             )
         }
     }
 
-    private func spaceGlyph(_ ref: Reference) -> some View {
+    func spaceGlyph(_ ref: Reference) -> some View {
         let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
         let accent = Iconography.accent(for: ref)
         let refs = previewRefs(for: ref)
@@ -115,16 +136,16 @@ struct GridIcon: View {
         }
         .frame(width: 58, height: 58)
         .clipShape(shape)
-        .glassEffect(.regular.tint(Style.Background.base.opacity(0.4)), in: shape)
+        .glassEffect(.regular, in: shape)
         .overlay(shape.strokeBorder(accent.opacity(0.28), lineWidth: 0.5))
         .contentShape(shape)
     }
 
-    @ViewBuilder private func miniGlyph(at index: Int, refs: [Reference], overflow: Int) -> some View {
+    @ViewBuilder func miniGlyph(at index: Int, refs: [Reference], overflow: Int) -> some View {
         let shape = RoundedRectangle(cornerRadius: 5, style: .continuous)
         let ref = index < refs.count ? refs[index] : nil
         let overflowLabel = index == refs.count && overflow > 0 ? "+\(overflow)" : nil
-        let tint = ref.map { Iconography.accent(for: $0) } ?? Style.Tint.active
+        let tint = ref.map { Iconography.accent(for: $0) } ?? Style.Tint.space
 
         if ref != nil || overflowLabel != nil {
             ZStack {
@@ -152,7 +173,7 @@ struct GridIcon: View {
         }
     }
 
-    private func previewRefs(for ref: Reference) -> [Reference] {
+    func previewRefs(for ref: Reference) -> [Reference] {
         let contents: ([Reference], Reference?)
 
         switch ref.type {
@@ -175,94 +196,10 @@ struct GridIcon: View {
     }
 }
 
-struct MaterialGlyph: View {
-    let ref: Reference
-    var width: CGFloat = 42
-    var height: CGFloat = 54
-
-    var body: some View {
-        let page = RoundedRectangle(cornerRadius: 6, style: .continuous)
-        let icon = Iconography.icon(for: ref, size: 15)
-        let content = Material.with(ref, { $0.rendered }) ?? ""
-
-        Text(content)
-            .font(.system(size: 3, weight: .light))
-            .lineSpacing(0)
-            .foregroundStyle(.black.opacity(0.9))
-            .padding(4)
-            .frame(width: width, height: height, alignment: .topLeading)
-            .glassEffect(.clear, in: page)
-            .background(page.fill(.primary.opacity(0.9)))
-            .overlay(page.strokeBorder(icon.tint.opacity(0.38), lineWidth: 0.5))
-            .clipShape(page)
-    }
-}
-
-//struct MaterialStackIcon: View {
-//    let refs: [Reference]
-//    let expanded: Bool
-//    let onToggle: () -> Void
-//
-//    private let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-//
-//    var body: some View {
-//        Button(action: onToggle) {
-//            VStack {
-//                ZStack {
-//                    ForEach(Array(refs.prefix(3).enumerated().reversed()), id: \.element) { index, ref in
-//                        MaterialGlyph(ref: ref, width: 40, height: 52)
-//                            .rotationEffect(.degrees(rotation(for: index)))
-//                            .offset(x: offset(for: index).width, y: offset(for: index).height)
-//                    }
-//
-//                    if expanded {
-//                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-//                            .fill(Style.Background.base.opacity(0.72))
-//                            .frame(width: 44, height: 36)
-//                            .overlay {
-//                                Image(systemName: "chevron.down")
-//                                    .font(.system(size: 17, weight: .medium))
-//                                    .foregroundStyle(Style.Foreground.primary)
-//                            }
-//                    }
-//                }
-//                .frame(width: 66, height: 66)
-//
-//                Text("Materials\n\(refs.count) items")
-//                    .font(.system(size: 12, weight: .medium))
-//                    .foregroundStyle(.primary.opacity(0.9))
-//                    .multilineTextAlignment(.center)
-//                    .lineLimit(2)
-//                    .frame(maxWidth: 112, minHeight: 30, maxHeight: 34, alignment: .top)
-//            }
-//            .frame(width: 96, height: 112)
-//            .contentShape(shape)
-//        }
-//        .buttonStyle(.plain)
-//        .help(expanded ? "Collapse materials" : "Show \(refs.count) materials")
-//    }
-//
-//    private func rotation(for index: Int) -> Double {
-//        switch index {
-//            case 0: return expanded ? -7 : -4
-//            case 1: return expanded ? 7 : 4
-//            default: return 0
-//        }
-//    }
-//
-//    private func offset(for index: Int) -> CGSize {
-//        switch index {
-//            case 0: return .init(width: -4, height: 1)
-//            case 1: return .init(width: 4, height: 2)
-//            default: return .zero
-//        }
-//    }
-//}
-
 struct GridLayout<Content: View>: View {
-    @State private var expanded = false
+    @State var expanded = false
     @ViewBuilder let content: () -> Content
-    private let gridItem = GridItem(.adaptive(minimum: 128, maximum: 128), spacing: 8, alignment: .topLeading)
+    let gridItem = GridItem(.adaptive(minimum: 128, maximum: 128), spacing: 8, alignment: .topLeading)
 
     init(@ViewBuilder content: @escaping () -> Content) { self.content = content }
 
@@ -271,7 +208,6 @@ struct GridLayout<Content: View>: View {
             let spaces = subviews.filter { $0.containerValues.gridItem == .space }
             let materials = subviews.filter { $0.containerValues.gridItem.isMaterial }
             let items = subviews.filter { $0.containerValues.gridItem == .item }
-            let refs = materials.compactMap(\.containerValues.gridItem.reference)
 
             HStack(alignment: .top, spacing: 8) {
                 if !items.isEmpty {

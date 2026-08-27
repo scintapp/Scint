@@ -60,7 +60,7 @@ final class NetworkServer: @unchecked Sendable {
 
     func start(port: UInt16, handler: @escaping Handler) async throws {
         guard lock.withLock({ listener == nil }) else { return }
-        guard let port = NWEndpoint.Port(rawValue: port) else { throw Server.Error.invalidPort }
+        guard let port = NWEndpoint.Port(rawValue: port) else { throw ContextServer.Error.invalidPort }
 
         let parameters = NWParameters.tcp
         parameters.requiredLocalEndpoint = .hostPort(host: .init("127.0.0.1"), port: port)

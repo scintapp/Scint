@@ -17,7 +17,7 @@ runtime evaluate work in the context of that topology.
 | Term | Meaning in Scint |
 | --- | --- |
 | **Topological** | Context is organized as workspaces with nested spaces, local closures, and bridges between adjacent environments. Position, ownership, and reachability determine what belongs to a process. |
-| **Agentic** | Commands supply executable capabilities; a harness binds a command to contextual parameters and an intent: compose, dispatch, observe, execute, or traverse. |
+| **Agentic** | Commands supply executable capabilities; a harness binds a command to contextual parameters and an intent: compose, dispatch, observe, execute, or search. |
 | **Process composition** | The runtime maps an authored space and its active harness into a live context, evaluates ephemeral intents, and records their durable transcript history. |
 
 The topology is not decorative organization around an otherwise global agent. A

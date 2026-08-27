@@ -3,27 +3,42 @@ import SwiftUI
 
 @Observable final class NavigatorPanel: Panel {
     var state: PanelState = .init(presented: true)
-    var surface: NavigatorSurface = .workspace
+    var surface: PanelSurface = .workspace
 
-    enum NavigatorSurface: String, CaseIterable {
-        case workspace
+    enum PanelSurface: String, CaseIterable {
+        case workspace, activity, library
 
         var label: String { rawValue.capitalized }
-        var image: String { "cube.transparent" }
+
+        var image: String {
+            switch self {
+                case .workspace: "cube.transparent"
+                case .activity: "bell"
+                case .library: "building.classical.columns"
+            }
+        }
     }
 
     func controls(_ model: any Model) -> Controls {
-        WorkspaceNavigator.controls(model)
+        switch surface {
+            case .workspace: WorkspaceNavigator.controls(model)
+            case .activity: TranscriptsList.controls(model)
+            case .library: LibraryNavigator.controls(model)
+        }
     }
 
     func parameters(_ model: any Model) -> Params {
-        WorkspaceNavigator.parameters(model)
+        switch surface {
+            case .workspace: WorkspaceNavigator.parameters(model)
+            case .activity: TranscriptsList.parameters(model)
+            case .library: LibraryNavigator.parameters(model)
+        }
     }
 
     func surface(_ model: any Model) -> some View {
         AnySurface(panel: self, model: model)
-            .scrollEdgeEffectStyle(.soft, for: .top)
-            .safeAreaBar(edge: .top) { Filter(text: state.bindable.filter) }
+            .safeAreaBar(edge: .top) { NavigatorTabs(panel: self) }
+            .toolbar(removing: .sidebarToggle)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) { NavigatorToggle(presented: state.bindable.presented) }
                 ToolbarSpacer(.fixed, placement: .primaryAction)

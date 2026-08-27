@@ -17,17 +17,6 @@ extension PanelState {
     }
 }
 
-struct PanelLayout<Content: View>: View {
-    let content: Content
-
-    init(@ViewBuilder content: () -> Content) { self.content = content() }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) { content }
-            .frame(maxWidth: .infinity)
-    }
-}
-
 struct PanelInput: View {
     @Binding var value: String
     @FocusState var focused: Bool
@@ -44,13 +33,13 @@ struct PanelInput: View {
             HStack(alignment: .center, spacing: 16) {
                 Image(systemName: image)
                     .frame(height: 48, alignment: .center)
-                    .foregroundStyle(Style.Foreground.tertiary)
+                    .foregroundStyle(Style.Foreground.faint)
                     .font(.system(size: 26, weight: .light))
 
                 TextField(placeholder, text: $value)
                     .frame(height: 48, alignment: .center)
                     .padding(.bottom, 2)
-                    .foregroundStyle(Style.Foreground.tertiary)
+                    .foregroundStyle(Style.Foreground.faint)
                     .font(.system(size: 28, weight: .light))
                     .textFieldStyle(.plain)
                     .onKeyPress(.upArrow) { onUpArrow() }
@@ -105,13 +94,13 @@ struct PanelModes: View {
                         Text(item.name)
                             .font(.system(size: 11, weight: active ? .medium : .regular))
                     }
-                    .foregroundStyle(active ? Style.Foreground.primary : Style.Foreground.tertiary)
+                    .foregroundStyle(active ? Style.Foreground.base : Style.Foreground.faint)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .contentShape(Style.Shape.tab)
+                    .contentShape(Style.Shape.panel)
                     .background(
-                        Style.Shape.tab
-                            .fill(active ? Style.Foreground.accent.opacity(0.4) : Color.clear)
+                        Style.Shape.panel
+                            .fill(active ? Color.accentColor.opacity(0.4) : Color.clear)
                     )
                 }
                 .buttonStyle(.plain)
@@ -132,42 +121,33 @@ struct PanelRow: View {
     private var active: Bool { cursor == params.id || selected }
 
     var body: some View {
-        HStack(alignment: .center) {
+        RowLayout(
+            title: Text(params.name)
+                .font(.system(size: 16, weight: active ? .medium : .regular))
+                .foregroundColor(
+                    active
+                    ? Style.Foreground.base
+                    : Style.Foreground.muted
+                ),
+            detail: params.description.isEmpty ? nil : Text(params.description)
+                .font(.system(size: 13))
+                .foregroundColor(Style.Foreground.faint)
+        ) {
             Iconography.Icon(
                 symbol: params.image.isEmpty ? "square.stack.3d.up" : params.image,
-                tint: params.tint ?? Style.Tint.active,
+                tint: params.tint ?? Style.Tint.space,
                 sizing: 20,
                 selected: active
             )
                 .frame(width: 34, height: 34, alignment: .center)
                 .padding(.leading, 2)
                 .padding(.trailing, 6)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(params.name)
-                    .font(.system(size: 16, weight: active ? .medium : .regular))
-                    .foregroundStyle(
-                        active
-                        ? Style.Foreground.primary
-                        : Style.Foreground.secondary
-                    )
-                    .lineLimit(1)
-
-                if !params.description.isEmpty {
-                    Text(params.description)
-                        .font(.system(size: 13))
-                        .foregroundStyle(Style.Foreground.tertiary)
-                        .lineLimit(1)
-                }
-            }
-
-            Spacer()
-
+        } trailing: {
             if active {
                 Image(systemName: "return")
                     .padding(.trailing, 8)
                     .font(.system(size: 13))
-                    .foregroundStyle(Style.Foreground.tertiary)
+                    .foregroundStyle(Style.Foreground.faint)
             }
         }
         .padding(.horizontal, 12)
@@ -179,7 +159,7 @@ struct PanelRow: View {
             RoundedRectangle(cornerRadius: 17, style: .continuous)
                 .fill(
                     active
-                    ? Style.Foreground.accent.opacity(0.6)
+                    ? Color.accentColor.opacity(0.6)
                     : Color.clear
                 )
         )
@@ -203,13 +183,13 @@ struct PanelDetail<Content: View>: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(params.name)
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(Style.Foreground.primary)
+                        .foregroundStyle(Style.Foreground.base)
                         .lineLimit(1)
 
                     if !params.description.isEmpty {
                         Text(params.description)
                             .font(.system(size: 13))
-                            .foregroundStyle(Style.Foreground.tertiary)
+                            .foregroundStyle(Style.Foreground.faint)
                             .lineLimit(2)
                     }
                 }
@@ -218,10 +198,10 @@ struct PanelDetail<Content: View>: View {
 
                 Text("esc")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Style.Foreground.tertiary)
+                    .foregroundStyle(Style.Foreground.faint)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(Style.Shape.tab.fill(.tertiary.opacity(0.25)))
+                    .background(Style.Shape.panel.fill(.tertiary.opacity(0.25)))
             }
             .padding(.horizontal, 22)
             .padding(.vertical, 16)
@@ -236,6 +216,7 @@ struct PanelDetail<Content: View>: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 8)
             }
+
         }
     }
 }
@@ -248,7 +229,7 @@ struct PanelPin: View {
         Button(action: onToggle) {
             Image(systemName: pinned ? "pin.fill" : "pin")
                 .font(.system(size: 11))
-                .foregroundStyle(pinned ? Style.Foreground.primary : Style.Foreground.tertiary)
+                .foregroundStyle(pinned ? Style.Foreground.base : Style.Foreground.faint)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
         }
@@ -274,5 +255,16 @@ struct PanelShortcuts: View {
         }
         .frame(width: 0, height: 0)
         .opacity(0)
+    }
+}
+
+struct PanelLayout<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) { content }
+            .frame(maxWidth: .infinity)
     }
 }

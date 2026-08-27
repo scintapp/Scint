@@ -26,12 +26,14 @@ extension Resolvable {
 
     var rendered: String { "" }
 
-    @discardableResult static func with<R>(_ ref: Reference,_ body: (Self) throws -> R) rethrows -> R? {
+    @discardableResult
+    static func with<R>(_ ref: Reference,_ body: (Self) throws -> R) rethrows -> R? {
         if ref.type is any Structural.Type { try Workspaces.shared.store(for: ref)?.with(ref, as: Self.self, body) }
         else { try Library.shared.store(for: ref)?.with(ref, as: Self.self, body) }
     }
 
-    @discardableResult static func update<R>(_ ref: Reference,_ body: (inout Self) throws -> R) rethrows -> R? {
+    @discardableResult
+    static func update<R>(_ ref: Reference,_ body: (inout Self) throws -> R) rethrows -> R? {
         if ref.type is any Structural.Type { try Workspaces.shared.store(for: ref)?.update(ref, as: Self.self, body) }
         else { try Library.shared.store(for: ref)?.update(ref, as: Self.self, body) }
     }
@@ -42,12 +44,23 @@ extension Keyable {
 }
 
 extension Structural {
-    static func new(_ name: String, owner: Reference? = nil) -> Reference {
+    var composition: Composition? { Composer.shared.resolve(ref) }
+    var artifacts: [Reference] { Closure.with(closure, { $0 })?.artifacts ?? [] }
+    var commands: [Reference] { Closure.with(closure, { $0 })?.commands ?? [] }
+    var harnesses: [Reference] { Closure.with(closure, { $0 })?.harnesses ?? [] }
+    var materials: [Reference] { Closure.with(closure, { $0 })?.materials ?? [] }
+    var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
+    var directories: [Reference] { Closure.with(closure, { $0 })?.directories ?? [] }
+    var sections: [Reference] { artifacts + commands + harnesses + materials + transcripts }
+    var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
+    var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
+
+    static func new(_ name: String, origin: Reference? = nil) -> Reference {
         var instance = Space(.init(Self.self))
         Descriptor.new(instance.ref, name: name, tags: [])
         instance.closure = Closure.new(name, owner: instance.ref)
         Workspaces.shared.add(instance.ref, instance)
-        if let owner { Space.update(instance.ref) { $0.attach(to: owner) } }
+        if let origin { Space.update(instance.ref) { $0.attach(to: origin) } }
         return instance.ref
     }
 }

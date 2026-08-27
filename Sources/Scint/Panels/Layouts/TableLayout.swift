@@ -12,13 +12,13 @@ struct TableRow: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(title)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Style.Foreground.primary)
+                    .foregroundStyle(Style.Foreground.base)
                     .lineLimit(1)
 
                 if !description.isEmpty {
                     Text(description)
                         .font(.system(size: 11))
-                        .foregroundStyle(Style.Foreground.tertiary)
+                        .foregroundStyle(Style.Foreground.faint)
                         .lineLimit(1)
                 }
             }

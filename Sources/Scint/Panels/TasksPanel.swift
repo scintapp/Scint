@@ -3,19 +3,13 @@ import SwiftUI
 
 @Observable final class TasksPanel: Panel {
     var state: PanelState = .init()
-    var surface: TasksSurface = .composer
+    var surface: PanelSurface = .tasks
 
-    enum TasksSurface: String, CaseIterable, Identifiable {
-        case composer, editor
-
+    enum PanelSurface: String, CaseIterable, Identifiable {
+        case tasks
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
-        var symbol: String {
-            switch self {
-                case .composer: "square.fill.text.grid.1x2"
-                case .editor: "square.and.pencil"
-            }
-        }
+        var symbol: String { "checkmark.app" }
     }
 
     func parameters(_ model: any Model) -> Params {
@@ -31,7 +25,7 @@ import SwiftUI
     }
 
     func surface(_ model: any Model) -> some View {
-        ComposeSurface(panel: self, model: model)
+        TasksSurface(panel: self, model: model)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

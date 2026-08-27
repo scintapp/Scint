@@ -20,7 +20,7 @@ enum ReferenceTransfer {
     }
 
     static func handle(_ providers: [NSItemProvider], target: ItemParams) -> Bool {
-        guard canDrop(on: target), let owner = target.ref else { return false }
+        guard canDrop(on: target), let origin = target.ref else { return false }
         var accepted = false
 
         for provider in providers {
@@ -29,7 +29,7 @@ enum ReferenceTransfer {
                 provider.loadDataRepresentation(forTypeIdentifier: type.identifier) { data, _ in
                     guard let data, let payload = try? JSONDecoder().decode(Payload.self, from: data) else { return }
                     Task { @MainActor in
-                        if move(payload.ref, from: payload.origin, to: owner) { await Runtime.shared.save() }
+                        if move(payload.ref, by: payload.origin, to: origin) { await Runtime.shared.save() }
                     }
                 }
                 break
@@ -73,8 +73,8 @@ enum ReferenceTransfer {
         }
     }
 
-    static func canPaste(_ refs: [Reference], move: Bool, to owner: Reference) -> Bool {
-        !refs.contains(owner) && (move || refs.allSatisfy(canShare))
+    static func canPaste(_ refs: [Reference], move: Bool, to origin: Reference) -> Bool {
+        !refs.contains(origin) && (move || refs.allSatisfy(canShare))
     }
 
     static func canShare(_ ref: Reference) -> Bool {
@@ -93,12 +93,12 @@ enum ReferenceTransfer {
     }
 
     @discardableResult
-    static func paste(_ refs: [Reference], from origin: Reference?, move: Bool, to owner: Reference) -> Reference? {
+    static func paste(_ refs: [Reference], by: Reference?, move: Bool, to origin: Reference) -> Reference? {
         var pasted: Reference?
         for ref in refs {
             if move {
-                if Self.move(ref, from: origin, to: owner) { pasted = ref }
-            } else if canShare(ref), attach(ref, to: owner) {
+                if Self.move(ref, by: origin, to: origin) { pasted = ref }
+            } else if canShare(ref), attach(ref, to: origin) {
                 pasted = ref
             }
         }
@@ -132,22 +132,22 @@ enum ReferenceTransfer {
         return create ? Artifact.register(item.name, path) : ref
     }
 
-    private static func move(_ ref: Reference, from origin: Reference?, to owner: Reference) -> Bool {
-        guard ref != owner else { return false }
-        if ref.type is Space.Type, contains(ref, owner) { return false }
+    private static func move(_ ref: Reference, by: Reference?, to origin: Reference) -> Bool {
+        guard ref != origin else { return false }
+        if ref.type is Space.Type, contains(ref, origin) { return false }
         detach(ref, from: origin)
-        return attach(ref, to: owner)
+        return attach(ref, to: origin)
     }
 
-    private static func attach(_ ref: Reference, to owner: Reference) -> Bool {
+    private static func attach(_ ref: Reference, to origin: Reference) -> Bool {
         switch ref.type {
             case is Space.Type:
-                return Space.update(ref) { $0.attach(to: owner) } != nil
+                return Space.update(ref) { $0.attach(to: origin) } != nil
             case is Artifact.Type, is Material.Type, is Transcript.Type, is any Functional.Type:
-                if let space = Space.with(owner, { $0 }) { space.add(ref) }
-                else if let workspace = Workspace.with(owner, { $0 }) { workspace.add(ref) }
+                if let space = Space.with(origin, { $0 }) { space.add(ref) }
+                else if let workspace = Workspace.with(origin, { $0 }) { workspace.add(ref) }
                 else { return false }
-                if ref.type is Material.Type { Material.update(ref) { $0.owner = owner } }
+                if ref.type is Material.Type { Material.update(ref) { $0.origin = origin } }
                 return true
             default:
                 return false

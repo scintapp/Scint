@@ -1,109 +1,101 @@
 import SwiftUI
 
 
-struct Separator: View {
+struct DetailRow: View {
+    @State private var isHovered = false
+    var ref: Reference
+    var detail: String
+    var selected: Bool
+    var onSelect: () -> Void
+
     var body: some View {
-        Rectangle()
-            .fill(Style.Border.card)
-            .frame(height: 0.5)
+        Button(action: onSelect) {
+            RowLayout(
+                title: Text(ref.descriptor.name)
+                    .font(Typography.row.weight(.medium))
+                    .foregroundColor(Style.Foreground.base),
+                detail: detail.isEmpty ? nil : Text(detail)
+                    .font(.system(size: 11))
+                    .foregroundColor(Style.Foreground.faint),
+                detailLineLimit: 2,
+                spacing: 10,
+                spacerMinLength: 0
+            ) {
+                Iconography.icon(for: ref, size: 13)
+                    .frame(width: 20, height: 20)
+            } trailing: {}
+                .padding(.horizontal, 8)
+                .padding(.vertical, 7)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    Style.Shape.medium
+                        .fill(Style.Background.raised)
+                        .stroke(Style.Border.raised, lineWidth: 0.5, antialiased: true)
+                }
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
     }
 }
 
 struct DetailHeader: View {
-    var model: any Model
+    let ref: Reference
 
     var body: some View {
-        HStack {
-            Text("Context")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Style.Foreground.primary)
+        let name = ref.descriptor.name
+        let description = ref.descriptor.description
 
-            if let harness = model.session.origin.context?.harness {
-                HStack {
-                    Iconography.icon(for: harness, size: 10)
-                    Text(harness.descriptor.name)
-                        .font(Typography.label)
-                        .lineLimit(1)
-                }
-                .foregroundStyle(Style.Foreground.tertiary)
-            }
-        }
-    }
-}
+        VStack(alignment: .leading) {
+            HStack(alignment: .center) {
+                Iconography
+                    .icon(for: ref, size: 16)
+                    .frame(alignment: .leading)
+                    .padding(.top, 10)
+                    .padding(.trailing, 4)
 
-struct DetailRow: View {
-    let name: String
-    let detail: String
-    let symbol: String
-    let tint: Color
-
-    private let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
-
-    init(name: String, detail: String, symbol: String, tint: Color) {
-        self.name = name
-        self.detail = detail
-        self.symbol = symbol
-        self.tint = tint
-    }
-
-    init(ref: Reference, detail: String) {
-        let icon = Iconography.icon(for: ref)
-        self.init(name: ref.descriptor.name, detail: detail, symbol: icon.symbol, tint: icon.tint)
-    }
-
-    var body: some View {
-        HStack {
-            Iconography.Icon(symbol: symbol, tint: tint, sizing: 12)
-                .frame(width: 28, height: 28)
-                .background(shape.fill(tint.opacity(0.10)))
-
-            VStack(alignment: .leading, spacing: 2) {
                 Text(name)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Style.Foreground.primary)
-                    .lineLimit(1)
+                    .frame(alignment: .leading)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Style.Foreground.base)
+                    .padding(.top, 10)
+            }
 
-                Text(detail)
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(Style.Foreground.tertiary)
-                    .lineLimit(1)
+            Divider()
+
+            VStack(alignment: .center) {
+                Text(description.isEmpty ? "Add a description..." : description)
+                    .frame(alignment: .leading)
+                    .foregroundStyle(
+                        description.isEmpty ? Style.Foreground.faint : Style.Foreground.subtle
+                    )
+                    .font(.system(size: 12))
+                    .padding(.vertical, 4)
             }
         }
-        .frame(minHeight: 34)
-        .contentShape(Rectangle())
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 10)
+        .background(Style.Shape.medium.fill(Style.Background.raised))
+        .overlay(Style.Shape.medium.stroke(Style.Border.raised, lineWidth: 1))
     }
 }
+
 
 struct DetailSection<Content: View>: View {
-    let title: String
-    let count: Int?
-    @ViewBuilder let content: () -> Content
-
-    init(_ title: String, count: Int? = nil, @ViewBuilder content: @escaping () -> Content) {
-        self.title = title
-        self.count = count
-        self.content = content
-    }
+    var title: String
+    var count: Int
+    @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text(title)
-                    .font(Typography.label)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Style.Foreground.tertiary)
+        VStack(alignment: .leading, spacing: 8) { content() }
+            .padding(4)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
 
-                if let count, count > 0 {
-                    Text("\(count)")
-                        .font(Typography.label)
-                        .foregroundStyle(Style.Foreground.disabled)
-                }
-
-                Spacer(minLength: 0)
+            .background {
+                Style.Shape.medium
+                    .fill(Style.Background.raised)
+                    .stroke(Style.Border.raised, lineWidth: 0.5, antialiased: true)
             }
-
-            content()
-        }
     }
 }
 
@@ -111,74 +103,92 @@ struct DetailSurface: Surface {
     var panel: any Panel
     var model: any Model
 
-    var context: Composition? { model.session.origin.context }
-    var transcript: Reference? { context?.intentTranscript }
+    var origin: Reference { model.session.origin }
 
     var materials: [Reference] {
-        Space.with(model.session.origin, { $0.materials }) ?? Workspace.with(model.session.origin, { $0.materials }) ?? []
-            .filter { $0.descriptor.published != false && !$0.descriptor.tags.contains("input") }
+        model.session.materials.filter {
+            $0.descriptor.published != false && !$0.descriptor.tags.contains("input")
+        }
     }
 
     var spaces: [Reference] {
-        let refs = Space.with(model.session.origin, { $0.spaces }) ?? Workspace.with(model.session.origin, { $0.spaces }) ?? []
+        let refs = Space.with(origin, { Array($0.spaces) })
+        ?? Workspace.with(origin, { Array($0.spaces) })
+        ?? []
+
         return refs
             .filter { $0.descriptor.published != false }
-            .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
+            .sorted {
+                $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
+            }
     }
 
-    var status: String {
-        switch context?.state {
-            case .working: return "Running"
-            case .active: return "Active"
-            case .inactive: return "Idle"
-            case nil: return "Ready"
-        }
-    }
-
-    func detail(for ref: Reference) -> String {
-        let description = ref.descriptor.description.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !description.isEmpty { return description }
-
-        switch ref.type {
-            case is Artifact.Type: return Artifact.with(ref, { $0.handler.directory }) == true ? "Directory" : "File"
-            case is Material.Type: return "Material"
-            case is Space.Type: return "Space"
-            default: return ref.descriptor.name
-        }
+    func detail(for transcript: Reference) -> String {
+        var calendar: Calendar { .autoupdatingCurrent }
+        let date = transcript.descriptor.created
+        let day: String
+        if calendar.isDateInToday(date) { day = "Today" }
+        else if calendar.isDateInYesterday(date) { day = "Yesterday" }
+        else { day = date.formatted(.dateTime.month(.abbreviated).day()) }
+        return "\(day), \(date.formatted(date: .omitted, time: .shortened))"
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                DetailHeader(model: model)
+            LazyVStack(alignment: .leading, spacing: 16) {
+                DetailHeader(ref: origin)
 
-                if let transcript {
-                    DetailSection("Activity") { DetailRow(ref: transcript, detail: status) }
-                }
+                //                if !transcripts.isEmpty {
+                //                    DetailSection(title: "Transcripts", count: transcripts.count) {
+                //                        ForEach(transcripts) { transcript in
+                //                            DetailRow(
+                //                                ref: transcript,
+                //                                detail: detail(for: transcript),
+                //                                selected: model.session.transcript == transcript,
+                //                                onSelect: {
+                //                                    model.open(transcript)
+                //                                    model.select(transcript)
+                //                                }
+                //                            )
+                //                        }
+                //                    }
+                //                }
 
                 if !spaces.isEmpty {
-                    Separator()
-
-                    DetailSection("Spaces", count: spaces.count) {
-                        ForEach(spaces.prefix(5)) { ref in
-                            DetailRow(ref: ref, detail: detail(for: ref))
+                    DetailSection(title: "Spaces", count: spaces.count) {
+                        ForEach(spaces) { space in
+                            DetailRow(
+                                ref: space,
+                                detail: space.descriptor.description,
+                                selected: model.session.selected.selected(space),
+                                onSelect: {
+                                    model.select(space)
+                                }
+                            )
                         }
                     }
                 }
 
                 if !materials.isEmpty {
-                    Separator()
-
-                    DetailSection("Sources", count: materials.count) {
-                        ForEach(materials.prefix(6)) { ref in
-                            DetailRow(ref: ref, detail: detail(for: ref))
+                    DetailSection(title: "Materials", count: materials.count) {
+                        ForEach(materials) { material in
+                            DetailRow(
+                                ref: material,
+                                detail: material.descriptor.description,
+                                selected: model.session.material == material,
+                                onSelect: {
+                                    model.open(material)
+                                    model.select(material)
+                                }
+                            )
                         }
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
+            .padding([.horizontal, .top], 24)
         }
-        .frame(maxWidth: 300, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: 340, maxHeight: .infinity, alignment: .top)
         .scrollEdgeEffectStyle(.hard, for: .top)
     }
 }

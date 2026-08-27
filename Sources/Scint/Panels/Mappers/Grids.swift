@@ -26,11 +26,11 @@ struct SpaceGrid: Mapper {
                 else { model.open(ref) }
             },
             surfacePalette: {
-                guard let owner = model.session.selected.space else { return [] }
+                guard let owner = model.session.selected.structure else { return [] }
                 return Action.surfaceItems(for: owner)
             },
             surfaceDropTarget: {
-                model.session.selected.space.map { .init(ref: $0, name: $0.descriptor.name) }
+                model.session.selected.structure.map { .init(ref: $0, name: $0.descriptor.name) }
             },
             itemPalette: { item in
                 Action.itemItems(for: item)
@@ -59,7 +59,7 @@ struct SpaceGrid: Mapper {
             .compactMap { material in
                     .init(
                         ref: material,
-                        origin: Material.with(material, { $0.owner }),
+                        origin: Material.with(material, { $0.origin }),
                         name: material.descriptor.name,
                         image: Iconography.icon(for: material).symbol
                     )

@@ -18,8 +18,8 @@ private struct Float<Content: View>: View {
     var body: some View {
         content
             .glassEffect(.regular, in: Style.Shape.panel)
-            .background(Style.Background.panel)
-            .overlay(Style.Shape.panel.stroke(.black.opacity(0.5), lineWidth: 0.5))
+            .background(Style.Background.overlay.opacity(Style.Opacity.faint))
+            .overlay(Style.Shape.panel.stroke(.black.opacity(Style.Opacity.muted), lineWidth: 1))
             .clipShape(Style.Shape.panel)
     }
 }
@@ -204,20 +204,24 @@ final class FloatingPanel: NSPanel {
     func toggle() { controller.toggle() }
 }
 
-@Observable @MainActor final class Controller {
+@Observable @MainActor final class PanelManager {
     private(set) var coordinators: OrderedDictionary<AnyHashable, PanelCoordinator> = [:]
 
     let actions: ActionsPanel = .init()
-    let assistant: AssistantPanel = .init()
-    let outline: OutlinePanel = .init()
     let search: SearchPanel = .init()
+    let assistant: AssistantPanel = .init()
+    let detail: DetailPanel = .init()
+    let editor: EditorPanel = .init()
+    let outline: OutlinePanel = .init()
     let tasks: TasksPanel = .init()
 
     func panel(for key: PanelKey) -> any Panel {
         switch key {
             case .actions: actions
+            case .detail: detail
             case .assistant: assistant
             case .outline: outline
+            case .editor: editor
             case .search: search
             case .tasks: tasks
         }

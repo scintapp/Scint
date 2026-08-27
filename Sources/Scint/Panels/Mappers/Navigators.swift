@@ -65,24 +65,6 @@ struct WorkspaceNavigator: Mapper {
             header: true,
             sections: [
                 .init(
-                    id: "running",
-                    name: "Running",
-                    header: true,
-                    items: RunningList
-                        .parameters(model)
-                        .sections
-                        .flatMap { $0.items }
-                ),
-                .init(
-                    id: "scheduled",
-                    name: "Scheduled",
-                    header: true,
-                    items: ScheduledList
-                        .parameters(model)
-                        .sections
-                        .flatMap { $0.items }
-                ),
-                .init(
                     id: "spaces",
                     name: "Spaces",
                     header: true,

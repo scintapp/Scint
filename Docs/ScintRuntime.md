@@ -175,7 +175,7 @@ The five intent cases are semantic vocabulary as much as implementation:
 | `dispatch` | Invoke a command-shaped operation in context | Uses the same harness start path |
 | `observe` | Remain active and react to changes in reachable context | Establishes an active intent; observation and reaction are currently stubs |
 | `execute` | Run an executable capability in context | Starts the selected harness as a managed process |
-| `traverse` | Carry work through the route graph | Currently returns completion immediately |
+| `search` | Carry work through the route graph | Currently returns completion immediately |
 
 Keeping these cases distinct preserves the intended process grammar even while several
 behaviors share a small implementation.

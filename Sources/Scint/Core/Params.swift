@@ -4,7 +4,6 @@ import SwiftUI
 struct ItemParams: Hashable, Identifiable {
     let ref: Reference?
     let key: String?
-    let owner: Reference?
     let origin: Reference?
     let path: URL?
     let entryId: UUID?
@@ -26,7 +25,6 @@ struct ItemParams: Hashable, Identifiable {
     init(
         ref: Reference? = nil,
         key: String? = nil,
-        owner: Reference? = nil,
         origin: Reference? = nil,
         path: URL? = nil,
         entryId: UUID? = nil,
@@ -45,7 +43,6 @@ struct ItemParams: Hashable, Identifiable {
     ) {
         self.ref = ref
         self.key = key
-        self.owner = owner
         self.origin = origin
         self.path = path
         self.entryId = entryId

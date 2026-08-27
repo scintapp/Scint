@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 
-private struct InlinePattern {
+struct InlinePattern {
     let regex: NSRegularExpression
     let attrs: [NSAttributedString.Key: Any]
     let delimLength: Int
@@ -24,25 +24,23 @@ struct Theme: @unchecked Sendable {
     var checkboxCheckedColor: NSColor
     var checkboxUncheckedColor: NSColor
     var syntaxHiddenColor: NSColor
-    var listIndent: CGFloat
 
     static let dark = Theme(
-        textColor: NSColor(Style.Foreground.text),
-        caretColor: NSColor(Style.Foreground.accent),
+        textColor: NSColor(Style.Foreground.base),
+        caretColor: NSColor(Color.accentColor),
         caretWidth: 2,
         caretHeight: 20,
-        baseFont: .systemFont(ofSize: 14.6, weight: .regular),
-        h1Font: .systemFont(ofSize: 24, weight: .heavy),
-        h2Font: .systemFont(ofSize: 21, weight: .bold),
-        h3Font: .systemFont(ofSize: 18, weight: .semibold),
-        codeFont: .monospacedSystemFont(ofSize: 14.6, weight: .regular),
-        codeBgColor: NSColor.white.withAlphaComponent(0.066),
-        codeFenceColor: NSColor.white.withAlphaComponent(0.28),
-        bulletColor: NSColor.white.withAlphaComponent(0.38),
+        baseFont: Typography.Prose.appKitText,
+        h1Font: Typography.Prose.appKitHeading(1),
+        h2Font: Typography.Prose.appKitHeading(2),
+        h3Font: Typography.Prose.appKitHeading(3),
+        codeFont: Typography.Prose.appKitCode,
+        codeBgColor: NSColor.white.withAlphaComponent(Style.Opacity.muted),
+        codeFenceColor: NSColor.white.withAlphaComponent(Style.Opacity.washed),
+        bulletColor: NSColor.white.withAlphaComponent(Style.Opacity.faint),
         checkboxCheckedColor: NSColor.white.withAlphaComponent(0.62),
         checkboxUncheckedColor: NSColor.white.withAlphaComponent(0.38),
-        syntaxHiddenColor: .clear,
-        listIndent: 54
+        syntaxHiddenColor: .clear
     )
 }
 
@@ -55,13 +53,10 @@ final class EditorThemer: NSObject {
     private lazy var inlinePatterns = Self.inlinePatterns(for: theme)
 
     private var baseAttributes: [NSAttributedString.Key: Any] {
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineSpacing = 6
-        paragraph.paragraphSpacing = 0
         return [
             .font: theme.baseFont,
             .foregroundColor: theme.textColor,
-            .paragraphStyle: paragraph,
+            .paragraphStyle: Typography.Prose.paragraphStyle,
         ]
     }
 
@@ -114,7 +109,8 @@ final class EditorThemer: NSObject {
                 if insideFence {
                     textStorage.addAttributes([
                         .font: theme.codeFont,
-                        .foregroundColor: theme.textColor.withAlphaComponent(0.86),
+                        .foregroundColor: theme.textColor
+                            .withAlphaComponent(Style.Opacity.disabled)
                     ], range: lineRange)
                 } else {
                     styleLine(textStorage, kind: kind, lineRange: lineRange)
@@ -132,7 +128,7 @@ final class EditorThemer: NSObject {
         let string = (textStorage.string as NSString).substring(with: range)
         let hideAttrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: theme.syntaxHiddenColor,
-            .font: NSFont.systemFont(ofSize: 0.1),
+            .font: Typography.Prose.appKitSyntaxHidden,
         ]
 
         for pattern in inlinePatterns {
@@ -214,7 +210,6 @@ final class EditorThemer: NSObject {
     }
 
     private func styleHeading(_ textStorage: NSMutableAttributedString, level: Int, contentStart: Int, lineRange: NSRange) {
-        let spacing: CGFloat = 6
         let font: NSFont
 
         switch level {
@@ -226,11 +221,10 @@ final class EditorThemer: NSObject {
             font = theme.h3Font
         }
 
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineSpacing = 6
-        paragraph.paragraphSpacingBefore = spacing
-        paragraph.paragraphSpacing = 0
-        textStorage.addAttributes([.paragraphStyle: paragraph], range: lineRange)
+        textStorage.addAttributes(
+            [.paragraphStyle: Typography.Prose.headingParagraphStyle(level)],
+            range: lineRange
+        )
 
         let contentRange = NSRange(
             location: lineRange.location + contentStart,
@@ -242,7 +236,7 @@ final class EditorThemer: NSObject {
         }
 
         textStorage.addAttributes(
-            [.foregroundColor: theme.syntaxHiddenColor, .font: NSFont.systemFont(ofSize: 0.1)],
+            [.foregroundColor: theme.syntaxHiddenColor, .font: Typography.Prose.appKitSyntaxHidden],
             range: NSRange(location: lineRange.location, length: min(contentStart, lineRange.length))
         )
     }
@@ -268,7 +262,7 @@ final class EditorThemer: NSObject {
         textStorage.addAttributes([.paragraphStyle: listParagraphStyle()], range: lineRange)
         guard lineRange.length >= contentStart else { return }
         textStorage.addAttributes(
-            [.foregroundColor: theme.syntaxHiddenColor, .font: NSFont.systemFont(ofSize: 0.1)],
+            [.foregroundColor: theme.syntaxHiddenColor, .font: Typography.Prose.appKitSyntaxHidden],
             range: NSRange(location: lineRange.location, length: 2)
         )
         textStorage.addAttributes([
@@ -289,14 +283,9 @@ final class EditorThemer: NSObject {
     }
 
     private func styleQuote(_ textStorage: NSMutableAttributedString, contentStart: Int, lineRange: NSRange) {
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.headIndent = 0
-        paragraph.firstLineHeadIndent = 0
-        paragraph.lineSpacing = 6
-        paragraph.paragraphSpacing = 12
         textStorage.addAttributes([
-            .paragraphStyle: paragraph,
-            .foregroundColor: theme.textColor.withAlphaComponent(0.72),
+            .paragraphStyle: Typography.Prose.quoteParagraphStyle,
+            .foregroundColor: theme.textColor.withAlphaComponent(Style.Opacity.muted),
         ], range: lineRange)
         textStorage.addAttributes(
             [.foregroundColor: theme.bulletColor],
@@ -309,13 +298,7 @@ final class EditorThemer: NSObject {
     }
 
     private func listParagraphStyle() -> NSParagraphStyle {
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.headIndent = theme.listIndent
-        paragraph.firstLineHeadIndent = 0
-        paragraph.lineSpacing = 6
-        paragraph.paragraphSpacing = 0
-        paragraph.tabStops = [NSTextTab(textAlignment: .left, location: theme.listIndent)]
-        return paragraph
+        Typography.Prose.listParagraphStyle
     }
 
     private static func inlinePatterns(for theme: Theme) -> [InlinePattern] {

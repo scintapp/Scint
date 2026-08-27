@@ -84,7 +84,7 @@ struct Serialization {
         var root = start
         var depth = 0
         while depth < 64,
-              let owner = Transcript.with(root, { $0.owner }),
+              let owner = Transcript.with(root, { $0.origin }),
               owner.type == Transcript.self {
             root = owner
             depth += 1

@@ -20,32 +20,33 @@ enum Focus: Codable, Equatable, Sendable {
 }
 
 struct Open: Codable, Equatable, Sendable {
-    var materials: [Reference] = []
+    var material: Reference?
+    var transcript: Reference?
+
     var resolved: Value {
-        .collection([ "materials": .sequence(materials.map(Value.reference)) ])
+        if let material { .collection([ "material": .reference(material)]) }
+        else { .collection([ "material": .bool(false)]) }
     }
 
-    @discardableResult
-    mutating func open(_ ref: Reference) -> Bool {
+    mutating func open(_ ref: Reference) {
         switch ref.type {
-            case is Material.Type:
-                if !materials.contains(ref) { materials.append(ref) }
-                return true
-            default:
-                return false
+            case is Material.Type: material = ref
+            case is Transcript.Type: transcript = ref
+            default: break
         }
     }
 
-    @discardableResult
-    mutating func close(_ ref: Reference) -> Bool {
-        let materialsCount = materials.count
-        materials.removeAll { $0 == ref }
-        return materials.count != materialsCount
+    mutating func close(_ ref: Reference) {
+        switch ref.type {
+            case is Material.Type: if material == ref { material = nil }
+            case is Transcript.Type: if transcript == ref { transcript = nil }
+            default: break
+        }
     }
 }
 
 struct Selection: Codable, Equatable, Sendable {
-    var space: Reference?
+    var structure: Reference?
     var interface: Reference?
     var content: Reference?
     var entry: UUID?
@@ -55,7 +56,7 @@ struct Selection: Codable, Equatable, Sendable {
 
     var resolved: Value {
         var values: [String: Value] = [:]
-        if let space { values["structure"] = .reference(space) }
+        if let structure { values["structure"] = .reference(structure) }
         if let interface { values["interface"] = .reference(interface) }
         if let content { values["content"] = .reference(content) }
         if let entry { values["entry"] = .string(entry.uuidString) }
@@ -65,11 +66,10 @@ struct Selection: Codable, Equatable, Sendable {
 
     func selected(_ ref: Reference) -> Bool {
         switch ref.type {
-            case is Workspace.Type, is Space.Type: return space == ref
-            case is any Functional.Type: return interface == ref && entry == nil && url == nil
-            case is Transcript.Type: return false
-            case is any Malleable.Type: return content == ref && entry == nil && url == nil
-            default: return false
+            case is any Structural.Type: structure == ref
+            case is any Functional.Type: interface == ref && entry == nil && url == nil
+            case is any Malleable.Type: content == ref && entry == nil && url == nil
+            default: false
         }
     }
 
@@ -83,22 +83,22 @@ struct Selection: Codable, Equatable, Sendable {
         return (content == ref || interface == ref) && self.url == url
     }
 
-    func selecting(_ ref: Reference, entry: UUID? = nil, url: URL? = nil) -> Self {
+    func selecting(_ ref: Reference, _ entry: UUID? = nil, _ url: URL? = nil) -> Self {
         var next = self
         switch ref.type {
             case is Workspace.Type, is Space.Type:
-                next.space = ref
+                next.structure = ref
                 next.interface = nil
                 next.content = nil
                 next.entry = entry
                 next.url = url
             case is any Functional.Type:
                 next.interface = ref
+                next.content = nil
                 next.entry = entry
                 next.url = url
-            case is Transcript.Type:
-                break
             case is any Malleable.Type:
+                next.interface = nil
                 next.content = ref
                 next.entry = entry
                 next.url = url

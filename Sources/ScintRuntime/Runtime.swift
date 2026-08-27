@@ -99,12 +99,6 @@ extension Runtime {
     func context() -> [Composition] { Composer.shared.resolve() }
 
     func context(for ref: Reference) -> Composition? { Composer.shared.resolve(ref) }
-
-    func transcripts(for ref: Reference) -> [Reference] {
-        all(as: Transcript.self)
-            .filter { $0.1.owner == ref }
-            .map { $0.0 }
-    }
 }
 
 extension Runtime {

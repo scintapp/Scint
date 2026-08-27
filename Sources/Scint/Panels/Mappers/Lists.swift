@@ -185,11 +185,7 @@ struct MaterialsList: Mapper {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        var order: [Reference: Int] = [:]
-
-        for (index, ref) in model.session.opened.materials.enumerated() {
-            order[ref] = index
-        }
+        let order: [Reference: Int] = [:]
 
         func position(_ item: ItemParams) -> Int {
             guard let ref = item.ref else { return .max }
@@ -270,7 +266,7 @@ struct ScheduledList: Mapper {
                     .init(
                         ref: context.transcript,
                         name: context.transcript.descriptor.name,
-                        image: Iconography.icon(for: context.intentTranscript ?? context.transcript).symbol
+                        image: Iconography.icon(for: context.transcript).symbol
                     )
             }
 
@@ -331,7 +327,7 @@ struct RunningList: Mapper {
                     .init(
                         ref: context.transcript,
                         name: context.transcript.descriptor.name,
-                        image: Iconography.icon(for: context.intentTranscript ?? context.transcript).symbol
+                        image: Iconography.icon(for: context.transcript).symbol
                     )
             }
 
@@ -424,9 +420,7 @@ struct TranscriptsList: Mapper {
             },
             onSelect: { item in
                 guard let ref = item.ref, ref.type is Transcript.Type else { return }
-                guard let owner = Transcript.with(ref, { $0.owner }) else { return }
-                model.focus(ref)
-                model.select(owner)
+                model.select(ref)
             }
         )
     }
@@ -435,15 +429,13 @@ struct TranscriptsList: Mapper {
         let calendar = Calendar.autoupdatingCurrent
         let items = Runtime.shared.all(as: Transcript.self)
             .compactMap { ref, transcript -> Reference? in
-                transcript.owner.type is Transcript.Type ? nil : ref
+                transcript.origin.type is Transcript.Type ? nil : ref
             }
-
             .map { ref -> (ref: Reference, date: Date) in
                 let date = Transcript.with(ref, { $0.entries.last?.created ?? ref.descriptor.created })!
                 return (ref, date)
             }
             .sorted { $0.date > $1.date }
-
             .map { ref, date in
                 let day: String
                 if calendar.isDateInToday(date) { day = "Today" }
@@ -459,6 +451,8 @@ struct TranscriptsList: Mapper {
 
         return .init(
             layout: .table,
+            nesting: .single,
+            header: false,
             sections: [
                 .init(
                     id: "transcripts",

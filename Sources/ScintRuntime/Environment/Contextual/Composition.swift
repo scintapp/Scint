@@ -21,16 +21,6 @@ struct Composition: Codable, Sendable {
     var harness: Reference? { context?.harness }
     var transcript: Reference { context?.transcript ?? structure }
 
-    var intentTranscript: Reference? {
-        if let transcript = intents.last?.transcript { return transcript }
-        return Transcript.with(transcript, { $0.entries }).flatMap { entries in
-            entries.reversed().compactMap { entry -> Reference? in
-                guard case .transcript(let ref, _) = entry else { return nil }
-                return ref
-            }.first
-        }
-    }
-
     var state: State {
         guard let intents = context?.intents, !intents.isEmpty else { return .inactive }
         return intents.contains { !$0.observing } ? .working : .active

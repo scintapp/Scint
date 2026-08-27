@@ -1,12 +1,16 @@
 import Foundation
 
 
+// MARK: - Context
+// With the exception of `Executing`, intents are mostly stubs and scaffold. Each intent diverges here; the
+// identical implementations are merely sketches, not accidental duplication.
+
 enum Intent: Codable, Sendable {
     case compose(Composing)
     case dispatch(Dispatching)
     case observe(Observing)
     case execute(Executing)
-    case traverse(Traversing)
+    case search(Searching)
 
     var key: Key {
         switch self {
@@ -14,7 +18,7 @@ enum Intent: Codable, Sendable {
             case .dispatch(let intent): intent.key
             case .observe(let intent): intent.key
             case .execute(let intent): intent.key
-            case .traverse(let intent): intent.key
+            case .search(let intent): intent.key
         }
     }
 
@@ -24,7 +28,7 @@ enum Intent: Codable, Sendable {
             case .dispatch(let intent): intent.harness
             case .observe(let intent): intent.harness
             case .execute(let intent): intent.harness
-            case .traverse(let intent): intent.harness
+            case .search(let intent): intent.harness
         }
     }
 
@@ -34,7 +38,7 @@ enum Intent: Codable, Sendable {
             case .dispatch(let intent): intent.transcript
             case .observe(let intent): intent.transcript
             case .execute(let intent): intent.transcript
-            case .traverse(let intent): intent.transcript
+            case .search(let intent): intent.transcript
         }
     }
 
@@ -46,7 +50,7 @@ enum Intent: Codable, Sendable {
             case .dispatch(let intent): intent.dispatch(terminal)
             case .observe(let intent): intent.observe(terminal)
             case .execute(let intent): intent.execute(terminal)
-            case .traverse(let intent): intent.traverse(terminal)
+            case .search(let intent): intent.search(terminal)
         }
     }
 
@@ -56,11 +60,10 @@ enum Intent: Codable, Sendable {
             case .dispatch(let intent): intent.stop(terminal)
             case .observe(let intent): intent.stop(terminal)
             case .execute(let intent): intent.stop(terminal)
-            case .traverse(let intent): intent.stop(terminal)
+            case .search(let intent): intent.stop(terminal)
         }
     }
 }
-
 
 struct Composing: Contextual {
     let key: Key
@@ -115,7 +118,6 @@ struct Composing: Contextual {
         receiver(terminal)(.stopped(harness))
     }
 }
-
 
 struct Dispatching: Contextual {
     let key: Key
@@ -172,7 +174,6 @@ struct Dispatching: Contextual {
     }
 }
 
-
 struct Executing: Contextual {
     let key: Key
     let origin: Reference
@@ -227,7 +228,6 @@ struct Executing: Contextual {
         }
     }
 }
-
 
 struct Observing: Contextual {
     let key: Key
@@ -286,8 +286,7 @@ struct Observing: Contextual {
     }
 }
 
-
-struct Traversing: Contextual {
+struct Searching: Contextual {
     let key: Key
     let origin: Reference
     let harness: Reference
@@ -310,7 +309,7 @@ struct Traversing: Contextual {
         self.arguments = arguments
     }
 
-    func traverse(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
+    func search(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
         let receive = receiver(terminal)
         do { try start(receive) }
         catch { receive(.failed(.string(String(describing: error)))) }
@@ -341,7 +340,6 @@ struct Traversing: Contextual {
         }
     }
 }
-
 
 struct Context: Contextual {
     let key: Key
@@ -429,7 +427,7 @@ struct Context: Contextual {
             case .dispatch: return .dispatch(Dispatching(origin, harness: harness, transcript: transcript, arguments: arguments))
             case .observe: return .observe(Observing(origin, harness: harness, transcript: transcript, arguments: arguments))
             case .execute: return .execute(Executing(origin, harness: harness, transcript: transcript, arguments: arguments))
-            case .traverse: return .traverse(Traversing(origin, harness: harness, transcript: transcript, arguments: arguments))
+            case .search: return .search(Searching(origin, harness: harness, transcript: transcript, arguments: arguments))
         }
     }
 
@@ -443,9 +441,6 @@ struct Context: Contextual {
             return focused
         }
         let name = harness.flatMap { Harness.with($0, { "\($0.intent) Transcript".capitalized }) } ?? "Intent Transcript"
-
-        // One branch per intent: turns accumulate in a single thread rather than
-        // sprouting a new branch for every message.
         let branches = Transcript.with(transcript, { $0.entries })?.compactMap { entry -> Reference? in
             guard case .transcript(let ref, _) = entry else { return nil }
             return ref

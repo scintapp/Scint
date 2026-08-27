@@ -3,7 +3,7 @@ import Foundation
 
 struct Transcript: Malleable {
     let ref: Reference
-    var owner: Reference
+    var origin: Reference
     private(set) var entries: Array<Entry> = []
 
     enum Entry: Codable, Sendable, Identifiable, Equatable {
@@ -38,7 +38,7 @@ struct Transcript: Malleable {
 
     init(_ ref: Reference = .init(Self.self)) {
         self.ref = ref
-        self.owner = ref
+        self.origin = ref
     }
 
     var active: Bool { entries.last?.terminal != true }
@@ -91,7 +91,7 @@ struct Transcript: Malleable {
         guard owner.type == Space.self || owner.type == Workspace.self || owner.type == Transcript.self
         else { RuntimeError.fatal() }
         var instance = Self(.init(Self.self))
-        instance.owner = owner
+        instance.origin = owner
         Descriptor.new(instance.ref, name: name, tags: ["transcript"])
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
         if owner.type == Workspace.self { guard let _ = Workspace.with(owner, { $0.add(instance.ref) })

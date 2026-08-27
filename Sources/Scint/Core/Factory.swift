@@ -4,9 +4,8 @@ import Foundation
 
 @MainActor enum Factory {
     @ViewBuilder static func build(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
-        if let panel = params.panel {
-            build(surface.panel, panel, controls)
-        } else {
+        if let panel = params.panel {  build(surface.panel, panel, controls) }
+        else {
             let nesting = params.nesting ?? .flat
             let layout = params.layout ?? .list
 
@@ -22,8 +21,6 @@ import Foundation
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 8)
             }
-                .scrollEdgeEffectStyle(.automatic, for: .top)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             build(surface, controls, view: AnyView(view))
         }
@@ -251,9 +248,11 @@ import Foundation
                     EmptyView()
 
                 case .group:
-                    GroupHeader(ref: params.ref, title: params.name, description: params.description)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.bottom, 12)
+                    if let ref = params.ref {
+                        DetailHeader(ref: ref)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .padding(.bottom, 12)
+                    }
 
                 case .list:
                     EmptyView()
@@ -427,13 +426,13 @@ extension Factory {
             } else {
                 if let input = params.input {
                     PanelInput(
-                    value: Binding(
-                        get: { panel.state.query },
-                        set: {
-                            panel.state.query = $0
-                            controls.onValueChange?(input, $0)
-                        }
-                    ),
+                        value: Binding(
+                            get: { panel.state.query },
+                            set: {
+                                panel.state.query = $0
+                                controls.onValueChange?(input, $0)
+                            }
+                        ),
                         image: input.image,
                         placeholder: input.name,
                         onUpArrow: { move(-1); return .handled },

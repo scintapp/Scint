@@ -144,7 +144,7 @@ A command binds an executable artifact to an argument shape.
 ```swift
 struct Harness: Functional {
     let ref: Reference
-    let intent: Intent          // compose, dispatch, observe, execute, traverse
+    let intent: Intent          // compose, dispatch, observe, execute, search
     let command: Reference
     let parameters: [Parameter]
 }

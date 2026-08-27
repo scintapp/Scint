@@ -4,26 +4,20 @@ import SwiftUI
 
 @Observable final class OutlinePanel: Panel {
     var state: PanelState = .init()
-    var surface: OutlineSurface = .composer
+    var surface: PanelSurface = .outline
 
-    enum OutlineSurface: String, CaseIterable, Identifiable {
-        case composer, editor
-
+    enum PanelSurface: String, CaseIterable, Identifiable {
+        case outline
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
-        var symbol: String {
-            switch self {
-                case .composer: "square.fill.text.grid.1x2"
-                case .editor: "square.and.pencil"
-            }
-        }
+        var symbol: String { "square.fill.text.grid.1x2" }
     }
 
     func parameters(_ model: any Model) -> Params {
         .init(
             panel: .init(
                 key: .outline,
-                sizing: .init(size: CGSize(width: 360, height: 520), min: .init(CGSize(width: 360, height: 520),)),
+                sizing: .init(size: CGSize(width: 360, height: 640), min: .init(CGSize(width: 360, height: 640),)),
                 dismissal: [.escape, .outsideClick],
                 resizable: true,
                 pinnable: true
@@ -32,7 +26,7 @@ import SwiftUI
     }
 
     func surface(_ model: any Model) -> some View {
-        EmptyView()
+        AnySurface(panel: self, model: model)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

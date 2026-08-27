@@ -305,7 +305,10 @@ final class EditorInputView: NSTextView {
             autoresizingMask = [.width]
             wantsLayer = false
             drawsBackground = false
-            textContainerInset = NSSize(width: 0, height: 5)
+            textContainerInset = NSSize(
+                width: .zero,
+                height: Style.Spacing.sm
+            )
             isAutomaticQuoteSubstitutionEnabled = false
             isAutomaticDashSubstitutionEnabled = false
             isAutomaticTextReplacementEnabled = false

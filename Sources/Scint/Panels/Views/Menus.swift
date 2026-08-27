@@ -30,7 +30,7 @@ struct LoaderMenu: View {
                     else {
                         Iconography.Icon(
                             symbol: item.image,
-                            tint: item.tint ?? Style.Tint.active,
+                            tint: item.tint ?? Style.Tint.space,
                             sizing: 15,
                             selected: item.active
                         )
@@ -39,7 +39,7 @@ struct LoaderMenu: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.name)
                             .font(.system(size: 13))
-                            .foregroundStyle(Style.Foreground.secondary)
+                            .foregroundStyle(Style.Foreground.muted)
                             .lineLimit(1)
                     }
                     .frame(height: 42, alignment: .leading)
@@ -50,12 +50,12 @@ struct LoaderMenu: View {
                         Image(systemName: "checkmark")
                             .frame(height: 32, alignment: .leading)
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Style.Foreground.tertiary)
+                            .foregroundStyle(Style.Foreground.faint)
                     }
                 }
                 .padding(.horizontal, 12)
                 .frame(height: 42, alignment: .leading)
-                .contentShape(Style.Shape.card)
+                .contentShape(Style.Shape.large)
             }
             .buttonStyle(.plain)
         }
@@ -70,19 +70,20 @@ struct LoaderMenu: View {
                 VStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 18))
-                        .foregroundStyle(Style.Foreground.quaternary)
+                        .foregroundStyle(Style.Foreground.faint)
                     Text(query.isEmpty ? "Nothing in library" : "No matches")
                         .font(.system(size: 12))
-                        .foregroundStyle(Style.Foreground.tertiary)
+                        .foregroundStyle(Style.Foreground.faint)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView { VStack(alignment: .leading, spacing: 2) { button } }
+                    
             }
         }
         .frame(width: 280, height: height, alignment: .topLeading)
-        .glassEffect(.regular, in: Style.Shape.menu)
-        .clipShape(Style.Shape.menu)
+        .glassEffect(.regular, in: Style.Shape.large)
+        .clipShape(Style.Shape.large)
     }
 
     var body: some View {

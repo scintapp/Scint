@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftUI
 
 
 struct ListLabel: View {
@@ -84,7 +83,7 @@ struct ListLink: View {
         else {
             Image(systemName: image)
                 .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(selected ? Style.Tint.active : Style.Foreground.tertiary)
+                .foregroundStyle(selected ? Style.Tint.space : Style.Foreground.faint)
                 .frame(width: iconSize, height: iconSize)
         }
     }
@@ -108,7 +107,7 @@ struct ListLink: View {
         Button(action: onSelect) {
             ListRow(
                 name: name, accessory: accessory, trailingImage: trailingImage, count: count,
-                isHovered: isHovered, selected: selected) {
+                selected: selected) {
                     HStack {
                         if indent > 0 { Color.clear.frame(width: indent - 8) }
                         leading
@@ -126,53 +125,31 @@ struct ListRow<Content: View>: View {
     let trailingImage: String?
     let count: Int?
     let indent: CGFloat
-    let isHovered: Bool
     let selected: Bool
-    let isEditing: Bool
-    let editText: Binding<String>?
-    let onCommitEdit: (() -> Void)?
     let content: Content
 
     init(
         name: String, accessory: AnyView? = nil, trailingImage: String? = nil, count: Int? = nil,
-        indent: CGFloat = 0, isHovered: Bool = false, selected: Bool = false, isEditing: Bool = false,
-        editText: Binding<String>? = nil, onCommitEdit: (() -> Void)? = nil,
+        indent: CGFloat = 0, selected: Bool = false,
         @ViewBuilder leading: () -> Content) {
             self.name = name
             self.accessory = accessory
             self.count = count
             self.indent = indent
-            self.isHovered = isHovered
             self.selected = selected
-            self.isEditing = isEditing
-            self.editText = editText
-            self.onCommitEdit = onCommitEdit
             self.trailingImage = trailingImage
             self.content = leading()
         }
 
     var body: some View {
-        HStack {
+        RowLayout(
+            title: Text(name)
+                .font(.system(size: 13))
+                .foregroundColor(.primary)
+        ) {
             Color.clear.frame(width: indent)
             content
-
-            if isEditing, let editText {
-                TextField("Name", text: editText)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .onSubmit { onCommitEdit?() }
-            } else {
-                Text(name)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-
-            Spacer()
-
+        } trailing: {
             if let accessory { accessory.padding(.trailing, 8) }
             if let trailingImage { Image(systemName: trailingImage).font(.system(size: 12)) }
 
@@ -281,7 +258,7 @@ struct ListLayout<Content: View>: View {
         else {
             Image(systemName: image)
                 .font(.system(size: iconSize))
-                .foregroundStyle(selected ? Style.Tint.active : Style.Foreground.tertiary)
+                .foregroundStyle(selected ? Style.Tint.space : Style.Foreground.faint)
                 .frame(width: iconSize, height: iconSize)
         }
     }
@@ -312,7 +289,7 @@ struct ListLayout<Content: View>: View {
     var body: some View {
         let row = AnyView(
             Button(role: nil, action: onSelect) {
-                ListRow(name: name, accessory: accessory, trailingImage: trailingImage, count: count, indent: indent, isHovered: isHovered, selected: selected) {
+                ListRow(name: name, accessory: accessory, trailingImage: trailingImage, count: count, indent: indent, selected: selected) {
                     ZStack {
                         hoverLeading
                             .opacity(isHovered ? 1 : 0)

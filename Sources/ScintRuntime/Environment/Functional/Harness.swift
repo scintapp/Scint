@@ -7,7 +7,7 @@ struct Harness: Functional {
     let command: Reference
     let parameters: [Parameter]
 
-    enum Intent: Codable, Sendable, Equatable { case compose, dispatch, observe, execute, traverse }
+    enum Intent: Codable, Sendable, Equatable { case compose, dispatch, observe, execute, search }
 
     enum Parameter: Codable, Sendable, Equatable {
         case argument(name: String, type: Value, required: Bool = false, default: Value? = nil)

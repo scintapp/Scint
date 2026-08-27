@@ -10,7 +10,7 @@ struct ActionsBar: View {
             Button { } label: {
                 Image(systemName: "plus")
                     .frame(height: 30, alignment: .center)
-                    .foregroundStyle(Style.Foreground.secondary)
+                    .foregroundStyle(Style.Foreground.muted)
                     .font(.system(size: 13))
             }
             .frame(height: 30, alignment: .center)

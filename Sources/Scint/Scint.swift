@@ -15,7 +15,6 @@ struct Scint: App {
                 Studio()
                     .environment(scint)
                     .environment(scint.studio)
-                    .background(Style.Background.console)
                     .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
                     .focusable(false)
             } else {
@@ -29,7 +28,6 @@ struct Scint: App {
                 Editor()
                     .environment(scint)
                     .environment(scint.editor)
-                    .background(Style.Background.console)
                     .focusable(false)
             }
             else {
@@ -40,8 +38,11 @@ struct Scint: App {
 
         MenuBarExtra(content: {
             if let scint {
-                ScintMenu()
+                Host()
                     .environment(scint)
+                    .environment(scint.studio)
+                    .environment(scint.editor)
+                    .environment(scint.host)
                     .focusable(false)
             } else {
                 Text("Scint is loading…")

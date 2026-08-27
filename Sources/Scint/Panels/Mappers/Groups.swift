@@ -79,8 +79,8 @@ struct MaterialsGroup: Mapper {
             sections: [
                 .init(
                     id: "outline",
-                    name: "Content Outline",
-                    header: true,
+                    name: "Outline",
+                    header: false,
                     items: items
                 )
             ]
@@ -88,7 +88,116 @@ struct MaterialsGroup: Mapper {
     }
 }
 
-struct FoldersGroup: Mapper {
+struct ArtifactsGroup: Mapper {
+    static func controls(_ model: any Model) -> Controls {
+        var space: Reference {
+            if case .space(let ref) = model.session.focused { return ref }
+            else { return model.session.origin }
+        }
+
+        func add(_ ref: Reference) {
+            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.add(ref) }
+            else { Space.with(space, { $0 })?.add(ref) }
+        }
+
+        func remove(_ ref: Reference) {
+            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.remove(ref) }
+            else { Space.with(space, { $0 })?.remove(ref) }
+        }
+
+        func configure(_ value: Value?, for key: String) {
+            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.configure(value, for: key) }
+            else { Space.with(space, { $0 })?.configure(value, for: key) }
+        }
+
+        return .init(
+            onToggle: { item in
+                guard let key = item.key else { return }
+                configure(.bool(!item.active), for: key)
+            },
+            onChange: { item, selection in
+                guard let key = item.key else { return }
+                configure(selection.value.map(Value.string), for: key)
+            },
+            onValueChange: { item, value in
+                guard let key = item.key else { return }
+                configure(value.isEmpty ? nil : .string(value), for: key)
+            },
+            onSelect: { item in
+                guard let ref = item.ref, !item.active else { return }
+                add(ref)
+            },
+            onAction: { item in
+                if let ref = item.ref, ref.type is Harness.Type {
+                    if space.type is Workspace.Type { Workspace.update(space) { $0.harness = ref } }
+                    else { Space.update(space) { $0.harness = ref } }
+                    return
+                }
+
+                if let ref = item.ref, ref.type is Command.Type || ref.type is Artifact.Type {
+                    remove(ref)
+                    return
+                }
+
+                let panel = NSOpenPanel()
+                panel.title = "Add Files or Folders"
+                panel.prompt = "Add"
+                panel.canChooseFiles = true
+                panel.canChooseDirectories = true
+                panel.allowsMultipleSelection = true
+                guard panel.runModal() == .OK else { return }
+                for url in panel.urls {
+                    let artifact = Artifact.register(url.lastPathComponent, url)
+                    if space.type is Workspace.Type { Workspace.with(space, { $0 })?.add(artifact) }
+                    else { Space.with(space, { $0 })?.add(artifact) }
+                }
+            }
+        )
+    }
+
+    static func parameters(_ model: any Model) -> Params {
+        var closure: Reference {
+            if let ref = Closure.with(model.session.origin, { $0.closure }) { return ref }
+            else { return model.session.origin }
+        }
+
+        return .init(
+            ref: Closure.with(closure, { $0.origin }),
+            layout: .group,
+            header: false,
+            sections: [
+                .init(
+                    id: "artifacts",
+                    name: "Artifacts",
+                    items: [
+                        .init(
+                            key: "add-artifacts",
+                            name: "Add Artifacts...",
+                            image: "folder.badge.plus",
+                            tint: Style.Tint.artifact,
+                            trailingKind: .button
+                        )
+                    ]
+                ),
+                .init(
+                    id: "files",
+                    name: "Files & Folders",
+                    items: [
+                        .init(
+                            key: "add-files",
+                            name: "Add Files...",
+                            image: "folder.badge.plus",
+                            tint: Style.Tint.artifact,
+                            trailingKind: .button
+                        )
+                    ]
+                )
+            ]
+        )
+    }
+}
+
+struct CommandsGroup: Mapper {
     static func controls(_ model: any Model) -> Controls {
         var space: Reference {
             if case .space(let ref) = model.session.focused { return ref }
@@ -161,51 +270,68 @@ struct FoldersGroup: Mapper {
             else { return model.session.origin }
         }
 
-        let folders = (Space.with(space, { $0.artifacts }) ?? Workspace.with(space, { $0.artifacts }) ?? [])
-            .filter { ref in
-                Artifact.with(ref) { artifact in
-                    switch artifact.handler {
-                        case .app, .directory, .file, .image, .script, .skill, .executable: true
-                        case .bookmark: false
-                    }
-                }!
-            }.map { ref in
-                ItemParams(
+        let commands = Space.with(space, { $0.commands }) ?? Workspace.with(space, { $0.commands }) ?? []
+        //        let config = Space.with(space, { $0.config }) ?? Workspace.with(space, { $0.config }) ?? [:]
+
+        let commandLibrary = Runtime.shared.all(as: Command.self)
+            .map { $0.0 }
+            .sorted {
+                $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
+            }
+            .map { ref in
+                let icon = Iconography.icon(for: ref)
+                return ItemParams(
                     ref: ref,
                     name: ref.descriptor.name,
-                    trailingKind: .remove
+                    image: icon.symbol,
+                    tint: icon.tint,
+                    description: ref.descriptor.description,
+                    active: commands.contains(ref)
                 )
             }
-        var sections: [SectionParams] = []
 
-        sections.append(
-            .init(
-                id: "files",
-                name: "Files & Folders",
-                items: [
-                    .init(
-                        key: "add-files",
-                        name: "Add Files...",
-                        image: "folder.badge.plus",
-                        tint: Style.Tint.artifact,
-                        trailingKind: .button
-                    )
-                ] + folders
-            )
-        )
+        let loadedCommands = commands
+            .sorted {
+                $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
+            }
+            .map { ref in
+                let icon = Iconography.icon(for: ref)
+                return ItemParams(
+                    ref: ref,
+                    name: ref.descriptor.name,
+                    image: icon.symbol,
+                    tint: icon.tint,
+                    trailingKind: .remove,
+                    description: ref.descriptor.description
+                )
+            }
 
         return .init(
             ref: space,
             name: space.descriptor.name,
             description: space.descriptor.description,
             layout: .group,
-            header: true,
-            sections: sections
+            header: false,
+            sections: [
+                .init(
+                    id: "commands",
+                    name: "Commands",
+                    items: [
+                        .init(
+                            name: "Add Command...",
+                            image: "switch.2",
+                            tint: Style.Tint.command,
+                            trailingKind: .load,
+                            items: commandLibrary
+                        )
+                    ] + loadedCommands
+                )
+            ]
         )
     }
 }
 
-struct SpaceGroup: Mapper {
+struct HarnessGroup: Mapper {
     static func controls(_ model: any Model) -> Controls {
         var space: Reference {
             if case .space(let ref) = model.session.focused { return ref }
@@ -375,22 +501,6 @@ struct SpaceGroup: Mapper {
             }
         }
 
-        let artifacts = (Space.with(space, { $0.artifacts }) ?? Workspace.with(space, { $0.artifacts }) ?? [])
-            .filter { ref in
-                Artifact.with(ref) { artifact in
-                    switch artifact.handler {
-                        case .app, .directory, .file, .image, .script, .skill, .executable: true
-                        case .bookmark: false
-                    }
-                }!
-            }.map { ref in
-                ItemParams(
-                    ref: ref,
-                    name: ref.descriptor.name,
-                    trailingKind: .remove
-                )
-            }
-
         let library = Runtime.shared.all(as: Harness.self)
             .map { $0.0 }
             .sorted {
@@ -425,43 +535,6 @@ struct SpaceGroup: Mapper {
                 )
             }
 
-        let commandLibrary = Runtime.shared.all(as: Command.self)
-            .map { $0.0 }
-            .sorted {
-                $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
-            }
-            .map { ref in
-                let icon = Iconography.icon(for: ref)
-                return ItemParams(
-                    ref: ref,
-                    name: ref.descriptor.name,
-                    image: icon.symbol,
-                    tint: icon.tint,
-                    description: ref.descriptor.description,
-                    active: commands.contains(ref)
-                )
-            }
-
-        let loadedCommands = commands
-            .sorted {
-                $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
-            }
-            .map { ref in
-                let icon = Iconography.icon(for: ref)
-                return ItemParams(
-                    ref: ref,
-                    name: ref.descriptor.name,
-                    image: icon.symbol,
-                    tint: icon.tint,
-                    trailingKind: .remove,
-                    description: ref.descriptor.description
-                )
-            }
-
-        let commandLoaderIcon = Iconography.Icon(symbol: "switch.2", tint: Style.Tint.command)
-
-        let loaderIcon = Iconography.Icon(symbol: "gear.badge.checkmark", tint: Style.Tint.command)
-
         var sections: [SectionParams] = [
             .init(
                 id: "harness",
@@ -469,15 +542,14 @@ struct SpaceGroup: Mapper {
                 items: [
                     .init(
                         name: "Add Harness...",
-                        image: loaderIcon.symbol,
-                        tint: loaderIcon.tint,
+                        image: "gearshape",
+                        tint: Style.Tint.command,
                         trailingKind: .load,
                         items: library
                     )
                 ] + loaded
             )
         ]
-
 
         if !executionItems.isEmpty {
             sections.append(
@@ -488,28 +560,12 @@ struct SpaceGroup: Mapper {
             )
         }
 
-        sections.append(
-            .init(
-                id: "commands",
-                name: "Commands",
-                items: [
-                    .init(
-                        name: "Add Command...",
-                        image: commandLoaderIcon.symbol,
-                        tint: commandLoaderIcon.tint,
-                        trailingKind: .load,
-                        items: commandLibrary
-                    )
-                ] + loadedCommands
-            )
-        )
-
         return .init(
             ref: space,
             name: space.descriptor.name,
             description: space.descriptor.description,
             layout: .group,
-            header: true,
+            header: false,
             sections: sections
         )
     }

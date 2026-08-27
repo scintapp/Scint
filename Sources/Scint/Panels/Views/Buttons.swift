@@ -1,37 +1,6 @@
 import SwiftUI
 
 
-struct ContentPicker: View {
-    let panel: ContentPanel
-
-    private func selection(for surface: ContentPanel.ContentSurface) -> Binding<Bool> {
-        Binding(
-            get: { panel.state.presented && panel.surface == surface },
-            set: { selected in
-                if selected {
-                    panel.surface = surface
-                    panel.state.presented = true
-                } else if panel.surface == surface {
-                    panel.state.presented = false
-                }
-            }
-        )
-    }
-
-    var body: some View {
-        ControlGroup {
-            ForEach(ContentPanel.ContentSurface.allCases) { surface in
-                Toggle(isOn: selection(for: surface)) {
-                    Image(systemName: surface.symbol)
-                }
-            }
-        }
-        .controlGroupStyle(.navigation)
-        .foregroundStyle(Style.Foreground.primary)
-        .tint(Color(Style.Background.button))
-    }
-}
-
 struct NavigatorToggle: View {
     @Binding var presented: Bool
 
@@ -41,7 +10,7 @@ struct NavigatorToggle: View {
             NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
         } label: {
             Image(systemName: "sidebar.squares.left")
-                .foregroundStyle(Style.Foreground.secondary)
+                .foregroundStyle(Style.Foreground.base)
         }
         .padding(.horizontal, 1)
         .labelsHidden()
@@ -57,7 +26,7 @@ struct InspectorToggle: View {
             NSApp.sendAction(#selector(NSSplitViewController.toggleInspector(_:)), to: nil, from: nil)
         } label: {
             Image(systemName: "sidebar.squares.right")
-                .foregroundStyle(Style.Foreground.secondary)
+                .foregroundStyle(Style.Foreground.base)
         }
         .padding(.horizontal, 1)
         .labelsHidden()
@@ -88,13 +57,13 @@ struct ActionButton: View {
 
     var body: some View {
         Button { onAction(title) } label: {
-            Iconography.Icon(symbol: symbol, tint: Style.Foreground.secondary, sizing: iconSize)
+            Iconography.Icon(symbol: symbol, tint: Style.Foreground.base, sizing: iconSize)
                 .frame(width: controlSize, height: controlSize)
         }
         .help(helpText)
         .buttonStyle(.plain)
         .font(.system(size: 10.5, weight: .semibold))
-        .foregroundStyle(Style.Foreground.secondary)
+        .foregroundStyle(Style.Foreground.base)
         .background { Circle().fill(fill) }
         .overlay {
             if opensTranscript { Circle().strokeBorder(stroke, lineWidth: 0.75) }
@@ -111,7 +80,7 @@ struct MaterialButton: View {
         } label: {
             Image(systemName: "square.grid.2x2")
                 .frame(height: 30, alignment: .center)
-                .foregroundStyle(Style.Foreground.secondary)
+                .foregroundStyle(Style.Foreground.base)
                 .font(.system(size: 13))
         }
         .menuIndicator(.hidden)
@@ -126,17 +95,11 @@ struct NavigationButtons: View {
     var body: some View {
         ControlGroup {
             Button {
-                if let selection = model.session.back() {
-                    if let content = selection.content, content.type is Material.Type { model.focus(content) }
-                    else if let structure = selection.space { model.focus(structure) }
-                }
+                model.session.back()
             } label: { Image(systemName: "chevron.backward") }
                 .disabled(!model.session.navigation.canGoBack)
             Button {
-                if let selection = model.session.forward() {
-                    if let content = selection.content, content.type is Material.Type { model.focus(content) }
-                    else if let structure = selection.space { model.focus(structure) }
-                }
+                model.session.forward()
             } label: { Image(systemName: "chevron.forward") }
                 .disabled(!model.session.navigation.canGoForward)
         }
