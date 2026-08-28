@@ -43,7 +43,6 @@ struct Workspace: Structural {
         switch ref.type {
             case is Space.Type: Space.update(ref) { $0.attach(to: self.ref) }
             case is any Functional.Type: Closure.update(closure) { $0.interfaces.update(with: ref) }
-            case is Transcript.Type: Closure.update(closure) { if !$0.transcripts.contains(ref) { $0.transcripts.append(ref) } }
             case is any Malleable.Type: Closure.update(closure) { if !$0.content.contains(ref) { $0.content.append(ref) } }
             default: break
         }
@@ -53,7 +52,6 @@ struct Workspace: Structural {
         switch ref.type {
             case is Space.Type: Space.update(ref) { $0.detach(from: self.ref) }
             case is any Functional.Type: Closure.update(closure) { $0.interfaces.remove(ref) }
-            case is Transcript.Type: Closure.update(closure) { $0.transcripts.removeAll { $0 == ref } }
             case is any Malleable.Type: Closure.update(closure) { $0.content.removeAll { $0 == ref } }
             default: break
         }

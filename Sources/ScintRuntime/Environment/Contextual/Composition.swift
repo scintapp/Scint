@@ -2,27 +2,55 @@ import Foundation
 
 
 struct Composition: Codable, Sendable {
-    let structure: Reference
-    private var context: Context? { Composer.shared.context(structure) }
-    private var intents: [Intent] { context?.intents ?? [] }
+    private let context: Context
+    var space: Reference
 
-    enum State: Codable, Sendable, Equatable {
-        case active, working, inactive
+    enum State: Codable, Sendable {
+        case inactive, active, working
 
         var label: String {
             switch self {
-                case .active: "Active"
                 case .inactive: "Inactive"
+                case .active: "Active"
                 case .working: "Working"
             }
         }
     }
 
-    var harness: Reference? { context?.harness }
-    var transcript: Reference { context?.transcript ?? structure }
+    init(_ space: Reference, _ context: Context) {
+        self.space = space
+        self.context = context
+    }
+
+    var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
+    var input: Reference { Closure.with(closure, { $0.input })! }
+    var transcript: Reference { context.transcript }
+
+    var closure: Reference {
+        guard let closure = Space.with(space, { $0.closure })
+        ?? Workspace.with(space, { $0.closure })
+        else { RuntimeError.fatal() }
+        return closure
+    }
+
+    var harness: Reference {
+        guard let harness = Space.with(space, { $0.harness })
+        ?? Workspace.with(space, { $0.harness })
+        else { RuntimeError.fatal() }
+        return harness
+    }
+
+    var artifacts: [Reference] { Closure.with(closure, { $0 })?.artifacts ?? [] }
+    var commands: [Reference] { Closure.with(closure, { $0 })?.commands ?? [] }
+    var harnesses: [Reference] { Closure.with(closure, { $0 })?.harnesses ?? [] }
+    var materials: [Reference] { Closure.with(closure, { $0 })?.materials ?? [] }
+    var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
+
+    var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
 
     var state: State {
-        guard let intents = context?.intents, !intents.isEmpty else { return .inactive }
+        let intents = context.intents
+        if intents.isEmpty { return .inactive }
         return intents.contains { !$0.observing } ? .working : .active
     }
 }

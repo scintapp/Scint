@@ -78,5 +78,6 @@ struct Style {
         static var task: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
         static var space: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
         static var bridge: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
+        static var alert: Color { Color(red: 0.812, green: 0.545, blue: 0.545) }
     }
 }

@@ -56,7 +56,7 @@ struct TranscriptEntry: View {
                                 EmptyView()
                         }
 
-                    case .transcript(let ref, _):
+                    case .transcript(_ , let ref, _):
                         TranscriptCard(transcript: ref, model: model)
 
                     case .value(let key, let value, _) where key != "context" && key != "input":

@@ -145,42 +145,19 @@ struct TaskCard: View {
     let completed: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: Style.Spacing.xl) {
-            ZStack {
-                Style.Shape.small
-                    .fill(
-                        completed
-                        ? Style.Foreground.faint.opacity(Style.Opacity.washed)
-                        : Color.clear
-                    )
-                    .overlay {
-                        Style.Shape.small
-                            .strokeBorder(
-                                Style.Foreground.faint.opacity(Style.Opacity.faint),
-                                lineWidth: 1
-                            )
-                    }
-
-                if completed {
-                    Image(systemName: "checkmark")
-                        .font(Typography.badge)
-                        .foregroundStyle(
-                            Style.Foreground.base.opacity(Style.Opacity.muted)
-                        )
-                }
-            }
-            .frame(width: Style.Spacing.xl, height: Style.Spacing.xl)
-            .padding(.top, Style.Spacing.xs)
+        HStack(alignment: .top, spacing: Style.Spacing.lg) {
+            TaskCompletionIndicator(completed: completed)
+                .padding(.top, 1)
 
             Text(content)
-                .font(Typography.prose)
+                .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(completed ? Style.Foreground.faint : Style.Foreground.base)
                 .strikethrough(completed, color: Style.Foreground.faint)
-                .lineSpacing(Style.Spacing.sm)
+                .lineSpacing(Style.Spacing.xs)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.leading, Style.Spacing.md)
-        .padding(.vertical, Style.Spacing.xs)
+        .padding(.vertical, Style.Spacing.sm + 1)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

@@ -3,24 +3,25 @@ import Foundation
 
 struct Closure: Structural {
     let ref: Reference
-    var input: Reference
     var origin: Reference
     var content: [Reference] = []
-    var transcripts: [Reference] = []
     var interfaces: Set<Reference> = []
     var config: Config = [:]
+    var input: Reference
+    var closure: Reference
 
     init(_ ref: Reference = .init(Self.self)) {
         self.ref = ref
         self.origin = ref
         self.input = ref
+        self.closure = ref
     }
 
-    var closure: Reference { self.ref }
     var artifacts: [Reference] { interfaces.filter { $0.type is Artifact.Type } }
     var commands: [Reference] { interfaces.filter { $0.type is Command.Type } }
-    var materials: [Reference] { content.filter { $0.type is Material.Type } }
     var harnesses: [Reference] { interfaces.filter { $0.type is Harness.Type } }
+    var materials: [Reference] { content.filter { $0.type is Material.Type } }
+    var transcripts: [Reference] { content.filter { $0.type is Transcript.Type } }
 
     var directories: [Reference] {
         artifacts.filter { Artifact.with($0, { $0.handler.directory }) == true }.sorted {

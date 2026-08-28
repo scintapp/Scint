@@ -10,14 +10,14 @@ struct Transcript: Malleable {
         case event(ActivityId, Signal, Date)
         case material(Reference, Date)
         case value(String, Value, Date)
-        case transcript(Reference, Date)
+        case transcript(Key, Reference, Date)
 
         var id: AnyHashable {
             switch self {
                 case .event(let id, _, _): id
                 case .material(let ref, _): ref
                 case .value(let key, _, let date): "\(key):\(date.timeIntervalSinceReferenceDate)"
-                case .transcript(let ref, _): ref
+                case .transcript(_, let ref, _): ref
             }
         }
 
@@ -26,7 +26,7 @@ struct Transcript: Malleable {
                 case .event(_, _, let date): date
                 case .material(_, let date): date
                 case .value(_, _, let date): date
-                case .transcript(_, let date): date
+                case .transcript(_, _, let date): date
             }
         }
 
@@ -53,7 +53,7 @@ struct Transcript: Malleable {
                 case .event(_, let signal, _): return "\(time) \(signal.rendered)"
                 case .material(let ref, _): return "\(time) material \(ref.descriptor.name)\n\(Runtime.shared.rendered(ref))"
                 case .value(let key, let value, _): return "\(time) \(key) = \(value.rendered.joined(separator: " "))"
-                case .transcript(let ref, _): return "\(time) transcript \(ref.descriptor.name)"
+                case .transcript(let key, _, _): return "\(time) transcript \(key.ref.descriptor.name)"
             }
         }
 
@@ -70,14 +70,12 @@ struct Transcript: Malleable {
         }
     }
 
-    mutating func insert(_ transcript: Reference, _ key: Key) {
-        if Transcript.with(transcript, { $0 }) != nil {
-            entries.append(.transcript(transcript, .now))
-        }
-    }
-
     mutating func insert(_ key: String, _ value: Value) {
         entries.append(.value(key, value, .now))
+    }
+
+    mutating func insert(_ key: Key, _ transcript: Reference) {
+        entries.append(.transcript(key, transcript, .now))
     }
 
     func output(_ key: String) -> Value? {

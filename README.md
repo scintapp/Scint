@@ -5,7 +5,7 @@ Scint is a native Mac application for composing agentic work as an inspectable, 
 Most agent interfaces begin with a chat and make the user repeatedly reconstruct the world around it. Scint begins with a workspace. Inside it, nested `Space`s hold materials, resources, capabilities, configuration, and prior runs. Give a space an active `Harness`, and that authored environment can become a live process without ceasing to
 be the place the user navigates and edits.
 
-> In Scint, an agent doesn't merely receive context. It's an agentic process executed from a place that already
+> In Scint, an agent doesn't merely receive context. It's an agentic process evaluated from a place that already
 > has context.
 
 This is what Scint calls **topological agentic process composition**: author the shape
@@ -17,7 +17,7 @@ runtime evaluate work in the context of that topology.
 | Term | Meaning in Scint |
 | --- | --- |
 | **Topological** | Context is organized as workspaces with nested spaces, local closures, and bridges between adjacent environments. Position, ownership, and reachability determine what belongs to a process. |
-| **Agentic** | Commands supply executable capabilities; a harness binds a command to contextual parameters and an intent: compose, dispatch, observe, execute, or search. |
+| **Agentic** | Commands supply executable capabilities; a harness binds a command to contextual parameters and an intent: compose, dispatch, observe, evaluate, or search. |
 | **Process composition** | The runtime maps an authored space and its active harness into a live context, evaluates ephemeral intents, and records their durable transcript history. |
 
 The topology is not decorative organization around an otherwise global agent. A
@@ -211,4 +211,4 @@ The app and service currently run without App Sandbox or Hardened Runtime. Execu
 artifacts and harnesses run with the user's authority. Treat workspaces, imported
 capabilities, and executable configuration as trusted input. The MCP server binds only
 to loopback and requires a live context identifier, but that does not make untrusted
-commands safe to execute.
+commands safe to evaluate.

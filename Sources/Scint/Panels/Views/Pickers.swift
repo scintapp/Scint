@@ -8,31 +8,59 @@ struct TranscriptPicker: View {
 
     var body: some View {
         if let root = model.session.transcripts.first, let selected = model.session.transcript {
-            let transcripts = [root] + (Transcript.with(root) { transcript in
+            let branches: [Reference] = Transcript.with(root) { transcript in
                 transcript.entries.compactMap { entry in
-                    guard case .transcript(let ref, _) = entry else { return nil }
+                    guard case .transcript(_, let ref, _) = entry else { return nil }
                     return ref
                 }
-            } ?? [])
+            } ?? []
+            let harnesses = Runtime.shared.context(for: model.session.origin)?.harnesses ?? []
 
             HStack(spacing: hovered ? Style.Spacing.md : 0) {
-                ForEach(hovered ? transcripts : [selected]) { transcript in
-                    Button { model.select(transcript) } label: {
-                        Text(
-                            transcript == root
-                            ? "Overview"
-                            : transcript.descriptor.name.replacingOccurrences(of: " Transcript", with: "")
-                        )
-                        .font(Typography.row.weight(transcript == selected ? .medium : .regular))
-                        .foregroundStyle(
-                            transcript == selected
-                            ? Style.Foreground.subtle
-                            : Style.Foreground.faint
-                        )
-                        .lineLimit(1)
-                        .contentShape(Rectangle())
+                if hovered || selected == root {
+                    Button { model.select(root) } label: {
+                        Text("Overview")
+                            .font(Typography.row.weight(selected == root ? .medium : .regular))
+                            .foregroundStyle(selected == root ? Style.Foreground.subtle : Style.Foreground.faint)
+                            .lineLimit(Style.Limit.singleLine)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                }
+
+                ForEach(Array(Harness.Intent.allCases.enumerated()), id: \.offset) { _, intent in
+                    let label = String(describing: intent).capitalized
+                    let transcript = branches.first { $0.descriptor.name == label }
+                    let enabled = harnesses.contains { harness in
+                        Harness.with(harness) { $0.intent == intent } == true
+                    }
+
+                    if hovered || transcript == selected {
+                        Button {
+                            if let transcript { model.select(transcript) }
+                        } label: {
+                            Text(label)
+                                .font(Typography.row.weight(transcript == selected ? .medium : .regular))
+                                .foregroundStyle(
+                                    enabled
+                                    ? transcript == selected
+                                    ? Style.Foreground.subtle
+                                    : Style.Foreground.faint
+                                    : Style.Foreground.disabled
+                                )
+                                .lineLimit(Style.Limit.singleLine)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!enabled)
+                        .help(
+                            !enabled
+                            ? "No \(label.lowercased()) harness"
+                            : transcript == nil
+                            ? "No \(label.lowercased()) transcript yet"
+                            : "Show \(label.lowercased()) transcript"
+                        )
+                    }
                 }
             }
             .padding(.horizontal, Style.Spacing.md)
@@ -50,6 +78,7 @@ struct TranscriptPicker: View {
             .onHover { isHovered in
                 withAnimation(.smooth(duration: 0.18)) { hovered = isHovered }
             }
+            .animation(.smooth(duration: 0.18), value: hovered)
         }
     }
 }

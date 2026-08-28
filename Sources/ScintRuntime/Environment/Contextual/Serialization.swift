@@ -92,7 +92,7 @@ struct Serialization {
 
         var refs = [root]
         refs += Transcript.with(root, { $0.entries })?.compactMap { entry -> Reference? in
-            guard case .transcript(let ref, _) = entry else { return nil }
+            guard case .transcript(_, let ref, _) = entry else { return nil }
             return ref
         } ?? []
         if !refs.contains(start) { refs.append(start) }
@@ -115,7 +115,7 @@ struct Serialization {
         let roots = Space.with(target, { $0.transcripts }) ?? Workspace.with(target, { $0.transcripts }) ?? []
         guard let root = roots.sorted(by: { $0.descriptor.created > $1.descriptor.created }).first,
               let recent = Transcript.with(root, { $0.entries })?.reversed().compactMap({ entry -> Reference? in
-                  guard case .transcript(let ref, _) = entry else { return nil }
+                  guard case .transcript(_, let ref, _) = entry else { return nil }
                   return ref
               }).first
         else { return [] }

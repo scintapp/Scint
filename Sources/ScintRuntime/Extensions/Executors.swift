@@ -62,8 +62,6 @@ enum SampleInterfaces {
         let openAIDocs = artifact("OpenAI Platform Docs", URL(string: "https://platform.openai.com/docs")!)
         let desktopFolder = artifact("Desktop", home.appendingPathComponent("Desktop", isDirectory: true))
 
-        // A script needs no executable bit of its own: the command starts with a real
-        // executable, and the script arrives as a rendered reference.
         let concatScript = artifact(
             "Concat Swift Repo Script",
             home.appendingPathComponent("Developer/Scripts/Concat.swift")
@@ -246,7 +244,7 @@ enum SampleInterfaces {
                     .fixed(.string("--verbose"))
                 ]
             ),
-            .execute,
+            .evaluate,
             [
                 .argument(
                     name: "model",
@@ -311,7 +309,7 @@ enum SampleInterfaces {
                     .fixed(.string("--dangerously-bypass-approvals-and-sandbox"))
                 ]
             ),
-            .execute,
+            .evaluate,
             [
                 .argument(
                     name: "model",

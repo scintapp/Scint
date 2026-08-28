@@ -15,6 +15,18 @@ struct Space: Structural {
         self.closure = ref
     }
 
+    var composable: Bool { harness != nil }
+    var composition: Composition? { Composer.shared.resolve(ref) }
+    var artifacts: [Reference] { Closure.with(closure, { $0 })?.artifacts ?? [] }
+    var commands: [Reference] { Closure.with(closure, { $0 })?.commands ?? [] }
+    var harnesses: [Reference] { Closure.with(closure, { $0 })?.harnesses ?? [] }
+    var materials: [Reference] { Closure.with(closure, { $0 })?.materials ?? [] }
+    var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
+    var directories: [Reference] { Closure.with(closure, { $0 })?.directories ?? [] }
+    var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
+    var components: [Reference] { artifacts + commands + harnesses + materials + transcripts }
+    var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
+
     var input: Reference? {
         get { Closure.with(closure, { $0.input }) }
         set {
@@ -32,7 +44,6 @@ struct Space: Structural {
     func add(_ ref: Reference) {
         switch ref.type {
             case is any Functional.Type: Closure.update(closure) { $0.interfaces.update(with: ref) }
-            case is Transcript.Type: Closure.update(closure) { if !$0.transcripts.contains(ref) { $0.transcripts.append(ref) } }
             case is any Malleable.Type: Closure.update(closure) { if !$0.content.contains(ref) { $0.content.append(ref) } }
             default: break
         }
@@ -41,7 +52,6 @@ struct Space: Structural {
     func remove(_ ref: Reference) {
         switch ref.type {
             case is any Functional.Type: Closure.update(closure) { $0.interfaces.remove(ref) }
-            case is Transcript.Type: Closure.update(closure) { $0.transcripts.removeAll { $0 == ref } }
             case is any Malleable.Type: Closure.update(closure) { $0.content.removeAll { $0 == ref } }
             default: break
         }

@@ -143,7 +143,7 @@ import SwiftUI
         case compose = "space.badge.ellipsis"
         case dispatch = "space.badge.clock"
         case observe = "space.badge.eye"
-        case execute = "space.badge.gearshape"
+        case evaluate = "space.badge.gearshape"
         case search = "space.badge.magnifyingglass"
     }
 
@@ -243,7 +243,7 @@ import SwiftUI
             case .compose: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
             case .dispatch: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
             case .observe: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
-            case .execute: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
+            case .evaluate: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
             case .search: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
         }
     }
@@ -252,7 +252,7 @@ import SwiftUI
         switch entry {
             case .event: Icon(symbol: "calendar", tint: Style.Tint.transcript, sizing: size)
             case .material(let ref, _): Iconography.icon(for: ref, size: size)
-            case .transcript(let ref, _): Iconography.icon(for: ref, size: size)
+            case .transcript(_, let ref, _): Iconography.icon(for: ref, size: size)
             case .value: Icon(symbol: "info.circle", tint: Style.Foreground.faint, sizing: size)
         }
     }
