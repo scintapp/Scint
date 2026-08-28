@@ -2,8 +2,9 @@ import Foundation
 
 
 struct Composition: Codable, Sendable {
-    private let context: Context
     var space: Reference
+    private var context: Context? { Composer.shared.context(space) }
+    private var intents: [Intent] { context?.intents ?? [] }
 
     enum State: Codable, Sendable {
         case inactive, active, working
@@ -17,14 +18,13 @@ struct Composition: Codable, Sendable {
         }
     }
 
-    init(_ space: Reference, _ context: Context) {
+    init(_ space: Reference) {
         self.space = space
-        self.context = context
     }
 
     var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
     var input: Reference { Closure.with(closure, { $0.input })! }
-    var transcript: Reference { context.transcript }
+    var transcript: Reference { context?.transcript ?? space }
 
     var closure: Reference {
         guard let closure = Space.with(space, { $0.closure })
@@ -49,7 +49,6 @@ struct Composition: Codable, Sendable {
     var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
 
     var state: State {
-        let intents = context.intents
         if intents.isEmpty { return .inactive }
         return intents.contains { !$0.observing } ? .working : .active
     }

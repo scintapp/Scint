@@ -56,8 +56,7 @@ import Foundation
     func resolve() -> [Composition] { contexts.keys().compactMap { resolve($0) } }
 
     func resolve(_ ref: Reference) -> Composition? {
-        guard let context = context(ref) else { return nil }
         guard contexts.get(ref)?.harness != nil else { return nil }
-        return Composition(ref, context)
+        return Composition(ref)
     }
 }

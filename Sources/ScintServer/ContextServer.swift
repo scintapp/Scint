@@ -102,6 +102,18 @@ actor ContextServer {
             Self.logger.error("MCP \(method, privacy: .public) missing context -> 401")
             return Self.error(id, code: -32600, message: "Scint context is required.", statusCode: 401)
         }
+        // The runtime's stores are unsynchronized and mutated by the UI on the main
+        // actor. Every read here serializes onto it rather than racing the app.
+        let resolved = await MainActor.run {
+            runtime.context().first(where: { $0.space.contextId == context })
+        }
+        guard let composition = resolved,
+              composition.space.type == Space.self,
+              composition.state == .active || composition.state == .working
+        else {
+            Self.logger.error("MCP \(method, privacy: .public) context \(context.uuidString, privacy: .public) unavailable -> 403")
+            return Self.error(id, code: -32600, message: Error.unavailableContext.description, statusCode: 403)
+        }
 
         if method == "notifications/initialized" {
             Self.logger.info("MCP \(method, privacy: .public) context \(context.uuidString, privacy: .public) -> 202")
@@ -115,6 +127,8 @@ actor ContextServer {
         switch method {
             case "initialize": response = Self.initialize(id)
             case "server/discover": response = Self.discover(id)
+            case "tools/list": response = await Self.listTools(id, in: composition.space)
+            case "tools/call": response = await Self.callTool(id, params: params, in: composition.space)
             default: response = Self.error(id, code: -32601, message: "Method not found: \(method)", statusCode: 404)
         }
         Self.logger.info("MCP \(method, privacy: .public) context \(context.uuidString, privacy: .public) -> \(response.statusCode)")
