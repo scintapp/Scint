@@ -35,10 +35,8 @@ import SwiftUI
     func surface(_ model: any Model) -> some View {
         Group {
             switch surface {
-                case .workspace:
-                    AnySurface(panel: self, model: model)
-                case .activity:
-                    ActivitySurface(panel: self, model: model)
+                case .workspace: AnySurface(panel: self, model: model)
+                case .activity: ActivitySurface(panel: self, model: model)
             }
         }
         .safeAreaBar(edge: .top) { NavigatorTabs(panel: self) }

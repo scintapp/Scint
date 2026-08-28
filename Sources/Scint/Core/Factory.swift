@@ -153,6 +153,7 @@ import Foundation
             let view = AnyView(
                 ListLayout(
                     name: params.name,
+                    detail: params.description,
                     ref: params.path == nil && params.entryId == nil ? params.ref : nil,
                     image: params.image,
                     tint: params.tint,
@@ -180,6 +181,7 @@ import Foundation
             let view = AnyView(
                 ListLink(
                     name: params.name,
+                    detail: params.description,
                     ref: params.path == nil && params.entryId == nil ? params.ref : nil,
                     image: params.image,
                     tint: params.tint,
@@ -227,6 +229,11 @@ import Foundation
 
             case .field:
                 GroupField(value: params.value ?? "") {
+                    controls.onValueChange?(params, $0)
+                }
+
+            case .date:
+                GroupDate(value: params.value ?? "") {
                     controls.onValueChange?(params, $0)
                 }
 

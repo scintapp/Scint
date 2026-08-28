@@ -64,7 +64,6 @@ enum ModelKey: String, Identifiable, CaseIterable {
         var seeded = await SampleData.load(editor.session.workspace, for: .editor)
         seeded = await SampleData.load(studio.session.workspace, for: .studio) || seeded
         if seeded { await Runtime.shared.save() }
-        Observers.install()
         await host.load()
     }
 

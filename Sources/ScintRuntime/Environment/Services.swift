@@ -88,9 +88,6 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
         return lines.flatMap(signals)
     }
 
-    /// A line is usually one thing, but a termination envelope can arrive appended to
-    /// a partial line of output. Losing it means the caller never sees a terminal
-    /// signal and waits out its timeout on a command that already succeeded.
     private func signals(_ line: String) -> [Signal] {
         let value = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return [] }
@@ -108,7 +105,7 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
         guard let properties = Properties.load(value),
               (properties["type"]?.string ?? properties["event"]?.string)?.lowercased() == "terminated"
         else { return nil }
-        return properties["exitCode"]?.int == 0 ? .completed(nil) : .failed(.string(value))
+        return properties["exitCode"]?.int == 0 ? nil : .stopped(.string(value))
     }
 
     func request(_ json: String, timeout: TimeInterval = 5.0) -> String? {

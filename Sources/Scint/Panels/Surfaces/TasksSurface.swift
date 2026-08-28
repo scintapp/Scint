@@ -158,11 +158,13 @@ struct TasksSurface: Surface {
     var model: any Model
 
     var origin: Reference { model.session.origin }
+
     var materials: [Reference] {
         Space.with(origin, { $0.materials })
             ?? Workspace.with(origin, { $0.materials })
             ?? []
     }
+
     var tasks: [Material.Block] {
         materials.flatMap { material in
             Material.with(material) { material in
@@ -170,13 +172,16 @@ struct TasksSurface: Surface {
             } ?? []
         }
     }
+
     var completed: Int {
         tasks.filter { if case .task(_, _, true) = $0 { true } else { false } }.count
     }
+
     var visibleTasks: [Material.Block] {
         guard !showsCompleted else { return tasks }
         return tasks.filter { if case .task(_, _, false) = $0 { true } else { false } }
     }
+
     var visibleMaterials: [Reference] {
         guard !showsCompleted else { return materials }
         return materials.filter { material in
@@ -187,32 +192,24 @@ struct TasksSurface: Surface {
     }
 
     var body: some View {
-        VStack(spacing: .zero) {
-            TasksHeader(
-                completed: completed,
-                showsCompleted: showsCompleted,
-                onToggleCompleted: {
-                    withAnimation(.smooth(duration: 0.18)) { showsCompleted.toggle() }
-                },
-                onClearCompleted: { confirmsClear = true }
-            )
-            .padding(.horizontal, Style.Spacing.xl)
-            .padding(.top, Style.Spacing.lg)
-
+        ZStack(alignment: .top) {
             ScrollView {
+                TasksHeader(
+                    completed: completed,
+                    showsCompleted: showsCompleted,
+                    onToggleCompleted: { withAnimation(.smooth(duration: 0.18)) { showsCompleted.toggle() } },
+                    onClearCompleted: { confirmsClear = true }
+                )
+                .padding(.horizontal, Style.Spacing.xl)
+                .padding(.top, Style.Spacing.lg)
+
                 LazyVStack(alignment: .leading, spacing: Style.Spacing.xxl) {
-                    if visibleTasks.isEmpty {
-                        Text(tasks.isEmpty ? "No tasks in this space." : "No incomplete tasks.")
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundStyle(Style.Foreground.faint)
-                    } else {
-                        ForEach(visibleMaterials) { material in
-                            TasksSection(
-                                material: material,
-                                model: model,
-                                showsCompleted: showsCompleted
-                            )
-                        }
+                    ForEach(visibleMaterials) { material in
+                        TasksSection(
+                            material: material,
+                            model: model,
+                            showsCompleted: showsCompleted
+                        )
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)

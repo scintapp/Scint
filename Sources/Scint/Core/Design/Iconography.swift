@@ -240,11 +240,11 @@ import SwiftUI
 
     static func icon(for intent: Harness.Intent, size: CGFloat = 14) -> Icon {
         switch intent {
-            case .compose: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
-            case .dispatch: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
-            case .observe: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
-            case .evaluate: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
-            case .search: Icon(symbol: "space.custom", tint: Style.Tint.harness, sizing: size)
+            case .compose: Icon(symbol: Custom.compose.rawValue, tint: Style.Tint.Intent.compose, sizing: size)
+            case .dispatch: Icon(symbol: Custom.dispatch.rawValue, tint: Style.Tint.Intent.dispatch, sizing: size)
+            case .observe: Icon(symbol: Custom.observe.rawValue, tint: Style.Tint.Intent.observe, sizing: size)
+            case .evaluate: Icon(symbol: Custom.evaluate.rawValue, tint: Style.Tint.Intent.evaluate, sizing: size)
+            case .search: Icon(symbol: Custom.search.rawValue, tint: Style.Tint.Intent.search, sizing: size)
         }
     }
 

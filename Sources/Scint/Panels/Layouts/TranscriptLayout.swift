@@ -6,6 +6,7 @@ struct TranscriptEntry: View {
     var entry: Transcript.Entry
     var model: any Model
 
+    /// The user's own turn, shown as their bubble rather than as transcript flow.
     private var input: String? {
         switch entry {
             case .material(let ref, _) where ref.descriptor.tags.contains("input"):
@@ -37,26 +38,15 @@ struct TranscriptEntry: View {
                 }
             } else {
                 switch entry {
-                    case .event(_, .updated(let value), _), .event(_, .failed(let value), _):
-                        switch TranscriptContent(value) {
-                            case .message(let text):
-                                Text(attributed(text))
+                    case .event(_, .updated(let value), _),
+                         .event(_, .composing(let value), _),
+                         .event(_, .evaluating(let value), _),
+                         .event(_, .dispatching(let value), _),
+                         .event(_, .observing(let value), _),
+                         .event(_, .searching(let value), _):
+                        Text(attributed(value.rendered.joined(separator: "\n")))
 
-                            case .reasoning(let text):
-                                Text(attributed(text, reasoning: true))
-
-                            case .tool(let name, let verb):
-                                HStack(spacing: Style.Spacing.md) {
-                                    Iconography.model(.material(.command))
-                                    Text("\(verb) \(name)")
-                                    Spacer()
-                                }
-
-                            case nil:
-                                EmptyView()
-                        }
-
-                    case .transcript(_ , let ref, _):
+                    case .transcript(_, let ref, _):
                         TranscriptCard(transcript: ref, model: model)
 
                     case .value(let key, let value, _) where key != "context" && key != "input":

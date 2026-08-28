@@ -1,26 +1,37 @@
 import Foundation
 
 
+struct Chunk: Keyable {
+    var key: Key
+    var origin: Reference
+    var value: Value
+    var created: Date
+
+    init(_ ref: Reference, _ origin: Reference? = nil, _ value: Value) {
+        self.key = .context(ref)
+        self.origin = origin ?? ref
+        self.value = value
+        self.created = .now
+    }
+}
+
 indirect enum Value: Codable, Sendable, Equatable {
+    /// The one textual form a date takes anywhere it leaves the runtime — config, argv,
+    /// or a control's value. Built per call; the formatter type is not Sendable.
+    static var formatter: ISO8601DateFormatter {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }
+
     case bool(Bool)
     case integer(Int)
     case decimal(Decimal)
     case string(String)
+    case date(Date)
     case sequence([Value])
     case collection([String: Value])
     case reference(Reference)
-
-    init?(_ property: Property) {
-        switch property {
-            case .null: return nil
-            case .bool(let value): self = .bool(value)
-            case .integer(let value): self = .integer(value)
-            case .decimal(let value): self = .decimal(Decimal(value))
-            case .string(let value): self = .string(value)
-            case .array(let values): self = .sequence(values.compactMap(Value.init))
-            case .object(let values): self = .collection(values.compactMapValues(Value.init))
-        }
-    }
 
     static func reference(_ type: Resolvable.Type) -> Value { .reference(Reference(type)) }
     static func sequence(_ value: Value) -> Value { .sequence([value]) }
@@ -29,6 +40,7 @@ indirect enum Value: Codable, Sendable, Equatable {
     var type: Any.Type? {
         switch self {
             case .bool: return Bool.self
+            case .date: return Date.self
             case .integer: return Int.self
             case .decimal: return Decimal.self
             case .string: return String.self
@@ -40,10 +52,10 @@ indirect enum Value: Codable, Sendable, Equatable {
 
     var rendered: [String] { render() }
 
-    /// The shape of a parameter template, as an agent reads it: `--flag <a|b|c>`.
     var described: String {
         switch self {
             case .bool: return "<true|false>"
+            case .date: return "<date>"
             case .integer: return "<integer>"
             case .decimal: return "<number>"
             case .string(let value): return value.isEmpty ? "<string>" : "<\(value)>"
@@ -70,22 +82,16 @@ indirect enum Value: Codable, Sendable, Equatable {
         }
     }
 
-    var property: Property {
-        switch self {
-            case .bool(let value): return .bool(value)
-            case .integer(let value): return .integer(value)
-            case .decimal(let value): return .decimal(NSDecimalNumber(decimal: value).doubleValue)
-            case .string(let value): return .string(value)
-            case .sequence(let values): return .array(values.map(\.property))
-            case .collection(let values): return .object(values.mapValues(\.property))
-            case .reference(let ref): return .string(ref.id.uuidString)
-        }
-    }
-
     func construct(_ supplied: Value, name: String) throws -> Value {
         switch (self, supplied) {
             case (.bool, .bool), (.integer, .integer), (.decimal, .decimal), (.string, .string):
                 return supplied
+
+            case (.date, .date):
+                return supplied
+
+            case (.date, .string(let value)) where Value.formatter.date(from: value) != nil:
+                return .date(Value.formatter.date(from: value)!)
 
             case (.bool, .string(let value)) where Bool(value) != nil:
                 return .bool(Bool(value)!)
@@ -134,6 +140,7 @@ indirect enum Value: Codable, Sendable, Equatable {
     private func render() -> [String] {
         switch self {
             case .bool(let value): return [String(value)]
+            case .date(let value): return [Value.formatter.string(from: value)]
             case .integer(let value): return [String(value)]
             case .decimal(let value): return [String(describing: value)]
             case .string(let value): return [value]

@@ -404,7 +404,7 @@ struct HarnessGroup: Mapper {
             else { return model.session.origin }
         }
 
-        let commands = Space.with(space, { $0.commands }) ?? Workspace.with(space, { $0.commands }) ?? []
+//        let commands = Space.with(space, { $0.commands }) ?? Workspace.with(space, { $0.commands }) ?? []
         let harnesses = Space.with(space, { $0.harnesses }) ?? Workspace.with(space, { $0.harnesses }) ?? []
         let harness = Space.with(space, { $0.harness }).flatMap { $0 } ?? Workspace.with(space, { $0.harness })
         let config = Space.with(space, { $0.config }) ?? Workspace.with(space, { $0.config }) ?? [:]
@@ -454,6 +454,15 @@ struct HarnessGroup: Mapper {
                         tint: Style.Tint.command,
                         trailingKind: .toggle,
                         active: active
+                    )
+                case .date:
+                    return .init(
+                        key: key,
+                        name: label(key),
+                        image: "calendar",
+                        tint: Style.Tint.command,
+                        trailingKind: .date,
+                        value: selected
                     )
                 case .string, .integer, .decimal:
                     return .init(

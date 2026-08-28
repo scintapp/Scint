@@ -52,6 +52,25 @@ struct Command: Functional {
         }
     }
 
+    /// Only `argument` takes a value. `fixed` supplies its own and `requirement` is
+    /// declared but never emitted.
+    func bind(_ supplied: [String: Value]) throws -> [String: Value] {
+        var parsed: [String: Value] = [:]
+        var expected: Set<String> = []
+
+        for parameter in parameters {
+            guard case .argument(let name, let type, let required, let fallback) = parameter else { continue }
+            expected.insert(name)
+            if let value = supplied[name] { parsed[name] = try type.construct(value, name: name) }
+            else if let fallback { parsed[name] = try type.construct(fallback, name: name) }
+            else if required { throw ParsingError.missingArgument(name) }
+        }
+
+        let unexpected = supplied.keys.filter { !expected.contains($0) }.sorted()
+        guard unexpected.isEmpty else { throw ParsingError.unexpectedArguments(unexpected) }
+        return parsed
+    }
+
     func dispatch(rendered arguments: [String], environment: [String: String] = [:], output: ((Signal) -> Void)? = nil) -> (pid: Int32, error: String?)? {
         guard let exec = Artifact.with(artifact, { $0.handler.executable }) ?? nil else { return nil }
         let result = Runtime.shared.services.start(exec, arguments: arguments, environment: environment)

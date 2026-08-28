@@ -12,8 +12,18 @@ struct ContentTool: Sendable {
 
     let origin: Reference
 
+    static let handleLength = 8
+
+    static func handle(for ref: Reference) -> String {
+        String(ref.storageId.uuidString.lowercased().replacingOccurrences(of: "-", with: "").prefix(handleLength))
+    }
+
     static func manifest(in origin: Reference) -> [(handle: String, ref: Reference)] {
-        Serialization.sheets(in: origin)
+        guard let closure = Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure })
+        else { return [] }
+        return (Closure.with(closure, { $0.materials }) ?? [])
+            .filter { !$0.descriptor.tags.contains("input") }
+            .map { (handle(for: $0), $0) }
     }
 
     static func all(in origin: Reference) -> [ContentTool] {

@@ -121,10 +121,9 @@ struct Handler: Codable & Sendable {
                     }
 
             case .events:
-                guard let properties = Properties.load(chunk), let value = Value(properties.property) else {
-                    return [.updated(.string(chunk))]
-                }
-                return [.updated(value)]
+                // Structured decoding belongs to a declared vendor format, not to a
+                // generic Property→Value conversion — the raw line is kept until one exists.
+                return [.updated(.string(chunk))]
         }
     }
 }

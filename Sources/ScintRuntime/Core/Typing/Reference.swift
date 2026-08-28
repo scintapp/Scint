@@ -2,11 +2,13 @@ import Foundation
 
 
 enum Key: Codable, Sendable, Identifiable, Hashable {
+    case chunk(Reference)
     case context(Reference)
     case descriptor(Reference)
 
     var id: AnyHashable {
         switch self {
+            case .chunk(let ref): return ref.id
             case .context(let ref): return ref.contextId
             case .descriptor(let ref): return ref.descriptorId
         }
@@ -14,6 +16,7 @@ enum Key: Codable, Sendable, Identifiable, Hashable {
 
     var ref: Reference {
         switch self {
+            case .chunk(let ref): return ref
             case .context(let ref): return ref
             case .descriptor(let ref): return ref
         }

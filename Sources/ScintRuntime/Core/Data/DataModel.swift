@@ -35,12 +35,6 @@ struct StorableObject: Storable {
     var value: any Resolvable
 
     init(descriptor: Descriptor, value: any Resolvable) {
-//        precondition(descriptor.origin.id == value.ref.id)
-//        precondition(descriptor.origin.typeId == value.ref.typeId)
-//        precondition(descriptor.origin.descriptorId == value.ref.descriptorId)
-//        precondition(descriptor.origin.contextId == value.ref.contextId)
-//        precondition(descriptor.origin.storageId == value.ref.storageId)
-//        precondition(descriptor.key == .descriptor(value.ref))
         self.storageId = value.ref.storageId
         self.descriptor = descriptor
         self.value = value

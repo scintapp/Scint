@@ -41,6 +41,7 @@ struct ListLink: View {
     private let iconSize: CGFloat = 14
     let ref: Reference?
     let name: String
+    let detail: String?
     let image: String
     let tint: Color?
     let trailingImage: String?
@@ -51,12 +52,13 @@ struct ListLink: View {
     let selected: Bool
     let onSelect: () -> Void
 
-    init(name: String, ref: Reference? = nil, image: String, tint: Color? = nil,
+    init(name: String, detail: String? = nil, ref: Reference? = nil, image: String, tint: Color? = nil,
          trailingImage: String? = nil, count: Int? = nil, leadingAccessory: AnyView? = nil,
          accessory: AnyView? = nil, indent: CGFloat = 0,
          selected: Bool = false, onSelect: @escaping () -> Void) {
 
         self.name = name
+        self.detail = detail
         self.ref = ref
         self.image = image
         self.tint = tint
@@ -106,7 +108,7 @@ struct ListLink: View {
     var body: some View {
         Button(action: onSelect) {
             ListRow(
-                name: name, accessory: accessory, trailingImage: trailingImage, count: count,
+                name: name, detail: detail, accessory: accessory, trailingImage: trailingImage, count: count,
                 selected: selected) {
                     HStack {
                         if indent > 0 { Color.clear.frame(width: indent - 8) }
@@ -121,6 +123,7 @@ struct ListLink: View {
 
 struct ListRow<Content: View>: View {
     let name: String
+    let detail: String?
     let accessory: AnyView?
     let trailingImage: String?
     let count: Int?
@@ -129,10 +132,12 @@ struct ListRow<Content: View>: View {
     let content: Content
 
     init(
-        name: String, accessory: AnyView? = nil, trailingImage: String? = nil, count: Int? = nil,
+        name: String, detail: String? = nil, accessory: AnyView? = nil,
+        trailingImage: String? = nil, count: Int? = nil,
         indent: CGFloat = 0, selected: Bool = false,
         @ViewBuilder leading: () -> Content) {
             self.name = name
+            self.detail = detail
             self.accessory = accessory
             self.count = count
             self.indent = indent
@@ -141,11 +146,21 @@ struct ListRow<Content: View>: View {
             self.content = leading()
         }
 
+    private var described: String? {
+        guard let detail, !detail.isEmpty else { return nil }
+        return detail
+    }
+
     var body: some View {
         RowLayout(
             title: Text(name)
                 .font(.system(size: 13))
-                .foregroundColor(.primary)
+                .foregroundColor(.primary),
+            detail: described.map {
+                Text($0)
+                    .font(Typography.caption)
+                    .foregroundColor(Style.Foreground.faint)
+            }
         ) {
             Color.clear.frame(width: indent)
             content
@@ -160,7 +175,7 @@ struct ListRow<Content: View>: View {
                     .padding(.trailing, 3)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 26)
+        .frame(maxWidth: .infinity, minHeight: described == nil ? Style.Spacing.rowHeight : Style.Spacing.rowDetailHeight)
         .background(RoundedRectangle(cornerRadius: 7).fill(selected ? Color.secondary.opacity(0.1) : Color.clear))
         .foregroundStyle(.primary)
         .contentShape(RoundedRectangle(cornerRadius: 7))
@@ -197,6 +212,7 @@ struct ListLayout<Content: View>: View {
     private let iconSize: CGFloat = 15
     let ref: Reference?
     let name: String
+    let detail: String?
     let image: String
     let tint: Color?
     let trailingImage: String?
@@ -212,6 +228,7 @@ struct ListLayout<Content: View>: View {
 
     init(
         name: String,
+        detail: String? = nil,
         ref: Reference? = nil,
         image: String,
         tint: Color? = nil,
@@ -228,6 +245,7 @@ struct ListLayout<Content: View>: View {
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.name = name
+        self.detail = detail
         self.ref = ref
         self.image = image
         self.tint = tint
@@ -289,7 +307,7 @@ struct ListLayout<Content: View>: View {
     var body: some View {
         let row = AnyView(
             Button(role: nil, action: onSelect) {
-                ListRow(name: name, accessory: accessory, trailingImage: trailingImage, count: count, indent: indent, selected: selected) {
+                ListRow(name: name, detail: detail, accessory: accessory, trailingImage: trailingImage, count: count, indent: indent, selected: selected) {
                     ZStack {
                         hoverLeading
                             .opacity(isHovered ? 1 : 0)

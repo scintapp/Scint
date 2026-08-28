@@ -75,6 +75,40 @@ struct Harness: Functional {
         }
     }
 
+    /// A requirement takes its declared value unless the space supplies one; a target is
+    /// bound for the runtime to read. Neither is emitted, and `command` carries its own
+    /// literal so it binds nothing.
+    func bind(_ supplied: [String: Value]) throws -> [String: Value] {
+        var parsed: [String: Value] = [:]
+        var expected: Set<String> = []
+
+        for parameter in parameters {
+            switch parameter {
+                case .argument(let name, let type, let required, let fallback):
+                    expected.insert(name)
+                    if let value = supplied[name] { parsed[name] = try type.construct(value, name: name) }
+                    else if let fallback { parsed[name] = try type.construct(fallback, name: name) }
+                    else if required { throw ParsingError.missingArgument(name) }
+
+                case .requirement(let name, let type, let value):
+                    expected.insert(name)
+                    parsed[name] = try type.construct(supplied[name] ?? value, name: name)
+
+                case .target(let name, let type, let fallback):
+                    expected.insert(name)
+                    if let value = supplied[name] { parsed[name] = try type.construct(value, name: name) }
+                    else if let fallback { parsed[name] = try type.construct(fallback, name: name) }
+
+                case .command:
+                    break
+            }
+        }
+
+        let unexpected = supplied.keys.filter { !expected.contains($0) }.sorted()
+        guard unexpected.isEmpty else { throw ParsingError.unexpectedArguments(unexpected) }
+        return parsed
+    }
+
     func stop(pid: Int32) -> Bool {
         Runtime.shared.services.removeOutputHandler(pid: pid)
         return Runtime.shared.services.stop(pid: pid)

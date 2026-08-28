@@ -65,6 +65,24 @@ struct GroupField: View {
     }
 }
 
+struct GroupDate: View {
+    let value: String
+    let onChange: (String) -> Void
+
+    private var selection: Binding<Date> {
+        Binding(
+            get: { Value.formatter.date(from: value) ?? .now },
+            set: { onChange(Value.formatter.string(from: $0)) }
+        )
+    }
+
+    var body: some View {
+        DatePicker("", selection: selection, displayedComponents: [.date, .hourAndMinute])
+            .datePickerStyle(.compact)
+            .labelsHidden()
+    }
+}
+
 struct GroupRemoveButton: View {
     let action: () -> Void
 

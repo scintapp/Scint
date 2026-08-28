@@ -19,6 +19,9 @@ struct Style {
         static let xxl: CGFloat = 24
         static let xxxl: CGFloat = 32
 
+        static let rowHeight: CGFloat = 26
+        static let rowDetailHeight: CGFloat = 40
+
         static let contentMaxWidth: CGFloat = 660
         static let cardHeight: CGFloat = 64
         static let listIndent: CGFloat = 54
@@ -79,5 +82,13 @@ struct Style {
         static var space: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
         static var bridge: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
         static var alert: Color { Color(red: 0.812, green: 0.545, blue: 0.545) }
+
+        enum Intent {
+            static var compose: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
+            static var dispatch: Color { Color(red: 0.878, green: 0.639, blue: 0.435) }
+            static var evaluate: Color { Color(red: 0.867, green: 0.541, blue: 0.639) }
+            static var observe: Color { Color(red: 0.612, green: 0.678, blue: 0.816) }
+            static var search: Color { Color(red: 0.545, green: 0.788, blue: 0.596) }
+        }
     }
 }

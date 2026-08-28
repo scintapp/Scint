@@ -62,21 +62,11 @@
 
 /* Begin PBXFileReference section */
 		7CBB434A3020F78300B9D4D7 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		7CBB43903021033500B9D4D7 /* Scint.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scint.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		7CBB43913021034B00B9D4D7 /* scintd.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = scintd.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
+		7CC6DF7F304243D800098CC1 /* Scint.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scint.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7CC6DF80304243D800098CC1 /* scintd.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = scintd.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		7CA9E87030223F5100E98109 /* Exceptions for "Docs" folder in "Scint" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Scint.md,
-				ScintRuntime.md,
-				ScintServer.md,
-				ScintService.md,
-			);
-			target = 7C4C36E62ED17D5A00D6F1CF /* Scint */;
-		};
 		7CBB43643020FFC400B9D4D7 /* Exceptions for "Sources" folder in "scintd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -86,11 +76,9 @@
 				ScintRuntime/Core/Data/Persistence.swift,
 				ScintRuntime/Core/Data/Stores.swift,
 				ScintRuntime/Core/Records/Error.swift,
-				ScintRuntime/Core/Records/Properties.swift,
 				ScintRuntime/Core/Records/Property.swift,
 				ScintRuntime/Core/Records/Query.swift,
 				ScintRuntime/Core/Records/Signal.swift,
-				ScintRuntime/Core/Records/TranscriptContent.swift,
 				ScintRuntime/Core/Records/Value.swift,
 				ScintRuntime/Core/Registry.swift,
 				ScintRuntime/Core/Settings.swift,
@@ -102,8 +90,7 @@
 				ScintRuntime/Environment/Composer.swift,
 				ScintRuntime/Environment/Contextual/Composition.swift,
 				ScintRuntime/Environment/Contextual/Context.swift,
-				ScintRuntime/Environment/Contextual/Parser.swift,
-				ScintRuntime/Environment/Contextual/Serialization.swift,
+				ScintRuntime/Environment/Contextual/Intent.swift,
 				ScintRuntime/Environment/Functional/Artifact.swift,
 				ScintRuntime/Environment/Functional/Command.swift,
 				ScintRuntime/Environment/Functional/Harness.swift,
@@ -116,8 +103,7 @@
 				ScintRuntime/Environment/Structural/Space.swift,
 				ScintRuntime/Environment/Structural/Workspace.swift,
 				ScintRuntime/Environment/Workspaces.swift,
-				ScintRuntime/Extensions/Executors.swift,
-				ScintRuntime/Extensions/Observers.swift,
+				ScintRuntime/Extensions/Observation.swift,
 				ScintRuntime/Runtime.swift,
 				ScintServices/Service.swift,
 				ScintServices/ServiceDaemon.swift,
@@ -163,9 +149,6 @@
 		};
 		7CBB43353020F6E300B9D4D7 /* Docs */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				7CA9E87030223F5100E98109 /* Exceptions for "Docs" folder in "Scint" target */,
-			);
 			path = Docs;
 			sourceTree = "<group>";
 		};
@@ -197,8 +180,8 @@
 				7C4C37A52ED17F3700D6F1CF /* Resources */,
 				7C4C37A42ED17F2F00D6F1CF /* Sources */,
 				7CBB434A3020F78300B9D4D7 /* README.md */,
-				7CBB43903021033500B9D4D7 /* Scint.app */,
-				7CBB43913021034B00B9D4D7 /* scintd.xpc */,
+				7CC6DF7F304243D800098CC1 /* Scint.app */,
+				7CC6DF80304243D800098CC1 /* scintd.xpc */,
 			);
 			sourceTree = "<group>";
 		};
@@ -236,7 +219,7 @@
 				7C443ABE2FF956D600FD0398 /* OrderedCollections */,
 			);
 			productName = Agency;
-			productReference = 7CBB43903021033500B9D4D7 /* Scint.app */;
+			productReference = 7CC6DF7F304243D800098CC1 /* Scint.app */;
 			productType = "com.apple.product-type.application";
 		};
 		7C69AAF12F8B45D90008D611 /* scintd */ = {
@@ -255,7 +238,7 @@
 				7C959129300D54FB007D9E73 /* OrderedCollections */,
 			);
 			productName = agencyd;
-			productReference = 7CBB43913021034B00B9D4D7 /* scintd.xpc */;
+			productReference = 7CC6DF80304243D800098CC1 /* scintd.xpc */;
 			productType = "com.apple.product-type.xpc-service";
 		};
 /* End PBXNativeTarget section */

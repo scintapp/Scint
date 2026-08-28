@@ -8,11 +8,9 @@ struct TranscriptPicker: View {
 
     var body: some View {
         if let root = model.session.transcripts.first, let selected = model.session.transcript {
-            let branches: [Reference] = Transcript.with(root) { transcript in
-                transcript.entries.compactMap { entry in
-                    guard case .transcript(_, let ref, _) = entry else { return nil }
-                    return ref
-                }
+            let branches: [Reference] = Transcript.with(root, { $0.entries })?.compactMap { entry -> Reference? in
+                guard case .transcript(_, let ref, _) = entry else { return nil }
+                return ref
             } ?? []
             let harnesses = Runtime.shared.context(for: model.session.origin)?.harnesses ?? []
 

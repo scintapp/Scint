@@ -33,7 +33,10 @@ struct ServerTool: Sendable {
     func call(_ arguments: Properties) async -> Invocation {
         let values: [String: Value]
         do {
-            values = try Parser.parse(try supplied(arguments), for: interface)
+            let given = try supplied(arguments)
+            if let command = Command.with(interface, { $0 }) { values = try command.bind(given) }
+            else if let harness = Harness.with(interface, { $0 }) { values = try harness.bind(given) }
+            else { throw ParsingError.invalid("No functional object found for \(interface.id).") }
         } catch {
             return Invocation(text: String(describing: error), isError: true)
         }
@@ -71,18 +74,27 @@ struct ServerTool: Sendable {
         defer { watchdog.cancel() }
 
         var output: [String] = []
-        var failed = false
         var terminated = false
+        // Signal no longer distinguishes success from failure — `.stopped` is the only
+        // terminal case, so an outcome now lives inside its value rather than its case.
+        let failed = false
         for await signal in stream {
             Self.logger.debug("Tool \(self.interface.id.uuidString, privacy: .public) pid \(result.pid) signal terminal=\(signal.terminal)")
             switch signal {
-                case .updated(let value): output.append(contentsOf: value.rendered)
-                case .failed(let value): output.append(contentsOf: value.rendered); failed = true; terminated = true
-                case .stopped: failed = true; terminated = true
-                case .completed(let value):
-                    if let value { output.append(contentsOf: value.rendered) }
+                case .updated(let value),
+                     .composing(let value),
+                     .evaluating(let value),
+                     .dispatching(let value),
+                     .observing(let value),
+                     .searching(let value):
+                    output.append(contentsOf: value.rendered)
+
+                case .stopped(let value):
+                    output.append(contentsOf: value.rendered)
                     terminated = true
-                default: break
+
+                case .started:
+                    break
             }
         }
 
@@ -91,8 +103,8 @@ struct ServerTool: Sendable {
             let partial = output.joined(separator: "\n")
             return Invocation(
                 text: partial.isEmpty
-                    ? "Scint tool did not report completion within \(Int(Self.callTimeout))s."
-                    : "\(partial)\n\n[Scint: no completion within \(Int(Self.callTimeout))s; output may be partial.]",
+                ? "Scint tool did not report completion within \(Int(Self.callTimeout))s."
+                : "\(partial)\n\n[Scint: no completion within \(Int(Self.callTimeout))s; output may be partial.]",
                 isError: true
             )
         }
@@ -181,6 +193,7 @@ struct ServerTool: Sendable {
             case .integer: return .object(["type": .string("integer")])
             case .decimal: return .object(["type": .string("number")])
             case .string, .reference: return .object(["type": .string("string")])
+            case .date: return .object(["type": .string("string"), "format": .string("date-time")])
             case .sequence(let values) where values.count > 1:
                 return .object(["enum": .array(values.map(literal))])
             case .sequence(let values):
@@ -206,6 +219,7 @@ struct ServerTool: Sendable {
             case .integer(let value): return .integer(value)
             case .decimal(let value): return .decimal(NSDecimalNumber(decimal: value).doubleValue)
             case .string(let value): return .string(value)
+            case .date(let value): return .string(Value.formatter.string(from: value))
             case .sequence(let values): return .array(values.map(literal))
             case .collection(let values): return .object(values.mapValues(literal))
             case .reference(let ref): return .string(ref.id.uuidString.lowercased())
@@ -229,13 +243,18 @@ struct ServerTool: Sendable {
             case .string:
                 guard case .string(let value) = supplied else { throw invalid(name) }
                 return .string(value)
+            case .date:
+                guard case .string(let value) = supplied,
+                      let parsed = Value.formatter.date(from: value)
+                else { throw invalid(name) }
+                return .date(parsed)
             case .reference(let expected):
                 guard case .string(let value) = supplied,
                       let id = UUID(uuidString: value) ?? URL(string: value).flatMap({ UUID(uuidString: $0.lastPathComponent) }),
                       let ref = available.first(where: {
                           ($0.id == id || $0.descriptorId == id) && $0.typeId == expected.typeId
                       })
-                else { throw ParsingError.invalid("Argument \(name) references an unavailable value.") }
+                        else { throw ParsingError.invalid("Argument \(name) references an unavailable value.") }
                 return .reference(ref)
             case .sequence(let alternatives) where alternatives.count > 1:
                 for alternative in alternatives {

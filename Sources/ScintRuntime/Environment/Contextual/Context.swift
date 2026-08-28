@@ -1,356 +1,20 @@
 import Foundation
 
 
-// MARK: - Context
-// With the exception of `Executing`, intents are mostly stubs and scaffold. Each intent diverges here; the
-// identical implementations are merely sketches, not accidental duplication.
+/// Temporary narration for the Contextual module. Scaffolding, not architecture —
+/// delete this file and every `Trace.` call site once the flow is understood.
+///
+/// Filter the console with `[` to read the story, or with a single scope like
+/// `[Serialization]` to follow one stage.
 
-
-enum Intent: Codable, Sendable {
-    case compose(Composing)
-    case dispatch(Dispatching)
-    case observe(Observing)
-    case evaluate(Evaluating)
-    case search(Searching)
-
-
-    var key: Key {
-        switch self {
-            case .compose(let intent): intent.key
-            case .dispatch(let intent): intent.key
-            case .observe(let intent): intent.key
-            case .evaluate(let intent): intent.key
-            case .search(let intent): intent.key
-        }
+enum Trace {
+    static func say(_ scope: String, _ message: String, indent: Int = 0) {
+        print("[\(scope)] \(String(repeating: "  ", count: indent))\(message)")
     }
-
-    var ref: Reference {
-        switch self {
-            case .compose(let intent): intent.ref
-            case .dispatch(let intent): intent.ref
-            case .observe(let intent): intent.ref
-            case .evaluate(let intent): intent.ref
-            case .search(let intent): intent.ref
-        }
-    }
-
-    var harness: Reference {
-        switch self {
-            case .compose(let intent): intent.harness
-            case .dispatch(let intent): intent.harness
-            case .observe(let intent): intent.harness
-            case .evaluate(let intent): intent.harness
-            case .search(let intent): intent.harness
-        }
-    }
-
-    var transcript: Reference {
-        switch self {
-            case .compose(let intent): intent.transcript
-            case .dispatch(let intent): intent.transcript
-            case .observe(let intent): intent.transcript
-            case .evaluate(let intent): intent.transcript
-            case .search(let intent): intent.transcript
-        }
-    }
-
-    var observing: Bool { if case .observe = self { true } else { false } }
-
-    func start(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        switch self {
-            case .compose(let intent): intent.compose(terminal)
-            case .dispatch(let intent): intent.dispatch(terminal)
-            case .observe(let intent): intent.observe(terminal)
-            case .evaluate(let intent): intent.evaluate(terminal)
-            case .search(let intent): intent.search(terminal)
-        }
-    }
-
-    func stop(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        switch self {
-            case .compose(let intent): intent.stop(terminal)
-            case .dispatch(let intent): intent.stop(terminal)
-            case .observe(let intent): intent.stop(terminal)
-            case .evaluate(let intent): intent.stop(terminal)
-            case .search(let intent): intent.stop(terminal)
-        }
-    }
-}
-
-struct Composing: Contextual {
-    let key: Key
-    let origin: Reference
-    let harness: Reference
-    let transcript: Reference
-    let arguments: [String]
-
-    init(_ origin: Reference) {
-        self.key = .context(origin)
-        self.origin = origin
-        self.harness = origin
-        self.transcript = origin
-        self.arguments = []
-    }
-
-    init(_ origin: Reference, harness: Reference, transcript: Reference, arguments: [String]) {
-        self.key = .context(transcript)
-        self.origin = origin
-        self.harness = harness
-        self.transcript = transcript
-        self.arguments = arguments
-    }
-
-    func compose(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        let receive = receiver(terminal)
-        do { try start(receive) }
-        catch { receive(.failed(.string(String(describing: error)))) }
-    }
-
-    private func start(_ signal: @escaping (Signal) -> Void) throws {
-        guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
-        let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        guard let dispatched = Command.with(command, { $0.dispatch(rendered: arguments, environment: environment, output: signal) })
-        else { throw RuntimeError.context(.missing(command)) }
-        guard let result = dispatched
-        else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
-        if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-    }
-
-    private func receiver(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (Signal) -> Void {
-        let branch = transcript
-        return { signal in
-            Task { @MainActor in
-                Transcript.update(branch) { $0.insert(signal) }
-                if signal.terminal { terminal(signal, branch) }
-            }
-        }
-    }
-    func stop(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        guard Runtime.shared.services.stop(context: origin.contextId) else { return }
-        receiver(terminal)(.stopped(harness))
-    }
-}
-
-struct Dispatching: Contextual {
-    let key: Key
-    let origin: Reference
-    let harness: Reference
-    let transcript: Reference
-    let arguments: [String]
-
-    init(_ origin: Reference) {
-        self.key = .context(origin)
-        self.origin = origin
-        self.harness = origin
-        self.transcript = origin
-        self.arguments = []
-    }
-
-    init(_ origin: Reference, harness: Reference, transcript: Reference, arguments: [String]) {
-        self.key = .context(transcript)
-        self.origin = origin
-        self.harness = harness
-        self.transcript = transcript
-        self.arguments = arguments
-    }
-
-    func dispatch(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        let receive = receiver(terminal)
-        do { try start(receive) }
-        catch { receive(.failed(.string(String(describing: error)))) }
-    }
-
-    func stop(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        guard Runtime.shared.services.stop(context: origin.contextId) else { return }
-        receiver(terminal)(.stopped(harness))
-    }
-
-    private func start(_ signal: @escaping (Signal) -> Void) throws {
-        guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
-        let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        guard let dispatched = Command.with(command, { $0.dispatch(rendered: arguments, environment: environment, output: signal) })
-        else { throw RuntimeError.context(.missing(command)) }
-        guard let result = dispatched
-        else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
-        if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-    }
-
-    private func receiver(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (Signal) -> Void {
-        let branch = transcript
-        return { signal in
-            Task { @MainActor in
-                Transcript.update(branch) { $0.insert(signal) }
-                if signal.terminal { terminal(signal, branch) }
-            }
-        }
-    }
-}
-
-struct Evaluating: Contextual {
-    let key: Key
-    let origin: Reference
-    let harness: Reference
-    let transcript: Reference
-    let arguments: [String]
-
-    init(_ origin: Reference) {
-        self.key = .context(origin)
-        self.origin = origin
-        self.harness = origin
-        self.transcript = origin
-        self.arguments = []
-    }
-
-    init(_ origin: Reference, harness: Reference, transcript: Reference, arguments: [String]) {
-        self.key = .context(transcript)
-        self.origin = origin
-        self.harness = harness
-        self.transcript = transcript
-        self.arguments = arguments
-    }
-
-    func evaluate(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        let receive = receiver(terminal)
-        do { try start(receive) }
-        catch { receive(.failed(.string(String(describing: error)))) }
-    }
-
-    func stop(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        guard Runtime.shared.services.stop(context: origin.contextId) else { return }
-        receiver(terminal)(.stopped(harness))
-    }
-
-    private func start(_ signal: @escaping (Signal) -> Void) throws {
-        guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
-        let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        guard let dispatched = Command.with(command, { $0.dispatch(rendered: arguments, environment: environment, output: signal) })
-        else { throw RuntimeError.context(.missing(command)) }
-        guard let result = dispatched
-        else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
-        if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-    }
-
-    private func receiver(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (Signal) -> Void {
-        let branch = transcript
-        return { signal in
-            Task { @MainActor in
-                Transcript.update(branch) { $0.insert(signal) }
-                if signal.terminal { terminal(signal, branch) }
-            }
-        }
-    }
-}
-
-struct Observing: Contextual {
-    let key: Key
-    let origin: Reference
-    let harness: Reference
-    let transcript: Reference
-    let arguments: [String]
-
-    init(_ origin: Reference) {
-        self.key = .context(origin)
-        self.origin = origin
-        self.harness = origin
-        self.transcript = origin
-        self.arguments = []
-    }
-
-    init(_ origin: Reference, harness: Reference, transcript: Reference, arguments: [String]) {
-        self.key = .context(transcript)
-        self.origin = origin
-        self.harness = harness
-        self.transcript = transcript
-        self.arguments = arguments
-    }
-
-    func observe(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        let receive = receiver(terminal)
-        do { try start(receive) }
-        catch { receive(.failed(.string(String(describing: error)))) }
-    }
-
-    func react(_ signal: @escaping (Signal) -> Void) throws -> Signal? { nil }
-
-    func stop(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        guard Runtime.shared.services.stop(context: origin.contextId) else { return }
-        receiver(terminal)(.stopped(harness))
-    }
-
-    private func start(_ signal: @escaping (Signal) -> Void) throws {
-        guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
-        let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        guard let dispatched = Command.with(command, { $0.dispatch(rendered: arguments, environment: environment, output: signal) })
-        else { throw RuntimeError.context(.missing(command)) }
-        guard let result = dispatched
-        else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
-        if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-    }
-
-    private func receiver(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (Signal) -> Void {
-        let branch = transcript
-        return { signal in
-            Task { @MainActor in
-                Transcript.update(branch) { $0.insert(signal) }
-                if signal.terminal { terminal(signal, branch) }
-            }
-        }
-    }
-}
-
-struct Searching: Contextual {
-    let key: Key
-    let origin: Reference
-    let harness: Reference
-    let transcript: Reference
-    let arguments: [String]
-
-    init(_ origin: Reference) {
-        self.key = .context(origin)
-        self.origin = origin
-        self.harness = origin
-        self.transcript = origin
-        self.arguments = []
-    }
-
-    init(_ origin: Reference, harness: Reference, transcript: Reference, arguments: [String]) {
-        self.key = .context(transcript)
-        self.origin = origin
-        self.harness = harness
-        self.transcript = transcript
-        self.arguments = arguments
-    }
-
-    func search(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        let receive = receiver(terminal)
-        do { try start(receive) }
-        catch { receive(.failed(.string(String(describing: error)))) }
-    }
-
-    func stop(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        guard Runtime.shared.services.stop(context: origin.contextId) else { return }
-        receiver(terminal)(.stopped(harness))
-    }
-
-    private func start(_ signal: @escaping (Signal) -> Void) throws {
-        guard let command = Harness.with(harness, { $0.command }) else { throw RuntimeError.context(.missing(harness)) }
-        let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        guard let dispatched = Command.with(command, { $0.dispatch(rendered: arguments, environment: environment, output: signal) })
-        else { throw RuntimeError.context(.missing(command)) }
-        guard let result = dispatched
-        else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
-        if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
-    }
-
-    private func receiver(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (Signal) -> Void {
-        let branch = transcript
-        return { signal in
-            Task { @MainActor in
-                Transcript.update(branch) { $0.insert(signal) }
-                if signal.terminal { terminal(signal, branch) }
-            }
-        }
-    }
+    static func name(_ ref: Reference) -> String { Catalog.shared.get(ref)?.name ?? "unnamed" }
+    static func id(_ ref: Reference) -> String { String(ref.id.uuidString.prefix(8)).lowercased() }
+    static func ref(_ value: Reference) -> String { "\"\(name(value))\" \(id(value))" }
+    static func kind(_ value: Reference) -> String { value.type.map { "\($0)" } ?? "unresolved" }
 }
 
 struct Context: Contextual {
@@ -359,9 +23,7 @@ struct Context: Contextual {
     let transcript: Reference
     private(set) var intents: [Intent] = []
 
-    init(_ origin: Reference) {
-        self = Self.new(origin)
-    }
+    init(_ origin: Reference) { self = Self.new(origin) }
 
     private init(_ origin: Reference, transcript: Reference) {
         self.key = .context(origin)
@@ -376,43 +38,72 @@ struct Context: Contextual {
     }
 
     mutating func start(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        guard let harness else { return }
+        Trace.say("Context", "fire — \(Trace.ref(origin)) was asked to run")
+        guard let harness else {
+            Trace.say("Context", "it has no active harness, so there is nothing to become", indent: 1)
+            return
+        }
+        Trace.say("Context", "its active harness is \(Trace.ref(harness))", indent: 1)
+
         let branch = intentTranscript()
 
         Transcript.update(transcript) { root in
-            root.insert(.started(origin))
-            if !root.entries.contains(where: { if case .transcript(_, let ref, _) = $0 { ref == branch }
-                else { false } }) { root.insert(.context(branch), branch) }
+            root.insert(.started(.reference(origin)))
+            if !root.entries.contains(where: { if case .transcript(_, let ref, _) = $0 { ref == branch } else { false } }) {
+                Trace.say("Context", "linking the branch into root \(Trace.ref(transcript)) for the first time", indent: 1)
+                root.insert(.context(branch), branch)
+            }
         }
 
         do {
             let config = Space.with(origin, { $0.config }) ?? Workspace.with(origin, { $0.config }) ?? [:]
             if case .string(let input)? = config["prompt"], !input.isEmpty {
+                Trace.say("Context", "the space carries a prompt of \(input.count) characters — recording it as input", indent: 1)
                 Transcript.update(branch) { $0.insert("input", .string(input)) }
+            } else {
+                Trace.say("Context", "the space carries no prompt", indent: 1)
             }
 
-            let kind = Harness.with(harness, { $0.intent })
-            let serialized = Serialization(origin: origin, branch: branch, intent: kind).rendered
+            Trace.say("Context", "rendering the space through its own recursive projection", indent: 1)
+            let serialized = Runtime.shared.rendered(origin)
+            Trace.say("Context", "keeping that document in the record", indent: 1)
             Transcript.update(branch) { $0.insert("context", .string(serialized)) }
-            let arguments = try Parser.parse(origin, for: harness, prompt: serialized)
-            guard let intent = intent(branch, arguments: arguments) else { return }
+
+            var values = Dictionary(uniqueKeysWithValues: config.map { ($0.key, $0.value) })
+            values["prompt"] = .string(serialized)
+
+            guard let command = Harness.with(harness, { $0.command }),
+                  let arguments = Command.with(command, { command in
+                      Harness.with(harness, { command.rendered(with: values) + $0.rendered(with: values) })
+                  }) ?? nil
+            else { throw RuntimeError.context(.missing(harness)) }
+            Trace.say("Context", "rendered \(arguments.count) argument(s) straight from config — nothing validates them now", indent: 1)
+            guard let intent = intent(branch, arguments: arguments) else {
+                Trace.say("Context", "no intent could be built for that harness", indent: 1)
+                return
+            }
             intents.append(intent)
+            Trace.say("Context", "\(intents.count) intent(s) now live on this context", indent: 1)
             intent.start(terminal)
         } catch {
-            let signal = Signal.failed(.string(String(describing: error)))
+            Trace.say("Context", "the fire failed before dispatch: \(error)", indent: 1)
+            let signal = Signal.stopped(.string(String(describing: error)))
             Transcript.update(branch) { $0.insert(signal) }
             terminal(signal, branch)
         }
     }
 
     mutating func stop(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
+        Trace.say("Context", "stopping \(intents.count) live intent(s) on \(Trace.ref(origin))")
         for intent in intents { intent.stop(terminal) }
     }
 
     mutating func complete(_ signal: Signal, from branch: Reference) {
         guard signal.terminal else { return }
+        Trace.say("Context", "a run finished in \(Trace.ref(branch)) — echoing the outcome into the root")
         Transcript.update(transcript) { $0.insert(signal) }
         intents.removeAll { $0.transcript == branch }
+        Trace.say("Context", "\(intents.count) intent(s) remain — the space is \(intents.isEmpty ? "idle again" : "still working")", indent: 1)
     }
 
     static func new(_ origin: Reference) -> Context {
@@ -420,20 +111,24 @@ struct Context: Contextual {
         if let transcript = roots.first(where: { reference in
             Transcript.with(reference) { transcript in
                 transcript.entries.contains { entry in
-                    if case .event(_, .composed(let source), _) = entry { source == origin } else { false }
+                    guard case .event(_, .started(.reference(let source)), _) = entry else { return false }
+                    return source == origin
                 }
             } == true
         }) {
+            Trace.say("Context", "reusing the existing root transcript \(Trace.ref(transcript)) for \(Trace.ref(origin))")
             return Self(origin, transcript: transcript)
         }
 
+        Trace.say("Context", "no root transcript yet for \(Trace.ref(origin)) — making one")
         let transcript = Transcript.new(origin.descriptor.name, owner: origin)
-        Transcript.update(transcript) { $0.insert(.composed(origin)) }
+        Transcript.update(transcript) { $0.insert(.started(.reference(origin))) }
         return Self(origin, transcript: transcript)
     }
 
     private func intent(_ transcript: Reference, arguments: [String]) -> Intent? {
         guard let harness, let kind = Harness.with(harness, { $0.intent }) else { return nil }
+        Trace.say("Context", "the harness declares intent \(kind) — building that shape", indent: 1)
         switch kind {
             case .compose: return .compose(Composing(origin, harness: harness, transcript: transcript, arguments: arguments))
             case .dispatch: return .dispatch(Dispatching(origin, harness: harness, transcript: transcript, arguments: arguments))
@@ -450,15 +145,20 @@ struct Context: Contextual {
            focused != transcript,
            !intents.contains(where: { $0.transcript == focused }),
            (Space.with(origin, { $0.transcripts }) ?? Workspace.with(origin, { $0.transcripts }) ?? []).contains(focused) {
+            Trace.say("Context", "the space points at a specific transcript — writing there instead", indent: 1)
             return focused
         }
         let name = harness.flatMap { Harness.with($0, { "\($0.intent)".capitalized }) } ?? "Intent"
         let branches = Transcript.with(transcript, { $0.entries })?.compactMap { entry -> Reference? in
-            guard case .transcript(let key, let ref, _) = entry else { return nil }
+            guard case .transcript(_, let ref, _) = entry else { return nil }
             return ref
         } ?? []
-        if let existing = branches.first(where: { $0.descriptor.name == name }) { return existing }
+        if let existing = branches.first(where: { $0.descriptor.name == name }) {
+            Trace.say("Context", "reusing the \(name) branch — every run of this intent shares it", indent: 1)
+            return existing
+        }
 
+        Trace.say("Context", "opening a new \(name) branch under the root", indent: 1)
         return Transcript.new(name, owner: transcript)
     }
 }

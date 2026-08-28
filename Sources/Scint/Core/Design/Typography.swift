@@ -9,6 +9,8 @@ enum Typography {
     static let prose = Font.system(size: 14, weight: .light)
     static let proseCode = Font.system(size: 14, design: .monospaced)
     static let quote = Font.system(size: 14, weight: .light)
+    static let cardHeading = Font.system(size: 15, weight: .regular)
+    static let cardRow = Font.system(size: 13, weight: .regular)
     static let cardTitle = Font.system(size: 12, weight: .medium)
     static let row = Font.system(size: 12)
     static let caption = Font.system(size: 12, weight: .light)
