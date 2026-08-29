@@ -3,6 +3,7 @@ import SwiftUI
 
 
 @Observable final class OutlinePanel: Panel {
+    var mode: Modality = .fixed
     var state: PanelState = .init()
     var surface: PanelSurface = .outline
 

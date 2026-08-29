@@ -91,25 +91,26 @@ import Foundation
                 build(surface, controls, params: params, view: view)
 
             case .table:
-                let view = AnyView(
-                    VStack(spacing: 0) {
-                        if params.header { ListHeader(name: params.name) }
-                        TableLayout {
-                            ForEach(params.items) { item in
-                                let view = AnyView(
-                                    TableRow(
-                                        title: item.name,
-                                        description: item.description,
-                                        selected: controls.selected?(item) ?? false,
-                                        onSelect: { controls.onSelect?(item) }
-                                    )
-                                )
-
-                                build(surface, controls, params: item, view: view)
-                            }
-                        }
-                    }
-                )
+                let view = AnyView(EmptyView())
+//                let view = AnyView(
+//                    VStack(spacing: 0) {
+//                        if params.header { ListHeader(name: params.name) }
+//                        ActivityLayout {
+//                            ForEach(params.items) { item in
+//                                let view = AnyView(
+//                                    ActivityRow(
+//                                        title: item.name,
+//                                        description: item.description,
+//                                        selected: controls.selected?(item) ?? false,
+//                                        onSelect: { controls.onSelect?(item) }
+//                                    )
+//                                )
+//
+//                                build(surface, controls, params: item, view: view)
+//                            }
+//                        }
+//                    }
+//                )
                 build(surface, controls, params: params, view: view)
 
             case .list:

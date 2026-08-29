@@ -3,6 +3,7 @@ import SwiftUI
 
 
 @Observable final class SearchPanel: Panel {
+    var mode: Modality = .fixed
     var state: PanelState = .init()
     var surface: PanelSurface {
         get { PanelSurface(rawValue: state.surface) ?? .everything }

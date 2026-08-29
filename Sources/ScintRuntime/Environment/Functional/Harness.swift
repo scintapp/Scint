@@ -7,7 +7,19 @@ struct Harness: Functional {
     let command: Reference
     let parameters: [Parameter]
 
-    enum Intent: Codable, Sendable, CaseIterable, Equatable { case compose, dispatch, observe, evaluate, search }
+    enum Intent: Codable, Sendable, CaseIterable, Equatable {
+        case compose, dispatch, observe, evaluate, search
+
+        var signal: Signal.Intent {
+            switch self {
+                case .compose: .composing
+                case .dispatch: .dispatching
+                case .observe: .observing
+                case .evaluate: .evaluating
+                case .search: .searching
+            }
+        }
+    }
 
     enum Parameter: Codable, Sendable, Equatable {
         case argument(name: String, type: Value, required: Bool = false, default: Value? = nil)
@@ -34,27 +46,6 @@ struct Harness: Functional {
         var lines = ["\(ref.descriptor.name) (harness)"]
         if !ref.descriptor.description.isEmpty { lines.append(ref.descriptor.description) }
         lines.append("intent: \(intent)")
-        if let name = Command.with(command, { _ in command.descriptor.name }) { lines.append("command: \(name)") }
-
-        for parameter in parameters {
-            switch parameter {
-                case .argument(let name, let type, let required, let value):
-                    var line = "\(name): \(type.described)"
-                    if required { line += " (required)" }
-                    else if let value { line += " (default \(value.rendered.joined(separator: " ")))" }
-                    lines.append(line)
-
-                case .requirement(let name, let type, let value):
-                    lines.append("\(name): \(type.described) (fixed \(value.rendered.joined(separator: " ")))")
-
-                case .target(let name, let type, _):
-                    lines.append("\(name): \(type.described) (target)")
-
-                case .command:
-                    break
-            }
-        }
-
         return lines.joined(separator: "\n")
     }
 
@@ -75,9 +66,6 @@ struct Harness: Functional {
         }
     }
 
-    /// A requirement takes its declared value unless the space supplies one; a target is
-    /// bound for the runtime to read. Neither is emitted, and `command` carries its own
-    /// literal so it binds nothing.
     func bind(_ supplied: [String: Value]) throws -> [String: Value] {
         var parsed: [String: Value] = [:]
         var expected: Set<String> = []

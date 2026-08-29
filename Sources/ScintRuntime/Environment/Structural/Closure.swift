@@ -31,13 +31,17 @@ struct Closure: Structural {
     }
 
     var rendered: String {
-        var refs = materials.filter { !$0.descriptor.tags.contains("input") }
-        if input.type == Material.self { refs.append(input) }
+        let refs = materials.filter { !$0.descriptor.tags.contains("input") && $0.descriptor.published }
 
-        let content = refs.compactMap { ref -> String? in
+        var content = refs.compactMap { ref -> String? in
             let rendered = Runtime.shared.rendered(ref)
             guard !rendered.isEmpty else { return nil }
-            return "# \(ref.descriptor.name)\n\(rendered)"
+            return "# \(ref.descriptor.name) [\(ref.handle)]\n\(rendered)"
+        }
+
+        if input.type == Material.self {
+            let rendered = Runtime.shared.rendered(input)
+            if !rendered.isEmpty { content.append("# \(input.descriptor.name)\n\(rendered)") }
         }
 
         let available = (harnesses.sorted { $0.descriptor.name < $1.descriptor.name }

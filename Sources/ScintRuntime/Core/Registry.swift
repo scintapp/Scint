@@ -1,5 +1,21 @@
 import Foundation
 
+/// Temporary narration for the Contextual module. Scaffolding, not architecture —
+/// delete this file and every `Trace.` call site once the flow is understood.
+///
+/// Filter the console with `[` to read the story, or with a single scope like
+/// `[Serialization]` to follow one stage.
+
+enum Trace {
+    static func say(_ scope: String, _ message: String, indent: Int = 0) {
+        print("[\(scope)] \(String(repeating: "  ", count: indent))\(message)")
+    }
+    static func name(_ ref: Reference) -> String { Catalog.shared.get(ref)?.name ?? "unnamed" }
+    static func id(_ ref: Reference) -> String { String(ref.id.uuidString.prefix(8)).lowercased() }
+    static func ref(_ value: Reference) -> String { "\"\(name(value))\" \(id(value))" }
+    static func kind(_ value: Reference) -> String { value.type.map { "\($0)" } ?? "unresolved" }
+}
+
 
 struct Registration: @unchecked Sendable {
     let id: TypeId

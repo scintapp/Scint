@@ -27,18 +27,6 @@ struct Command: Functional {
     var rendered: String {
         var lines = ["\(ref.descriptor.name) (command)"]
         if !ref.descriptor.description.isEmpty { lines.append(ref.descriptor.description) }
-
-        let usage = parameters.compactMap { parameter -> String? in
-            switch parameter {
-                case .argument(let name, let type, let required, _):
-                    return required ? "\(name) \(type.described)" : "[\(name) \(type.described)]"
-                case .fixed(let value): return value.rendered.joined(separator: " ")
-                case .requirement: return nil
-            }
-        }.joined(separator: " ")
-
-        let executable = Artifact.with(artifact, { $0.rendered }) ?? ""
-        lines.append("usage: \(([executable] + [usage]).filter { !$0.isEmpty }.joined(separator: " "))")
         return lines.joined(separator: "\n")
     }
 
@@ -52,8 +40,6 @@ struct Command: Functional {
         }
     }
 
-    /// Only `argument` takes a value. `fixed` supplies its own and `requirement` is
-    /// declared but never emitted.
     func bind(_ supplied: [String: Value]) throws -> [String: Value] {
         var parsed: [String: Value] = [:]
         var expected: Set<String> = []
@@ -71,7 +57,7 @@ struct Command: Functional {
         return parsed
     }
 
-    func dispatch(rendered arguments: [String], environment: [String: String] = [:], output: ((Signal) -> Void)? = nil) -> (pid: Int32, error: String?)? {
+    func dispatch(_ arguments: [String], environment: [String: String] = [:], output: ((String) -> Void)? = nil) -> (pid: Int32, error: String?)? {
         guard let exec = Artifact.with(artifact, { $0.handler.executable }) ?? nil else { return nil }
         let result = Runtime.shared.services.start(exec, arguments: arguments, environment: environment)
         if let output, let pid = result?.pid, result?.error == nil { Runtime.shared.services.output(pid: pid, output) }

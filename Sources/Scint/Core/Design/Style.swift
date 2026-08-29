@@ -3,7 +3,7 @@ import SwiftUI
 
 struct Style {
     enum Shape {
-        static var small: RoundedRectangle { RoundedRectangle(cornerRadius: 9, style: .continuous) }
+        static var small: RoundedRectangle { RoundedRectangle(cornerRadius: 12, style: .continuous) }
         static var medium: RoundedRectangle { RoundedRectangle(cornerRadius: 16, style: .continuous) }
         static var large: RoundedRectangle { RoundedRectangle(cornerRadius: 20, style: .continuous) }
         static var panel: RoundedRectangle { RoundedRectangle(cornerRadius: 30, style: .continuous) }
@@ -73,12 +73,12 @@ struct Style {
     }
 
     enum Tint {
-        static var artifact: Color { Color(red: 0.892, green: 0.892, blue: 0.892) }
-        static var command: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
-        static var harness: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
-        static var material: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
+        static var artifact: Color { Color(red: 0.92549, green: 0.82353, blue: 0.93333) }
+        static var command: Color { Color(red: 0.50784, green: 0.82353, blue: 0.69804) }
+        static var harness: Color { Color(red: 0.50784, green: 0.82353, blue: 0.69804) }
+        static var material: Color { Color(red: 0.97294, green: 0.84314, blue: 0.75294) }
         static var transcript: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
-        static var task: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
+        static var task: Color { Color(red: 0.9443, green: 0.7645, blue: 0.7823) }
         static var space: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
         static var bridge: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
         static var alert: Color { Color(red: 0.812, green: 0.545, blue: 0.545) }

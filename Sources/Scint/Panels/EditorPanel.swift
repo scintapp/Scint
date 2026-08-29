@@ -2,6 +2,7 @@ import SwiftUI
 
 
 @Observable final class EditorPanel: Panel {
+    var mode: Modality = .fixed
     var state: PanelState = .init()
     var surface: PanelSurface = .edit
 

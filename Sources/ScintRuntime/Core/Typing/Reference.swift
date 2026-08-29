@@ -2,13 +2,13 @@ import Foundation
 
 
 enum Key: Codable, Sendable, Identifiable, Hashable {
-    case chunk(Reference)
+    case branch(UUID, Reference)
     case context(Reference)
     case descriptor(Reference)
 
     var id: AnyHashable {
         switch self {
-            case .chunk(let ref): return ref.id
+            case .branch(let id, let ref): return ref.id
             case .context(let ref): return ref.contextId
             case .descriptor(let ref): return ref.descriptorId
         }
@@ -16,7 +16,7 @@ enum Key: Codable, Sendable, Identifiable, Hashable {
 
     var ref: Reference {
         switch self {
-            case .chunk(let ref): return ref
+            case .branch(_, let ref): return ref
             case .context(let ref): return ref
             case .descriptor(let ref): return ref
         }
@@ -29,6 +29,12 @@ struct Reference: Codable, Sendable, Identifiable, Hashable {
     let contextId: ContextId
     let descriptorId: DescriptorId
     let storageId: StorageId
+
+    static let handleLength = 8
+
+    var handle: String {
+        String(storageId.uuidString.lowercased().replacingOccurrences(of: "-", with: "").prefix(Self.handleLength))
+    }
 
     init(_ type: Resolvable.Type, id: UUID = UUID(), descriptorId: DescriptorId? = nil, contextId: ContextId? = nil, storageId: StorageId? = nil) {
         self.id = id

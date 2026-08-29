@@ -2,6 +2,7 @@ import SwiftUI
 
 
 @Observable final class InspectorPanel: Panel {
+    var mode: Modality = .fixed
     var state: PanelState = .init()
     var surface: PanelSurface = .artifacts
 
@@ -39,7 +40,6 @@ import SwiftUI
     func surface(_ model: any Model) -> some View {
         AnySurface(panel: self, model: model)
             .scrollEdgeEffectHidden()
-            .safeAreaBar(edge: .top) { InspectorTabs(panel: self) }
             .toolbar {
                 @Bindable var state = self.state
                 ToolbarSpacer(.flexible, placement: .primaryAction)

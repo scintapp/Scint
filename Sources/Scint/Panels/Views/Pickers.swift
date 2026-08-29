@@ -7,26 +7,24 @@ struct TranscriptPicker: View {
     var model: any Model
 
     var body: some View {
-        if let root = model.session.transcripts.first, let selected = model.session.transcript {
-            let branches: [Reference] = Transcript.with(root, { $0.entries })?.compactMap { entry -> Reference? in
-                guard case .transcript(_, let ref, _) = entry else { return nil }
-                return ref
-            } ?? []
+        if let context = model.session.transcripts.first, let selected = model.session.transcript {
+            let branches: [Reference] = Transcript.with(context, { $0.branches }) ?? []
+
             let harnesses = Runtime.shared.context(for: model.session.origin)?.harnesses ?? []
 
             HStack(spacing: hovered ? Style.Spacing.md : 0) {
-                if hovered || selected == root {
-                    Button { model.select(root) } label: {
+                if hovered || selected == context {
+                    Button { model.select(context) } label: {
                         Text("Overview")
-                            .font(Typography.row.weight(selected == root ? .medium : .regular))
-                            .foregroundStyle(selected == root ? Style.Foreground.subtle : Style.Foreground.faint)
+                            .font(Typography.row.weight(selected == context ? .medium : .regular))
+                            .foregroundStyle(selected == context ? Style.Foreground.subtle : Style.Foreground.faint)
                             .lineLimit(Style.Limit.singleLine)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
 
-                ForEach(Array(Harness.Intent.allCases.enumerated()), id: \.offset) { _, intent in
+                ForEach(Array(Harness.Intent.allCases).enumerated(), id: \.offset) { _, intent in
                     let label = String(describing: intent).capitalized
                     let transcript = branches.first { $0.descriptor.name == label }
                     let enabled = harnesses.contains { harness in
@@ -34,49 +32,33 @@ struct TranscriptPicker: View {
                     }
 
                     if hovered || transcript == selected {
-                        Button {
-                            if let transcript { model.select(transcript) }
-                        } label: {
+                        Button { if let transcript { model.select(transcript) } } label: {
                             Text(label)
+                                .padding(.horizontal, 2)
                                 .font(Typography.row.weight(transcript == selected ? .medium : .regular))
                                 .foregroundStyle(
                                     enabled
                                     ? transcript == selected
                                     ? Style.Foreground.subtle
                                     : Style.Foreground.faint
-                                    : Style.Foreground.disabled
+                                    : Style.Foreground.faint
                                 )
                                 .lineLimit(Style.Limit.singleLine)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .disabled(!enabled)
-                        .help(
-                            !enabled
-                            ? "No \(label.lowercased()) harness"
-                            : transcript == nil
-                            ? "No \(label.lowercased()) transcript yet"
-                            : "Show \(label.lowercased()) transcript"
-                        )
                     }
                 }
             }
             .padding(.horizontal, Style.Spacing.md)
             .frame(height: 30)
             .fixedSize(horizontal: true, vertical: false)
-            .background(
-                Style.Shape.panel
-                    .fill(Style.Background.group)
-            )
-            .overlay(
-                Style.Shape.panel
-                    .stroke(Style.Border.base, lineWidth: 1)
-            )
+            .background(Style.Shape.panel.fill(Style.Background.group))
+            .overlay(Style.Shape.panel.stroke(Style.Border.base, lineWidth: 1))
             .contentShape(Style.Shape.panel)
-            .onHover { isHovered in
-                withAnimation(.smooth(duration: 0.18)) { hovered = isHovered }
-            }
-            .animation(.smooth(duration: 0.18), value: hovered)
+            .onHover { isHovered in withAnimation(.smooth(duration: 0.2)) { hovered = isHovered } }
+            .animation(.smooth(duration: 0.2), value: hovered)
         }
     }
 }
@@ -109,5 +91,20 @@ struct ContentPicker: View {
         .controlGroupStyle(.navigation)
         .foregroundStyle(Style.Foreground.base, Style.Foreground.base, Style.Foreground.base)
         .tint(Style.Background.group)
+    }
+}
+
+struct HarnessPicker: View {
+    var panel: any Panel
+    var model: any Model
+
+    var body: some View {
+        Button { panel.state.presented.toggle() } label: {
+            Image(systemName: "gearshape")
+        }
+        .popover(isPresented: panel.state.bindable.presented) {
+            let surface = AnySurface(panel: panel, model: model)
+            surface.render(surface, HarnessGroup.parameters(model), HarnessGroup.controls(model))
+        }
     }
 }

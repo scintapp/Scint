@@ -75,13 +75,12 @@ extension Runtime {
     }
 
     func search(_ text: String = "", limit: Int = 20) -> SearchResults {
-        let search = SearchRequest(text)
+        let search = Search(text)
         let results = Catalog.shared.values().compactMap { SearchResult(descriptor: $0, search: search) }
         return SearchResults(
             query: text,
-            text: search.text,
             filters: search.filters,
-            all: Query.rank(results, limit: limit)
+            all: Search.Query.rank(results, limit: limit)
         )
     }
 }
@@ -95,14 +94,17 @@ extension Runtime {
 
     func context(for ref: Reference) -> Composition? { Composer.shared.resolve(ref) }
 
-    func start(_ ref: Reference, config: Config) -> Composition? {
-        let closure = Space.with(ref, { $0.closure }) ?? Workspace.with(ref, { $0.closure })
-        guard let closure else { return nil }
-        Closure.update(closure) { closure in for (key, value) in config { closure.config[key] = value } }
-        return Composer.shared.start(ref)
+    func start(_ ref: Reference) -> Composition? {
+        guard Composer.shared.compose(ref) != nil else { return nil }
+        Context.update(ref) { $0.handle(.composed(ref)) }
+        return Composer.shared.resolve(ref)
     }
 
-    func stop(_ ref: Reference) -> Composition? { Composer.shared.stop(ref) }
+    func stop(_ ref: Reference) -> Composition? {
+        guard Composer.shared.context(ref) != nil else { return nil }
+        Context.update(ref) { $0.handle(.stopped(ref, nil)) }
+        return Composer.shared.resolve(ref)
+    }
 }
 
 extension Runtime {

@@ -39,12 +39,12 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
         delivery.0?(chunk)
     }
 
-    func output(pid: Int32, _ handler: @escaping (Signal) -> Void) {
+    func output(pid: Int32, _ handler: @escaping (String) -> Void) {
         let receive: (String) -> Void = { [weak self] chunk in
             guard let self else { return }
-            for signal in self.signals(pid: pid, chunk: chunk) {
-                handler(signal)
-                if signal.terminal { self.removeOutputHandler(pid: pid) }
+            for line in self.lines(pid: pid, chunk: chunk) {
+                handler(line)
+                if self.terminated(line) { self.removeOutputHandler(pid: pid) }
             }
         }
         let pendingCount = lock.withLock { () -> Int in
@@ -75,8 +75,8 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
         }
     }
 
-    private func signals(pid: Int32, chunk: String) -> [Signal] {
-        let lines = lock.withLock { () -> [String] in
+    private func lines(pid: Int32, chunk: String) -> [String] {
+        lock.withLock { () -> [String] in
             let content = (buffers.removeValue(forKey: pid) ?? "") + chunk
             let parts = content.split(separator: "\n", omittingEmptySubsequences: false)
             guard content.last == "\n" else {
@@ -85,27 +85,17 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
             }
             return parts.dropLast().map(String.init)
         }
-        return lines.flatMap(signals)
     }
 
-    private func signals(_ line: String) -> [Signal] {
-        let value = line.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return [] }
-        if let signal = terminal(value) { return [signal] }
-
-        if let brace = value.lastIndex(of: "{"), brace != value.startIndex, let signal = terminal(String(value[brace...])) {
-            let head = String(value[..<brace]).trimmingCharacters(in: .whitespacesAndNewlines)
-            return head.isEmpty ? [signal] : [.updated(.string(head)), signal]
+    private func terminated(_ line: String) -> Bool {
+        func envelope(_ value: String) -> Bool {
+            guard let properties = Properties.load(value) else { return false }
+            return (properties["type"]?.string ?? properties["event"]?.string)?.lowercased() == "terminated"
         }
-
-        return [.updated(.string(value))]
-    }
-
-    private func terminal(_ value: String) -> Signal? {
-        guard let properties = Properties.load(value),
-              (properties["type"]?.string ?? properties["event"]?.string)?.lowercased() == "terminated"
-        else { return nil }
-        return properties["exitCode"]?.int == 0 ? nil : .stopped(.string(value))
+        let value = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        if envelope(value) { return true }
+        guard let brace = value.lastIndex(of: "{"), brace != value.startIndex else { return false }
+        return envelope(String(value[brace...]))
     }
 
     func request(_ json: String, timeout: TimeInterval = 5.0) -> String? {

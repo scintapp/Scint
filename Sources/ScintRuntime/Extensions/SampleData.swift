@@ -19,6 +19,10 @@ enum SampleInterfaces {
         let inspectFileMetadata: Reference
         let fetchURLHeaders: Reference
         let assistantHarness: Reference
+        let composer: Reference
+        let dispatcher: Reference
+        let observer: Reference
+        let searcher: Reference
         let claudeCodeHarness: Reference
         let codexHarness: Reference
     }
@@ -44,8 +48,12 @@ enum SampleInterfaces {
             return reference
         }
 
-        func harness(_ name: String, _ command: Reference, _ intent: Harness.Intent, _ parameters: [Harness.Parameter]) -> Reference {
-            existing(name, as: Harness.self) ?? Harness.register(name, command: command, intent: intent, parameters: parameters)
+        func harness(_ name: String, _ command: Reference, _ intent: Harness.Intent, _ parameters: [Harness.Parameter], description: String? = nil) -> Reference {
+            let reference = existing(name, as: Harness.self) ?? Harness.register(name, command: command, intent: intent, parameters: parameters)
+            if let description {
+                Catalog.shared.update(reference) { descriptor in descriptor.description = description }
+            }
+            return reference
         }
 
         let sh = artifact("sh", URL(fileURLWithPath: "/bin/sh"))
@@ -178,7 +186,7 @@ enum SampleInterfaces {
             .compose,
             [
                 .argument(
-                    name: "model",
+                    name: "Model",
                     type: .collection(["--model": .sequence([
                         .string("gpt-5.6-sol"),
                         .string("gpt-5.6-terra"),
@@ -191,7 +199,7 @@ enum SampleInterfaces {
                     default: .string("gpt-5.6-sol"),
                 ),
                 .argument(
-                    name: "reasoningEffort",
+                    name: "Reasoning Effort",
                     type: .collection(["-c": .collection(["model_reasoning_effort": .sequence([
                         .string("low"),
                         .string("medium"),
@@ -204,7 +212,7 @@ enum SampleInterfaces {
                     default: nil
                 ),
                 .argument(
-                    name: "sandbox",
+                    name: "Sandbox",
                     type: .collection(["--sandbox": .sequence([
                         .string("read-only"),
                         .string("workspace-write"),
@@ -225,7 +233,8 @@ enum SampleInterfaces {
                     required: true,
                     default: nil
                 )
-            ]
+            ],
+            description: "Answer a request about this space and compose new material from it, leaving the result as documents in place."
         )
 
         let claudeCodeHarness = harness(
@@ -274,7 +283,7 @@ enum SampleInterfaces {
                     default: nil
                 ),
                 .argument(
-                    name: "sandbox",
+                    name: "Sandbox",
                     type: .collection(["--permission-mode": .sequence([
                         .string("default"),
                         .string("acceptEdits"),
@@ -288,7 +297,8 @@ enum SampleInterfaces {
                 ),
                 .argument(name: "continuation", type: .collection(["--resume": .string("")]), required: false, default: nil),
                 .argument(name: "prompt", type: .string(""), required: true, default: nil)
-            ]
+            ],
+            description: "Evaluate a request against this space with Claude Code, reading its documents and calling its capabilities, and report what was found or done."
         )
 
         let codexHarness = harness(
@@ -344,7 +354,7 @@ enum SampleInterfaces {
                     default: nil
                 ),
                 .argument(
-                    name: "sandbox",
+                    name: "Sandbox",
                     type: .collection(["--sandbox": .sequence([
                         .string("read-only"),
                         .string("workspace-write"),
@@ -355,7 +365,31 @@ enum SampleInterfaces {
                 ),
                 .argument(name: "continuation", type: .collection(["resume": .string("")]), required: false, default: nil),
                 .argument(name: "prompt", type: .string(""), required: true, default: nil)
-            ]
+            ],
+            description: "Evaluate a request against this space, reading its documents and calling its capabilities, and report what was found or done."
+        )
+
+        let codexCommand = Harness.with(codexHarness, { $0.command })!
+        let codexParameters = Harness.with(codexHarness, { $0.parameters })!
+
+        let composer = harness(
+            "Composer", codexCommand, .compose, codexParameters,
+            description: "Draft and revise this space's documents — write new material, restructure what exists, and leave the result in place."
+        )
+
+        let dispatcher = harness(
+            "Dispatcher", codexCommand, .dispatch, codexParameters,
+            description: "Carry out a request by invoking this space's capabilities, and report their results."
+        )
+
+        let observer = harness(
+            "Observer", codexCommand, .observe, codexParameters,
+            description: "Watch this space for change and report what happened, without altering anything."
+        )
+
+        let searcher = harness(
+            "Searcher", codexCommand, .search, codexParameters,
+            description: "Locate material relevant to a request and report where it is, without reading everything."
         )
 
         return References(
@@ -375,6 +409,10 @@ enum SampleInterfaces {
             inspectFileMetadata: inspectFileMetadata,
             fetchURLHeaders: fetchURLHeaders,
             assistantHarness: assistantHarness,
+            composer: composer,
+            dispatcher: dispatcher,
+            observer: observer,
+            searcher: searcher,
             claudeCodeHarness: claudeCodeHarness,
             codexHarness: codexHarness,
         )
@@ -387,6 +425,7 @@ enum SampleData {
     @discardableResult
     static func load(_ workspace: Reference, for key: ModelKey) async -> Bool {
         switch key {
+            case .assistant: await assistant(workspace); return false
             case .editor: await editor(workspace); return false
             case .studio: return await studio(workspace)
         }
@@ -396,6 +435,7 @@ enum SampleData {
     static func builder(_ workspace: Reference) async { }
     static func editor(_ workspace: Reference) async { }
     static func panels(_ workspace: Reference) async { }
+
     @discardableResult
     static func studio(_ workspace: Reference) async -> Bool {
         guard Workspace.with(workspace, { $0.spaces.isEmpty }) ?? true else { return false }
@@ -412,7 +452,10 @@ enum SampleData {
 
 
         Workspace.update(workspace, { ws in
-            let components = [assistantHarness, mistralMessages]
+            let components = [
+                assistantHarness, mistralMessages, interfaces.codexHarness,
+                interfaces.composer, interfaces.dispatcher, interfaces.observer, interfaces.searcher
+            ]
             for component in components { ws.add(component) }
             ws.name = "Scint"
         })

@@ -81,7 +81,7 @@ struct DetailQuery: Mapper {
 
         switch verb {
             case .open: model.open(ref)
-            case .execute: _ = model.start(ref)
+            case .execute: _ = Runtime.shared.start(ref)
             case .copy: Action.copy(ref, from: nil, in: model)
             case .insert:
                 let origin = model.session.origin

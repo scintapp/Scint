@@ -1,66 +1,66 @@
 import SwiftUI
-import OSLog
 
 
-@main
-struct Scint: App {
+struct Host: View {
+    @Environment(ScintModel.self) var scint
+    @Environment(HostModel.self) var server
     @Environment(\.openWindow) private var openWindow
-    @State private var scint: ScintModel?
-    @State private var loading = false
-    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "App")
 
-    var body: some Scene {
-        Window("Studio", id: "studio") {
-            if let scint {
-                Studio()
-                    .environment(scint)
-                    .environment(scint.studio)
-                    .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
-                    .focusable(false)
-            } else {
-                ProgressView()
-                    .task { await load() }
-            }
-        }
-
-        Window("Editor", id: "editor") {
-            if let scint {
-                Editor()
-                    .environment(scint)
-                    .environment(scint.editor)
-                    .focusable(false)
-            }
-            else {
-                ProgressView()
-                    .task { await load() }
-            }
-        }
-
-        MenuBarExtra(content: {
-            if let scint {
-                Host()
-                    .environment(scint)
-                    .environment(scint.studio)
-                    .environment(scint.editor)
-                    .environment(scint.host)
-                    .focusable(false)
-            } else {
-                Text("Scint is loading…")
-            }
-        }, label: { Iconography.Glyph() })
+    var body: some View {
+        Text(scint.host.running ? "Server Running" : "Server Stopped")
+        if let message = scint.host.message, !message.isEmpty { Text(message) }
+        Divider()
+        if scint.host.running { Button("Stop Scint Server") { Task { await scint.host.unload() } } }
+        else { Button("Start Scint Server") { Task { await scint.host.load() } } }
+        Button("Copy Server Address") { NSPasteboard.general.setString(ContextServer.url.absoluteString, forType: .string) }
+        Divider()
+        Button("Scint Studio") { openWindow(id: "studio") }
     }
+}
 
-    func load() async {
-        guard scint == nil, !loading else { return }
-        loading = true
-        defer { loading = false }
-        do {
-            try await Runtime.shared.load()
-            let model = ScintModel()
-            await model.load()
-            scint = model
-        } catch {
-            Self.logger.error("Runtime load failed: \(String(describing: error), privacy: .public)")
-        }
+struct Assistant: View {
+    @Environment(ScintModel.self) var scint
+    @Environment(AssistantModel.self) var assistant
+
+    var body: some View {
+        assistant.content.surface(assistant)
+            .environment(assistant)
+            .background(Style.Background.page)
+            .toolbar(removing: .title)
+            .scrollEdgeEffectStyle(.hard, for: .vertical)
+    }
+}
+
+struct Editor: View {
+    @Environment(ScintModel.self) var scint
+    @Environment(EditorModel.self) var editor
+
+    var body: some View {
+        let content = editor.content.surface(editor)
+        let navigator = editor.navigator.surface(editor)
+
+        NavigationSplitView(sidebar: { navigator }, detail: { content })
+            .environment(scint)
+            .environment(editor)
+            .toolbar(removing: .title)
+    }
+}
+
+struct Studio: View {
+    @Environment(ScintModel.self) var scint
+    @Environment(StudioModel.self) var studio
+
+    var body: some View {
+        let presented = studio.inspector.state.bindable.presented
+        let content: some View = studio.content.surface(studio)
+        let inspector: some View = studio.inspector.surface(studio)
+        let navigator: some View = studio.navigator.surface(studio)
+
+        NavigationSplitView(sidebar: { navigator }, detail: { content })
+            .environment(scint)
+            .environment(studio)
+            .background(Style.Background.page)
+            .inspector(isPresented: presented) { inspector }
+            .toolbar(removing: .title)
     }
 }

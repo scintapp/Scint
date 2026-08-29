@@ -3,6 +3,7 @@ import SwiftUI
 
 
 @Observable final class ActionsPanel: Panel {
+    var mode: Modality = .fixed
     var state: PanelState = .init()
     var surface: ActionsSurface = .composer
 

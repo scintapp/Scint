@@ -1,75 +1,15 @@
 import SwiftUI
 
 
-/// Scaffolding. The grouping below belongs in params once the Factory can express a
-/// section rendered as cards; until then it lives here so the views stay pure.
-struct ActivitySurface: Surface {
-    var panel: any Panel
-    var model: any Model
-
-    private func branches(of composition: Composition) -> [Reference] {
-        Transcript.with(composition.transcript, { $0.entries })?.compactMap { entry -> Reference? in
-            guard case .transcript(_, let ref, _) = entry else { return nil }
-            return ref
-        } ?? []
-    }
-
-    private func activity(in composition: Composition) -> Date {
-        Transcript.with(composition.transcript) {
-            $0.entries.last?.created ?? $0.started
-        }.flatMap { $0 } ?? composition.transcript.descriptor.created
-    }
-
-    @ViewBuilder private func card(_ composition: Composition, running: Bool) -> some View {
-        let available = Set(composition.harnesses.compactMap { Harness.with($0, { $0.intent }) })
-        let found = branches(of: composition)
-
-        ActivityCard(
-            space: composition.space,
-            transcript: composition.transcript,
-            running: running,
-            model: model,
-            expanded: isExpanded(composition.space),
-            onToggle: { setExpanded(composition.space) }
-        ) {
-            ForEach(Harness.Intent.allCases, id: \.self) { intent in
-                ActivityRow(
-                    intent: intent,
-                    transcript: found.first { $0.descriptor.name == intent.forms.label },
-                    enabled: available.contains(intent),
-                    model: model
-                )
-            }
+extension Harness.Intent {
+    var forms: (label: String, running: String, completed: String) {
+        switch self {
+            case .compose: ("Compose", "Composing", "Composed")
+            case .dispatch: ("Dispatch", "Dispatching", "Dispatched")
+            case .observe: ("Observe", "Observing", "Observed")
+            case .evaluate: ("Evaluate", "Evaluating", "Evaluated")
+            case .search: ("Research", "Researching", "Researched")
         }
-    }
-
-    @ViewBuilder private func group(_ name: String, _ key: String, _ compositions: [Composition], running: Bool) -> some View {
-        if !compositions.isEmpty {
-            VStack(alignment: .leading, spacing: Style.Spacing.lg) {
-                ActivityHeader(
-                    name: name,
-                    expanded: isExpanded(key),
-                    onToggle: { setExpanded(key) }
-                )
-                if isExpanded(key) {
-                    ForEach(compositions, id: \.space) { card($0, running: running) }
-                }
-            }
-        }
-    }
-
-    var body: some View {
-        let compositions = Runtime.shared.context().sorted { activity(in: $0) > activity(in: $1) }
-
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Style.Spacing.xxl) {
-                group("Working", "working", compositions.filter { $0.state != .inactive }, running: true)
-                group("Recent", "recent", compositions.filter { $0.state == .inactive && !branches(of: $0).isEmpty }, running: false)
-            }
-            .padding(.horizontal, Style.Spacing.lg)
-            .padding(.vertical, Style.Spacing.xl)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
+

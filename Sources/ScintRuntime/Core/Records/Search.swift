@@ -1,54 +1,54 @@
 import Foundation
 
 
-enum Query {
-    static func token(_ value: String) -> String { value.normalized.replacingOccurrences(of: " ", with: "") }
-
-    static func describing(_ ref: Reference) -> String { ref.type.map { String(describing: $0) } ?? "Unknown" }
-
-    static func facets(for type: Resolvable.Type?) -> Set<String> {
-        guard let type else { return [] }
-        var facets: Set<String> = []
-        if type is any Structural.Type { facets.formUnion(["structural", "structure"])}
-        if type is any Malleable.Type { facets.formUnion(["composable", "component"]) }
-        if type is any Functional.Type { facets.formUnion(["interfacing", "interface"]) }
-        if type is any Contextual.Type { facets.formUnion(["contextual", "context"]) }
-        return facets
-    }
-
-    static func keys(for ref: Reference, tags: Set<String>) -> Set<String> {
-        let typeDescription = describing(ref)
-        let typeToken = token(typeDescription)
-        var values = Set([typeToken])
-        values.formUnion(facets(for: ref.type))
-        values.formUnion(tags.map(token).filter { !$0.isEmpty })
-        if let initial = typeToken.first { values.insert(String(initial)) }
-        return values.filter { !$0.isEmpty }
-    }
-
-    static func matches(_ filter: String, ref: Reference, tags: Set<String>) -> Bool {
-        let filter = token(filter)
-        guard !filter.isEmpty else { return true }
-        let keys = keys(for: ref, tags: tags)
-        if filter.count == 1 { return keys.contains(filter) }
-        return keys.contains(filter) || keys.contains { $0.hasPrefix(filter) }
-    }
-
-    static func rank(_ results: [SearchResult], limit: Int) -> [SearchResult] {
-        guard limit > 0 else { return [] }
-        return results
-            .sorted { if $0.score == $1.score { return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-                return $0.score > $1.score
-            }
-            .prefix(limit)
-            .map { $0 }
-    }
-}
-
-struct SearchRequest: Codable, Sendable, Hashable {
+struct Search: Codable, Sendable, Hashable {
     let text: String
     let input: String
     let filters: [String]
+
+    enum Query {
+        static func token(_ value: String) -> String { value.normalized.replacingOccurrences(of: " ", with: "") }
+
+        static func describing(_ ref: Reference) -> String { ref.type.map { String(describing: $0) } ?? "Unknown" }
+
+        static func facets(for type: Resolvable.Type?) -> Set<String> {
+            guard let type else { return [] }
+            var facets: Set<String> = []
+            if type is any Structural.Type { facets.formUnion(["structural", "structure"])}
+            if type is any Malleable.Type { facets.formUnion(["composable", "component"]) }
+            if type is any Functional.Type { facets.formUnion(["interfacing", "interface"]) }
+            if type is any Contextual.Type { facets.formUnion(["contextual", "context"]) }
+            return facets
+        }
+
+        static func keys(for ref: Reference, tags: Set<String>) -> Set<String> {
+            let typeDescription = describing(ref)
+            let typeToken = token(typeDescription)
+            var values = Set([typeToken])
+            values.formUnion(facets(for: ref.type))
+            values.formUnion(tags.map(token).filter { !$0.isEmpty })
+            if let initial = typeToken.first { values.insert(String(initial)) }
+            return values.filter { !$0.isEmpty }
+        }
+
+        static func matches(_ filter: String, ref: Reference, tags: Set<String>) -> Bool {
+            let filter = token(filter)
+            guard !filter.isEmpty else { return true }
+            let keys = keys(for: ref, tags: tags)
+            if filter.count == 1 { return keys.contains(filter) }
+            return keys.contains(filter) || keys.contains { $0.hasPrefix(filter) }
+        }
+
+        static func rank(_ results: [SearchResult], limit: Int) -> [SearchResult] {
+            guard limit > 0 else { return [] }
+            return results
+                .sorted { if $0.score == $1.score { return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                    return $0.score > $1.score
+                }
+                .prefix(limit)
+                .map { $0 }
+        }
+    }
 
     init(_ input: String) {
         var terms: [String] = []
@@ -83,10 +83,10 @@ struct SearchResult: Codable, Sendable, Identifiable {
         self.score = score
     }
 
-    init?(descriptor: Descriptor, search: SearchRequest) {
+    init?(descriptor: Descriptor, search: Search) {
         guard descriptor.published else { return nil }
         guard search.filters
-            .allSatisfy({ Query.matches($0, ref: descriptor.origin, tags: descriptor.tags) }) else {
+            .allSatisfy({ Search.Query.matches($0, ref: descriptor.origin, tags: descriptor.tags) }) else {
             return nil
         }
         let score = Self.score(descriptor, query: search.text)
@@ -110,7 +110,7 @@ struct SearchResult: Codable, Sendable, Identifiable {
         let name = descriptor.name.normalized
         let description = descriptor.description.normalized
         let tags = descriptor.tags.map(\.normalized)
-        let typeTerms = Array(Query.keys(for: descriptor.origin, tags: descriptor.tags))
+        let typeTerms = Array(Search.Query.keys(for: descriptor.origin, tags: descriptor.tags))
         let searchable = ([name, description] + tags + typeTerms).joined(separator: " ")
 
         guard tokens.allSatisfy({ searchable.contains($0) }) else { return 0 }
@@ -119,7 +119,7 @@ struct SearchResult: Codable, Sendable, Identifiable {
         if name.hasPrefix(needle) { return 85 }
         if name.contains(needle) { return 70 }
         if tags.contains(needle) { return 60 }
-        if typeTerms.contains(Query.token(needle)) { return 50 }
+        if typeTerms.contains(Search.Query.token(needle)) { return 50 }
         if description.contains(needle) { return 40 }
         if tags.contains(where: { $0.contains(needle) }) { return 30 }
         if tokens.allSatisfy({ name.contains($0) }) { return 25 }
@@ -131,13 +131,11 @@ struct SearchResult: Codable, Sendable, Identifiable {
 
 struct SearchResults: Codable, Sendable {
     let query: String
-    let text: String
     let filters: [String]
     let all: [SearchResult]
 
-    init(query: String, text: String? = nil, filters: [String] = [], all: [SearchResult]) {
+    init(query: String, filters: [String] = [], all: [SearchResult]) {
         self.query = query
-        self.text = text ?? query
         self.filters = filters
         self.all = all
     }

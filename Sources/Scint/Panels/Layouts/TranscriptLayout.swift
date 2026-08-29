@@ -1,83 +1,14 @@
 import SwiftUI
 
-
-struct TranscriptEntry: View {
-    var transcript: Reference
-    var entry: Transcript.Entry
-    var model: any Model
-
-    /// The user's own turn, shown as their bubble rather than as transcript flow.
-    private var input: String? {
-        switch entry {
-            case .material(let ref, _) where ref.descriptor.tags.contains("input"):
-                Material.with(ref, { $0.rendered.trimmingCharacters(in: .whitespacesAndNewlines) })
-
-            case .value("input", let value, _):
-                value.rendered.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-
-            default:
-                nil
-        }
-    }
-
-    var body: some View {
-        Group {
-            if let input, !input.isEmpty {
-                HStack {
-                    Spacer()
-
-                    Text(input)
-                        .foregroundStyle(Style.Foreground.subtle)
-                        .padding(.horizontal, Style.Spacing.lg)
-                        .padding(.vertical, Style.Spacing.lg)
-                        .background(Style.Shape.medium.fill(Style.Background.overlay))
-                        .overlay(
-                            Style.Shape.medium
-                                .strokeBorder(Style.Border.group, lineWidth: 0.5)
-                        )
-                }
-            } else {
-                switch entry {
-                    case .event(_, .updated(let value), _),
-                         .event(_, .composing(let value), _),
-                         .event(_, .evaluating(let value), _),
-                         .event(_, .dispatching(let value), _),
-                         .event(_, .observing(let value), _),
-                         .event(_, .searching(let value), _):
-                        Text(attributed(value.rendered.joined(separator: "\n")))
-
-                    case .transcript(_, let ref, _):
-                        TranscriptCard(transcript: ref, model: model)
-
-                    case .value(let key, let value, _) where key != "context" && key != "input":
-                        Text(value.rendered.joined(separator: "\n"))
-
-                    case .event, .material, .value:
-                        EmptyView()
-                }
-            }
-        }
-        .font(Typography.prose)
-        .foregroundStyle(Style.Foreground.base)
-        .lineSpacing(Style.Spacing.sm)
-        .textSelection(.enabled)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if case .transcript = entry { return }
-            model.select(transcript)
-        }
-    }
-
-    private func attributed(_ text: String, reasoning: Bool = false) -> AttributedString {
-        let baseColor = reasoning ? Style.Foreground.faint : Style.Foreground.base
+enum Attribute {
+    static func text(_ text: String, reasoning: Bool = false) -> AttributedString {
+        let base = reasoning ? Style.Foreground.faint : Style.Foreground.base
         var attributed = AttributedString(text)
         attributed.font = reasoning ? Typography.prose.italic() : Typography.prose
-        attributed.foregroundColor = baseColor
+        attributed.foregroundColor = base
 
         for inline in Markdown.parse(text) {
-            guard let range = attributedRange(inline.range, source: text, attributed: attributed) else {
+            guard let range = range(inline.range, source: text, attributed: attributed) else {
                 continue
             }
 
@@ -87,18 +18,18 @@ struct TranscriptEntry: View {
 
                 case .quote:
                     attributed[range].font = Typography.quote
-                    attributed[range].foregroundColor = baseColor.opacity(Style.Opacity.muted)
+                    attributed[range].foregroundColor = base.opacity(Style.Opacity.muted)
 
                 case .quoteMarker:
-                    attributed[range].foregroundColor = baseColor.opacity(Style.Opacity.faint)
+                    attributed[range].foregroundColor = base.opacity(Style.Opacity.faint)
 
                 case .codeBlock:
-                    attributed[range].font = Typography.proseCode
-                    attributed[range].foregroundColor = baseColor.opacity(Style.Opacity.muted)
+                    attributed[range].font = Typography.prose
+                    attributed[range].foregroundColor = base.opacity(Style.Opacity.muted)
 
                 case .codeFence:
-                    attributed[range].font = Typography.proseCode
-                    attributed[range].foregroundColor = baseColor.opacity(Style.Opacity.washed)
+                    attributed[range].font = Typography.prose
+                    attributed[range].foregroundColor = base.opacity(Style.Opacity.washed)
 
                 case .strong:
                     attributed[range].font = Typography.prose.weight(.semibold)
@@ -111,7 +42,7 @@ struct TranscriptEntry: View {
                     attributed[range].backgroundColor = Color.primary.opacity(Style.Opacity.washed)
 
                 case .strikethrough:
-                    attributed[range].foregroundColor = baseColor.opacity( Style.Opacity.faint)
+                    attributed[range].foregroundColor = base.opacity( Style.Opacity.faint)
                     attributed[range].strikethroughStyle = .single
 
                 case .syntax:
@@ -123,7 +54,7 @@ struct TranscriptEntry: View {
         return attributed
     }
 
-    private func attributedRange(_ range: NSRange, source: String, attributed: AttributedString) -> Range<AttributedString.Index>? {
+    static func range(_ range: NSRange, source: String, attributed: AttributedString) -> Range<AttributedString.Index>? {
         guard let sourceRange = Range(range, in: source) else { return nil }
 
         let lowerOffset = source.distance(from: source.startIndex, to: sourceRange.lowerBound)
@@ -167,22 +98,105 @@ struct TranscriptHeader: View {
     }
 }
 
-struct TranscriptSection: View {
+struct TranscriptEntry: View {
     var transcript: Reference
+    var entry: Transcript.Entry
+    var model: any Model
+
+    var input: String? {
+        switch entry {
+            case .record(let chunk, _) where chunk.origin.type == Material.self:
+                chunk.value.rendered.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            default:
+                nil
+        }
+    }
+
+    var body: some View {
+        Group {
+            if let input, !input.isEmpty {
+                HStack {
+                    Spacer()
+
+                    Text(input)
+                        .foregroundStyle(Style.Foreground.subtle)
+                        .padding(.horizontal, Style.Spacing.lg)
+                        .padding(.vertical, Style.Spacing.lg)
+                        .background(Style.Shape.medium.fill(Style.Background.overlay))
+                        .overlay(
+                            Style.Shape.medium
+                                .strokeBorder(Style.Border.group, lineWidth: 0.5)
+                        )
+                }
+            } else {
+                switch entry {
+                    case .transcript(let ref, _):
+                        TranscriptCard(transcript: ref, model: model)
+
+                    case .record(let chunk, _) where field(chunk.value, "type") == "reasoning":
+                        Text(Attribute.text(field(chunk.value, "text") ?? "", reasoning: true))
+
+                    case .record(let chunk, _) where field(chunk.value, "type") == "tool":
+                        HStack(alignment: .firstTextBaseline, spacing: Style.Spacing.md) {
+                            Iconography.icon(for: Harness.Intent.dispatch, size: Style.Spacing.lg)
+
+                            Text(field(chunk.value, "name") ?? "tool")
+                                .font(Typography.cardDetail(.monospaced))
+                                .foregroundStyle(Style.Foreground.subtle)
+
+                            if let status = field(chunk.value, "status") {
+                                Text(status)
+                                    .font(Typography.label)
+                                    .foregroundStyle(Style.Foreground.faint)
+                            }
+
+                            Spacer(minLength: 0)
+                        }
+
+                    case .record(let chunk, _) where field(chunk.value, "type") != nil:
+                        Text(Attribute.text(field(chunk.value, "text") ?? ""))
+
+                    case .event, .record:
+                        EmptyView()
+                }
+            }
+        }
+        .font(Typography.prose)
+        .foregroundStyle(Style.Foreground.base)
+        .lineSpacing(Style.Spacing.sm)
+        .textSelection(.enabled)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if case .transcript = entry { return }
+            model.select(transcript)
+        }
+    }
+
+    private func field(_ value: Value, _ name: String) -> String? {
+        guard case .collection(let fields) = value, let found = fields[name] else { return nil }
+        let text = found.rendered.joined(separator: " ")
+        return text.isEmpty ? nil : text
+    }
+}
+
+struct TranscriptSurface: Surface {
+    var panel: any Panel
     var model: any Model
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            TranscriptHeader(transcript: transcript)
-
-            LazyVStack(alignment: .leading, spacing: Style.Spacing.md) {
-                ForEach(Transcript.with(transcript, { $0.entries }) ?? []) { entry in
-                    TranscriptEntry(transcript: transcript, entry: entry, model: model)
+        ScrollView {
+            if let transcript = model.session.transcript {
+                LazyVStack(alignment: .leading, spacing: Style.Spacing.xxl) {
+                    ForEach(Transcript.with(transcript, { $0.entries }) ?? []) { entry in
+                        TranscriptEntry(transcript: transcript, entry: entry, model: model)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .top)
+                .padding(.vertical, Style.Spacing.xl)
             }
-            .padding(.top, Style.Spacing.md)
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(.vertical, Style.Spacing.md)
+        .scrollEdgeEffectStyle(.hard, for: .top)
     }
 }

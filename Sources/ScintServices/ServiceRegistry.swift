@@ -96,6 +96,7 @@ struct ServiceDefinition: Sendable {
     }
 }
 
+
 struct Handler: Codable & Sendable {
     var format: Format
 
@@ -106,7 +107,7 @@ struct Handler: Codable & Sendable {
 
     init(_ format: Format = .events) { self.format = format }
 
-    func handle(_ chunk: String) -> [Signal] {
+    func handle(_ chunk: String) -> [Value] {
         switch format {
             case .lines:
                 return chunk
@@ -114,16 +115,14 @@ struct Handler: Codable & Sendable {
                     .map(String.init)
                     .filter { !$0.isEmpty }
                     .map { line in
-                        .updated(.collection([
+                        .collection([
                             "type": .string("message"),
                             "text": .string(line)
-                        ]))
+                        ])
                     }
 
             case .events:
-                // Structured decoding belongs to a declared vendor format, not to a
-                // generic Property→Value conversion — the raw line is kept until one exists.
-                return [.updated(.string(chunk))]
+                return [.string(chunk)]
         }
     }
 }

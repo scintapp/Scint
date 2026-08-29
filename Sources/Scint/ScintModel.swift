@@ -11,7 +11,7 @@ enum PanelKey: String, Identifiable, CaseIterable {
 }
 
 enum ModelKey: String, Identifiable, CaseIterable {
-    case editor, studio
+    case assistant, editor, studio
     var id: String { self.model }
     var app: String { self.rawValue }
     var model: String { "scint" }
@@ -28,6 +28,20 @@ enum ModelKey: String, Identifiable, CaseIterable {
     init(_ session: Session) {
         self.content = .init()
         self.editor = .init()
+        self.inspector = .init()
+        self.navigator = .init()
+        self.session = session
+    }
+}
+
+@Observable @MainActor final class AssistantModel: Model {
+    var content: AssistantPanel
+    var inspector: InspectorPanel
+    var navigator: NavigatorPanel
+    var session: Session
+
+    init(_ session: Session) {
+        self.content = .init()
         self.inspector = .init()
         self.navigator = .init()
         self.session = session
@@ -52,6 +66,7 @@ enum ModelKey: String, Identifiable, CaseIterable {
     private(set) var models: [ModelKey: any Model] = [:]
     var host: HostModel = .init()
     var panels: PanelManager = .init()
+    var assistant: AssistantModel { model(for: .assistant) as! AssistantModel }
     var editor: EditorModel { model(for: .editor) as! EditorModel }
     var studio: StudioModel { model(for: .studio) as! StudioModel }
 
@@ -59,8 +74,10 @@ enum ModelKey: String, Identifiable, CaseIterable {
     func panel(for key: PanelKey) -> any Panel { panels.panel(for: key) }
 
     func load() async {
+        models[.assistant] = AssistantModel(Self.load(.studio))
         models[.editor] = EditorModel(Self.load(.editor))
         models[.studio] = StudioModel(Self.load(.studio))
+
         var seeded = await SampleData.load(editor.session.workspace, for: .editor)
         seeded = await SampleData.load(studio.session.workspace, for: .studio) || seeded
         if seeded { await Runtime.shared.save() }
@@ -72,10 +89,9 @@ enum ModelKey: String, Identifiable, CaseIterable {
         let panel = panel(for: key)
         let model = model(for: source)
         let params = panel.parameters(model).panel ?? defaults
+        let key = params.key
         let view = panel.surface(model) as! any View
-        panels.toggle(params.key, parameters: params, view: view) {
-            presented in panel.state.presented = presented
-        }
+        panels.toggle(key, params, view) { presented in panel.state.presented = presented }
     }
 
     static func persist(_ session: Session, for key: ModelKey) {

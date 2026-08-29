@@ -404,12 +404,10 @@ struct HarnessGroup: Mapper {
             else { return model.session.origin }
         }
 
-//        let commands = Space.with(space, { $0.commands }) ?? Workspace.with(space, { $0.commands }) ?? []
         let harnesses = Space.with(space, { $0.harnesses }) ?? Workspace.with(space, { $0.harnesses }) ?? []
         let harness = Space.with(space, { $0.harness }).flatMap { $0 } ?? Workspace.with(space, { $0.harness })
         let config = Space.with(space, { $0.config }) ?? Workspace.with(space, { $0.config }) ?? [:]
         let parameters = harness.flatMap { Harness.with($0, { $0.parameters }) } ?? []
-
         let executionItems = parameters.compactMap { parameter -> ItemParams? in
             guard case .argument(let key, let type, let required, let defaultValue) = parameter,
                   !required,
@@ -419,6 +417,7 @@ struct HarnessGroup: Mapper {
             let configured = config[key]
             let selected = configured?.rendered.last ?? ""
             let choices = options(type)
+
             if !choices.isEmpty {
                 var items = choices.compactMap { value -> ItemParams? in
                     guard let rendered = value.rendered.last, !rendered.isEmpty else { return nil }
@@ -440,13 +439,9 @@ struct HarnessGroup: Mapper {
 
             switch leaf(type) {
                 case .bool:
-                    let active = if case .bool(let value) = configured {
-                        value
-                    } else if let defaultValue, case .bool(let value) = leaf(defaultValue) {
-                        value
-                    } else {
-                        false
-                    }
+                    let active = if case .bool(let value) = configured { value }
+                    else if let defaultValue, case .bool(let value) = leaf(defaultValue) { value }
+                    else { false }
                     return .init(
                         key: key,
                         name: label(key),
@@ -478,28 +473,6 @@ struct HarnessGroup: Mapper {
             }
         }
 
-        func options(_ value: Value) -> [Value] {
-            switch value {
-                case .collection(let values) where values.count == 1:
-                    return values.values.first.map(options) ?? []
-                case .sequence(let values) where values.count > 1:
-                    return values
-                default:
-                    return []
-            }
-        }
-
-        func leaf(_ value: Value) -> Value {
-            switch value {
-                case .collection(let values) where values.count == 1:
-                    return values.values.first.map(leaf) ?? value
-                case .sequence(let values) where values.count > 1:
-                    return values.first.map(leaf) ?? value
-                default:
-                    return value
-            }
-        }
-
         func label(_ value: String) -> String {
             value.reduce(into: "") { label, character in
                 if character == "-" || character == "_" { label.append(" ") }
@@ -510,53 +483,66 @@ struct HarnessGroup: Mapper {
             }
         }
 
-        let library = Runtime.shared.all(as: Harness.self)
-            .map { $0.0 }
-            .sorted {
-                $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
+        func options(_ value: Value) -> [Value] {
+            switch value {
+                case .collection(let values) where values.count == 1: values.values.first.map(options) ?? []
+                case .sequence(let values) where values.count > 1: values
+                default: []
             }
-            .map { ref in
-                let icon = Iconography.icon(for: ref)
-                return ItemParams(
-                    ref: ref,
-                    name: ref.descriptor.name,
-                    image: icon.symbol,
-                    tint: icon.tint,
-                    description: ref.descriptor.description,
-                    active: harnesses.contains(ref)
-                )
-            }
+        }
 
-        let loaded = harnesses
-            .sorted {
-                $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
+        func leaf(_ value: Value) -> Value {
+            switch value {
+                case .collection(let values) where values.count == 1: values.values.first.map(leaf) ?? value
+                case .sequence(let values) where values.count > 1: values.first.map(leaf) ?? value
+                default: value
             }
-            .map { ref in
-                let icon = Iconography.icon(for: ref)
-                return ItemParams(
-                    ref: ref,
-                    name: ref.descriptor.name,
-                    image: icon.symbol,
-                    tint: icon.tint,
-                    trailingKind: ref == harness ? .value : .action,
-                    value: ref == harness ? "Active" : "Activate",
-                    description: ref.descriptor.description
-                )
-            }
+        }
 
         var sections: [SectionParams] = [
             .init(
                 id: "harness",
                 name: "Harness",
+                header: false,
                 items: [
                     .init(
                         name: "Add Harness...",
                         image: "gearshape",
                         tint: Style.Tint.command,
                         trailingKind: .load,
-                        items: library
+                        items: Runtime.shared.all(as: Harness.self)
+                            .map { $0.0 }
+                            .sorted {
+                                $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
+                            }
+                            .map { ref in
+                                let icon = Iconography.icon(for: ref)
+                                return ItemParams(
+                                    ref: ref,
+                                    name: ref.descriptor.name,
+                                    image: icon.symbol,
+                                    tint: icon.tint,
+                                    description: ref.descriptor.description,
+                                    active: harnesses.contains(ref)
+                                )
+                            }
                     )
-                ] + loaded
+                ] + harnesses
+                    .sorted {
+                        $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
+                    }
+                    .map { ref in
+                        let icon = Iconography.icon(for: ref)
+                        return .init(
+                            ref: ref,
+                            name: ref.descriptor.name,
+                            image: icon.symbol,
+                            tint: icon.tint,
+                            trailingKind: ref == harness ? .value : .action,
+                            value: ref == harness ? "Active" : "Activate",
+                            description: ref.descriptor.description
+                        )
+                    }
             )
         ]
 

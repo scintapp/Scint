@@ -41,15 +41,15 @@ struct ServerTool: Sendable {
             return Invocation(text: String(describing: error), isError: true)
         }
 
-        let (stream, continuation) = AsyncStream<Signal>.makeStream()
+        let (stream, continuation) = AsyncStream<String>.makeStream()
 
         // Services.start blocks on a semaphore. Off the cooperative pool, or it
         // starves the threads the XPC reply needs to land on.
         let started: (pid: Int32, error: String?)? = await withCheckedContinuation { resume in
             DispatchQueue.global(qos: .userInitiated).async {
-                resume.resume(returning: dispatch(values, output: { signal in
-                    continuation.yield(signal)
-                    if signal.terminal { continuation.finish() }
+                resume.resume(returning: dispatch(values, output: { line in
+                    continuation.yield(line)
+                    if Self.exit(of: line) != nil { continuation.finish() }
                 }))
             }
         }
@@ -75,26 +75,16 @@ struct ServerTool: Sendable {
 
         var output: [String] = []
         var terminated = false
-        // Signal no longer distinguishes success from failure — `.stopped` is the only
-        // terminal case, so an outcome now lives inside its value rather than its case.
-        let failed = false
-        for await signal in stream {
-            Self.logger.debug("Tool \(self.interface.id.uuidString, privacy: .public) pid \(result.pid) signal terminal=\(signal.terminal)")
-            switch signal {
-                case .updated(let value),
-                     .composing(let value),
-                     .evaluating(let value),
-                     .dispatching(let value),
-                     .observing(let value),
-                     .searching(let value):
-                    output.append(contentsOf: value.rendered)
-
-                case .stopped(let value):
-                    output.append(contentsOf: value.rendered)
-                    terminated = true
-
-                case .started:
-                    break
+        var failed = false
+        for await line in stream {
+            let text = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { continue }
+            if let code = Self.exit(of: text) {
+                terminated = true
+                failed = code != 0
+                if failed { output.append(text) }
+            } else {
+                output.append(text)
             }
         }
 
@@ -110,6 +100,18 @@ struct ServerTool: Sendable {
         }
         Self.logger.info("Tool \(interface.id.uuidString, privacy: .public) pid \(result.pid) completed failed=\(failed) lines=\(output.count)")
         return Invocation(text: output.joined(separator: "\n"), isError: failed)
+    }
+
+    static func exit(of line: String) -> Int? {
+        func code(_ value: String) -> Int? {
+            guard let properties = Properties.load(value),
+                  (properties["type"]?.string ?? properties["event"]?.string)?.lowercased() == "terminated"
+            else { return nil }
+            return properties["exitCode"]?.int ?? 0
+        }
+        if let found = code(line) { return found }
+        guard let brace = line.lastIndex(of: "{"), brace != line.startIndex else { return nil }
+        return code(String(line[brace...]))
     }
 
     static func all(in origin: Reference) -> [Self] {
@@ -152,15 +154,15 @@ struct ServerTool: Sendable {
         } ?? []
     }
 
-    private func dispatch(_ values: [String: Value], output: @escaping (Signal) -> Void) -> (pid: Int32, error: String?)? {
+    private func dispatch(_ values: [String: Value], output: @escaping (String) -> Void) -> (pid: Int32, error: String?)? {
         let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
         if let command = Command.with(interface, { $0 }) {
-            return command.dispatch(rendered: command.rendered(with: values), environment: environment, output: output)
+            return command.dispatch(command.rendered(with: values), environment: environment, output: output)
         }
         guard let harness = Harness.with(interface, { $0 }) else { return nil }
         return Command.with(harness.command) { command in
             command.dispatch(
-                rendered: command.rendered(with: values) + harness.rendered(with: values),
+                command.rendered(with: values) + harness.rendered(with: values),
                 environment: environment,
                 output: output
             )

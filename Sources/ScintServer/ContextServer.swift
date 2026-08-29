@@ -164,7 +164,7 @@ actor ContextServer {
 
     static func listTools(_ id: Property, in origin: Reference) async -> HTTPResponse {
         let tools: [Property] = await MainActor.run {
-            ServerTool.all(in: origin).map(\.definition) + ContentTool.all(in: origin).map(\.definition)
+            Facet.all(in: origin).map(\.definition)
         }
         return result(id, [
             "resultType": .string("complete"),
@@ -187,20 +187,11 @@ actor ContextServer {
         } else {
             arguments = .object([String: Property]())
         }
-        // Resolution touches the runtime; the interface path then leaves the main
-        // actor before awaiting a process, so a long run never blocks the UI.
-        let found = await MainActor.run {
-            (interface: ServerTool.find(name, in: origin), content: ContentTool.find(name, in: origin))
-        }
-
-        let invocation: ServerTool.Invocation
-        if let tool = found.interface {
-            invocation = await tool.call(arguments)
-        } else if let tool = found.content {
-            invocation = await MainActor.run { tool.call(arguments) }
-        } else {
+        let found = await MainActor.run { Facet.find(name, in: origin) }
+        guard let facet = found else {
             return error(id, code: -32602, message: "Unknown tool: \(name)")
         }
+        let invocation = await facet.call(arguments)
         return result(id, [
             "resultType": .string("complete"),
             "content": .array([.object([

@@ -7,8 +7,6 @@ struct ComposeControls: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             HStack {
-                Spacer()
-
                 Button { let _ = model.start(model.session.origin) } label: {
                     Image(systemName: "arrow.up")
                         .frame(maxWidth: 25, maxHeight: 24)
@@ -17,7 +15,6 @@ struct ComposeControls: View {
                 }
                 .buttonBorderShape(.circle)
                 .keyboardShortcut(.return, modifiers: .command)
-                .opacity(0)
             }
         }
         .frame(maxWidth: .infinity, alignment: .bottom)
@@ -31,9 +28,6 @@ struct ComposeInput: View {
 
     var body: some View {
         VStack {
-            TranscriptPicker(model: model)
-                .frame(alignment: .center)
-
             ZStack(alignment: .bottom) {
                 if let input = model.session.input {
                     EditorComponent(input, minimumHeight: 30, maximumHeight: 256, menuPlacement: .caret)
@@ -50,11 +44,11 @@ struct ComposeInput: View {
                 }
             }
             .background {
-                Style.Shape.large
+                Style.Shape.small
                     .fill(Style.Background.group)
             }
             .background {
-                Style.Shape.large
+                Style.Shape.small
                     .stroke(Style.Border.base, lineWidth: 1, antialiased: true)
             }
             .frame(maxWidth: 660)
@@ -70,19 +64,9 @@ struct ComposeSurface: Surface {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            ScrollView {
-                VStack(spacing: 0) {
-                    if let transcript = model.session.transcript {
-                        TranscriptSection(transcript: transcript, model: model).id(transcript)
-                    }
-                }
-                .padding(.horizontal, 12)
+            TranscriptSurface(panel: panel, model: model)
                 .frame(maxWidth: 660, maxHeight: .infinity, alignment: .top)
-
-                Color.clear.frame(height: 96)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .scrollEdgeEffectStyle(.hard, for: .top)
+                .scrollEdgeEffectStyle(.hard, for: .top)
 
             ComposeInput(model: model)
                 .frame(maxWidth: .infinity, alignment: .bottom)

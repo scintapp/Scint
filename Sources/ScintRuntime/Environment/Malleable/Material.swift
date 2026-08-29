@@ -5,6 +5,7 @@ struct Material: Malleable {
     let ref: Reference
     var origin: Reference
     private(set) var blocks: [Block] = []
+    private(set) var buffer: [Block] = []
 
     enum Block: Codable, Sendable, Identifiable, Equatable {
         case artifact(Reference)
@@ -31,8 +32,10 @@ struct Material: Malleable {
 
     var rendered: String { rendered(depth: 0) }
 
-    func rendered(depth: Int) -> String {
-        blocks.map { block in
+    func rendered(depth: Int) -> String { rendered(blocks, depth: depth) }
+
+    private func rendered(_ source: [Block], depth: Int) -> String {
+        source.map { block in
             switch block {
                 case .artifact(let ref):
                     Runtime.shared.rendered(ref)
@@ -86,7 +89,16 @@ struct Material: Malleable {
         for _ in 0..<range.length { delete(at: range.location) }
     }
 
-    mutating func clear() { blocks = [] }
+    mutating func clear() {
+        buffer = blocks
+        blocks = []
+    }
+
+    mutating func dump() -> String {
+        let value = rendered(buffer, depth: 0)
+        buffer = []
+        return value
+    }
 
     static func new(_ owner: Reference, name: String = "New Material") -> Reference {
         guard owner.type == Space.self || owner.type == Workspace.self else { RuntimeError.fatal() }

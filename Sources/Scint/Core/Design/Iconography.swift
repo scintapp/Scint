@@ -240,20 +240,19 @@ import SwiftUI
 
     static func icon(for intent: Harness.Intent, size: CGFloat = 14) -> Icon {
         switch intent {
-            case .compose: Icon(symbol: Custom.compose.rawValue, tint: Style.Tint.Intent.compose, sizing: size)
-            case .dispatch: Icon(symbol: Custom.dispatch.rawValue, tint: Style.Tint.Intent.dispatch, sizing: size)
-            case .observe: Icon(symbol: Custom.observe.rawValue, tint: Style.Tint.Intent.observe, sizing: size)
-            case .evaluate: Icon(symbol: Custom.evaluate.rawValue, tint: Style.Tint.Intent.evaluate, sizing: size)
-            case .search: Icon(symbol: Custom.search.rawValue, tint: Style.Tint.Intent.search, sizing: size)
+            case .compose: Icon(symbol: Custom.inactive.rawValue, tint: Style.Tint.Intent.compose, sizing: size)
+            case .dispatch: Icon(symbol: Custom.inactive.rawValue, tint: Style.Tint.Intent.dispatch, sizing: size)
+            case .observe: Icon(symbol: Custom.inactive.rawValue, tint: Style.Tint.Intent.observe, sizing: size)
+            case .evaluate: Icon(symbol: Custom.inactive.rawValue, tint: Style.Tint.Intent.evaluate, sizing: size)
+            case .search: Icon(symbol: Custom.inactive.rawValue, tint: Style.Tint.Intent.search, sizing: size)
         }
     }
 
     static func icon(for entry: Transcript.Entry, size: CGFloat = 14) -> Icon {
         switch entry {
             case .event: Icon(symbol: "calendar", tint: Style.Tint.transcript, sizing: size)
-            case .material(let ref, _): Iconography.icon(for: ref, size: size)
-            case .transcript(_, let ref, _): Iconography.icon(for: ref, size: size)
-            case .value: Icon(symbol: "info.circle", tint: Style.Foreground.faint, sizing: size)
+            case .transcript(let ref, _): Iconography.icon(for: ref, size: size)
+            case .record: Icon(symbol: "info.circle", tint: Style.Foreground.faint, sizing: size)
         }
     }
 

@@ -11,15 +11,6 @@ import Foundation
         refs.compactMap { compose($0) }
     }
 
-    func onTerminal(_ listener: @escaping @Sendable (Reference, Signal) -> Void) {
-        listeners.append(listener)
-    }
-
-    func announce(_ ref: Reference, _ signal: Signal) {
-        guard signal.terminal else { return }
-        for listener in listeners { listener(ref, signal) }
-    }
-
     func context(_ ref: Reference) -> Context? { contexts.get(ref) }
 
     func compose(_ ref: Reference) -> Composition? {
@@ -32,25 +23,9 @@ import Foundation
         return resolve(ref)
     }
 
-    func start(_ ref: Reference) -> Composition? {
-        guard compose(ref) != nil else { return nil }
-        contexts.update(ref) { context in
-            context.start { [weak self] signal, transcript in
-                self?.contexts.update(ref) { $0.complete(signal, from: transcript) }
-                self?.announce(ref, signal)
-            }
-        }
-        return resolve(ref)
-    }
-
-    func stop(_ ref: Reference) -> Composition? {
-        guard contexts.get(ref) != nil else { return nil }
-        contexts.update(ref) { context in
-            context.stop { [weak self] signal, transcript in
-                self?.contexts.update(ref) { $0.complete(signal, from: transcript) }
-            }
-        }
-        return resolve(ref)
+    @discardableResult
+    func update<R>(_ ref: Reference, _ body: (inout Context) throws -> R) rethrows -> R? {
+        try contexts.update(ref, body)
     }
 
     func resolve() -> [Composition] { contexts.keys().compactMap { resolve($0) } }
@@ -58,5 +33,14 @@ import Foundation
     func resolve(_ ref: Reference) -> Composition? {
         guard contexts.get(ref)?.harness != nil else { return nil }
         return Composition(ref)
+    }
+
+    func onTerminal(_ listener: @escaping @Sendable (Reference, Signal) -> Void) {
+        listeners.append(listener)
+    }
+
+    func announce(_ ref: Reference, _ signal: Signal) {
+        guard signal.terminal else { return }
+        for listener in listeners { listener(ref, signal) }
     }
 }

@@ -1,12 +1,12 @@
 import Foundation
 
 
-struct Composition: Codable, Sendable {
+struct Composition: Sendable {
     var space: Reference
     private var context: Context? { Composer.shared.context(space) }
     private var intents: [Intent] { context?.intents ?? [] }
 
-    enum State: Codable, Sendable { case inactive, active, working }
+    enum State: Sendable { case inactive, active, working }
 
     init(_ space: Reference) { self.space = space }
 

@@ -4,6 +4,7 @@ import SwiftUI
 typealias Values = [AnyHashable: AnyHashable]
 private let anyRef = Reference(Workspace.self)
 
+enum Modality: CaseIterable { case fixed, floating }
 enum Layout: CaseIterable { case grid, group, list, table }
 enum Nesting: String, CaseIterable { case recursive, single, flat }
 
@@ -17,6 +18,7 @@ protocol PanelSurface: CaseIterable, Identifiable {}
 @MainActor protocol Panel: AnyObject {
     associatedtype Surface
     associatedtype PanelSurface
+    var mode: Modality { get set }
     var state: PanelState { get set }
     var surface: PanelSurface { get set }
     func controls(_ model: any Model) -> Controls
@@ -44,6 +46,7 @@ extension Mapper {
 }
 
 extension Panel {
+    var mode: Modality { .fixed }
     func controls(_ model: any Model) -> Controls { .init() }
     func parameters(_ model: any Model) -> Params { .init() }
 }
@@ -75,15 +78,7 @@ extension Model {
 
     func compose(_ ref: Reference) -> Composition? { Runtime.shared.compose(ref) }
 
-    func start(_ ref: Reference) -> Composition? {
-        let input = Space.with(ref, { $0.input }).flatMap { $0 } ?? Workspace.with(ref, { $0.input }).flatMap { $0 }
-        guard let input, let prompt = Material.with(input, { $0.rendered }), !prompt.isEmpty else { return nil }
-        var config: Config = ["prompt": .string(prompt), "session": session.rendered]
-        if let transcript = session.transcript { config["transcript"] = .reference(transcript) }
-        guard let composition = Runtime.shared.start(ref, config: config) else { return nil }
-        Material.update(input) { $0.clear() }
-        return composition
-    }
+    func start(_ ref: Reference) -> Composition? { Runtime.shared.start(ref) }
 
     func search(_ query: String, limit: Int) -> SearchResults { Runtime.shared.search(query, limit: limit) }
 
@@ -112,6 +107,7 @@ final class AnyModel: Model {
 }
 
 final class AnyPanel: Panel {
+    var mode: Modality = .fixed
     var state: PanelState
     var surface: PanelSurface = .any
 
