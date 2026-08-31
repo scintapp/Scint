@@ -39,9 +39,7 @@ extension Resolvable {
     }
 }
 
-extension Keyable {
-    var ref: Reference { origin }
-}
+extension Keyable { var ref: Reference { key.ref } }
 
 extension Structural {
     var composition: Composition? { Composer.shared.resolve(ref) }
@@ -66,7 +64,15 @@ extension Structural {
 }
 
 extension Contextual {
-    static func compose(_ origin: Reference) -> Self { Self(origin) }
+    @discardableResult
+    static func with<R>(_ ref: Reference, _ body: (Context) throws -> R) rethrows -> R? {
+        try Composer.shared.context(ref).map(body)
+    }
+
+    @discardableResult
+    static func update<R>(_ ref: Reference, _ body: (inout Context) throws -> R) rethrows -> R? {
+        try Composer.shared.update(ref, body)
+    }
 }
 
 extension Bounding {

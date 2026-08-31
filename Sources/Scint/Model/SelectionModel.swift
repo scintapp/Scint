@@ -90,12 +90,12 @@ struct Selection: Codable, Equatable, Sendable {
                 next.structure = ref
                 next.interface = nil
                 next.content = nil
-                next.entry = entry
+                next.entry = nil
                 next.url = url
             case is any Functional.Type:
                 next.interface = ref
                 next.content = nil
-                next.entry = entry
+                next.entry = nil
                 next.url = url
             case is any Malleable.Type:
                 next.interface = nil

@@ -1,35 +1,19 @@
 import SwiftUI
 
 
-struct Host: View {
-    @Environment(ScintModel.self) var scint
-    @Environment(HostModel.self) var server
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some View {
-        Text(scint.host.running ? "Server Running" : "Server Stopped")
-        if let message = scint.host.message, !message.isEmpty { Text(message) }
-        Divider()
-        if scint.host.running { Button("Stop Scint Server") { Task { await scint.host.unload() } } }
-        else { Button("Start Scint Server") { Task { await scint.host.load() } } }
-        Button("Copy Server Address") { NSPasteboard.general.setString(ContextServer.url.absoluteString, forType: .string) }
-        Divider()
-        Button("Scint Studio") { openWindow(id: "studio") }
-    }
-}
-
 struct Assistant: View {
     @Environment(ScintModel.self) var scint
     @Environment(AssistantModel.self) var assistant
 
     var body: some View {
         assistant.content.surface(assistant)
+            .environment(scint)
             .environment(assistant)
-            .background(Style.Background.page)
-            .toolbar(removing: .title)
-            .scrollEdgeEffectStyle(.hard, for: .vertical)
+            .scrollEdgeEffectHidden()
+            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
     }
 }
+
 
 struct Editor: View {
     @Environment(ScintModel.self) var scint
@@ -42,7 +26,8 @@ struct Editor: View {
         NavigationSplitView(sidebar: { navigator }, detail: { content })
             .environment(scint)
             .environment(editor)
-            .toolbar(removing: .title)
+            .scrollEdgeEffectHidden()
+            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
     }
 }
 
@@ -51,16 +36,17 @@ struct Studio: View {
     @Environment(StudioModel.self) var studio
 
     var body: some View {
-        let presented = studio.inspector.state.bindable.presented
         let content: some View = studio.content.surface(studio)
         let inspector: some View = studio.inspector.surface(studio)
         let navigator: some View = studio.navigator.surface(studio)
+        let presented = studio.inspector.state.bindable.presented
 
-        NavigationSplitView(sidebar: { navigator }, detail: { content })
+        NavigationSplitView { navigator } detail: { content }
             .environment(scint)
             .environment(studio)
-            .background(Style.Background.page)
             .inspector(isPresented: presented) { inspector }
+            .scrollEdgeEffectHidden()
+            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
             .toolbar(removing: .title)
     }
 }

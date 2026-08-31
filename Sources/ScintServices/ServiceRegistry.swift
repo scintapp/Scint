@@ -5,10 +5,10 @@ import Combine
 
 final class ServiceRegistry: @unchecked Sendable {
     static let shared = ServiceRegistry()
-    private let queue = DispatchQueue(label: "com.kaechle.scintd.registry", attributes: .concurrent)
     private var definitions: [String: ServiceDefinition] = [:]
     private var activePIDs: [String: pid_t] = [:]
     private var pidToService: [pid_t: String] = [:]
+    private let queue = DispatchQueue(label: "com.kaechle.scintd.registry", attributes: .concurrent)
 
     func register(_ def: ServiceDefinition) { queue.async(flags: .barrier) { self.definitions[def.id] = def } }
 
@@ -106,6 +106,8 @@ struct Handler: Codable & Sendable {
     }
 
     init(_ format: Format = .events) { self.format = format }
+
+    
 
     func handle(_ chunk: String) -> [Value] {
         switch format {

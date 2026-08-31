@@ -4,7 +4,7 @@ import Foundation
 struct Composition: Sendable {
     var space: Reference
     private var context: Context? { Composer.shared.context(space) }
-    private var intents: [Intent] { context?.intents ?? [] }
+    private var intents: [Context.Intent] { context?.intents ?? [] }
 
     enum State: Sendable { case inactive, active, working }
 

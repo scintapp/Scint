@@ -26,6 +26,7 @@ struct Workspace: Structural {
     var directories: [Reference] { Closure.with(closure, { $0 })?.directories ?? [] }
     var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
     var sections: [Reference] { artifacts + commands + harnesses + materials + transcripts }
+
     var input: Reference? {
         get { Closure.with(closure, { $0.input }) }
         set {
@@ -37,6 +38,7 @@ struct Workspace: Structural {
             }
         }
     }
+
     var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
 
     func add(_ ref: Reference) {

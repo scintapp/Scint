@@ -105,4 +105,14 @@ struct Space: Structural {
         for child in spaces { Space.update(child) { $0.space = space } }
         return self.ref
     }
+
+    static func new(_ owner: Reference, name: String = "New Space") -> Reference {
+        guard owner.type == Space.self || owner.type == Workspace.self else { RuntimeError.fatal() }
+        var instance = Space(.init(Self.self))
+        Descriptor.new(instance.ref, name: name, tags: ["space"])
+        instance.closure = Closure.new("Closure", owner: instance.ref)
+        Workspaces.shared.add(instance.ref, instance)
+        Space.update(instance.ref) { $0.attach(to: owner) }
+        return instance.ref
+    }
 }

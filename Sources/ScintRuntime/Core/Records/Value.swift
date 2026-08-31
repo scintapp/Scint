@@ -33,8 +33,6 @@ indirect enum Value: Codable, Sendable, Equatable {
         }
     }
 
-    var rendered: [String] { render() }
-
     var described: String {
         switch self {
             case .bool: return "<true|false>"
@@ -119,26 +117,8 @@ indirect enum Value: Codable, Sendable, Equatable {
                 throw ParsingError.invalid("Argument \(name) has an invalid value type.")
         }
     }
-
-    private func render() -> [String] {
-        switch self {
-            case .bool(let value): return [String(value)]
-            case .date(let value): return [Value.formatter.string(from: value)]
-            case .integer(let value): return [String(value)]
-            case .decimal(let value): return [String(describing: value)]
-            case .string(let value): return [value]
-            case .sequence(let values): return values.flatMap { $0.render() }
-            case .collection(let values):
-                return values.keys.sorted().flatMap { key -> [String] in
-                    guard let value = values[key] else { return [] }
-                    let rendered = value.render()
-                    return ["\(key)=\(rendered.joined(separator: ","))"]
-                }
-            case .reference(let ref):
-                let rendered = Runtime.shared.rendered(ref)
-                return rendered.isEmpty ? [] : [rendered]
-        }
-    }
+    
+    var rendered: [String] { Renderer.value(self) }
 }
 
 struct Chunk: Keyable {

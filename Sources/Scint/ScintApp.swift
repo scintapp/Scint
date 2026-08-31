@@ -7,10 +7,26 @@ struct Scint: App {
     @Environment(\.openWindow) private var openWindow
     @State private var scint: ScintModel?
     @State private var loading = false
+    @State private var pending: URL?
     static let logger = Logger(subsystem: "com.kaechle.scint", category: "App")
 
     var body: some Scene {
-        Window("Scint", id: "assistant") {
+        Window("Studio", id: "studio") {
+            if let scint {
+                Studio()
+                    .environment(scint)
+                    .environment(scint.studio)
+                    .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
+                    .focusable(false)
+                    .onOpenURL { ReferenceRouter.handle($0) }
+            } else {
+                ProgressView()
+                    .task { await load() }
+                    .onOpenURL { pending = $0 }
+            }
+        }
+
+        Window("Assistant", id: "assistant") {
             if let scint {
                 Assistant()
                     .environment(scint)
@@ -23,14 +39,14 @@ struct Scint: App {
             }
         }
 
-        Window("Scint", id: "editor") {
+        Window("Editor", id: "editor") {
             if let scint {
                 Editor()
                     .environment(scint)
                     .environment(scint.editor)
+                    .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
                     .focusable(false)
-            }
-            else {
+            } else {
                 ProgressView()
                     .task { await load() }
             }
@@ -40,9 +56,8 @@ struct Scint: App {
             if let scint {
                 Host()
                     .environment(scint)
-                    .environment(scint.studio)
-                    .environment(scint.editor)
                     .environment(scint.host)
+                    .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
                     .focusable(false)
             } else {
                 Text("Scint is loading…")
@@ -59,6 +74,8 @@ struct Scint: App {
             let model = ScintModel()
             await model.load()
             scint = model
+            if let pending { ReferenceRouter.handle(pending) }
+            pending = nil
         } catch {
             Self.logger.error("Runtime load failed: \(String(describing: error), privacy: .public)")
         }

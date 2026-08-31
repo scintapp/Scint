@@ -45,9 +45,9 @@ protocol Convertible: Sendable { var property: Property { get } }
 @objc protocol ServiceHandling { func handle(pid: Int32, chunk: String) }
 
 protocol Resolvable: Codable, Sendable { var ref: Reference { get } }
-protocol Keyable: Resolvable { var key: Key { get }; var origin: Reference { get } }
+protocol Keyable: Resolvable { var key: Key { get } }
 protocol Composable: Resolvable { init(_ ref: Reference) }
 protocol Functional: Composable {}
 protocol Malleable: Composable { var origin: Reference { get set } }
 protocol Structural: Composable { var closure: Reference { get } }
-protocol Contextual: Keyable { init(_ origin: Reference); var transcript: Reference { get } }
+protocol Contextual: Keyable { var transcript: Reference { get } }

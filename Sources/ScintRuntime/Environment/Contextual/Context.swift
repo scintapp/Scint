@@ -7,6 +7,89 @@ struct Context: Contextual {
     var transcript: Reference
     private(set) var intents: [Intent] = []
 
+    enum Intent: Codable, Sendable {
+        case compose(Composing)
+        case dispatch(Dispatching)
+        case observe(Observing)
+        case evaluate(Evaluating)
+        case search(Searching)
+
+
+        var kind: Signal.Intent {
+            switch self {
+                case .compose: .composing
+                case .dispatch: .dispatching
+                case .observe: .observing
+                case .evaluate: .evaluating
+                case .search: .searching
+            }
+        }
+
+        var key: Key {
+            switch self {
+                case .compose(let intent): intent.key
+                case .dispatch(let intent): intent.key
+                case .observe(let intent): intent.key
+                case .evaluate(let intent): intent.key
+                case .search(let intent): intent.key
+            }
+        }
+
+        var ref: Reference {
+            switch self {
+                case .compose(let intent): intent.ref
+                case .dispatch(let intent): intent.ref
+                case .observe(let intent): intent.ref
+                case .evaluate(let intent): intent.ref
+                case .search(let intent): intent.ref
+            }
+        }
+
+        var harness: Reference {
+            switch self {
+                case .compose(let intent): intent.harness
+                case .dispatch(let intent): intent.harness
+                case .observe(let intent): intent.harness
+                case .evaluate(let intent): intent.harness
+                case .search(let intent): intent.harness
+            }
+        }
+
+        var transcript: Reference {
+            switch self {
+                case .compose(let intent): intent.transcript
+                case .dispatch(let intent): intent.transcript
+                case .observe(let intent): intent.transcript
+                case .evaluate(let intent): intent.transcript
+                case .search(let intent): intent.transcript
+            }
+        }
+
+        var observing: Bool { if case .observe = self { true } else { false } }
+
+        func start(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
+            Trace.say("Intent", "starting — this run is a \(self)")
+            switch self {
+                case .compose(let intent): intent.compose(terminal)
+                case .dispatch(let intent): intent.dispatch(terminal)
+                case .observe(let intent): intent.observe(terminal)
+                case .evaluate(let intent): intent.evaluate(terminal)
+                case .search(let intent): intent.search(terminal)
+            }
+        }
+
+        func stop() {
+            Trace.say("Intent", "stopping a \(self)")
+            switch self {
+                case .compose(let intent): intent.stop()
+                case .dispatch(let intent): intent.stop()
+                case .observe(let intent): intent.stop()
+                case .evaluate(let intent): intent.stop()
+                case .search(let intent): intent.stop()
+            }
+        }
+    }
+
     init(_ origin: Reference) {
         self.key = .context(origin)
         self.origin = origin
@@ -14,7 +97,9 @@ struct Context: Contextual {
     }
 
     var harness: Reference? {
-        Space.with(origin, { $0.harness }) ?? Workspace.with(origin, { $0.harness })
+        origin.type == Space.self
+        ? Space.with(origin, { $0 })?.harness
+        : Workspace.with(origin, { $0.harness })
     }
 
     mutating func handle(_ signal: Signal) {
@@ -41,17 +126,18 @@ struct Context: Contextual {
 
     private mutating func compose() -> (intent: Harness.Intent, branch: Reference, arguments: [String])? {
         guard let harness, let declared = Harness.with(harness, { $0.intent }) else { return nil }
-
         let branch = self.branch(named: "\(declared)".capitalized)
         let closure = (Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure }))!
         let input = Closure.with(closure, { $0.input })!
         let config = Space.with(origin, { $0.config }) ?? Workspace.with(origin, { $0.config }) ?? [:]
 
         update(.started(origin, declared.signal, .reference(origin)))
+
         let request = Material.update(input) { material -> String in
             material.clear()
             return material.dump()
         } ?? ""
+
         if !request.isEmpty { update(request, from: input) }
         update(linking: branch)
 
@@ -71,19 +157,17 @@ struct Context: Contextual {
         let branch = composed.branch
         let arguments = composed.arguments
 
-        let intent: Intent = switch composed.intent {
+        let intent: Self.Intent = switch composed.intent {
             case .compose: .compose(Composing(origin, harness: harness, transcript: branch, arguments: arguments))
             case .dispatch: .dispatch(Dispatching(origin, harness: harness, transcript: branch, arguments: arguments))
-            case .observe: .observe(Observing(origin, harness: harness, transcript: branch, arguments: arguments))
             case .evaluate: .evaluate(Evaluating(origin, harness: harness, transcript: branch, arguments: arguments))
+            case .observe: .observe(Observing(origin, harness: harness, transcript: branch, arguments: arguments))
             case .search: .search(Searching(origin, harness: harness, transcript: branch, arguments: arguments))
         }
 
         intents.append(intent)
         let origin = self.origin
-        intent.start { signal, _ in
-            Context.update(origin) { $0.handle(signal) }
-        }
+        intent.start { signal, _ in Context.update(origin) { $0.handle(signal) } }
     }
 
     private func update(_ signal: Signal) {
@@ -128,14 +212,3 @@ struct Context: Contextual {
     }
 }
 
-
-extension Context {
-    static func with<R>(_ ref: Reference, _ body: (Context) throws -> R) rethrows -> R? {
-        try Composer.shared.context(ref).map(body)
-    }
-
-    @discardableResult
-    static func update<R>(_ ref: Reference, _ body: (inout Context) throws -> R) rethrows -> R? {
-        try Composer.shared.update(ref, body)
-    }
-}

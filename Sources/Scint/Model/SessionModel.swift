@@ -52,6 +52,14 @@ import Foundation
     }
 
     @discardableResult
+    mutating func apply(_ next: Selection, push: Bool = true) -> Bool {
+        guard next != selected else { return false }
+        selected = next
+        if push { navigation.push(next) }
+        return true
+    }
+    
+    @discardableResult
     mutating func forward() -> Selection? {
         guard let target = navigation.forward() else { return nil }
         apply(target, push: false)
@@ -65,14 +73,6 @@ import Foundation
         apply(target, push: false)
         if let content = selected.content { opened.open(content) }
         return target
-    }
-
-    @discardableResult
-    mutating func apply(_ next: Selection, push: Bool = true) -> Bool {
-        guard next != selected else { return false }
-        selected = next
-        if push { navigation.push(next) }
-        return true
     }
 }
 

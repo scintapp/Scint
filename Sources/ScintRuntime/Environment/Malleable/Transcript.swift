@@ -88,8 +88,7 @@ struct Transcript: Malleable {
 
     func output(_ type: String) -> Chunk? {
         records.last { chunk in
-            guard case .collection(let fields) = chunk.value,
-                  case .string(let kind)? = fields["type"]
+            guard case .collection(let fields) = chunk.value, case .string(let kind)? = fields["type"]
             else { return false }
             return kind == type
         }

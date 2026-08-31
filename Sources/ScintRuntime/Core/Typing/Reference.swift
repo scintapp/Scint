@@ -6,9 +6,13 @@ enum Key: Codable, Sendable, Identifiable, Hashable {
     case context(Reference)
     case descriptor(Reference)
 
-    var id: AnyHashable {
+    var id: UUID {
         switch self {
-            case .branch(let id, let ref): return ref.id
+            // A branch's identity is its own. Returning the owner's collapsed every chunk on a
+            // reference to one id — latent while `Hashable` synthesises over the whole case, but
+            // `id` is the accessor that addressing a chunk would reach for first. `ref` below
+            // already answers "which object does this hang off".
+            case .branch(let id, _): return id
             case .context(let ref): return ref.contextId
             case .descriptor(let ref): return ref.descriptorId
         }

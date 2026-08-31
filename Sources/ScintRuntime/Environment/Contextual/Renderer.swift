@@ -5,24 +5,7 @@ struct Renderer {
     let origin: Reference
     let transcript: Reference
 
-    static func evaluation(_ origin: Reference, transcript: Reference, input: String) -> String {
-        let map = Renderer(origin: origin, transcript: transcript)
-        return map.compose([
-            map.preamble,
-            map.content(),
-            map.interfaces(),
-            map.thread(limit: 12),
-            map.request(input)
-        ])
-    }
-
-    private func compose(_ sections: [String?]) -> String {
-        sections.compactMap { $0 }.joined(separator: "\n\n")
-    }
-
-    private var closure: Reference? {
-        Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure })
-    }
+    private var closure: Reference? { Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure }) }
 
     private var preamble: String? {
         """
@@ -34,18 +17,35 @@ struct Renderer {
         """
     }
 
+    static func evaluation(_ origin: Reference, transcript: Reference, input: String) -> String {
+        let map = Renderer(origin: origin, transcript: transcript)
+        return map.assemble([
+            map.preamble,
+            map.content(),
+            map.interfaces(),
+            map.thread(limit: 12),
+            map.input(input)
+        ])
+    }
+
+    private func assemble(_ sections: [String?]) -> String {
+        sections.compactMap { $0 }.joined(separator: "\n\n")
+    }
+
     private func content() -> String? {
         guard let closure, let materials = Closure.with(closure, { $0.materials }) else { return nil }
         let lines = materials
             .filter { !$0.descriptor.tags.contains("input") && $0.descriptor.published }
             .map { ref -> String in
                 let description = ref.descriptor.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                let address = ReferenceURL.url(for: ref)?.absoluteString ?? ref.id.uuidString
                 return description.isEmpty
-                    ? "- \(ref.descriptor.name) [\(ref.handle)]"
-                    : "- \(ref.descriptor.name) [\(ref.handle)] — \(description)"
+                ? "- \(ref.descriptor.name) — \(address)"
+                : "- \(ref.descriptor.name) — \(address)\n  \(description)"
             }
         guard !lines.isEmpty else { return nil }
-        let usage = "Load one with `Scint.content.load`, or `Scint.content.list` for its blocks and task states."
+        let usage = "Read one with `scint.content.read`, or `scint.content.list` for everything here. "
+            + "Every tool takes an address."
         return "## Documents\n\n\(usage)\n\n\(lines.joined(separator: "\n"))"
     }
 
@@ -56,9 +56,14 @@ struct Renderer {
             .sorted { $0.descriptor.name < $1.descriptor.name }
             .map { ref -> String in
                 let description = ref.descriptor.description.trimmingCharacters(in: .whitespacesAndNewlines)
-                return description.isEmpty ? "- \(ref.descriptor.name)" : "- \(ref.descriptor.name) — \(description)"
+                let address = ReferenceURL.url(for: ref)?.absoluteString ?? ref.id.uuidString
+                return description.isEmpty
+                ? "- \(ref.descriptor.name) — \(address)"
+                : "- \(ref.descriptor.name) — \(address)\n  \(description)"
             }
-        return lines.isEmpty ? nil : "## Capabilities\n\n\(lines.joined(separator: "\n"))"
+        guard !lines.isEmpty else { return nil }
+        let usage = "Run one with `scint.interfaces.call`, after `scint.interfaces.describe` for what it takes."
+        return "## Capabilities\n\n\(usage)\n\n\(lines.joined(separator: "\n"))"
     }
 
     private func thread(limit: Int) -> String? {
@@ -84,8 +89,45 @@ struct Renderer {
         }
     }
 
-    private func request(_ input: String) -> String? {
+    private func input(_ input: String) -> String? {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         return text.isEmpty ? nil : "## Request\n\n\(text)"
+    }
+}
+
+extension Renderer {
+    static func value(_ value: Value) -> [String] {
+        switch value {
+        case .bool(let value): return [String(value)]
+        case .date(let value): return [Value.formatter.string(from: value)]
+        case .integer(let value): return [String(value)]
+        case .decimal(let value): return [String(describing: value)]
+        case .string(let value): return [value]
+            case .sequence(let values): return values.flatMap { Renderer.value($0) }
+        case .collection(let values):
+                return values.keys.sorted().flatMap { key -> [String] in
+                    guard let value = values[key] else { return [] }
+                    let rendered = Renderer.value(value)
+                    return ["\(key)=\(rendered.joined(separator: ","))"]
+                }
+            case .reference(let ref):
+                let rendered = Renderer.reference(ref)
+                return rendered.isEmpty ? [] : [rendered]
+        }
+    }
+
+    static func reference(_ ref: Reference) -> String {
+        switch ref.type {
+            case is Artifact.Type: return Artifact.with(ref, { $0.rendered }) ?? ""
+            case is Command.Type: return Command.with(ref, { $0.rendered }) ?? ""
+            case is Harness.Type: return Harness.with(ref, { $0.rendered }) ?? ""
+            case is Material.Type: return Material.with(ref, { $0.rendered }) ?? ""
+            case is Transcript.Type: return Transcript.with(ref, { $0.rendered }) ?? ""
+            case is Closure.Type: return Closure.with(ref, { $0.rendered }) ?? ""
+            case is Bridge.Type: return Bridge.with(ref, { $0.rendered }) ?? ""
+            case is Space.Type: return Space.with(ref, { $0.rendered }) ?? ""
+            case is Workspace.Type: return Workspace.with(ref, { $0.rendered }) ?? ""
+            default: return ""
+        }
     }
 }

@@ -30,11 +30,18 @@ import SwiftUI
 
     func focus(_ targetID: AnyHashable?) {
         self.targetID = targetID
-        for (id, box) in views where id != targetID {
-            guard let view = box.view, view.window?.firstResponder === view else { continue }
-            view.window?.makeFirstResponder(nil)
+
+        // Only an explicitly nil target blanks the responder. Resigning every non-target view
+        // first left a window with no first responder whenever the target's view wasn't mounted
+        // yet — and `makeFirstResponder` already resigns whoever held it.
+        guard let targetID else {
+            for box in views.values {
+                guard let view = box.view, view.window?.firstResponder === view else { continue }
+                view.window?.makeFirstResponder(nil)
+            }
+            return
         }
-        guard let targetID else { return }
+
         focus(targetID, attempts: 3)
     }
 
@@ -60,7 +67,7 @@ struct EntryResponder: NSViewRepresentable {
     let id: AnyHashable
     let focus: EditorFocusCoordinator
     let onFocusGained: () -> Void
-    let onEdit: () -> Void
+    let onEdit: (CGRect) -> Void
     let onCommand: (Selector) -> Bool
 
     func makeNSView(context: Self.Context) -> EntryResponderView {
@@ -88,7 +95,7 @@ struct EntryResponder: NSViewRepresentable {
 
 final class EntryResponderView: NSView {
     var onFocusGained: (() -> Void)?
-    var onEdit: (() -> Void)?
+    var onEdit: ((CGRect) -> Void)?
     var onCommand: ((Selector) -> Bool)?
 
     override var acceptsFirstResponder: Bool { true }
@@ -108,23 +115,25 @@ final class EntryResponderView: NSView {
         window?.makeFirstResponder(self)
     }
 
+    /// Where this block sits on screen, for anchoring the form that edits it.
+    var screenFrame: CGRect {
+        guard let window else { return .zero }
+        return window.convertToScreen(convert(bounds, to: nil))
+    }
+
     override func keyDown(with event: NSEvent) {
         if event.charactersIgnoringModifiers == " ",
            event.modifierFlags.intersection([.command, .control, .option]).isEmpty {
-            onEdit?()
+            onEdit?(screenFrame)
             return
         }
         interpretKeyEvents([event])
     }
 
+    /// The single command path. The five per-selector overrides that used to sit alongside this
+    /// were all reachable through here anyway, so they only ever ran the same handler twice.
     override func doCommand(by selector: Selector) {
         if onCommand?(selector) == true { return }
         super.doCommand(by: selector)
     }
-
-    override func moveUp(_ sender: Any?) { _ = onCommand?(#selector(NSResponder.moveUp(_:))) }
-    override func moveDown(_ sender: Any?) { _ = onCommand?(#selector(NSResponder.moveDown(_:))) }
-    override func insertNewline(_ sender: Any?) { _ = onCommand?(#selector(NSResponder.insertNewline(_:))) }
-    override func deleteBackward(_ sender: Any?) { _ = onCommand?(#selector(NSResponder.deleteBackward(_:))) }
-    override func cancelOperation(_ sender: Any?) { _ = onCommand?(#selector(NSResponder.cancelOperation(_:))) }
 }

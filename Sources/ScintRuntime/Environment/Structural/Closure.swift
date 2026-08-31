@@ -34,19 +34,19 @@ struct Closure: Structural {
         let refs = materials.filter { !$0.descriptor.tags.contains("input") && $0.descriptor.published }
 
         var content = refs.compactMap { ref -> String? in
-            let rendered = Runtime.shared.rendered(ref)
+            let rendered = Renderer.reference(ref)
             guard !rendered.isEmpty else { return nil }
             return "# \(ref.descriptor.name) [\(ref.handle)]\n\(rendered)"
         }
 
         if input.type == Material.self {
-            let rendered = Runtime.shared.rendered(input)
+            let rendered = Renderer.reference(input)
             if !rendered.isEmpty { content.append("# \(input.descriptor.name)\n\(rendered)") }
         }
 
         let available = (harnesses.sorted { $0.descriptor.name < $1.descriptor.name }
                          + commands.sorted { $0.descriptor.name < $1.descriptor.name })
-            .map { Runtime.shared.rendered($0) }
+            .map { Renderer.reference($0) }
             .filter { !$0.isEmpty }
 
         let capabilities = available.isEmpty ? [] : ["# Available Interfaces\n" + available.joined(separator: "\n\n")]

@@ -19,6 +19,7 @@ enum ModelKey: String, Identifiable, CaseIterable {
 }
 
 @Observable @MainActor final class StudioModel: Model {
+    var assistant: AssistantPanel
     var content: ContentPanel
     var editor: EditorPanel
     var inspector: InspectorPanel
@@ -26,6 +27,7 @@ enum ModelKey: String, Identifiable, CaseIterable {
     var session: Session
 
     init(_ session: Session) {
+        self.assistant = .init()
         self.content = .init()
         self.editor = .init()
         self.inspector = .init()
@@ -66,6 +68,7 @@ enum ModelKey: String, Identifiable, CaseIterable {
     private(set) var models: [ModelKey: any Model] = [:]
     var host: HostModel = .init()
     var panels: PanelManager = .init()
+
     var assistant: AssistantModel { model(for: .assistant) as! AssistantModel }
     var editor: EditorModel { model(for: .editor) as! EditorModel }
     var studio: StudioModel { model(for: .studio) as! StudioModel }
@@ -74,9 +77,17 @@ enum ModelKey: String, Identifiable, CaseIterable {
     func panel(for key: PanelKey) -> any Panel { panels.panel(for: key) }
 
     func load() async {
-        models[.assistant] = AssistantModel(Self.load(.studio))
-        models[.editor] = EditorModel(Self.load(.editor))
-        models[.studio] = StudioModel(Self.load(.studio))
+        models[.assistant] = AssistantModel(Self.read(.studio))
+        models[.editor] = EditorModel(Self.read(.editor))
+        models[.studio] = StudioModel(Self.read(.studio))
+
+        // What a `scint://` URL does. Registered here rather than by the editor: a URL can arrive
+        // before any editor exists — including the one that launched the app — and an inbound
+        // interface that only works while a particular view is on screen is not an interface.
+        ReferenceRouter.register(ReferenceRouter.openAction) { [weak self] request in
+            guard let self, let ref = request.reference else { return false }
+            return ReferenceActions.open(ref, in: studio)
+        }
 
         var seeded = await SampleData.load(editor.session.workspace, for: .editor)
         seeded = await SampleData.load(studio.session.workspace, for: .studio) || seeded
@@ -94,18 +105,18 @@ enum ModelKey: String, Identifiable, CaseIterable {
         panels.toggle(key, params, view) { presented in panel.state.presented = presented }
     }
 
-    static func persist(_ session: Session, for key: ModelKey) {
+    static func write(_ session: Session, for key: ModelKey) {
         guard let data = try? JSONEncoder().encode(session) else { return }
         UserDefaults.standard.set(data, forKey: key.namespace)
     }
 
-    static func load(_ key: ModelKey) -> Session {
+    static func read(_ key: ModelKey) -> Session {
         if let data = UserDefaults.standard.data(forKey: key.namespace),
            let session = try? JSONDecoder().decode(Session.self, from: data),
            Workspace.with(session.workspace, { _ in true }) == true { return session }
         let workspace = Workspace.new(key.namespace)
         let session = Session(workspace)
-        persist(session, for: key)
+        write(session, for: key)
         return session
     }
 }

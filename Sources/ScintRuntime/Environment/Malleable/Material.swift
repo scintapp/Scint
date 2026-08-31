@@ -38,9 +38,9 @@ struct Material: Malleable {
         source.map { block in
             switch block {
                 case .artifact(let ref):
-                    Runtime.shared.rendered(ref)
+                    Artifact.with(ref, { $0 })?.rendered ?? ""
                 case .command(let ref):
-                    Runtime.shared.rendered(ref)
+                    Command.with(ref, { $0 })?.rendered ?? ""
                 case .material(let ref):
                     depth >= 2 ? ref.descriptor.name : (Material.with(ref, { $0.rendered(depth: depth + 1) }) ?? "")
                 case .task(_, let string, let done):
