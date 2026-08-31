@@ -125,29 +125,33 @@ struct Context: Contextual {
     }
 
     private mutating func compose() -> (intent: Harness.Intent, branch: Reference, arguments: [String])? {
-        guard let harness, let declared = Harness.with(harness, { $0.intent }) else { return nil }
+        guard let harnessRef = harness, let harness = Harness.with(harnessRef, { $0 }) else { return nil }
+        let declared = harness.intent
         let branch = self.branch(named: "\(declared)".capitalized)
         let closure = (Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure }))!
         let input = Closure.with(closure, { $0.input })!
         let config = Space.with(origin, { $0.config }) ?? Workspace.with(origin, { $0.config }) ?? [:]
 
         update(.started(origin, declared.signal, .reference(origin)))
-
         let request = Material.update(input) { material -> String in
             material.clear()
             return material.dump()
         } ?? ""
-
-        if !request.isEmpty { update(request, from: input) }
+        update(request, from: input)
         update(linking: branch)
 
-        var values = Dictionary(uniqueKeysWithValues: config.map { ($0.key, $0.value) })
-        values["prompt"] = .string(Renderer.evaluation(origin, transcript: transcript, input: request))
+        let values = Dictionary(uniqueKeysWithValues: config.map { ($0.key, $0.value) })
+        let inputValue = Value.string(Renderer.evaluation(origin, transcript: transcript, input: request))
+        let arguments: [String]
 
-        let command = Harness.with(harness, { $0.command })!
-        let arguments = Command.with(command) { command in
-            Harness.with(harness, { command.rendered(with: values) + $0.rendered(with: values) })!
-        }!
+        do {
+            arguments = harness.arguments(with: try harness.bind(values, input: inputValue))
+        } catch {
+            let signal = Signal.failed(harnessRef, declared.signal, .string(String(describing: error)))
+            update(signal)
+            Composer.shared.announce(origin, signal)
+            return nil
+        }
 
         return (declared, branch, arguments)
     }
@@ -201,9 +205,8 @@ struct Context: Contextual {
         }
 
         var context = Self(origin)
-        if let existing {
-            context.transcript = existing
-        } else {
+        if let existing { context.transcript = existing }
+        else {
             let transcript = Transcript.new(origin.descriptor.name, owner: origin)
             Transcript.update(transcript) { $0.insert(.composed(origin)) }
             context.transcript = transcript
@@ -212,3 +215,14 @@ struct Context: Contextual {
     }
 }
 
+
+extension Context {
+    static func with<R>(_ ref: Reference, _ body: (Context) throws -> R) rethrows -> R? {
+        try Composer.shared.context(ref).map(body)
+    }
+
+    @discardableResult
+    static func update<R>(_ ref: Reference, _ body: (inout Context) throws -> R) rethrows -> R? {
+        try Composer.shared.update(ref, body)
+    }
+}

@@ -155,7 +155,7 @@ struct InterfaceRunner {
         guard let harness = Harness.with(interface, { $0 }) else { return nil }
         return Command.with(harness.command) { command in
             command.dispatch(
-                command.rendered(with: values) + harness.rendered(with: values),
+                harness.arguments(with: values),
                 environment: environment,
                 output: output
             )

@@ -3,7 +3,7 @@ import SwiftUI
 
 
 enum PanelKey: String, Identifiable, CaseIterable {
-    case actions, assistant, editor, outline, search, tasks, detail
+    case actions, search, assistant, outline, tasks
     var id: String { self.panel }
     var panel: String { self.rawValue }
     var model: String { "scint" }
@@ -21,7 +21,6 @@ enum ModelKey: String, Identifiable, CaseIterable {
 @Observable @MainActor final class StudioModel: Model {
     var assistant: AssistantPanel
     var content: ContentPanel
-    var editor: EditorPanel
     var inspector: InspectorPanel
     var navigator: NavigatorPanel
     var session: Session
@@ -29,9 +28,8 @@ enum ModelKey: String, Identifiable, CaseIterable {
     init(_ session: Session) {
         self.assistant = .init()
         self.content = .init()
-        self.editor = .init()
         self.inspector = .init()
-        self.navigator = .init()
+        self.navigator = .init() 
         self.session = session
     }
 }

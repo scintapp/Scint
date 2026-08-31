@@ -1,7 +1,32 @@
 import Foundation
-import Darwin
-import Combine
 
+
+struct Handler: Codable & Sendable {
+    var format: Format
+
+    enum Format: String, Codable, Sendable { case lines, events }
+
+    init(_ format: Format = .events) { self.format = format }
+
+    func handle(_ chunk: String) -> [Value] {
+        switch format {
+            case .lines:
+                return chunk
+                    .split(whereSeparator: \.isNewline)
+                    .map(String.init)
+                    .filter { !$0.isEmpty }
+                    .map { line in
+                            .collection([
+                                "type": .string("message"),
+                                "text": .string(line)
+                            ])
+                    }
+
+            case .events:
+                return [.string(chunk)]
+        }
+    }
+}
 
 final class ServiceRegistry: @unchecked Sendable {
     static let shared = ServiceRegistry()
@@ -59,9 +84,7 @@ final class ServiceRegistry: @unchecked Sendable {
 }
 
 enum ServicePolicy: String, Sendable {
-    case never
-    case onFailure
-    case always
+    case never, failure, always
 
     static func from(_ string: String?) -> ServicePolicy {
         ServicePolicy(rawValue: string ?? "") ?? .never
@@ -97,34 +120,3 @@ struct ServiceDefinition: Sendable {
 }
 
 
-struct Handler: Codable & Sendable {
-    var format: Format
-
-    enum Format: String, Codable, Sendable {
-        case lines
-        case events
-    }
-
-    init(_ format: Format = .events) { self.format = format }
-
-    
-
-    func handle(_ chunk: String) -> [Value] {
-        switch format {
-            case .lines:
-                return chunk
-                    .split(whereSeparator: \.isNewline)
-                    .map(String.init)
-                    .filter { !$0.isEmpty }
-                    .map { line in
-                        .collection([
-                            "type": .string("message"),
-                            "text": .string(line)
-                        ])
-                    }
-
-            case .events:
-                return [.string(chunk)]
-        }
-    }
-}

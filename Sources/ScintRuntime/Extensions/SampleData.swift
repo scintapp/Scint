@@ -212,7 +212,7 @@ enum SampleInterfaces {
                     default: nil
                 ),
                 .argument(
-                    name: "Sandbox",
+                    name: "sandbox",
                     type: .collection(["--sandbox": .sequence([
                         .string("read-only"),
                         .string("workspace-write"),
@@ -228,7 +228,7 @@ enum SampleInterfaces {
                     default: nil
                 ),
                 .argument(
-                    name: "prompt",
+                    name: "input",
                     type: .string(""),
                     required: true,
                     default: nil
@@ -283,7 +283,7 @@ enum SampleInterfaces {
                     default: nil
                 ),
                 .argument(
-                    name: "Sandbox",
+                    name: "sandbox",
                     type: .collection(["--permission-mode": .sequence([
                         .string("default"),
                         .string("acceptEdits"),
@@ -296,7 +296,7 @@ enum SampleInterfaces {
                     default: .collection(["--permission-mode": .string("default")])
                 ),
                 .argument(name: "continuation", type: .collection(["--resume": .string("")]), required: false, default: nil),
-                .argument(name: "prompt", type: .string(""), required: true, default: nil)
+                .argument(name: "input", type: .string(""), required: true, default: nil)
             ],
             description: "Evaluate a request against this space with Claude Code, reading its documents and calling its capabilities, and report what was found or done."
         )
@@ -364,7 +364,7 @@ enum SampleInterfaces {
                     default: .collection(["--sandbox": .string("workspace-write")])
                 ),
                 .argument(name: "continuation", type: .collection(["resume": .string("")]), required: false, default: nil),
-                .argument(name: "prompt", type: .string(""), required: true, default: nil)
+                .argument(name: "input", type: .string(""), required: true, default: nil)
             ],
             description: "Evaluate a request against this space, reading its documents and calling its capabilities, and report what was found or done."
         )

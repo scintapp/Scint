@@ -25,7 +25,7 @@ final class ProcessStore: @unchecked Sendable {
     private lazy var userEnvironment: [String: String] = resolveUserEnvironment()
     let started = Date()
 
-    func start(ownerID: UUID,command: String,arguments: [String],env: [String: String] = [:],label: String? = nil,restartCount: Int = 0,policy: ServicePolicy = .never,emit: @escaping (Int32, String) -> Void, reply: @escaping (Int32, String?, String?) -> Void) {
+    func start(ownerID: UUID, command: String, arguments: [String], env: [String: String] = [:], label: String? = nil, restartCount: Int = 0, policy: ServicePolicy = .never, emit: @escaping (Int32, String) -> Void, reply: @escaping (Int32, String?, String?) -> Void) {
         let sanitizedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !sanitizedCommand.isEmpty else { reply(-1, nil, "Command is required")
@@ -97,7 +97,7 @@ final class ProcessStore: @unchecked Sendable {
                     let shouldRestart: Bool
                     switch tracked.policy {
                     case .always: shouldRestart = true
-                    case .onFailure: shouldRestart = exitCode != 0
+                    case .failure: shouldRestart = exitCode != 0
                     case .never: shouldRestart = false
                     }
 
@@ -111,8 +111,6 @@ final class ProcessStore: @unchecked Sendable {
 
                     savedEmit(
                         pid,
-                        // Leading newline: a partial line may still be buffered
-                        // downstream, and concatenation makes this unparseable.
                         "\n" + jsonString([
                             "event": "terminated",
                             "pid": Int(pid),
@@ -633,3 +631,8 @@ final class ProcessStore: @unchecked Sendable {
         return result
     }
 }
+
+
+
+
+
