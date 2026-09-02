@@ -1,7 +1,7 @@
 #!/bin/bash
 
 LABEL="com.kaechle.scintd"
-SERVICE_NAME="Scintd"
+SERVICE_NAME="scintd"
 PLIST_SRC="$SRCROOT/Resources/Service.plist"
 PLIST_DST=${HOME}/Library/LaunchAgents/${LABEL}.plist
 DAEMON_BIN=${BUILT_PRODUCTS_DIR}/${SERVICE_NAME}.xpc/Contents/MacOS/${SERVICE_NAME}

@@ -4,43 +4,54 @@ import Foundation
 @Observable final class Composer: @unchecked Sendable {
     static let shared = Composer()
     private let contexts = Index<Context>()
-    private var listeners: [@Sendable (Reference, Signal) -> Void] = []
 
     @discardableResult
     func load(_ refs: [Reference]) -> [Composition] {
         refs.compactMap { compose($0) }
     }
 
-    func context(_ ref: Reference) -> Context? { contexts.get(ref) }
-
     func compose(_ ref: Reference) -> Composition? {
-        guard ref.type == Workspace.self || ref.type == Space.self else { return nil }
-        if contexts.get(ref) == nil {
-            let context = Context.new(ref)
-            guard context.harness != nil else { return nil }
-            contexts.set(ref, context)
+        guard (ref.type == Workspace.self || ref.type == Space.self) else { return nil }
+
+        if ref.type == Workspace.self {
+            guard let harness = Workspace.with(ref, { $0 })?.harness, Harness.with(harness, { $0 }) != nil
+            else { return nil }
+        } else if ref.type == Space.self {
+            guard let harness = Space.with(ref, { $0 })?.harness, Harness.with(harness, { $0 }) != nil
+            else { return nil }
         }
-        return resolve(ref)
+
+        if let resolved = resolve(ref) { return resolved }
+        else {
+            let context = Context.new(ref)
+            contexts.set(ref, context)
+            return resolve(ref)
+        }
+    }
+
+    func context(_ ref: Reference) -> Context? {
+        guard let context = contexts.get(ref) else { return nil }
+        return context
+    }
+
+    func resolve(_ ref: Reference) -> Composition? {
+        guard contexts.get(ref) != nil else { return nil }
+        return Composition(ref)
+    }
+
+    func resolve() -> [Composition] {
+        contexts.keys().compactMap { resolve($0) }
+    }
+
+    func transmit(_ signal: Signal) -> Composition? {
+        guard let composition = resolve(signal.ref) else { return nil }
+        update(signal.ref) { context in context.handle(signal) }
+        return composition
     }
 
     @discardableResult
     func update<R>(_ ref: Reference, _ body: (inout Context) throws -> R) rethrows -> R? {
         try contexts.update(ref, body)
     }
-
-    func resolve() -> [Composition] { contexts.keys().compactMap { resolve($0) } }
-
-    func resolve(_ ref: Reference) -> Composition? {
-        guard contexts.get(ref)?.harness != nil else { return nil }
-        return Composition(ref)
-    }
-
-    func onTerminal(_ listener: @escaping @Sendable (Reference, Signal) -> Void) {
-        listeners.append(listener)
-    }
-
-    func announce(_ ref: Reference, _ signal: Signal) {
-        guard signal.terminal else { return }
-        for listener in listeners { listener(ref, signal) }
-    }
 }
+

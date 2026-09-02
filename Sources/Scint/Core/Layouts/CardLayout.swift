@@ -150,9 +150,6 @@ struct MaterialCard: View {
 
     @ViewBuilder var content: some View {
         switch block {
-            // Materials and commands are cards; everything else is a chip, wherever it appears.
-            // A block-level artifact used to draw a full card here, which is why files and links
-            // stayed cards after inline references started rendering as chips.
             case .artifact(let ref) where ReferencePresentation.of(ref) == .chip:
                 HStack {
                     ReferenceChip(ref: ref, label: Artifact.with(ref, { $0.name }) ?? "Artifact")
@@ -254,7 +251,7 @@ struct TranscriptCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 Style.Shape.medium.fill(
-                    Style.Background.panel.opacity(Style.Opacity.washed)
+                    Style.Background.raised
                 )
             )
             .contentShape(Style.Shape.medium)
@@ -341,7 +338,7 @@ struct CardLayout: View {
             maxHeight: Style.Spacing.cardHeight,
             alignment: .leading
         )
-        .background(Style.Background.panel.opacity(Style.Opacity.washed))
+        .background(Style.Background.raised)
         .clipShape(shape)
         .overlay {
             shape.strokeBorder(

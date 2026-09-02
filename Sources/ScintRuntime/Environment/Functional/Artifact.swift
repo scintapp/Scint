@@ -66,7 +66,6 @@ struct Artifact: Functional {
 
         static func classify(_ url: URL?) -> Handler {
             guard let url else { return .file(nil) }
-
             guard url.isFileURL else { return .bookmark(url) }
 
             let resolved = normalize(url)
@@ -74,6 +73,7 @@ struct Artifact: Functional {
             if ext == "app" { return .app(resolved) }
 
             var isDir: ObjCBool = false
+
             if FileManager.default.fileExists(atPath: resolved.path, isDirectory: &isDir), isDir.boolValue {
                 return .directory(resolved)
             }
@@ -87,6 +87,7 @@ struct Artifact: Functional {
                 FileManager.default.fileExists(atPath: resolved.path, isDirectory: &isDir)
                 if !isDir.boolValue { return .executable(resolved) }
             }
+
             return .file(resolved)
         }
 

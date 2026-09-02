@@ -96,3 +96,41 @@ struct WorkspaceNavigator: Mapper {
         )
     }
 }
+
+struct SpaceInspector: Mapper {
+    static func controls(_ model: any Model) -> Controls {
+        let harness = HarnessGroup.controls(model)
+        let commands = CommandsGroup.controls(model)
+        let artifacts = ArtifactsGroup.controls(model)
+
+        func source(for item: ItemParams) -> Controls {
+            if let key = item.key {
+                if key == "add-artifacts" || key == "add-files" { return artifacts }
+                return harness
+            }
+            if item.ref?.type is Command.Type { return commands }
+            if item.ref?.type is Harness.Type { return harness }
+            return artifacts
+        }
+
+        return .init(
+            onToggle: { item in source(for: item).onToggle?(item) },
+            onChange: { item, selection in source(for: item).onChange?(item, selection) },
+            onValueChange: { item, value in source(for: item).onValueChange?(item, value) },
+            onSelect: { item in source(for: item).onSelect?(item) },
+            onAction: { item in source(for: item).onAction?(item) }
+        )
+    }
+
+    static func parameters(_ model: any Model) -> Params {
+        let harnessControls = HarnessGroup.parameters(model).sections
+        let commandsControls = CommandsGroup.parameters(model).sections
+        let artifactsControls = ArtifactsGroup.parameters(model).sections
+
+        return .init(
+            layout: .group,
+            header: true,
+            sections: harnessControls + commandsControls + artifactsControls
+        )
+    }
+}

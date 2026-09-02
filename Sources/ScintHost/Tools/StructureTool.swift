@@ -203,9 +203,13 @@ struct StructureTool: Tool {
         }
 
         guard let composition = Runtime.shared.start(ref) else {
-            return .failure("\(ref.descriptor.name) could not be composed under \(harness.descriptor.name).")
+            return .failure(
+                "\(ref.descriptor.name) could not be composed under \(String(describing: harness?.descriptor.name))."
+            )
         }
-        return .ok("\(ref.descriptor.name) is \(Self.describe(composition.state)) under \(harness.descriptor.name).")
+        return .ok(
+            "\(ref.descriptor.name) is \(Self.describe(composition.state)) under \(String(describing: harness?.descriptor.name))."
+        )
     }
 
     @MainActor

@@ -1,30 +1,32 @@
 import Foundation
 
 
-struct Searching: Contextual {
+struct Handler: Contextual {
     let key: Key
     let harness: Reference
-    let transcript: Reference
-    let arguments: [String]
+    let arguments: [String: Value]
+    var transcript: Reference
 
-    init(_ origin: Reference) {
-        self.key = .context(origin)
-        self.harness = origin
-        self.transcript = origin
-        self.arguments = []
-    }
-
-    init(_ origin: Reference, harness: Reference, transcript: Reference, arguments: [String]) {
+    init(_ origin: Reference, harness: Reference, transcript: Reference, arguments: [String: Value]) {
         self.key = .context(origin)
         self.harness = harness
         self.transcript = transcript
         self.arguments = arguments
     }
 
-    func search(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-        do { try start(handle(terminal)) }
-        catch {
-            let signal = Signal.failed(harness, .searching, .string(String(describing: error)))
+    var environment: [String: String] { ["SCINT_CONTEXT": key.id.uuidString.lowercased()] }
+
+    var intent: Intent {
+        guard let intent = Harness.with(harness, { $0.intent })
+        else { fatalError("No intent found for origin harness \(String(describing: harness))") }
+        return intent
+    }
+
+    func start(_ terminal: @Sendable @escaping (Signal, Reference) -> Void) {
+        do {
+            try compose(handle(terminal))
+        } catch {
+            let signal = Signal.failed(harness, .string(String(describing: error)))
             let branch = transcript
 
             Task { @MainActor in
@@ -34,38 +36,29 @@ struct Searching: Contextual {
         }
     }
 
-    private func start(_ output: @escaping (String) -> Void) throws {
-        let environment = ["SCINT_CONTEXT": key.id.uuidString.lowercased()]
-
-        guard let command = Harness.with(harness, { $0.command })
-                else { throw RuntimeError.context(.missing(harness)) }
-
-        guard let dispatched = Command.with(command, { $0.dispatch(arguments, environment: environment, output: output) })
-                else { throw RuntimeError.context(.missing(command)) }
-
-        guard let result = dispatched
-                else { throw RuntimeError.context(.functionNotFound(command.descriptor.name)) }
-
+    private func compose(_ output: @escaping (String) -> Void) throws {
+        guard let interface = Harness.with(harness, { $0.run(arguments, environment, output) })
+        else { throw RuntimeError.context(.missing(harness)) }
+        guard let result = interface
+        else { throw RuntimeError.context(.functionNotFound(harness.descriptor.name)) }
         if let error = result.error, !error.isEmpty { throw RuntimeError.context(.startFailed(error)) }
     }
 
-    func handle(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (String) -> Void {
+    private func handle(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) -> @Sendable (String) -> Void {
         return { line in
             let text = line.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return }
-
             let value = Value.string(text)
-
             let signal: Signal = switch Self.exit(of: text) {
-                case .some(0): .completed(harness, .evaluating, value)
-                case .some: .failed(harness, .evaluating, value)
-                case nil: .updated(harness, .evaluating, value)
+                case .some(0): .completed(harness, value)
+                case .some: .failed(harness,  value)
+                case nil: .updated(harness, value)
             }
 
             Task { @MainActor in
                 func message(_ value: Value) -> Bool {
                     guard case .collection(let fields) = value, case .string("message")? = fields["type"]
-                            else { return false }
+                    else { return false }
                     return true
                 }
 
@@ -102,10 +95,5 @@ struct Searching: Contextual {
         if let found = code(line) { return found }
         guard let brace = line.lastIndex(of: "{"), brace != line.startIndex else { return nil }
         return code(String(line[brace...]))
-    }
-
-    func stop() {
-        guard Runtime.shared.services.stop(context: key.id)
-                else { return }
     }
 }

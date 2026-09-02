@@ -1,9 +1,13 @@
 import SwiftUI
 
 
-struct MaterialEditor: View {
+struct MaterialSurface: Surface {
+    @State var zoomed: Bool = false
+    var panel: any Panel
     var model: any Model
     var material: Reference
+
+    var origin: Reference { model.session.origin }
 
     var body: some View {
         ScrollView {
@@ -14,12 +18,12 @@ struct MaterialEditor: View {
             .id(material)
             .simultaneousGesture(TapGesture().onEnded { model.select(material) })
             .frame(maxWidth: Style.Spacing.contentMaxWidth, alignment: .topLeading)
+            .frame(maxWidth: 660, alignment: .center)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
         }
-        .frame(maxWidth: 680, alignment: .center)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
-        .background(Style.Shape.large.fill(Style.Background.panel))
-        .overlay(Style.Shape.large.stroke(Style.Border.raised, lineWidth: 1))
+        .overlay(Style.Shape.large.stroke(Style.Border.base, lineWidth: 1))
+        .scrollEdgeEffectStyle(.soft, for: .top)
     }
 }
 
@@ -34,10 +38,14 @@ struct MaterialsSurface: Surface {
         ScrollView {
             VStack(spacing: 24) {
                 ForEach(materials) { material in
-                    MaterialEditor(model: model, material: material)
+                    MaterialSurface(panel: panel, model: model, material: material)
+                        .background(Style.Shape.medium.fill(Style.Background.frame))
+                        .overlay(Style.Shape.medium.stroke(Style.Border.base, lineWidth: 1))
                 }
             }
+            .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .scrollEdgeEffectStyle(.soft, for: .top)
     }
 }

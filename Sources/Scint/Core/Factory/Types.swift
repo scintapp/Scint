@@ -78,6 +78,7 @@ extension Model {
 
     func compose(_ ref: Reference) -> Composition? { Runtime.shared.compose(ref) }
 
+    @discardableResult
     func start(_ ref: Reference) -> Composition? { Runtime.shared.start(ref) }
 
     func search(_ query: String, limit: Int) -> SearchResults { Runtime.shared.search(query, limit: limit) }

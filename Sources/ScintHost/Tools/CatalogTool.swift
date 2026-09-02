@@ -221,7 +221,7 @@ struct CatalogTool: Tool {
             }
             let harness = Space.with(ref, { $0.harness }) ?? Workspace.with(ref, { $0.harness }) ?? nil
             lines.append("harness: \(harness?.descriptor.name ?? "none")")
-            lines.append("state: \(Runtime.shared.context(for: ref).map { "\($0.state)" } ?? "inactive")")
+            lines.append("state: \(Runtime.shared.compose(ref).map { "\($0.state)" } ?? "inactive")")
             return lines
         }
         return []

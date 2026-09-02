@@ -6,7 +6,7 @@ struct SpaceGrid: Mapper {
         .init(
             focused: { item in
                 guard let ref = item.ref else { return false }
-                return model.session.focused == .space(ref)
+                return model.session.focused == .structure(ref)
                 || model.session.focused == .interface(ref)
                 || model.session.focused == .content(ref)
             },

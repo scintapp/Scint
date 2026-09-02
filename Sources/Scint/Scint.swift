@@ -14,7 +14,6 @@ struct Assistant: View {
     }
 }
 
-
 struct Editor: View {
     @Environment(ScintModel.self) var scint
     @Environment(EditorModel.self) var editor
@@ -41,12 +40,18 @@ struct Studio: View {
         let navigator: some View = studio.navigator.surface(studio)
         let presented = studio.inspector.state.bindable.presented
 
-        NavigationSplitView { navigator } detail: { content }
-            .environment(scint)
-            .environment(studio)
-            .inspector(isPresented: presented) { inspector }
-            .scrollEdgeEffectHidden()
-            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-            .toolbar(removing: .title)
+        NavigationSplitView {
+            navigator
+        } detail: {
+            content.frame(maxWidth: .infinity)
+                .background(Style.Background.panel)
+        }
+        .environment(scint)
+        .environment(studio)
+        .toolbar(removing: .title)
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        .inspector(isPresented: presented) {
+            inspector.inspectorColumnWidth(ideal: 340)
+        }
     }
 }

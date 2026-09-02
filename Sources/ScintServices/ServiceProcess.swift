@@ -127,7 +127,7 @@ final class ProcessStore: @unchecked Sendable {
 
                             newPid, _, error in
                             if let label = savedLabel, newPid > 0 { self?.registry.setActivePID(newPid, for: label) }
-                            if let error { NSLog("Scintd: restart failed for '\(savedCommand)': \(error)") }
+                            if let error { NSLog("scintd: restart failed for '\(savedCommand)': \(error)") }
                         }
                     }
                 }

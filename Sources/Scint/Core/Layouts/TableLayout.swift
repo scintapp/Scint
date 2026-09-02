@@ -64,7 +64,7 @@ struct ActivityHeader: View {
 
 struct ActivityRow: View {
     @State private var hovered = false
-    var intent: Harness.Intent
+    var intent: Intent
     var transcript: Reference?
     var enabled: Bool
     var model: any Model
@@ -176,7 +176,7 @@ struct ActivityCard<Rows: View>: View {
 //}
 
 
-extension Harness.Intent {
+extension Intent {
     var forms: (label: String, running: String, completed: String) {
         switch self {
             case .compose: ("Compose", "Composing", "Composed")

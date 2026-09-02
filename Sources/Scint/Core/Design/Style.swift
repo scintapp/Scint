@@ -86,8 +86,9 @@ struct Style {
     }
 
     enum Background {
-        static var page: Color { Color(red: 0.10191, green: 0.10231, blue: 0.10271) }
-        static var panel: Color { Color(red: 0.10191, green: 0.10191, blue: 0.10191) }
+        static var frame: Color { Color(red: 0.090191, green: 0.090211, blue: 0.090234) }
+        static var panel: Color { Color(red: 0.10191, green: 0.10211, blue: 0.10231) }
+        static var card: Color { Color(red: 0.13181, green: 0.13198, blue: 0.13291) }
         static var control: Color { Color(red: 0.12821, green: 0.12821, blue: 0.13124) }
         static var raised: Color { Color(red: 0.14821, green: 0.14821, blue: 0.15124) }
         static var group: Color { Color(red: 0.18821, green: 0.18821, blue: 0.19124).opacity(0.25) }

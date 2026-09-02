@@ -4,39 +4,22 @@ import SwiftUI
 @Observable @MainActor final class EditorState {
     private(set) var material: DocumentModel
     private(set) var menu: MenuController
-    let themer = EditorThemer()
     private(set) var themeRevision = 0
+    let themer = EditorThemer()
 
-    /// The one answer to "where is the user".
     var selection: EditorSelection = .none
-
-    /// The caret, in screen coordinates. Only the edited block has one, so this is a single value
-    /// rather than the dictionary it used to be.
     var caretRect: CGRect = .zero
-
-    /// Each block's frame in the canvas coordinate space, for hit-testing clicks on empty space.
-    /// The only per-block geometry left.
     var blockFrames: [AnyHashable: CGRect] = [:]
 
-    init(
-        material ref: Reference,
-        menuItems: [MenuItem],
-        search: @escaping (String, MenuKind) -> [MenuItem]
-    ) {
+    init(material ref: Reference, menuItems: [MenuItem], search: @escaping (String, MenuKind) -> [MenuItem]) {
         self.material = DocumentModel(ref)
         self.menu = MenuController(items: menuItems, search: search)
-        // No `activateTrailingText()` here. `EditorComponent` builds an `EditorState` in its
-        // initialiser, which SwiftUI re-runs on every rebuild of the enclosing view even though
-        // `@State` keeps only the first instance — and this call appends a text block to the
-        // persisted `Material`. The editor arms itself from `onAppear` instead, once.
     }
 
     func setTheme(_ theme: Theme) {
         themer.theme = theme
         themeRevision &+= 1
     }
-
-    // MARK: - Focus and caret
 
     func focusGained(id: AnyHashable) {
         guard let block = material.block(id: id) else { return }
@@ -59,9 +42,6 @@ import SwiftUI
     func write(id: AnyHashable, text: String, selection range: NSRange) {
         selection = .caret(id, range)
 
-        // One block holds one line, so text arriving with newlines — a paste — becomes several
-        // blocks. A fenced code block is the exception: its lines have to stay together, because
-        // fence state does not survive a block boundary.
         if text.contains("\n"), !Markdown.holdsMultipleLines(text) {
             let lines = text.components(separatedBy: "\n")
             if let result = material.replaceText(at: id, with: lines) {
@@ -87,8 +67,6 @@ import SwiftUI
         if menu.isOpen { menu.anchorRect = rect }
     }
 
-    // MARK: - Input
-
     func commitMenuSelection() {
         guard let outcome = menu.commit() else { return }
         acceptMenuOutcome(outcome)
@@ -107,13 +85,6 @@ import SwiftUI
         return false
     }
 
-    /// The candidate commands for a key, most specific first.
-    ///
-    /// A key that can mean two things — Tab nests a list item, and otherwise moves to the next
-    /// block — returns both, and `apply` takes the first that succeeds. That is the whole of the
-    /// editor's key handling; it used to be spread over this switch, three overrides on the text
-    /// view, five more on the block responder, and the text view's delegate, with two of those
-    /// paths reaching this same code for the same keystroke.
     private func commands(for selector: Selector, selection range: NSRange, textLength: Int) -> [EditorCommand] {
         let editing = selection.isEditing
         let atStart = range.length == 0 && range.location == 0
@@ -125,22 +96,14 @@ import SwiftUI
             case #selector(NSResponder.cancelOperation(_:)):
                 return [.dismiss]
             case #selector(NSResponder.deleteBackward(_:)):
-                // A component gets the same two steps a block does: this keystroke selects it,
-                // the next one removes it. Without this, one press took the whole reference out
-                // from under the reader with no warning.
                 if editing, atStart == false, let component = componentEnding(at: range) {
                     return [.selectReference(component)]
                 }
                 return editing ? [.mergeBackward] : [.deleteBlock]
-            // A block is one line, so Up and Down almost always mean "another block". Asking
-            // `NSTextView` first, as this used to, just parked the caret at the start or end of
-            // the only line there was — which reads as the arrow moving sideways.
             case #selector(NSResponder.moveUp(_:)):
                 return atFirstLine(range) ? [.step(-1)] : []
             case #selector(NSResponder.moveDown(_:)):
                 return atLastLine(range) ? [.step(1)] : []
-            // Left at the very start and Right at the very end continue into the neighbouring
-            // block rather than stopping dead.
             case #selector(NSResponder.moveLeft(_:)):
                 if range.length == 0, let component = componentEnding(at: range) {
                     return [.selectReference(component)]
@@ -160,8 +123,6 @@ import SwiftUI
         }
     }
 
-    /// Whether the caret is on the block's first or last line. Only a fenced code block has more
-    /// than one, so for everything else both are true and the arrows step between blocks.
     private func atFirstLine(_ range: NSRange) -> Bool {
         guard let text = editingText() else { return true }
         let location = min(range.location, text.length)
@@ -217,17 +178,10 @@ import SwiftUI
         return insertText(at: 0)
     }
 
-    // MARK: - Commands
-
-    /// Return inside a text block. Splits it in two, carrying a list marker across when there is
-    /// one — which is what keeps a list a list now that each item is its own block.
     private func splitBlock(_ range: NSRange) -> Bool {
         guard let editing = selection.editing,
               case .text(_, let text)? = material.block(id: editing)
         else { return false }
-
-        // Return on an empty item steps it out one level, and clears the marker once it reaches
-        // the margin, instead of opening another empty item below it.
         if Markdown.isEmptyItem(text) {
             let outdented = Markdown.indented(text, by: -1)
             let next = outdented == text ? "" : outdented
@@ -237,15 +191,10 @@ import SwiftUI
             return true
         }
 
-        // Never cut through an inline reference — snap to its nearer edge instead. The caret can
-        // be reported inside one whenever the display-to-source mapping is off by a character, and
-        // the result is a destroyed chip rather than a misplaced split.
         let start = Markdown.editBoundary(range.location, in: text)
         let end = Markdown.editBoundary(NSMaxRange(range), in: text)
         let safe = NSRange(location: start, length: max(0, end - start))
 
-        // Only continue the list when the caret is past the marker. Splitting on top of it would
-        // stamp a second marker onto the half being pushed down.
         let prefix = safe.location >= Markdown.prefixLength(of: text)
             ? Markdown.continuation(for: text) ?? ""
             : ""
@@ -279,14 +228,10 @@ import SwiftUI
             return true
         }
 
-        // The block above is a component, so there is nothing to merge into.
         guard let previous = Material.with(material.ref, { material -> Material.Block? in
             material.blocks.indices.contains(index - 1) ? material.blocks[index - 1] : nil
         }) ?? nil else { return false }
 
-        // An empty block here is a blank line the reader is backing out of — remove it. This is
-        // also what keeps a gap stranded between two cards removable, without a document-wide
-        // sweep that would eat the blank lines they meant to keep.
         if case .text(_, let text)? = material.block(id: editing), text.isEmpty {
             blockFrames[editing] = nil
             material.delete([editing])
@@ -316,7 +261,6 @@ import SwiftUI
         return true
     }
 
-    /// Tab and Shift-Tab, when the caret is in a list item.
     private func nest(by levels: Int) -> Bool {
         guard let editing = selection.editing,
               case .text(_, let text)? = material.block(id: editing)
@@ -333,11 +277,6 @@ import SwiftUI
         return true
     }
 
-    /// The inline references in the edited block that draw as components.
-    ///
-    /// Components fill the line and read as objects, so they behave like the blocks they used to
-    /// be: a keystroke lands on one, the next acts on it. Chips are characters in a sentence and
-    /// go on behaving like characters.
     private func componentRanges(in text: NSString) -> [NSRange] {
         Markdown.scan(text as String).links.compactMap { link in
             guard let ref = ReferenceURL.reference(in: text.substring(with: link.url)),
@@ -357,8 +296,6 @@ import SwiftUI
         return componentRanges(in: text).first { $0.location == range.location }
     }
 
-    /// The component, when the block holds nothing else — the case that looks like a card sitting
-    /// on its own line, and should behave like one on arrival.
     private func soleComponent(in text: String) -> NSRange? {
         let source = text as NSString
         let ranges = componentRanges(in: source)
@@ -374,11 +311,6 @@ import SwiftUI
         return true
     }
 
-    /// Selects the component's range and tells the component itself.
-    ///
-    /// Both halves are needed: the text range is what makes the next keystroke act on it, and the
-    /// hosted view draws its own selected state because AppKit's selection highlight does not
-    /// paint over an attachment's view.
     private func selectComponent(_ range: NSRange, in id: AnyHashable, text: NSString) {
         selection = .caret(id, range)
         guard let link = Markdown.scan(text as String).links.first(where: { $0.range == range })
@@ -396,8 +328,6 @@ import SwiftUI
         else { return false }
 
         if case .text(_, let text) = target {
-            // Arriving on a block that is nothing but a component selects the component, so it
-            // reads the same as arriving on a card: highlighted, and the next keystroke moves on.
             if let component = soleComponent(in: text) {
                 selectComponent(component, in: target.id, text: text as NSString)
             } else {
@@ -409,10 +339,6 @@ import SwiftUI
         return true
     }
 
-    // MARK: - Document
-
-    /// Turns a committed menu choice into document state. The menu produced the choice; deciding
-    /// what it becomes, and where the caret lands afterwards, is the editor's job alone.
     private func acceptMenuOutcome(_ outcome: MenuOutcome) {
         guard let result = MenuSurface.apply(outcome, to: material) else { return }
         menu.close()
@@ -421,11 +347,6 @@ import SwiftUI
         else { selectBlock(result.id) }
     }
 
-    /// Rewrites ordered-list markers to match their position.
-    ///
-    /// A list is a run of consecutive list-item blocks, so an item's number is derived from where
-    /// it sits — never stored. This puts the derived numbers back into the text after anything
-    /// that could have moved them.
     private func renumberLists() {
         let blocks = Material.with(material.ref, { $0.blocks }) ?? []
         let lines = blocks.map { block -> String in
@@ -480,7 +401,6 @@ import SwiftUI
         selection = .block(id)
     }
 
-    /// Readies the document for editing. Called once, from the view's `onAppear`.
     func prepare() {
         material.inlineReferenceBlocks()
         activateTrailingText()
@@ -514,13 +434,6 @@ import SwiftUI
         return true
     }
 
-    /// Drops empty text blocks from the end of the document, on the way out.
-    ///
-    /// Now that a block holds a single line, an empty text block *is* a blank line — content the
-    /// reader put there. Pruning them wherever they appeared, as this briefly did, meant Return at
-    /// the start of a block deleted the empty half it had just created, so pressing Return in
-    /// front of anything looked like nothing happened at all. Only the trailing ones are noise,
-    /// and only once the editor is done with them.
     @discardableResult
     private func pruneTrailingEmptyText(excluding retainedID: AnyHashable? = nil) -> AnyHashable? {
         var landing: AnyHashable?
@@ -538,19 +451,6 @@ import SwiftUI
         return landing
     }
 
-    // MARK: - Menu
-
-    /// Opens the menu when a trigger character is typed. It never reads the query.
-    ///
-    /// The query belongs to the menu's filter field, which is a real input with a visible
-    /// boundary — so it can hold spaces, and the reader can see where their typing is going.
-    /// This used to scan backwards through the document for the trigger and hand whatever
-    /// followed it over as the query, which gave one query two owners and forced the end of it to
-    /// be guessed from whitespace. That guess is why a space dismissed the menu, and no amount of
-    /// widening it would have held: there is no signal in prose that says where a query stops.
-    ///
-    /// So the document holds exactly one character — the `/` or `@` — and that is the whole of
-    /// the replacement range. Cancelling leaves it behind as ordinary text.
     private func openMenuIfTriggered() {
         guard !menu.isOpen,
               case .caret(let editing, let range) = selection,
@@ -565,8 +465,6 @@ import SwiftUI
         let character = source.substring(with: NSRange(location: index, length: 1))
         guard character == "/" || character == "@" else { return }
 
-        // Only at a word boundary, so a slash inside a path or a URL is not a trigger, and an
-        // email address does not open the reference menu.
         if index > 0 {
             let previous = source.substring(with: NSRange(location: index - 1, length: 1))
             guard previous == " " || previous == "\t" || previous == "\n" else { return }

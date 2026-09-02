@@ -2,7 +2,6 @@ import AppKit
 import SwiftUI
 
 
-
 struct MenuList: View {
     let items: [MenuItem]
     let selectedID: String?
@@ -270,7 +269,7 @@ struct MenuFilter: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(Style.Background.raised)
-            .clipShape(Style.Shape.medium)
+            .clipShape(Style.Shape.small)
         }
         .frame(maxWidth: .infinity, maxHeight: Style.Spacing.xxxl)
     }

@@ -7,7 +7,7 @@ struct TranscriptSurface: Surface {
 
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: Style.Spacing.xxl) {
+            VStack(spacing: Style.Spacing.xxl) {
                 if let transcript = model.session.transcript {
                     ForEach(Transcript.with(transcript, { $0.entries }) ?? []) { entry in
                         TranscriptEntry(transcript: transcript, entry: entry, model: model)
@@ -16,7 +16,9 @@ struct TranscriptSurface: Surface {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .padding(.horizontal, 12)
         }
     }
 }

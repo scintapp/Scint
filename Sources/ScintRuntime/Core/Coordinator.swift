@@ -11,10 +11,8 @@ actor Coordinator {
 
     func schedule(_ ref: Reference) {
         switch ref.type {
-            case is any Structural.Type:
-                workspaceDirty.insert(ref)
-            case is any Malleable.Type, is any Functional.Type:
-                libraryDirty.insert(ref)
+            case is any Structural.Type: workspaceDirty.insert(ref)
+            case is any Malleable.Type, is any Functional.Type: libraryDirty.insert(ref)
             default: return
         }
 

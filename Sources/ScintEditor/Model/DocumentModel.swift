@@ -55,22 +55,10 @@ struct MaterialView: View {
 @Observable @MainActor final class DocumentModel {
     let ref: Reference
     var blocks: [Material.Block] { Material.with(ref, { $0.blocks }) ?? [] }
-
-    /// One undo stack for the whole document.
-    ///
-    /// The text view registers its own typing; every structural edit — split, merge, delete,
-    /// insert — registers here, and `EditorInputView` returns this manager so both land on one
-    /// ordered stack. They used to be two stacks that knew nothing of each other: undoing after a
-    /// structural change replayed a stale text edit into a block that no longer existed, which is
-    /// how an undo could destroy the document rather than restore it.
     let undoManager = UndoManager()
 
     init(_ ref: Reference) { self.ref = ref }
 
-    /// Wraps a structural mutation so it reverses as one step.
-    ///
-    /// Snapshots are coarse — the whole block list — but a structural edit is rare next to a
-    /// keystroke, and a coarse step that is always correct beats a fine one that is not.
     private func structural<T>(_ body: () -> T) -> T {
         let before = blocks
         let result = body()
@@ -103,14 +91,6 @@ struct MaterialView: View {
         Material.with(ref, { $0.blocks.firstIndex { $0.id == id } }) ?? nil
     }
 
-    /// Converts reference blocks into inline links.
-    ///
-    /// A reference used to be a block of its own; it is a markdown link now. This carries the old
-    /// ones across on open rather than leaving them as full-width rows that behave differently
-    /// from every reference added since. Lossless — the reference survives in the URL — and
-    /// idempotent, since afterwards there are none left to convert.
-    ///
-    /// Deliberately not registered for undo: it is a format migration, not an edit the reader made.
     @discardableResult
     func inlineReferenceBlocks() -> Bool {
         Material.update(ref) { material -> Bool in
@@ -131,9 +111,6 @@ struct MaterialView: View {
         } ?? false
     }
 
-    /// Typing. Not undoable here — the text view registers those edits itself. Pass
-    /// `structural: true` for a write that reshapes the line rather than typing into it, like
-    /// outdenting a list item.
     @discardableResult
     func write(_ text: String, to id: AnyHashable, structural isStructural: Bool = false) -> Bool {
         guard isStructural else { return performWrite(text, to: id) }
@@ -233,11 +210,6 @@ struct MaterialView: View {
         }
     }
 
-    /// Splits a text block at `range`, dropping whatever `range` covers.
-    ///
-    /// The text before stays in place; the text after moves into a new block that follows it,
-    /// carrying `prefix` — the list marker a continued item needs. Returns the new block and where
-    /// the caret belongs in it, which is after the prefix.
     @discardableResult
     func splitText(at id: AnyHashable, range: NSRange, prefix: String) -> (id: AnyHashable, caret: NSRange)? {
         return structural {
@@ -263,8 +235,6 @@ struct MaterialView: View {
         }
     }
 
-    /// Replaces a text block with several, for text that arrives carrying newlines — a paste,
-    /// mostly. One block holds one line, so the newlines have to become block boundaries.
     @discardableResult
     func replaceText(at id: AnyHashable, with lines: [String]) -> (id: AnyHashable, caret: NSRange)? {
         return structural {

@@ -48,8 +48,11 @@ enum SampleInterfaces {
             return reference
         }
 
-        func harness(_ name: String, _ command: Reference, _ intent: Harness.Intent, _ parameters: [Harness.Parameter], description: String? = nil) -> Reference {
+        func harness(_ name: String, _ command: Reference, _ intent: Intent, _ parameters: [Harness.Parameter], description: String? = nil) -> Reference {
             let reference = existing(name, as: Harness.self) ?? Harness.register(name, command: command, intent: intent, parameters: parameters)
+            if Harness.with(reference, { $0.command != command || $0.intent != intent || $0.parameters != parameters }) == true {
+                Harness.update(reference) { $0 = Harness(reference, command: command, intent: intent, params: parameters) }
+            }
             if let description {
                 Catalog.shared.update(reference) { descriptor in descriptor.description = description }
             }
@@ -354,7 +357,7 @@ enum SampleInterfaces {
                     default: nil
                 ),
                 .argument(
-                    name: "Sandbox",
+                    name: "sandbox",
                     type: .collection(["--sandbox": .sequence([
                         .string("read-only"),
                         .string("workspace-write"),
@@ -383,8 +386,19 @@ enum SampleInterfaces {
         )
 
         let observer = harness(
-            "Observer", codexCommand, .observe, codexParameters,
-            description: "Watch this space for change and report what happened, without altering anything."
+            "Observer", codexCommand, .observe,
+            [
+                .argument(name: "target", type: .sequence([])),
+                .argument(name: "command", type: .reference(Command.self)),
+                .argument(name: "schedule", type: .date(.distantPast)),
+                .argument(name: "repeat", type: .sequence([
+                    .string(Schedule.Recurrence.never.rawValue),
+                    .string(Schedule.Recurrence.hourly.rawValue),
+                    .string(Schedule.Recurrence.daily.rawValue),
+                    .string(Schedule.Recurrence.weekly.rawValue)
+                ]), required: false, default: nil)
+            ],
+            description: "Wait on something, and when it happens, go to work."
         )
 
         let searcher = harness(

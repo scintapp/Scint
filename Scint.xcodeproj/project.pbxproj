@@ -10,7 +10,6 @@
 		7C443ABD2FF956D600FD0398 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABC2FF956D600FD0398 /* Collections */; };
 		7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABE2FF956D600FD0398 /* OrderedCollections */; };
 		7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C959129300D54FB007D9E73 /* OrderedCollections */; };
-		7CB1B9D42FC5778E00BFEA35 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB1B9D32FC5778E00BFEA35 /* MCP */; };
 		7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */; };
 		7CBB434B3020F78300B9D4D7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7CBB434A3020F78300B9D4D7 /* README.md */; };
 /* End PBXBuildFile section */
@@ -78,7 +77,6 @@
 				ScintRuntime/Core/Records/Error.swift,
 				ScintRuntime/Core/Records/Property.swift,
 				ScintRuntime/Core/Records/Search.swift,
-				ScintRuntime/Core/Records/Signal.swift,
 				ScintRuntime/Core/Records/Value.swift,
 				ScintRuntime/Core/Registry.swift,
 				ScintRuntime/Core/Settings.swift,
@@ -91,13 +89,9 @@
 				ScintRuntime/Environment/Composer.swift,
 				ScintRuntime/Environment/Contextual/Composition.swift,
 				ScintRuntime/Environment/Contextual/Context.swift,
-				ScintRuntime/Environment/Contextual/Intents/Composing.swift,
-				ScintRuntime/Environment/Contextual/Intents/Dispatching.swift,
-				ScintRuntime/Environment/Contextual/Intents/Evaluating.swift,
-				ScintRuntime/Environment/Contextual/Intents/Observing.swift,
-				ScintRuntime/Environment/Contextual/Intents/Searching.swift,
-				ScintRuntime/Environment/Contextual/Receiver.swift,
+				ScintRuntime/Environment/Contextual/Handler.swift,
 				ScintRuntime/Environment/Contextual/Renderer.swift,
+				ScintRuntime/Environment/Contextual/Signal.swift,
 				ScintRuntime/Environment/Functional/Artifact.swift,
 				ScintRuntime/Environment/Functional/Command.swift,
 				ScintRuntime/Environment/Functional/Harness.swift,
@@ -109,6 +103,7 @@
 				ScintRuntime/Environment/Structural/Space.swift,
 				ScintRuntime/Environment/Structural/Workspace.swift,
 				ScintRuntime/Environment/Workspaces.swift,
+				ScintRuntime/Extensions/Observation.swift,
 				ScintRuntime/Extensions/Services.swift,
 				ScintRuntime/Runtime.swift,
 				ScintServices/Service.swift,
@@ -165,7 +160,6 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */,
-				7CB1B9D42FC5778E00BFEA35 /* MCP in Frameworks */,
 				7C443ABD2FF956D600FD0398 /* Collections in Frameworks */,
 				7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */,
 			);
@@ -220,7 +214,6 @@
 			name = Scint;
 			packageProductDependencies = (
 				7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */,
-				7CB1B9D32FC5778E00BFEA35 /* MCP */,
 				7C443ABC2FF956D600FD0398 /* Collections */,
 				7C443ABE2FF956D600FD0398 /* OrderedCollections */,
 			);
@@ -276,7 +269,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */,
-				7CB1B9D22FC5778E00BFEA35 /* XCRemoteSwiftPackageReference "swift-sdk" */,
 				7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */,
 			);
 			preferredProjectObjectVersion = 110;
@@ -589,7 +581,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = agencyd;
+				INFOPLIST_KEY_CFBundleDisplayName = scintd;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
@@ -617,7 +609,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = agencyd;
+				INFOPLIST_KEY_CFBundleDisplayName = scintd;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
@@ -669,14 +661,6 @@
 				minimumVersion = 1.6.0;
 			};
 		};
-		7CB1B9D22FC5778E00BFEA35 /* XCRemoteSwiftPackageReference "swift-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/modelcontextprotocol/swift-sdk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.12.1;
-			};
-		};
 		7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/keyboardshortcuts";
@@ -702,11 +686,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */;
 			productName = OrderedCollections;
-		};
-		7CB1B9D32FC5778E00BFEA35 /* MCP */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7CB1B9D22FC5778E00BFEA35 /* XCRemoteSwiftPackageReference "swift-sdk" */;
-			productName = MCP;
 		};
 		7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */ = {
 			isa = XCSwiftPackageProductDependency;

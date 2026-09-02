@@ -43,9 +43,8 @@ final class Runtime: @unchecked Sendable {
 
 extension Runtime {
     func get(_ ref: Reference) -> Descriptor {
-        guard let descriptor = Catalog.shared.get(ref) as Descriptor? else {
-            fatalError(RuntimeError.Catalog.missingDescriptor(ref).description)
-        }
+        guard let descriptor = Catalog.shared.get(ref) as Descriptor?
+        else { fatalError(RuntimeError.Catalog.missingDescriptor(ref).description) }
         return descriptor
     }
 
@@ -72,24 +71,18 @@ extension Runtime {
 }
 
 extension Runtime {
-    @discardableResult
     func compose(_ ref: Reference) -> Composition? { Composer.shared.compose(ref) }
-
-    @discardableResult
-    func context() -> [Composition] { Composer.shared.resolve() }
-
-    func context(for ref: Reference) -> Composition? { Composer.shared.resolve(ref) }
+    func resolve(_ ref: Reference) -> Composition? { Composer.shared.resolve(ref) }
+    func resolve() -> [Composition] { Composer.shared.resolve() }
 
     func start(_ ref: Reference) -> Composition? {
         guard Composer.shared.compose(ref) != nil else { return nil }
-        Context.update(ref) { $0.handle(.composed(ref)) }
-        return Composer.shared.resolve(ref)
+        return Composer.shared.transmit(.composed(ref))
     }
 
     func stop(_ ref: Reference) -> Composition? {
         guard Composer.shared.context(ref) != nil else { return nil }
-        Context.update(ref) { $0.handle(.stopped(ref, nil)) }
-        return Composer.shared.resolve(ref)
+        return Composer.shared.transmit(.stopped(ref, nil))
     }
 }
 

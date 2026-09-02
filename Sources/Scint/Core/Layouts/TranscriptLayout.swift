@@ -149,15 +149,12 @@ struct TranscriptEntry: View {
                 }
             } else {
                 switch entry {
-                    case .transcript(let ref, _):
-                        TranscriptCard(transcript: ref, model: model)
-
                     case .record(let chunk, _) where field(chunk.value, "type") == "reasoning":
                         Text(Attribute.text(field(chunk.value, "text") ?? "", reasoning: true))
 
                     case .record(let chunk, _) where field(chunk.value, "type") == "tool":
                         HStack(alignment: .firstTextBaseline, spacing: Style.Spacing.md) {
-                            Iconography.icon(for: Harness.Intent.dispatch, size: Style.Spacing.lg)
+                            Iconography.icon(for: Intent.dispatch, size: Style.Spacing.lg)
 
                             Text(field(chunk.value, "name") ?? "tool")
                                 .font(Typography.cardDetail(.monospaced))
@@ -175,7 +172,7 @@ struct TranscriptEntry: View {
                     case .record(let chunk, _) where field(chunk.value, "type") != nil:
                         Text(Attribute.text(field(chunk.value, "text") ?? ""))
 
-                    case .event, .record:
+                    case .event, .record, .transcript:
                         EmptyView()
                 }
             }

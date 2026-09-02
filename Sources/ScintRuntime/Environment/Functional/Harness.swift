@@ -7,20 +7,6 @@ struct Harness: Functional {
     let command: Reference
     let parameters: [Parameter]
 
-    enum Intent: Codable, Sendable, CaseIterable, Equatable {
-        case compose, dispatch, observe, evaluate, search
-
-        var signal: Signal.Intent {
-            switch self {
-                case .compose: .composing
-                case .dispatch: .dispatching
-                case .observe: .observing
-                case .evaluate: .evaluating
-                case .search: .searching
-            }
-        }
-    }
-
     enum Parameter: Codable, Sendable, Equatable {
         case argument(name: String, type: Value, required: Bool = false, default: Value? = nil)
         case command(content: String, value: Value? = nil)
@@ -49,64 +35,68 @@ struct Harness: Functional {
         return lines.joined(separator: "\n")
     }
 
-    func rendered(with values: [String: Value]) -> [String] {
+    func rendered(with values: [String: Value]? = nil) -> [String] {
         parameters.flatMap { parameter in
             switch parameter {
                 case .argument(let name, _, _, let value):
-                    return (values[name] ?? value)?.rendered ?? []
-
+                    return (values?[name] ?? value)?.rendered ?? []
                 case .command, .requirement, .target:
                     return []
             }
         }
     }
 
-    func arguments(with values: [String: Value]) -> [String] {
-        let commandArguments = Command.with(command, { $0.rendered(with: values) }) ?? []
-        return commandArguments + rendered(with: values)
-    }
-
-    func bind(_ supplied: [String: Value], input: Value? = nil) throws -> [String: Value] {
-        var supplied = supplied
-        if let input, parameters.contains(where: { parameter in
-            guard case .argument(let name, _, _, _) = parameter else { return false }
-            return name == "input"
-        }) {
-            supplied["input"] = input
-        }
-
+    func parse(_ arguments: [String: Value], input: Value? = nil) throws -> [String: Value] {
+        var arguments = arguments
         var parsed: [String: Value] = [:]
-        var commandInput: [String: Value] = [:]
+        var command: [String: Value] = [:]
         var expected: Set<String> = []
+
+        if let input, parameters.contains(where: { param in
+            guard case .argument(let name, _, _, _) = param else { return false }
+            return name == "input"
+        }) { arguments["input"] = input }
 
         for parameter in parameters {
             switch parameter {
                 case .argument(let name, let type, let required, let fallback):
                     expected.insert(name)
-                    if let value = supplied[name] { parsed[name] = try type.construct(value, name: name) }
+                    if let value = arguments[name] { parsed[name] = try type.construct(value, name: name) }
                     else if let fallback { parsed[name] = try type.construct(fallback, name: name) }
                     else if required { throw ParsingError.missingArgument(name) }
 
                 case .requirement(let name, let type, let value):
                     expected.insert(name)
-                    parsed[name] = try type.construct(supplied[name] ?? value, name: name)
+                    parsed[name] = try type.construct(arguments[name] ?? value, name: name)
 
                 case .target(let name, let type, let fallback):
                     expected.insert(name)
-                    if let value = supplied[name] { parsed[name] = try type.construct(value, name: name) }
+                    if let value = arguments[name] { parsed[name] = try type.construct(value, name: name) }
                     else if let fallback { parsed[name] = try type.construct(fallback, name: name) }
 
                 case .command(let content, let value):
-                    commandInput[content] = value ?? .string("")
+                    command[content] = value ?? .string("")
             }
         }
 
-        let unexpected = supplied.keys.filter { !expected.contains($0) }.sorted()
+        let unexpected = arguments.keys.filter { !expected.contains($0) }.sorted()
         guard unexpected.isEmpty else { throw ParsingError.unexpectedArguments(unexpected) }
-        guard let commandValues = try Command.with(command, { try $0.bind(commandInput) })
-        else { throw RuntimeError.context(.missing(command)) }
-        parsed.merge(commandValues) { _, value in value }
+        guard let values = try Command.with(self.command, { try $0.parse(command) })
+        else { throw RuntimeError.context(.missing(self.command)) }
+        parsed.merge(values) { _, value in value }
         return parsed
+    }
+
+    func run(_ values: [String: Value]? = nil, _ env: [String: String] = [:], _ output: ((String) -> Void)? = nil) -> (pid: Int32, error: String?)? {
+        guard let command = Command.with(self.command, { $0 }), let executable = command.executable
+        else { return nil }
+        let result = Runtime.shared.services.start(
+            executable,
+            args: command.rendered(with: values) + rendered(with: values),
+            env: env
+        )
+        if let output, let pid = result?.pid, result?.error == nil { Runtime.shared.services.output(pid: pid, output) }
+        return result
     }
 
     static func register(_ name: String, command: Reference, intent: Intent, parameters: [Parameter] = []) -> Reference {

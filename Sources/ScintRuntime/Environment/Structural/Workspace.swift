@@ -3,21 +3,18 @@ import Foundation
 
 struct Workspace: Structural {
     let ref: Reference
-    var origin: Reference
-    var bridges: Set<Reference> = []
     var spaces: Set<Reference> = []
-    var harness: Reference
+    var bridges: Set<Reference> = []
     var closure: Reference
+    var harness: Reference?
 
     init(_ ref: Reference = .init(Self.self)) {
         self.ref = ref
-        self.origin = ref
         self.closure = ref
-        self.harness = ref
     }
 
-    var composable: Bool { harness.type is Harness.Type }
-    var composition: Composition? { Composer.shared.resolve(ref) }
+    var composable: Bool { harness != nil }
+    var composition: Composition? { Composer.shared.compose(ref) }
     var artifacts: [Reference] { Closure.with(closure, { $0 })?.artifacts ?? [] }
     var commands: [Reference] { Closure.with(closure, { $0 })?.commands ?? [] }
     var harnesses: [Reference] { Closure.with(closure, { $0 })?.harnesses ?? [] }
@@ -58,8 +55,6 @@ struct Workspace: Structural {
             default: break
         }
     }
-
-    func configure(_ value: Value?, for key: String) { Closure.update(closure) { $0.config[key] = value } }
 
     @discardableResult
     static func new(_ name: String) -> Reference {

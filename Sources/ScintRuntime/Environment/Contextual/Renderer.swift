@@ -3,7 +3,7 @@ import Foundation
 
 struct Renderer {
     let origin: Reference
-    let transcript: Reference
+    var transcript: Reference
 
     private var closure: Reference? { Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure }) }
 

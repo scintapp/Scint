@@ -61,13 +61,8 @@ private func structureMaterials(_ ref: Reference) -> [Reference] {
 }
 
 private func structureHarness(_ ref: Reference) -> Reference? {
-    let harness: Reference?
-    if ref.type is Workspace.Type { harness = Workspace.with(ref, { $0.harness }) }
-    else if ref.type is Space.Type { harness = Space.with(ref, { $0.harness }).flatMap { $0 } }
-    else { harness = nil }
-
-    guard let harness, harness.type is Harness.Type else { return nil }
-    return harness
+    guard ref.type is Harness.Type else { return nil }
+    return ref
 }
 
 struct WorkspaceHierarchyMapper: Mapper {

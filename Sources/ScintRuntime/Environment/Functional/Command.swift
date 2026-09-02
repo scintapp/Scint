@@ -30,36 +30,38 @@ struct Command: Functional {
         return lines.joined(separator: "\n")
     }
 
-    func rendered(with values: [String: Value]) -> [String] {
+    var executable: String? { Artifact.with(artifact, { $0.handler.executable }) ?? nil }
+
+    func rendered(with values: [String: Value]? = nil) -> [String] {
         parameters.flatMap { parameter in
             switch parameter {
-                case .argument(let name, _, _, let value): return (values[name] ?? value)?.rendered ?? []
+                case .argument(let name, _, _, let value): return (values?[name] ?? value)?.rendered ?? []
                 case .fixed(let value): return value.rendered
                 case .requirement: return []
             }
         }
     }
 
-    func bind(_ supplied: [String: Value]) throws -> [String: Value] {
+    func parse(_ arguments: [String: Value]) throws -> [String: Value] {
         var parsed: [String: Value] = [:]
         var expected: Set<String> = []
 
         for parameter in parameters {
             guard case .argument(let name, let type, let required, let fallback) = parameter else { continue }
             expected.insert(name)
-            if let value = supplied[name] { parsed[name] = try type.construct(value, name: name) }
+            if let value = arguments[name] { parsed[name] = try type.construct(value, name: name) }
             else if let fallback { parsed[name] = try type.construct(fallback, name: name) }
             else if required { throw ParsingError.missingArgument(name) }
         }
 
-        let unexpected = supplied.keys.filter { !expected.contains($0) }.sorted()
+        let unexpected = arguments.keys.filter { !expected.contains($0) }.sorted()
         guard unexpected.isEmpty else { throw ParsingError.unexpectedArguments(unexpected) }
         return parsed
     }
 
-    func dispatch(_ arguments: [String], environment: [String: String] = [:], output: ((String) -> Void)? = nil) -> (pid: Int32, error: String?)? {
-        guard let exec = Artifact.with(artifact, { $0.handler.executable }) ?? nil else { return nil }
-        let result = Runtime.shared.services.start(exec, arguments: arguments, environment: environment)
+    func run(_ values: [String: Value]? = nil, _ env: [String: String] = [:], _ output: ((String) -> Void)? = nil) -> (pid: Int32, error: String?)? {
+        guard let executable else { return nil }
+        let result = Runtime.shared.services.start(executable, args: rendered(with: values), env: env)
         if let output, let pid = result?.pid, result?.error == nil { Runtime.shared.services.output(pid: pid, output) }
         return result
     }

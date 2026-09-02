@@ -102,19 +102,19 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
         sem(timeout: timeout) { service, signal in service.request(json) { signal($0) } }
     }
 
-    func start(_ command: String, arguments: [String] = [], environment: [String: String] = [:], timeout: TimeInterval = 5.0) -> (pid: Int32, error: String?)? {
-        Self.logger.debug("Dispatching \(command, privacy: .public) \(arguments.joined(separator: " "), privacy: .public) to XPC")
+    func start(_ command: String, args: [String] = [], env: [String: String] = [:], timeout: TimeInterval = 5.0) -> (pid: Int32, error: String?)? {
+        Self.logger.debug("Dispatching \(command, privacy: .public) \(args.joined(separator: " "), privacy: .public) to Scint Service.")
         var result: (pid: Int32, error: String?)?
         let done = DispatchSemaphore(value: 0)
 
-        service().start(command, arguments, environment) { pid, _, error in
+        service().start(command, args, env) { pid, _, error in
             result = (pid, error)
             done.signal()
         }
 
         guard done.wait(timeout: .now() + timeout) == .success, let result else { return nil }
         if result.error == nil {
-            if let context = environment["SCINT_CONTEXT"].flatMap(UUID.init(uuidString:)) {
+            if let context = env["SCINT_CONTEXT"].flatMap(UUID.init(uuidString:)) {
                 lock.withLock { contextByPID[result.pid] = context }
             }
             _ = write(pid: result.pid, input: "", close: true, timeout: timeout)

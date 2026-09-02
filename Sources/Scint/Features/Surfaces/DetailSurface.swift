@@ -154,5 +154,6 @@ struct DetailSurface: Surface {
             .padding([.horizontal, .top], 12)
         }
         .frame(maxWidth: 340, maxHeight: .infinity, alignment: .top)
+        .scrollEdgeEffectStyle(.soft, for: .top)
     }
 }

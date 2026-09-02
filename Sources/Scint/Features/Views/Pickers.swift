@@ -84,9 +84,15 @@ struct TranscriptPicker: View {
     var model: any Model
 
     var body: some View {
-        if let context = model.session.transcripts.first, let selected = model.session.transcript {
-            let branches: [Reference] = Transcript.with(context, { $0.branches }) ?? []
-            let harnesses = Runtime.shared.context(for: model.session.origin)?.harnesses ?? []
+        if let context = model.session.transcripts.first,
+           let selected = model.session.transcript,
+           let composition = Runtime.shared.resolve(model.session.origin) {
+            let branches: [(ref: Reference, intent: Intent)] = Transcript.with(context, { record in
+                record.entries.compactMap { entry in
+                    guard case .transcript(let ref, let intent, _) = entry else { return nil }
+                    return (ref, intent)
+                }
+            }) ?? []
 
             HStack(spacing: hovered ? Style.Spacing.md : 0) {
                 if hovered || selected == context {
@@ -100,10 +106,11 @@ struct TranscriptPicker: View {
                     .buttonStyle(.plain)
                 }
 
-                ForEach(Array(Harness.Intent.allCases).enumerated(), id: \.offset) { _, intent in
-                    let label = String(describing: intent).capitalized
-                    let transcript = branches.first { $0.descriptor.name == label }
-                    let enabled = harnesses.contains { harness in
+                ForEach(Array(Intent.allCases).enumerated(), id: \.offset) { _, intent in
+                    let label = intent.rawValue.capitalized
+                    let transcript = branches.first { $0.intent == intent }?.ref
+
+                    let enabled = composition.harnesses.contains { harness in
                         Harness.with(harness) { $0.intent == intent } == true
                     }
 

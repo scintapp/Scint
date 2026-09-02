@@ -2,12 +2,6 @@ import Foundation
 import OSLog
 
 
-/// The loopback MCP server.
-///
-/// It does two things now: accept a request off the transport, and dispatch it. Everything it used
-/// to do inline — envelope parsing, protocol negotiation, bearer auth, context resolution, error
-/// formatting — moved to the types that own those jobs, in the order a request travels through
-/// them: `MCPRequest`, `MCPHandshake`, `MCPSession`, then a `Tool`.
 actor ContextServer {
     private let server = NetworkServer()
     private static let logger = Logger(subsystem: "com.kaechle.scint", category: "MCP")
@@ -16,8 +10,6 @@ actor ContextServer {
     static let port: UInt16 = 7345
     static let endpoint = "/mcp"
 
-    /// Stated once, because the correspondence between an address and a tool is not guessable and
-    /// is the thing that makes a document's references actionable.
     static let instructions = """
         Objects in this space are addressed as scint://<kind>/<id>. A tool named \
         scint.<namespace>.<id> acts on the object with that id, so an address found in a document \
@@ -51,15 +43,11 @@ actor ContextServer {
         }
     }
 
-    // MARK: - Routing
-
     private func route(_ http: HTTPRequest) async throws -> HTTPResponse {
         try accept(http)
 
         let request = try MCPRequest.decode(http)
 
-        // The handshake comes before anything is scoped to a context: a client has to be able to
-        // connect and see what this is, even when no space is running to serve it.
         if request.method == MCPRequest.Method.initialize { return initialize(request) }
 
         try MCPHandshake.validate(request)
@@ -79,8 +67,6 @@ actor ContextServer {
     private func initialize(_ request: MCPRequest) -> HTTPResponse {
         let requested = request.parameters["protocolVersion"]?.string
         let version = MCPResponse.negotiated(requested)
-        // Both, because a fallback and an echo look the same from the client's side: it asked for
-        // something, got something back, and failed for reasons it does not explain.
         Self.logger.notice(
             "MCP initialize requested \(requested ?? "none", privacy: .public) -> \(version, privacy: .public)"
         )
@@ -96,7 +82,6 @@ actor ContextServer {
         ])
     }
 
-    /// Transport-level acceptance: is this even an MCP call, and is it allowed to reach us.
     private func accept(_ http: HTTPRequest) throws(MCPError) {
         guard http.path == Self.endpoint else { throw MCPError.notFound("Not Found") }
         guard http.method == "POST" else {

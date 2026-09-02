@@ -3,7 +3,7 @@ import Foundation
 
 enum Focus: Codable, Equatable, Sendable {
     case content(Reference)
-    case space(Reference)
+    case structure(Reference)
     case interface(Reference)
     case entry(UUID)
     case url(URL)
@@ -11,7 +11,7 @@ enum Focus: Codable, Equatable, Sendable {
 
     var resolved: Value {
         switch self {
-            case .content(let ref), .space(let ref), .interface(let ref): .reference(ref)
+            case .content(let ref), .structure(let ref), .interface(let ref): .reference(ref)
             case .entry(let id): .string(id.uuidString)
             case .url(let url): .string(url.absoluteString)
             case .nothing: .string("")

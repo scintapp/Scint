@@ -9,13 +9,13 @@ struct Transcript: Malleable {
     enum Entry: Codable, Sendable, Identifiable {
         case event(Signal, Date)
         case record(Chunk, Date)
-        case transcript(Reference, Date)
+        case transcript(Reference, Intent, Date)
 
         var id: AnyHashable {
             switch self {
-                case .event(let signal, _): signal.id
+                case .event(let signal, _): signal.ref
                 case .record(let chunk, _): chunk.key
-                case .transcript(let ref, _): ref
+                case .transcript(let ref, _, _): ref
             }
         }
 
@@ -23,7 +23,7 @@ struct Transcript: Malleable {
             switch self {
                 case .event(_, let date): date
                 case .record(_, let date): date
-                case .transcript(_, let date): date
+                case .transcript(_, _, let date): date
             }
         }
 
@@ -48,10 +48,10 @@ struct Transcript: Malleable {
 
             switch entry {
                 case .event(let signal, _):
-                    return "\(time) \(signal.rendered)"
+                    return "\(time) \(String(describing: signal.value))"
                 case .record(let chunk, _):
                     return "\(time) \(chunk.name) = \(chunk.value.rendered.joined(separator: " "))"
-                case .transcript(let ref, _):
+                case .transcript(let ref, _, _):
                     return "\(time) transcript \(ref.descriptor.name)"
             }
         }
@@ -61,7 +61,7 @@ struct Transcript: Malleable {
 
     var branches: [Reference] {
         entries.compactMap { entry in
-            guard case .transcript(let ref, _) = entry else { return nil }
+            guard case .transcript(let ref, _, _) = entry else { return nil }
             return ref
         }
     }
@@ -73,6 +73,14 @@ struct Transcript: Malleable {
         }
     }
 
+    func output(_ type: String) -> Chunk? {
+        records.last { chunk in
+            guard case .collection(let fields) = chunk.value, case .string(let kind)? = fields["type"]
+                    else { return false }
+            return kind == type
+        }
+    }
+
     mutating func insert(_ signal: Signal) {
         entries.append(.event(signal, .now))
     }
@@ -81,30 +89,31 @@ struct Transcript: Malleable {
         entries.append(.record(chunk, .now))
     }
 
-    mutating func insert(_ transcript: Reference) {
+    mutating func insert(_ transcript: Reference, intent: Intent) {
         guard transcript.type == Transcript.self else { return }
-        entries.append(.transcript(transcript, .now))
+        entries.append(.transcript(transcript, intent, .now))
     }
 
-    func output(_ type: String) -> Chunk? {
-        records.last { chunk in
-            guard case .collection(let fields) = chunk.value, case .string(let kind)? = fields["type"]
-            else { return false }
-            return kind == type
-        }
-    }
-
-    static func new(_ name: String, owner: Reference) -> Reference {
-        guard owner.type == Space.self || owner.type == Workspace.self || owner.type == Transcript.self
-        else { RuntimeError.fatal() }
+    static func new(_ origin: Reference) -> Reference {
+        guard origin.type == Space.self || origin.type == Workspace.self || origin.type == Transcript.self
+        else { RuntimeError.fatal("Not a valid transcript origin.") }
         var instance = Self(.init(Self.self))
-        instance.origin = owner
-        Descriptor.new(instance.ref, name: name, tags: ["transcript"])
+        instance.origin = origin
+        Descriptor.new(instance.ref, name: "Context", tags: ["context"])
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
-        if owner.type == Workspace.self { guard let _ = Workspace.with(owner, { $0.add(instance.ref) })
+        if origin.type == Workspace.self { guard let _ = Workspace.with(origin, { $0.add(instance.ref) })
         else { RuntimeError.fatal() } }
-        else if owner.type == Space.self { guard let _ = Space.with(owner, { $0.add(instance.ref) })
+        else if origin.type == Space.self { guard let _ = Space.with(origin, { $0.add(instance.ref) })
         else { RuntimeError.fatal() } }
         return instance.ref
+    }
+
+    static func new(_ origin: Reference, intent: Intent) -> Reference {
+        guard origin.type == Transcript.self else { RuntimeError.fatal("Not a valid transcript origin.") }
+        var branch = Self(.init(Self.self))
+        branch.origin = origin
+        Descriptor.new(branch.ref, name: "\(intent.rawValue) Context", tags: ["context", "branch"], published: false)
+        Library.shared.store(for: branch.ref)?.add(branch.ref, branch)
+        return branch.ref
     }
 }

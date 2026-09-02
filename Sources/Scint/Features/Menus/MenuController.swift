@@ -82,8 +82,6 @@ import SwiftUI
         items = []
     }
 
-    // MARK: - Selection
-
     func select(_ item: MenuItem) {
         guard item.isSelectable else { return }
         selectedID = item.id
@@ -96,8 +94,6 @@ import SwiftUI
         else { self.selectedID = selectable.first?.id; return }
         self.selectedID = selectable[(index + delta + selectable.count) % selectable.count].id
     }
-
-    // MARK: - Committing
 
     func handleInput(_ selector: Selector) -> (handled: Bool, outcome: MenuOutcome?) {
         guard isOpen else { return (false, nil) }
@@ -118,8 +114,6 @@ import SwiftUI
         }
     }
 
-    /// The choice the host should act on, or nil when there is nothing to commit yet — including
-    /// when the chosen item raises a form, which replaces the menu's contents in place.
     func commit() -> MenuOutcome? {
         switch kind {
             case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.material):
@@ -132,8 +126,6 @@ import SwiftUI
                 )
         }
     }
-
-    // MARK: - Contents
 
     private var normalizedQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
 

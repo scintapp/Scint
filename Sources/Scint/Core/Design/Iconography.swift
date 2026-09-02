@@ -238,7 +238,7 @@ import SwiftUI
         }
     }
 
-    static func icon(for intent: Harness.Intent, size: CGFloat = 14) -> Icon {
+    static func icon(for intent: Intent, size: CGFloat = 14) -> Icon {
         switch intent {
             case .compose: Icon(symbol: Custom.inactive.rawValue, tint: Style.Tint.Intent.compose, sizing: size)
             case .dispatch: Icon(symbol: Custom.inactive.rawValue, tint: Style.Tint.Intent.dispatch, sizing: size)
@@ -251,7 +251,7 @@ import SwiftUI
     static func icon(for entry: Transcript.Entry, size: CGFloat = 14) -> Icon {
         switch entry {
             case .event: Icon(symbol: "calendar", tint: Style.Tint.transcript, sizing: size)
-            case .transcript(let ref, _): Iconography.icon(for: ref, size: size)
+            case .transcript(let ref, _, _): Iconography.icon(for: ref, size: size)
             case .record: Icon(symbol: "info.circle", tint: Style.Foreground.faint, sizing: size)
         }
     }
@@ -381,5 +381,5 @@ import SwiftUI
     static func symbol(for block: Material.Block) -> String { icon(for: block).symbol }
     static func symbol(for entry: Transcript.Entry) -> String { icon(for: entry).symbol }
     static func symbol(for handle: Artifact.Handler) -> String { icon(for: handle).symbol }
-    static func symbol(for intent: Harness.Intent) -> String { icon(for: intent).symbol }
+    static func symbol(for intent: Intent) -> String { icon(for: intent).symbol }
 }

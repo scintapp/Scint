@@ -52,7 +52,7 @@ enum RuntimeError: Error, Codable, Equatable {
     case settings(Settings)
     case spaces(Workspaces)
 
-    static func fatal() -> Never { fatalError() }
+    static func fatal(_ error: String? = nil) -> Never { fatalError(error ?? "") }
 
     enum Catalog: Error, CustomStringConvertible, Equatable, Codable {
         case missingDescriptor(Reference)

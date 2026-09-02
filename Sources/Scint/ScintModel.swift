@@ -79,9 +79,10 @@ enum ModelKey: String, Identifiable, CaseIterable {
         models[.editor] = EditorModel(Self.read(.editor))
         models[.studio] = StudioModel(Self.read(.studio))
 
-        // What a `scint://` URL does. Registered here rather than by the editor: a URL can arrive
-        // before any editor exists — including the one that launched the app — and an inbound
-        // interface that only works while a particular view is on screen is not an interface.
+        ReferenceRouter.register(ReferenceTrigger.action) { request in
+            ReferenceTrigger.handle(request)
+        }
+
         ReferenceRouter.register(ReferenceRouter.openAction) { [weak self] request in
             guard let self, let ref = request.reference else { return false }
             return ReferenceActions.open(ref, in: studio)

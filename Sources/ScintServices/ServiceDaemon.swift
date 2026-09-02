@@ -81,7 +81,7 @@ final class ServiceDaemon: NSObject, ServiceProviding {
 
     private var client: ServiceHandling? {
         connection.remoteObjectProxyWithErrorHandler { error in
-            NSLog("Scintd: XPC client error: \(error)")
+            NSLog("scintd: XPC client error: \(error)")
         } as? ServiceHandling
     }
 }

@@ -353,6 +353,6 @@ struct ChartsSurface: Surface {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Style.Background.page)
+        .background(Style.Background.panel)
     }
 }

@@ -101,7 +101,7 @@ struct Material: Malleable {
     }
 
     static func new(_ owner: Reference, name: String = "New Material") -> Reference {
-        guard owner.type == Space.self || owner.type == Workspace.self else { RuntimeError.fatal() }
+        guard owner.type == Space.self || owner.type == Workspace.self else { RuntimeError.fatal("Not a valid material origin.") }
         var instance = Self(.init(Self.self))
         instance.origin = owner
         Descriptor.new(instance.ref, name: name, tags: ["material"])
@@ -113,7 +113,7 @@ struct Material: Malleable {
 
     static func new(_ owner: Reference, input: Bool = true) -> Reference {
         guard owner.type == Space.self || owner.type == Workspace.self
-        else { RuntimeError.fatal() }
+        else { RuntimeError.fatal("Not a valid transcript origin.") }
         var instance = Self(.init(Self.self))
         instance.origin = owner
         Descriptor.new(instance.ref, name: "Input", tags: ["input"], published: false)

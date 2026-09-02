@@ -2,11 +2,6 @@ import AppKit
 import SwiftUI
 
 
-/// How an inline reference presents itself.
-///
-/// Artifacts — and tags, when they arrive — are chips: a name in a sentence. Materials and
-/// commands are components, because they have enough surface to be summarised and worked with in
-/// place rather than just named.
 enum ReferencePresentation {
     case chip
     case component
@@ -118,10 +113,6 @@ struct ReferenceChip: View {
     }
 }
 
-/// Copying the address out of a document.
-///
-/// The URL is concealed where it sits, which is right for reading and leaves no way to get one
-/// into a terminal, a note, or another app. This is that way.
 extension View {
     func referenceMenu(_ ref: Reference) -> some View {
         contextMenu {
@@ -139,14 +130,6 @@ extension View {
     }
 }
 
-/// A reference standing in for its markdown link inside the text.
-///
-/// The storage holds one attachment character where the source holds `[Label](scint://…)`.
-/// `source` is what goes back to the document, so the text still round-trips as plain markdown —
-/// nothing about the stored value changed to make chips possible.
-/// `@unchecked Sendable` because `NSTextAttachment`'s view-provider hook is nonisolated, so the
-/// class cannot be `@MainActor` without breaking the override. Every instance is created by the
-/// themer and read by the layout manager, both on the main thread only.
 final class ReferenceAttachment: NSTextAttachment, @unchecked Sendable {
     let ref: Reference
     let label: String
@@ -179,15 +162,9 @@ final class ReferenceAttachment: NSTextAttachment, @unchecked Sendable {
     }
 }
 
-/// Hosts the chip as a real view in the text flow. This is the whole reason the input view runs on
-/// TextKit 2 — TextKit 1 attachment cells draw, but they cannot host a live, clickable view.
-/// `NSTextAttachmentViewProvider` declares these overrides nonisolated, so they cannot be made
-/// `@MainActor` without mismatching the superclass. TextKit calls both during layout of an
-/// `NSTextView`, which is main-thread work, so the isolation is asserted rather than assumed away.
 final class ReferenceChipProvider: NSTextAttachmentViewProvider {
     override func loadView() {
         guard let attachment = textAttachment as? ReferenceAttachment else { return }
-        // Only Sendable values cross into the view; the attachment itself stays put.
         let ref = attachment.ref
         let label = attachment.label
         let presentation = attachment.presentation
@@ -211,18 +188,14 @@ final class ReferenceChipProvider: NSTextAttachmentViewProvider {
         guard let view else { return .zero }
         let fillsWidth = (textAttachment as? ReferenceAttachment)?.presentation.fillsWidth ?? false
         let available = max(textContainer?.size.width ?? proposedLineFragment.width, 1)
-        // The descender, not the font: `NSFont` is not Sendable and only this number is needed.
         let baseline = (attributes[.font] as? NSFont ?? Typography.Prose.appKitText).descender
 
         return MainActor.assumeIsolated {
-            // Sit on the text baseline rather than the line's bottom, so an inline reference lines
-            // up with the words either side of it instead of riding high.
             guard fillsWidth else {
                 let size = view.fittingSize
                 return CGRect(x: 0, y: baseline, width: size.width, height: size.height)
             }
 
-            // A component takes the column, and its height follows its content.
             view.frame.size.width = available
             return CGRect(x: 0, y: baseline, width: available, height: view.fittingSize.height)
         }

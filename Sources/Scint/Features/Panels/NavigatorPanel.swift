@@ -27,5 +27,6 @@ import SwiftUI
                 ToolbarItem(placement: .primaryAction) { NavigatorToggle(presented: state.bindable.presented) }
                 ToolbarSpacer(.fixed, placement: .primaryAction)
             }
+            .scrollEdgeEffectStyle(.soft, for: .top)
     }
 }

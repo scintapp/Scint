@@ -4,20 +4,15 @@ import SwiftUI
 @Observable final class ContentPanel: Panel {
     var mode: Modality = .fixed
     var state: PanelState = .init(presented: true, position: 340)
-    var surface: PanelSurface = .materials
+    var surface: PanelSurface = .list
     var detail: PanelDetail = .detail
 
     enum PanelSurface: String, CaseIterable, Identifiable, Hashable {
-        case materials, charts
+        case singe, list
 
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
-        var symbol: String {
-            switch self {
-                case .materials: "square.and.pencil"
-                case .charts: "flowchart"
-            }
-        }
+        var symbol: String { "square.and.pencil" }
     }
 
     enum PanelDetail: String, CaseIterable, Identifiable, Hashable {
@@ -35,10 +30,8 @@ import SwiftUI
 
     func surface(_ model: any Model) -> some View {
         HSplit(state.bindable.presented, state.bindable.position) {
-            switch self.surface {
-                case .materials: MaterialsSurface(panel: self, model: model)
-                case .charts: ChartsSurface(panel: self, model: model)
-            }
+            MaterialsSurface(panel: self, model: model)
+                .scrollEdgeEffectStyle(.soft, for: .top)
         } trailing: { handle in
             switch self.detail {
                 case .detail:
@@ -49,15 +42,14 @@ import SwiftUI
                         .frame(width: 340)
                 case .compose:
                     ComposeSurface(panel: self, model: model)
-                        .frame(width: 440)
+                        .frame(width: 560)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .toolbar {
-            ToolbarItem(placement: .navigation) { NavigationButtons(model: model) }
+            ToolbarItem(placement: .navigation) { NavigationButtons(model: model) } 
             ToolbarSpacer(.flexible, placement: .primaryAction)
-            ToolbarItem(placement: .principal) { ContentPicker(panel: self) }
-            ToolbarSpacer(.flexible, placement: .primaryAction)
+            ToolbarSpacer(.fixed, placement: .primaryAction)
             ToolbarItem(placement: .primaryAction) { DetailPicker(panel: self) }
         }
         .safeAreaInset(edge: .top) {
@@ -71,5 +63,6 @@ import SwiftUI
                 .padding(.horizontal, 8)
             }
         }
+        .scrollEdgeEffectStyle(.soft, for: .top)
     }
 }

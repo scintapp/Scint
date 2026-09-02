@@ -47,7 +47,7 @@ protocol Convertible: Sendable { var property: Property { get } }
 protocol Resolvable: Codable, Sendable { var ref: Reference { get } }
 protocol Keyable: Resolvable { var key: Key { get } }
 protocol Composable: Resolvable { init(_ ref: Reference) }
-protocol Functional: Composable {}
+protocol Functional: Composable { }
 protocol Malleable: Composable { var origin: Reference { get set } }
 protocol Structural: Composable { var closure: Reference { get } }
-protocol Contextual: Keyable { var transcript: Reference { get } }
+protocol Contextual: Keyable { var origin: Reference { get }; var transcript: Reference { get set } }

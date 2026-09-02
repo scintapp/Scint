@@ -23,10 +23,11 @@ import SwiftUI
                             .id(input)
                             .padding(.vertical, 8)
                             .padding(.horizontal, 12)
+
+                        ComposeControls(model: model, input: input)
+                            .frame(alignment: .trailing)
+                            .opacity(0)
                     }
-                    ComposeControls(model: model)
-                        .frame(alignment: .trailing)
-                        .opacity(0)
                     Rectangle()
                         .fill(Style.Background.overlay)
                         .frame(height: 0.75)

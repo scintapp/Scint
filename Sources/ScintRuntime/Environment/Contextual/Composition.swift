@@ -4,7 +4,7 @@ import Foundation
 struct Composition: Sendable {
     var space: Reference
     private var context: Context? { Composer.shared.context(space) }
-    private var intents: [Context.Intent] { context?.intents ?? [] }
+    private var intents: [Intent] { context?.handlers.map { $0.intent } ?? [] }
 
     enum State: Sendable { case inactive, active, working }
 
@@ -12,21 +12,25 @@ struct Composition: Sendable {
 
     var state: State {
         if intents.isEmpty { return .inactive }
-        return intents.contains { !$0.observing } ? .working : .active
+        return .active
     }
 
     var closure: Reference {
-        guard let closure = Space.with(space, { $0.closure })
-        ?? Workspace.with(space, { $0.closure })
+        guard let closure = Space.with(space, { $0.closure }) ?? Workspace.with(space, { $0.closure })
         else { RuntimeError.fatal() }
         return closure
     }
 
     var harness: Reference {
-        guard let harness = Space.with(space, { $0.harness })
-        ?? Workspace.with(space, { $0.harness })
+        guard let ref = Space.with(space, { $0 }), let harness = Harness.with(ref.ref, { $0 })
         else { RuntimeError.fatal() }
-        return harness
+        return harness.ref
+    }
+
+    var intent: Intent {
+        guard let intent = Harness.with(harness, { $0 })?.intent
+        else { RuntimeError.fatal() }
+        return intent
     }
 
     var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
@@ -39,3 +43,4 @@ struct Composition: Sendable {
     var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
     var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
 }
+

@@ -1,7 +1,15 @@
 import Foundation
 
 
-struct Handler: Codable & Sendable {
+enum ServicePolicy: String, Sendable {
+    case never, failure, always
+
+    static func from(_ string: String?) -> ServicePolicy {
+        ServicePolicy(rawValue: string ?? "") ?? .never
+    }
+}
+
+struct ServiceHandler: Codable & Sendable {
     var format: Format
 
     enum Format: String, Codable, Sendable { case lines, events }
@@ -25,6 +33,34 @@ struct Handler: Codable & Sendable {
             case .events:
                 return [.string(chunk)]
         }
+    }
+}
+
+struct ServiceDefinition: Sendable {
+    let id: String
+    let command: String
+    let arguments: [String]
+    let policy: ServicePolicy
+
+    init?(params: [String: Any]) {
+        guard
+            let id = params["id"] as? String, !id.isEmpty,
+            let command = params["command"] as? String, !command.isEmpty
+                else { return nil }
+
+        self.id = id
+        self.command = command
+        self.arguments = (params["arguments"] as? [String]) ?? []
+        self.policy = ServicePolicy.from(params["policy"] as? String)
+    }
+
+    func parameters() -> [String: Any] {
+        return [
+            "id": id,
+            "command": command,
+            "arguments": arguments,
+            "policy": policy.rawValue
+        ]
     }
 }
 
@@ -82,41 +118,4 @@ final class ServiceRegistry: @unchecked Sendable {
         queue.sync { pidToService[pid] }
     }
 }
-
-enum ServicePolicy: String, Sendable {
-    case never, failure, always
-
-    static func from(_ string: String?) -> ServicePolicy {
-        ServicePolicy(rawValue: string ?? "") ?? .never
-    }
-}
-
-struct ServiceDefinition: Sendable {
-    let id: String
-    let command: String
-    let arguments: [String]
-    let policy: ServicePolicy
-
-    init?(params: [String: Any]) {
-        guard
-            let id = params["id"] as? String, !id.isEmpty,
-            let command = params["command"] as? String, !command.isEmpty
-        else { return nil }
-
-        self.id = id
-        self.command = command
-        self.arguments = (params["arguments"] as? [String]) ?? []
-        self.policy = ServicePolicy.from(params["policy"] as? String)
-    }
-
-    func parameters() -> [String: Any] {
-        return [
-            "id": id,
-            "command": command,
-            "arguments": arguments,
-            "policy": policy.rawValue
-        ]
-    }
-}
-
 

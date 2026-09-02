@@ -2,42 +2,28 @@ import Foundation
 import OSLog
 
 
-/// Runs one command or harness.
-///
-/// Not a tool itself. Interfaces are authored by whoever uses the app, so there can be any number
-/// of them and they change under you — a tool per interface would make `tools/list` a function of
-/// user content, churning on every edit and naming everything by UUID. `scint.interfaces.call`
-/// takes an address like every other tool in the kit, and this does the work behind it.
-///
-/// The input schema is derived from the runtime's own parameter templates, and is what
-/// `scint.interfaces.describe` reports so a caller knows what to pass.
 struct InterfaceRunner {
     private static let logger = Logger(subsystem: "com.kaechle.scint", category: "MCPTool")
-    /// How long a call waits before returning what it has.
-    ///
-    /// A bound has to exist: `tools/call` is request/response over a connection that closes, so
-    /// MCP's progress notifications — the mechanism for long calls — need a streaming transport
-    /// this server does not have. Without a bound the call hangs until the *client's* timeout
-    /// fires, which returns nothing at all. Timing out first is what preserves partial output.
-    ///
-    /// So the number is sized to come in under a client's own timeout, not to fit the work. Set
-    /// `timeout` in a space's config to raise it where you control both ends. Work that genuinely
-    /// runs for minutes is not a call — it is `scint.structures.start`, which is unbounded because
-    /// it does not block a request.
     static let defaultTimeout: TimeInterval = 55
-
     let interface: Reference
     let origin: Reference
 
-
+    private enum Invocation: Sendable {
+        case command(Command, [String: Value])
+        case harness(Harness, [String: Value])
+    }
 
     func call(_ arguments: Properties) async -> ToolResult {
-        let values: [String: Value]
+        let invocation: Invocation
         do {
             let given = try supplied(arguments)
-            if let command = Command.with(interface, { $0 }) { values = try command.bind(given) }
-            else if let harness = Harness.with(interface, { $0 }) { values = try harness.bind(given) }
-            else { throw ParsingError.invalid("No functional object found for \(interface.id).") }
+            if let command = Command.with(interface, { $0 }) {
+                invocation = .command(command, try command.parse(given))
+            } else if let harness = Harness.with(interface, { $0 }) {
+                invocation = .harness(harness, try harness.parse(given))
+            } else {
+                throw ParsingError.invalid("No functional object found for \(interface.id).")
+            }
         } catch {
             return ToolResult(text: String(describing: error), isError: true)
         }
@@ -46,7 +32,7 @@ struct InterfaceRunner {
 
         let started: (pid: Int32, error: String?)? = await withCheckedContinuation { resume in
             DispatchQueue.global(qos: .userInitiated).async {
-                resume.resume(returning: dispatch(values, output: { line in
+                resume.resume(returning: dispatch(invocation, output: { line in
                     continuation.yield(line)
                     if Self.exit(of: line) != nil { continuation.finish() }
                 }))
@@ -147,19 +133,15 @@ struct InterfaceRunner {
         } ?? []
     }
 
-    private func dispatch(_ values: [String: Value], output: @escaping (String) -> Void) -> (pid: Int32, error: String?)? {
-        let environment = ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
-        if let command = Command.with(interface, { $0 }) {
-            return command.dispatch(command.rendered(with: values), environment: environment, output: output)
+    private var environment: [String: String] {
+        ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
+    }
+
+    private func dispatch(_ invocation: Invocation, output: @escaping (String) -> Void) -> (pid: Int32, error: String?)? {
+        switch invocation {
+            case .command(let command, let values): command.run(values, environment, output)
+            case .harness(let harness, let values): harness.run(values, environment, output)
         }
-        guard let harness = Harness.with(interface, { $0 }) else { return nil }
-        return Command.with(harness.command) { command in
-            command.dispatch(
-                harness.arguments(with: values),
-                environment: environment,
-                output: output
-            )
-        } ?? nil
     }
 
     private func supplied(_ values: Properties) throws -> [String: Value] {

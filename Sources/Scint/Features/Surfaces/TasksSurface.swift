@@ -191,7 +191,6 @@ struct TasksSurface: Surface {
 
     var body: some View {
         ZStack(alignment: .top) {
-            
             TasksHeader(
                 completed: completed,
                 showsCompleted: showsCompleted,
@@ -219,7 +218,7 @@ struct TasksSurface: Surface {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .confirmationDialog("Clear completed tasks?", isPresented: $confirmsClear, titleVisibility: .visible) {
             Button("Clear \(completed) Completed \(completed == 1 ? "Task" : "Tasks")", role: .destructive) {
-                clear()
+                hide()
             }
             Button("Cancel", role: .cancel) { }
         } message: {
@@ -227,7 +226,7 @@ struct TasksSurface: Surface {
         }
     }
 
-    private func clear() {
+    private func hide() {
         for material in materials {
             Material.update(material) { value in
                 let completed = value.blocks.indices.filter { index in

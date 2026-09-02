@@ -15,9 +15,17 @@ import SwiftUI
 
     func surface(_ model: any Model) -> some View {
         VStack {
-            if let material = model.session.material {
-                MaterialEditor(model: model, material: material)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if let material = model.session.opened.material {
+                EditorComponent(material) { id in
+                    if let ref = id as? Reference { model.select(ref) }
+                    else if let id = id as? UUID { model.select(material, entry: id, url: nil) }
+                }
+                .id(material)
+                .simultaneousGesture(TapGesture().onEnded { model.select(material) })
+                .frame(maxWidth: Style.Spacing.contentMaxWidth, alignment: .topLeading)
+                .frame(maxWidth: 680, alignment: .center)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
             }
         }
     }

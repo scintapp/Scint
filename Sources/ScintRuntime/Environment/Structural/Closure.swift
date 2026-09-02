@@ -6,9 +6,9 @@ struct Closure: Structural {
     var origin: Reference
     var content: [Reference] = []
     var interfaces: Set<Reference> = []
+    var closure: Reference
     var config: Config = [:]
     var input: Reference
-    var closure: Reference
 
     init(_ ref: Reference = .init(Self.self)) {
         self.ref = ref

@@ -8,10 +8,6 @@ enum Key: Codable, Sendable, Identifiable, Hashable {
 
     var id: UUID {
         switch self {
-            // A branch's identity is its own. Returning the owner's collapsed every chunk on a
-            // reference to one id — latent while `Hashable` synthesises over the whole case, but
-            // `id` is the accessor that addressing a chunk would reach for first. `ref` below
-            // already answers "which object does this hang off".
             case .branch(let id, _): return id
             case .context(let ref): return ref.contextId
             case .descriptor(let ref): return ref.descriptorId
@@ -57,7 +53,7 @@ struct Reference: Codable, Sendable, Identifiable, Hashable {
     }
 
     var type: Resolvable.Type? { Runtime.shared.registry.resolve(self) }
-    var context: Composition? { Composer.shared.resolve(self) }
+    var context: Composition? { Composer.shared.compose(self) }
     var descriptor: Descriptor { Runtime.shared.get(self) }
 
     func delete() async throws {

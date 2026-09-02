@@ -5,90 +5,7 @@ struct Context: Contextual {
     let key: Key
     let origin: Reference
     var transcript: Reference
-    private(set) var intents: [Intent] = []
-
-    enum Intent: Codable, Sendable {
-        case compose(Composing)
-        case dispatch(Dispatching)
-        case observe(Observing)
-        case evaluate(Evaluating)
-        case search(Searching)
-
-
-        var kind: Signal.Intent {
-            switch self {
-                case .compose: .composing
-                case .dispatch: .dispatching
-                case .observe: .observing
-                case .evaluate: .evaluating
-                case .search: .searching
-            }
-        }
-
-        var key: Key {
-            switch self {
-                case .compose(let intent): intent.key
-                case .dispatch(let intent): intent.key
-                case .observe(let intent): intent.key
-                case .evaluate(let intent): intent.key
-                case .search(let intent): intent.key
-            }
-        }
-
-        var ref: Reference {
-            switch self {
-                case .compose(let intent): intent.ref
-                case .dispatch(let intent): intent.ref
-                case .observe(let intent): intent.ref
-                case .evaluate(let intent): intent.ref
-                case .search(let intent): intent.ref
-            }
-        }
-
-        var harness: Reference {
-            switch self {
-                case .compose(let intent): intent.harness
-                case .dispatch(let intent): intent.harness
-                case .observe(let intent): intent.harness
-                case .evaluate(let intent): intent.harness
-                case .search(let intent): intent.harness
-            }
-        }
-
-        var transcript: Reference {
-            switch self {
-                case .compose(let intent): intent.transcript
-                case .dispatch(let intent): intent.transcript
-                case .observe(let intent): intent.transcript
-                case .evaluate(let intent): intent.transcript
-                case .search(let intent): intent.transcript
-            }
-        }
-
-        var observing: Bool { if case .observe = self { true } else { false } }
-
-        func start(_ terminal: @escaping @Sendable (Signal, Reference) -> Void) {
-            Trace.say("Intent", "starting — this run is a \(self)")
-            switch self {
-                case .compose(let intent): intent.compose(terminal)
-                case .dispatch(let intent): intent.dispatch(terminal)
-                case .observe(let intent): intent.observe(terminal)
-                case .evaluate(let intent): intent.evaluate(terminal)
-                case .search(let intent): intent.search(terminal)
-            }
-        }
-
-        func stop() {
-            Trace.say("Intent", "stopping a \(self)")
-            switch self {
-                case .compose(let intent): intent.stop()
-                case .dispatch(let intent): intent.stop()
-                case .observe(let intent): intent.stop()
-                case .evaluate(let intent): intent.stop()
-                case .search(let intent): intent.stop()
-            }
-        }
-    }
+    private(set) var handlers: [Handler] = []
 
     init(_ origin: Reference) {
         self.key = .context(origin)
@@ -96,10 +13,21 @@ struct Context: Contextual {
         self.transcript = origin
     }
 
-    var harness: Reference? {
-        origin.type == Space.self
-        ? Space.with(origin, { $0 })?.harness
-        : Workspace.with(origin, { $0.harness })
+    var harness: Reference {
+        guard let harness = Space.with(origin, { $0.harness }), Harness.with(harness!, { $0 }) != nil
+        else { fatalError("No harness found for origin \(String(describing: origin.type))") }
+        return harness!
+    }
+
+    var intent: Intent {
+        guard let intent = Harness.with(harness, { $0.intent })
+        else { fatalError("No intent found for origin harness \(String(describing: harness))") }
+        return intent
+    }
+
+    var transcripts: [Reference] {
+        guard let root = Transcript.with(self.transcript, { $0 }) else { return [] }
+        return root.branches
     }
 
     mutating func handle(_ signal: Signal) {
@@ -109,88 +37,80 @@ struct Context: Contextual {
                 process(composed)
 
             case .started, .updated:
-                update(signal)
+                Transcript.update(transcript) { $0.insert(signal) }
 
             case .stopped:
-                for intent in intents { intent.stop() }
-                update(signal)
-                intents.removeAll()
-                Composer.shared.announce(origin, signal)
+                Transcript.update(transcript) { $0.insert(signal) }
+                handlers.removeAll()
 
             case .completed, .failed:
-                update(signal)
-                intents.removeAll { $0.kind == signal.intent }
-                Composer.shared.announce(origin, signal)
+                Transcript.update(transcript) { $0.insert(signal) }
         }
     }
 
-    private mutating func compose() -> (intent: Harness.Intent, branch: Reference, arguments: [String])? {
-        guard let harnessRef = harness, let harness = Harness.with(harnessRef, { $0 }) else { return nil }
-        let declared = harness.intent
-        let branch = self.branch(named: "\(declared)".capitalized)
+    private mutating func compose() -> (intent: Intent, branch: Reference, arguments: [String: Value])? {
+        guard let harness = Harness.with(self.harness, { $0 }) else { return nil }
         let closure = (Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure }))!
-        let input = Closure.with(closure, { $0.input })!
+        let intent = harness.intent
+        let branch = self.branch(for: intent)
+        let material = Closure.with(closure, { $0.input })!
+        let input = Material.update(material) { material -> String in material.dump() } ?? ""
+        let arguments = compose(input)
+
+        update(branch)
+        update(input, from: material)
+        handle(.started(origin, .reference(origin)))
+
+        return (intent, branch, arguments)
+    }
+
+    private mutating func compose(_ input: String) -> [String: Value] {
         let config = Space.with(origin, { $0.config }) ?? Workspace.with(origin, { $0.config }) ?? [:]
-
-        update(.started(origin, declared.signal, .reference(origin)))
-        let request = Material.update(input) { material -> String in
-            material.clear()
-            return material.dump()
-        } ?? ""
-        update(request, from: input)
-        update(linking: branch)
-
+        let inputValue = Value.string(Renderer.evaluation(origin, transcript: transcript, input: input))
         let values = Dictionary(uniqueKeysWithValues: config.map { ($0.key, $0.value) })
-        let inputValue = Value.string(Renderer.evaluation(origin, transcript: transcript, input: request))
-        let arguments: [String]
+        var arguments: [String: Value] = [:]
 
         do {
-            arguments = harness.arguments(with: try harness.bind(values, input: inputValue))
+            try Harness.with(harness) { harness in
+                arguments = try harness.parse(values, input: inputValue)
+                return arguments
+            }
         } catch {
-            let signal = Signal.failed(harnessRef, declared.signal, .string(String(describing: error)))
-            update(signal)
-            Composer.shared.announce(origin, signal)
-            return nil
+            handle(.failed(harness, .string(String(describing: error))))
         }
-
-        return (declared, branch, arguments)
+        return arguments
     }
 
-    private mutating func process(_ composed: (intent: Harness.Intent, branch: Reference, arguments: [String])) {
-        let harness = self.harness!
+    private mutating func process(_ composed: (intent: Intent, branch: Reference, arguments: [String: Value])) {
+        let harness = self.harness
         let branch = composed.branch
         let arguments = composed.arguments
-
-        let intent: Self.Intent = switch composed.intent {
-            case .compose: .compose(Composing(origin, harness: harness, transcript: branch, arguments: arguments))
-            case .dispatch: .dispatch(Dispatching(origin, harness: harness, transcript: branch, arguments: arguments))
-            case .evaluate: .evaluate(Evaluating(origin, harness: harness, transcript: branch, arguments: arguments))
-            case .observe: .observe(Observing(origin, harness: harness, transcript: branch, arguments: arguments))
-            case .search: .search(Searching(origin, harness: harness, transcript: branch, arguments: arguments))
+        let handler = Handler(origin, harness: harness, transcript: branch, arguments: arguments)
+        handlers.append(handler)
+        let transcript = self.transcript
+        handler.start { signal, _ in
+            Transcript.update(transcript) { $0.insert(signal) }
         }
-
-        intents.append(intent)
-        let origin = self.origin
-        intent.start { signal, _ in Context.update(origin) { $0.handle(signal) } }
-    }
-
-    private func update(_ signal: Signal) {
-        Transcript.update(transcript) { $0.insert(signal) }
     }
 
     private func update(_ request: String, from source: Reference) {
         Transcript.update(transcript) { $0.insert(Chunk(transcript, source, .string(request))) }
     }
 
-    private func update(linking branch: Reference) {
+    private func update(_ branch: Reference) {
         Transcript.update(transcript) { root in
-            if !root.branches.contains(branch) { root.insert(branch) }
+            if !root.branches.contains(branch) { root.insert(branch, intent: intent ) }
         }
     }
 
-    private func branch(named name: String) -> Reference {
-        let branches = Transcript.with(transcript, { $0.branches }) ?? []
-        return branches.first { $0.descriptor.name == name } ?? Transcript.new(name, owner: transcript)
+    private func branch(for intent: Intent) -> Reference {
+        let name = "\(String(describing: intent)) Context"
+        if let found = (Transcript.with(transcript, { $0.branches }) ?? []).first(where: { $0.descriptor.name == name }) {
+            return found
+        }
+        let branch = Transcript.new(transcript, intent: intent)
+        Transcript.update(transcript) { $0.insert(branch, intent: intent) }
+        return branch
     }
 
     static func new(_ origin: Reference) -> Context {
@@ -207,22 +127,10 @@ struct Context: Contextual {
         var context = Self(origin)
         if let existing { context.transcript = existing }
         else {
-            let transcript = Transcript.new(origin.descriptor.name, owner: origin)
+            let transcript = Transcript.new(origin)
             Transcript.update(transcript) { $0.insert(.composed(origin)) }
             context.transcript = transcript
         }
         return context
-    }
-}
-
-
-extension Context {
-    static func with<R>(_ ref: Reference, _ body: (Context) throws -> R) rethrows -> R? {
-        try Composer.shared.context(ref).map(body)
-    }
-
-    @discardableResult
-    static func update<R>(_ ref: Reference, _ body: (inout Context) throws -> R) rethrows -> R? {
-        try Composer.shared.update(ref, body)
     }
 }

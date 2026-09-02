@@ -12,18 +12,18 @@ struct MCPSession {
         }
 
         let outcome = await MainActor.run { () -> Resolution in
-            guard let composition = Runtime.shared.context().first(where: { holds(context, $0) })
+            guard let composition = Runtime.shared.resolve().first(where: { holds(context, $0) })
                     else { return .refused(unmatched(context)) }
 
-            guard composition.space.type == Space.self else {
-                return .refused(
-                    "\(composition.space.descriptor.name) is a "
-                    + "\(composition.space.type.map { String(describing: $0).lowercased() } ?? "unknown") — "
-                    + "tools are served from a space."
-                )
-            }
+//            guard composition.space.type == Space.self else {
+//                return .refused(
+//                    "\(composition.space.descriptor.name) is a "
+//                    + "\(composition.space.type.map { String(describing: $0).lowercased() } ?? "unknown") — "
+//                    + "tools are served from a space."
+//                )
+//            }
 
-            guard composition.state == .active || composition.state == .working else {
+            guard composition.state != .inactive else {
                 return .refused(
                     "\(composition.space.descriptor.name) is composed but not running. Start it, or "
                     + "dispatch through it, before calling its tools."

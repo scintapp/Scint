@@ -26,7 +26,7 @@ import Foundation
     mutating func focus(_ ref: Reference?) {
         guard let ref else { focused = .nothing; return }
         switch ref.type {
-            case is Workspace.Type, is Space.Type: focused = .space(ref)
+            case is Workspace.Type, is Space.Type: focused = .structure(ref)
             case is any Functional.Type: focused = .interface(ref)
             case is any Malleable.Type: focused = .content(ref)
             default: focused = .nothing

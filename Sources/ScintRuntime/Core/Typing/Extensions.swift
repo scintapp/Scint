@@ -39,10 +39,10 @@ extension Resolvable {
     }
 }
 
-extension Keyable { var ref: Reference { key.ref } }
+extension Keyable { var ref: Reference { key.ref }; var id: Reference { ref } }
 
 extension Structural {
-    var composition: Composition? { Composer.shared.resolve(ref) }
+    var composition: Composition? { Composer.shared.compose(ref) }
     var artifacts: [Reference] { Closure.with(closure, { $0 })?.artifacts ?? [] }
     var commands: [Reference] { Closure.with(closure, { $0 })?.commands ?? [] }
     var harnesses: [Reference] { Closure.with(closure, { $0 })?.harnesses ?? [] }
@@ -52,6 +52,16 @@ extension Structural {
     var sections: [Reference] { artifacts + commands + harnesses + materials + transcripts }
     var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
     var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
+
+    func configure(_ value: Value?, for key: String) {
+        Closure.update(closure) { $0.config[key] = value }
+    }
+
+    var input: Reference {
+        guard let closure = Closure.with(closure, { $0 })
+        else { RuntimeError.fatal() }
+        return closure.input
+    }
 
     static func new(_ name: String, origin: Reference? = nil) -> Reference {
         var instance = Space(.init(Self.self))
@@ -63,16 +73,10 @@ extension Structural {
     }
 }
 
-extension Contextual {
-    @discardableResult
-    static func with<R>(_ ref: Reference, _ body: (Context) throws -> R) rethrows -> R? {
-        try Composer.shared.context(ref).map(body)
-    }
+extension Functional { var id: AnyHashable { ref } }
 
-    @discardableResult
-    static func update<R>(_ ref: Reference, _ body: (inout Context) throws -> R) rethrows -> R? {
-        try Composer.shared.update(ref, body)
-    }
+extension Contextual {
+    var origin: Reference { key.ref }
 }
 
 extension Bounding {
@@ -86,7 +90,9 @@ extension Bounding {
         guard let store = store(for: ref), store.remove(ref) != nil else { return }
         changed(ref)
     }
+
     func all<T: Resolvable>(as type: T.Type) -> [(Reference, T)] { store(for: Reference(T.self))?.all(as: type) ?? [] }
+
     func changed(_ ref: Reference) { Task { await Coordinator.shared.schedule(ref) } }
 
     func with<T: Resolvable, R>(_ ref: Reference, as type: T.Type = T.self, _ body: (T) throws -> R) rethrows -> R? {
@@ -116,7 +122,7 @@ extension Bounding {
         try stores.flatMap { store in
             try store.values().map { value in
                 guard let record = try record(for: value.ref)
-                else { throw RuntimeError.persistence(.encodingFailed(value.ref)) }
+                        else { throw RuntimeError.persistence(.encodingFailed(value.ref)) }
                 return record
             }
         }
