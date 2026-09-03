@@ -49,6 +49,11 @@ extension Panel {
     var mode: Modality { .fixed }
     func controls(_ model: any Model) -> Controls { .init() }
     func parameters(_ model: any Model) -> Params { .init() }
+
+    var bindable: Bindable<PanelState> {
+        @Bindable var state = self.state
+        return $state
+    }
 }
 
 extension Surface {

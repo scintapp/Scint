@@ -136,4 +136,11 @@ final class EntryResponderView: NSView {
         if onCommand?(selector) == true { return }
         super.doCommand(by: selector)
     }
+
+    /// Cmd-A reaches a card the same way it reaches the text view: as a responder-chain action,
+    /// never through `doCommand(by:)`.
+    override func selectAll(_ sender: Any?) {
+        if onCommand?(#selector(NSResponder.selectAll(_:))) == true { return }
+        super.selectAll(sender)
+    }
 }

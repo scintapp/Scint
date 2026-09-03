@@ -19,35 +19,37 @@ struct MenuList: View {
                                 .padding(.vertical, Style.Spacing.sm)
                         } else {
                             let selected = item.id == selectedID
-                            let shape = Style.Shape.medium
+                            let shape = Style.Shape.tiny
 
                             Button { onSelect(item) } label: {
                                 RowLayout(
                                     title: Text(item.label)
                                         .font(Typography.row.weight(selected ? .medium : .regular))
                                         .foregroundColor(
-                                            selected ? Style.Foreground.base : Style.Foreground.muted
+                                            selected ? Style.Foreground.base : Style.Foreground.secondary
                                         ),
                                     detail: item.detail.isEmpty ? nil : Text(item.detail)
                                         .font(Typography.caption.weight(.medium))
-                                        .foregroundColor(Style.Foreground.disabled),
+                                        .foregroundColor(Style.Foreground.muted),
                                     spacerMinLength: .zero
                                 ) {
                                     Iconography.menuIcon(for: item, selected: selected)
+                                        .padding(.leading, Style.Spacing.xs)
                                 } trailing: {
                                     if selected {
                                         Image(systemName: "return")
                                             .font(Typography.caption.weight(.medium))
-                                            .foregroundStyle(Style.Foreground.faint)
+                                            .foregroundStyle(Style.Foreground.subtle)
+                                            .padding(.trailing, Style.Spacing.xs)
                                     }
                                 }
-                                .padding(.horizontal, Style.Spacing.md)
-                                .padding(.vertical, Style.Spacing.md)
-                                .frame(minHeight: Style.Spacing.xxxl)
+                                .padding(.horizontal, Style.Spacing.xs)
+                                .padding(.vertical, Style.Spacing.sm)
+                                .frame(minHeight: Style.Spacing.xxl)
                                 .background(
                                     shape.fill(
                                         selected
-                                        ? Color.accentColor.opacity(Style.Opacity.muted)
+                                        ? Color.accentColor.opacity(Style.Opacity.faint)
                                         : Color.clear
                                     )
                                 )
@@ -145,12 +147,12 @@ struct MenuForm: View {
             .font(Typography.row.weight(.medium))
             .foregroundStyle(Style.Foreground.muted)
             .padding(.horizontal, Style.Spacing.md)
-            .frame(height: Style.Spacing.xxxl)
+            .frame(height: Style.Spacing.xxl)
             .background(
-                Style.Shape.medium
+                Style.Shape.tiny
                     .fill(Color.primary.opacity(Style.Opacity.hairline))
                     .overlay(
-                        Style.Shape.medium
+                        Style.Shape.small
                             .stroke(
                                 Color.primary.opacity(Style.Opacity.hairline),
                                 lineWidth: 1
@@ -175,10 +177,7 @@ struct MenuForm: View {
             fields
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
-        .glassEffect(.regular, in: Style.Shape.large)
-        .background(Style.Background.overlay)
-        .overlay(Style.Shape.large.stroke(.black.opacity(Style.Opacity.muted), lineWidth: 1))
-        .clipShape(Style.Shape.large)
+        .glassEffect(.regular.tint(Style.Background.overlay), in: Style.Shape.small)
     }
 }
 
@@ -260,18 +259,16 @@ struct MenuFilter: View {
     }
 
     var body: some View {
-        VStack {
-            HStack(alignment: .center) {
-                MenuFilterField(text: $text, onCommand: handle)
-                    .padding(.vertical, Style.Spacing.md)
-                    .padding(.horizontal, Style.Spacing.lg)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .background(Style.Background.raised)
-            .clipShape(Style.Shape.small)
+        HStack(alignment: .center) {
+            MenuFilterField(text: $text, onCommand: handle)
+                .padding(.leading, Style.Spacing.sm)
         }
-        .frame(maxWidth: .infinity, maxHeight: Style.Spacing.xxxl)
+        .padding(.horizontal, Style.Spacing.xs)
+        .padding(.vertical, Style.Spacing.sm)
+        .frame(maxWidth: .infinity, minHeight: Style.Spacing.rowDetailHeight, alignment: .leading)
+        .background(Style.Shape.tiny.fill(Style.Background.form))
+        .contentShape(Style.Shape.tiny)
+        .padding(.top, Style.Spacing.xs)
     }
 }
 
@@ -324,10 +321,10 @@ struct Menu: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(Style.Spacing.md)
-        .glassEffect(.regular, in: Style.Shape.large)
+        .padding(.horizontal, Style.Spacing.md)
+        .padding(.vertical, Style.Spacing.sm)
+        .glassEffect(.regular.tint(Style.Background.group), in: Style.Shape.tiny)
         .frame(width: size.width, height: size.height, alignment: .topLeading)
-        .shadow(color: .black.opacity(0.2), radius: Style.Spacing.xl, y: Style.Spacing.md)
         .scrollIndicators(.hidden)
     }
 

@@ -6,6 +6,13 @@ struct EditorInput: NSViewRepresentable {
     @Environment(EditorState.self) private var editor
     @Environment(\.editorFocus) private var focus
     let id: AnyHashable
+    /// Every block the view covers.
+    ///
+    /// `EditorFocusCoordinator` is addressed by block, but a run is one view standing for many
+    /// blocks. Registering only under the run's first block meant `focus.focus(someLaterBlock)`
+    /// found nothing, retried three times, and gave up — the caret going nowhere after an insert
+    /// that landed past line one.
+    let ids: [AnyHashable]
     let text: String
     let selection: NSRange?
     let isEditing: Bool
@@ -36,8 +43,8 @@ struct EditorInput: NSViewRepresentable {
         view.render(text: text, selectedRange: clamp(selection ?? .init(location: 0, length: 0), in: text))
         context.coordinator.view = view
 
-        focus.register(view, for: id)
-        context.coordinator.onFocusUnregister = { focus.unregister(id) }
+        for id in ids { focus.register(view, for: id) }
+        context.coordinator.onFocusUnregister = { for id in ids { focus.unregister(id) } }
         if isEditing { context.coordinator.beginTracking() }
         return view
     }
@@ -58,7 +65,7 @@ struct EditorInput: NSViewRepresentable {
         }
         context.coordinator.onCommand = onCommand
         context.coordinator.lastSelection = view.plainSelectedRange
-        focus.register(view, for: id)
+        for id in ids { focus.register(view, for: id) }
 
         // Never hand first responder back to the window here. Sibling `updateNSView` calls run in
         // no guaranteed order, so blanking the responder from the block being left routinely fired
@@ -136,10 +143,13 @@ struct EditorInput: NSViewRepresentable {
             scheduleCaretScroll()
         }
 
+        /// Establishes viewport observation. Called from `updateNSView` on every SwiftUI update, so
+        /// it must not move the scroll view: doing that here fought every scroll away from the
+        /// caret, because a re-render is not the user asking to see the caret. Typing and moving
+        /// the caret are, and those scroll it into view themselves.
         func beginTracking() {
             setViewportTracking(true)
             reportCaretRect()
-            scheduleCaretScroll()
         }
 
         func reportCaretRect() {
@@ -378,6 +388,35 @@ final class EditorInputView: NSTextView {
     // dispatching to `insertNewline(_:)` and friends, so overriding those as well meant the same
     // handler ran twice for every key it declined.
 
+    /// Vertical arrows ask the text view to move first.
+    ///
+    /// Whether another display line exists is a layout question, and the text view is the only
+    /// thing that can answer it — the state was deciding with `NSString.lineRange`, which counts
+    /// hard newlines, so a soft-wrapped paragraph looked like a single line and every Down became
+    /// a block jump. Rather than re-derive the answer, move natively and see whether the caret
+    /// went anywhere: if it did, the move belonged to the text. If it did not, we are on the edge
+    /// line and the editor should change blocks.
+    override func doCommand(by selector: Selector) {
+        let up = selector == #selector(NSResponder.moveUp(_:))
+        let down = selector == #selector(NSResponder.moveDown(_:))
+
+        if up || down {
+            let before = selectedRange()
+            if up { super.moveUp(nil) } else { super.moveDown(nil) }
+            if selectedRange() != before { return }
+        }
+
+        super.doCommand(by: selector)
+    }
+
+    /// Cmd-A arrives as a menu action sent down the responder chain, not through
+    /// `interpretKeyEvents`, so `doCommandBy` never sees it and the editor never heard about it.
+    override func selectAll(_ sender: Any?) {
+        if let delegate = delegate as? NSTextViewDelegate,
+           delegate.textView?(self, doCommandBy: #selector(NSResponder.selectAll(_:))) == true { return }
+        super.selectAll(sender)
+    }
+
     override var acceptsFirstResponder: Bool { true }
 
     override var undoManager: UndoManager? { documentUndoManager ?? super.undoManager }
@@ -548,6 +587,69 @@ final class EditorInputView: NSTextView {
         documentView.scrollToVisible(documentView.convert(targetRect, from: self))
     }
 
+    /// The display range of the component the selection sits exactly on, if any.
+    private var selectedAttachmentRange: NSRange? {
+        let selected = selectedRange()
+        guard selected.length > 0 else { return nil }
+
+        var found: NSRange?
+        storage.enumerateAttribute(.attachment, in: selected) { value, range, stop in
+            guard value is ReferenceAttachment, range == selected else { return }
+            found = range
+            stop.pointee = true
+        }
+        return found
+    }
+
+    /// A selected component draws its own selected state, so the text view must not also paint a
+    /// selection band across it — two highlights over one chip is the glow behind it.
+    override var selectedTextAttributes: [NSAttributedString.Key: Any] {
+        get { selectedAttachmentRange == nil ? super.selectedTextAttributes : [:] }
+        set { super.selectedTextAttributes = newValue }
+    }
+
+    /// The display range of the component under `point`, in view coordinates.
+    ///
+    /// Hit-tested against the attachment's own drawn rect rather than the nearest insertion index:
+    /// the index just past a chip is also the index before the text after it, so asking for an
+    /// insertion point is what drops the caret to one side instead of selecting the thing clicked.
+    private func attachmentRange(at point: NSPoint) -> NSRange? {
+        guard hasAttachments else { return nil }
+
+        let origin = textContainerOrigin
+        let local = NSPoint(x: point.x - origin.x, y: point.y - origin.y)
+        layout.ensureLayout(for: layout.documentRange)
+
+        var found: NSRange?
+        storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, range, stop in
+            guard value is ReferenceAttachment,
+                  let start = contentStorage.location(contentStorage.documentRange.location, offsetBy: range.location),
+                  let end = contentStorage.location(contentStorage.documentRange.location, offsetBy: NSMaxRange(range)),
+                  let textRange = NSTextRange(location: start, end: end)
+            else { return }
+
+            layout.enumerateTextSegments(in: textRange, type: .standard, options: [.rangeNotRequired]) { _, frame, _, _ in
+                guard frame.contains(local) else { return true }
+                found = range
+                return false
+            }
+
+            if found != nil { stop.pointee = true }
+        }
+        return found
+    }
+
+    /// Clicking a component selects it. Everything else is the text view's own click.
+    override func mouseDown(with event: NSEvent) {
+        guard let range = attachmentRange(at: convert(event.locationInWindow, from: nil)) else {
+            super.mouseDown(with: event)
+            return
+        }
+
+        if window?.firstResponder !== self { window?.makeFirstResponder(self) }
+        setSelectedRange(range)
+    }
+
     override func drawInsertionPoint(in rect: NSRect, color: NSColor, turnedOn flag: Bool) {
         guard let styler else {
             super.drawInsertionPoint(in: rect, color: color, turnedOn: flag)
@@ -588,11 +690,11 @@ final class EditorInputView: NSTextView {
     /// `coalescing` opens an edit transaction around the attribute writes so the layout manager
     /// is invalidated once. It must be false when called from `didProcessEditing`, which is
     /// already inside one.
-    private func restyle(coalescing: Bool = true) {
+    private func restyle(coalescing: Bool = true, in scope: NSRange? = nil) {
         guard let styler, !isRestyling else { return }
         isRestyling = true
         if coalescing { storage.beginEditing() }
-        styler.applyStyle(to: storage)
+        styler.applyStyle(to: storage, in: scope)
         if coalescing { storage.endEditing() }
         isRestyling = false
     }
@@ -638,6 +740,6 @@ extension EditorInputView: @preconcurrency NSTextStorageDelegate {
         changeInLength delta: Int
     ) {
         guard editedMask.contains(.editedCharacters) else { return }
-        restyle(coalescing: false)
+        restyle(coalescing: false, in: editedRange)
     }
 }

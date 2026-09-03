@@ -25,7 +25,7 @@ import SwiftUI
         AnySurface(panel: self, model: model)
             .toolbar {
                 ToolbarSpacer(.flexible, placement: .primaryAction)
-                ToolbarItem(placement: .primaryAction) { InspectorToggle(presented: state.bindable.presented) }
+                ToolbarItem(placement: .primaryAction) { InspectorToggle(presented: bindable.presented) }
             }
             .scrollEdgeEffectStyle(.soft, for: .top)
     }

@@ -216,7 +216,7 @@ struct PanelDetail<Content: View>: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 8)
             }
-
+            .scrollEdgeEffectStyle(.hard, for: .vertical)
         }
     }
 }

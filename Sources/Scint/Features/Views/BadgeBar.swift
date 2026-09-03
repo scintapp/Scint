@@ -11,7 +11,7 @@ struct BadgeButton: View {
         Button { } label: {
             HStack(alignment: .center) {
                 Image(systemName: image)
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundStyle(active ? tint : Style.Foreground.faint)
 
                 Text(label)
@@ -43,8 +43,11 @@ struct BadgeBar: View {
     private var counts: Counts {
         var counts = Counts()
         var materials: [Reference] = []
+        let scoped = model.session.opened.material
 
-        if let space = Space.with(origin, { $0 }) {
+        if let scoped {
+            materials = [scoped]
+        } else if let space = Space.with(origin, { $0 }) {
             counts.spaces = space.spaces.count
             counts.artifacts = space.artifacts.count
             counts.commands = space.commands.count
@@ -57,7 +60,7 @@ struct BadgeBar: View {
         }
 
         materials.removeAll { $0.descriptor.tags.contains("input") }
-        counts.materials = materials.count
+        if scoped == nil { counts.materials = materials.count }
 
         for ref in materials {
             Material.with(ref) { material in
@@ -65,10 +68,22 @@ struct BadgeBar: View {
                     switch block {
                         case .artifact: counts.artifacts += 1
                         case .command: counts.commands += 1
+                        case .material: if scoped != nil { counts.materials += 1 }
                         case .task(_, _, let completed):
                             counts.totalTasks += 1
                             if completed { counts.completedTasks += 1 }
-                        case .material, .text: break
+                        case .text(_, let text):
+                            let source = text as NSString
+                            for link in Markdown.scan(text).links {
+                                guard let ref = ReferenceURL.reference(in: source.substring(with: link.url))
+                                else { continue }
+                                switch ref.type {
+                                    case is Artifact.Type: counts.artifacts += 1
+                                    case is Command.Type: counts.commands += 1
+                                    case is Material.Type: if scoped != nil { counts.materials += 1 }
+                                    default: break
+                                }
+                            }
                     }
                 }
             }

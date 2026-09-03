@@ -9,7 +9,7 @@ struct Assistant: View {
         assistant.content.surface(assistant)
             .environment(scint)
             .environment(assistant)
-            .scrollEdgeEffectHidden()
+            .toolbar(removing: .title)
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
     }
 }
@@ -38,18 +38,22 @@ struct Studio: View {
         let content: some View = studio.content.surface(studio)
         let inspector: some View = studio.inspector.surface(studio)
         let navigator: some View = studio.navigator.surface(studio)
-        let presented = studio.inspector.state.bindable.presented
+        let presented = studio.inspector.bindable.presented
 
         NavigationSplitView {
             navigator
         } detail: {
-            content.frame(maxWidth: .infinity)
-                .background(Style.Background.panel)
+            ZStack(alignment: .top) {
+                content.frame(maxWidth: .infinity)
+                    .background(Style.Background.base)
+                Rectangle()
+                    .fill(Style.Border.base)
+                    .frame(height: 0.75, alignment: .top)
+            }
         }
         .environment(scint)
         .environment(studio)
         .toolbar(removing: .title)
-        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .inspector(isPresented: presented) {
             inspector.inspectorColumnWidth(ideal: 340)
         }

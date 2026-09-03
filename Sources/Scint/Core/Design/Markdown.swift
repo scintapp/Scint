@@ -1,46 +1,34 @@
 import Foundation
 
 
-/// The single markdown lexer for the app.
+/// # Markdown
 ///
 /// `Markdown.scan` is the only place that decides what a piece of text *is*. Renderers —
 /// `Attribute.text` for SwiftUI transcripts, `EditorThemer` for the AppKit editor — consume
 /// its output and decide only what each kind *looks like*. Neither one classifies text.
+
 struct Markdown {
     struct Document: Equatable {
         let blocks: [Block]
         let spans: [Span]
-        /// Whole links, for renderers that replace one with something else — an inline chip — and
-        /// therefore need the full extent rather than the label and URL as separate spans.
         let links: [Link]
 
         static let empty = Document(blocks: [], spans: [], links: [])
     }
 
     struct Link: Equatable {
-        /// The whole `[label](url)`.
         let range: NSRange
         let label: NSRange
         let url: NSRange
     }
 
-    /// One source line, classified. Carries the ranges a renderer needs in order to lay out
-    /// indentation and marker glyphs without re-scanning the text.
     struct Block: Equatable {
         let kind: BlockKind
-        /// The whole line, excluding its terminator.
         let range: NSRange
-        /// Leading whitespace. Its width is what makes a list item a child of the one above it.
         let indent: NSRange
-        /// The marker after the indent (`"# "`, `"- "`, `"1. "`, `"> "`, `"- [x] "`); empty when there is none.
         let marker: NSRange
-        /// Everything after the marker.
         let content: NSRange
-        /// List nesting level, counted from the indent. Zero for everything that is not nested.
         let depth: Int
-
-        /// Indent plus marker — everything before the content, which is where a caret goes when
-        /// it lands "at the start" of a line.
         var prefix: NSRange {
             NSRange(location: range.location, length: indent.length + marker.length)
         }
@@ -86,8 +74,6 @@ struct Markdown {
         case linkURL
         case syntax
 
-        /// Application order. Renderers apply spans in ascending rank so that inline emphasis
-        /// lands on top of block styling, and concealed syntax lands on top of everything.
         var rank: Int {
             switch self {
                 case .heading, .quote, .codeBlock, .codeFence:
@@ -135,7 +121,6 @@ struct Markdown {
 
     private static let numberedPattern = try! NSRegularExpression(pattern: #"^\d+\.[ \t]"#)
 
-    /// Spaces per nesting level. A tab counts as one level on its own.
     private static let indentWidth = 2
 
     static func scan(_ text: String) -> Document {
@@ -174,13 +159,10 @@ struct Markdown {
         return Document(blocks: blocks, spans: spans, links: links)
     }
 
-    // MARK: - Classification
-
     private static func fenceKind(_ line: String) -> BlockKind {
         line.hasPrefix("```") ? .codeFence : .codeBlock
     }
 
-    /// Leading whitespace, in UTF-16 units.
     private static func indentLength(of line: String) -> Int {
         let source = line as NSString
         var index = 0
@@ -202,7 +184,6 @@ struct Markdown {
         return level + spaces / indentWidth
     }
 
-    /// Classification ignores leading whitespace, so an indented list item is still a list item.
     private static func classify(_ line: String) -> BlockKind {
         let line = (line as NSString).substring(from: indentLength(of: line))
         if line.hasPrefix("```") { return .codeFence }
@@ -220,7 +201,6 @@ struct Markdown {
         return .paragraph
     }
 
-    /// The length of the leading marker for `kind` on `line`, in UTF-16 units.
     private static func markerLength(of kind: BlockKind, in line: String) -> Int {
         switch kind {
             case .heading(let level): return level + 1
@@ -253,8 +233,6 @@ struct Markdown {
         )
     }
 
-    // MARK: - Spans
-
     private static func append(_ block: Block, line: String, to spans: inout [Span], links: inout [Link]) {
         switch block.kind {
             case .codeFence:
@@ -277,8 +255,6 @@ struct Markdown {
                 append(block.marker, as: .listMarker, to: &spans)
 
             case .checklist(let checked):
-                // "- [x] " — the dash is concealed, the box is the visible marker glyph,
-                // and the trailing space is left at the block's own styling.
                 append(NSRange(location: block.marker.location, length: 2), as: .syntax, to: &spans)
                 append(
                     NSRange(location: block.marker.location + 2, length: 3),
@@ -366,21 +342,13 @@ struct Markdown {
     }
 }
 
-
 extension Markdown {
-    /// A list item's place in its run of siblings.
-    ///
-    /// Nothing stores this. One block holds one line, so a list is a run of consecutive list-item
-    /// blocks, and an item's number is its position in that run — derived, never recorded, so
-    /// reordering or deleting an item can't leave stale numbering behind.
     struct ListContext: Equatable {
         let depth: Int
         let ordinal: Int
         let isOrdered: Bool
     }
 
-    /// The prefix a new line should carry when Return is pressed at the end of `line`, or nil when
-    /// the line is not a list item. Indentation carries over; numbered items advance.
     static func continuation(for line: String) -> String? {
         let kind = classify(line)
         guard kind.isList else { return nil }
@@ -403,8 +371,6 @@ extension Markdown {
         }
     }
 
-    /// True when `line` is a list item with no content — Return there should outdent it, or clear
-    /// the marker at depth zero, rather than opening another empty item.
     static func isEmptyItem(_ line: String) -> Bool {
         let kind = classify(line)
         guard kind.isList else { return false }
@@ -413,18 +379,12 @@ extension Markdown {
         return source.substring(from: length).trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    /// Indent plus marker: everything before the content on this line.
     static func prefixLength(of line: String) -> Int {
         let indent = indentLength(of: line)
         let body = (line as NSString).substring(from: indent)
         return indent + markerLength(of: classify(line), in: body)
     }
 
-    /// Moves `offset` out of the interior of any link, to whichever edge is nearer.
-    ///
-    /// A link is a single thing to the reader — an inline chip or component — so an edit must
-    /// never land inside one. Splitting a block partway through `[Label](scint://…)` leaves two
-    /// halves that are no longer a link: the chip vanishes and a severed UUID appears in the text.
     static func editBoundary(_ offset: Int, in text: String) -> Int {
         for link in scan(text).links {
             guard offset > link.range.location, offset < NSMaxRange(link.range) else { continue }
@@ -435,17 +395,12 @@ extension Markdown {
         return offset
     }
 
-    /// True when this text has to stay in one block rather than being split into one block per
-    /// line. Only fenced code qualifies: a fence opened in one block cannot close in the next,
-    /// because each block is styled on its own.
     static func holdsMultipleLines(_ text: String) -> Bool { text.contains("```") }
 
     static func depth(of line: String) -> Int {
         depth(ofIndent: (line as NSString).substring(to: indentLength(of: line)))
     }
 
-    /// Shifts a list item in or out one level. Returns `line` unchanged when it is not a list item
-    /// or is already at depth zero.
     static func indented(_ line: String, by levels: Int) -> String {
         let kind = classify(line)
         guard kind.isList, levels != 0 else { return line }
@@ -459,7 +414,6 @@ extension Markdown {
             + source.substring(from: indentLength(of: line))
     }
 
-    /// The list position of each line, or nil for lines that are not list items.
     static func listContexts(for lines: [String]) -> [ListContext?] {
         var counters: [Int: Int] = [:]
         var previousDepth: Int?
@@ -474,7 +428,6 @@ extension Markdown {
 
             let depth = depth(of: line)
 
-            // Coming back out of a nesting level ends its run, so the next one there starts at 1.
             if let previousDepth, depth < previousDepth {
                 for level in counters.keys where level > depth { counters[level] = nil }
             }
@@ -487,8 +440,6 @@ extension Markdown {
         }
     }
 
-    /// Rewrites numbered markers to match their derived position, so a list stays correctly
-    /// numbered after an item is inserted, removed, or moved.
     static func renumbered(_ lines: [String]) -> [String] {
         let contexts = listContexts(for: lines)
 

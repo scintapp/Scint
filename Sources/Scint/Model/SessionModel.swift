@@ -33,15 +33,18 @@ import Foundation
         }
     }
 
-    mutating func select(_ ref: Reference) {
-        apply(selected.selecting(ref))
-    }
+//    mutating func select(_ ref: Reference) {
+//        if opened.material != nil  && opened.material != ref { close(opened.material!) }
+//        apply(selected.selecting(ref))
+//    }
 
-    mutating func select(_ ref: Reference, entry: UUID?, url: URL?) {
+    mutating func select(_ ref: Reference, entry: UUID? = nil, url: URL? = nil) {
+        if opened.material != nil  && opened.material != ref { close(opened.material!) }
         apply(selected.selecting(ref, entry,  url))
     }
 
     mutating func open(_ ref: Reference) {
+        select(ref)
         opened.open(ref)
     }
 
@@ -69,6 +72,7 @@ import Foundation
 
     @discardableResult
     mutating func back() -> Selection? {
+        if opened.material != nil { close(opened.material!) }
         guard let target = navigation.back() else { return nil }
         apply(target, push: false)
         if let content = selected.content { opened.open(content) }

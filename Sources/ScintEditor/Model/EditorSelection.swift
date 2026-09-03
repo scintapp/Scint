@@ -17,12 +17,25 @@ enum EditorSelection: Equatable {
     /// Text is being edited, with the caret at `range` in source coordinates.
     case caret(AnyHashable, NSRange)
 
+    /// Several blocks are selected at once. Backspace deletes them, Escape clears, arrows collapse
+    /// to an edge. Reached by cmd-A once the block being edited is already fully selected.
+    case blocks(Set<AnyHashable>)
+
     /// The block the user is on, whether or not it is being edited.
     var id: AnyHashable? {
         switch self {
-            case .none: return nil
+            case .none, .blocks: return nil
             case .block(let id): return id
             case .caret(let id, _): return id
+        }
+    }
+
+    /// Every block the selection covers, in no particular order.
+    var ids: Set<AnyHashable> {
+        switch self {
+            case .none: return []
+            case .blocks(let ids): return ids
+            case .block(let id), .caret(let id, _): return [id]
         }
     }
 
@@ -44,7 +57,10 @@ enum EditorSelection: Equatable {
         return range
     }
 
-    func isSelected(_ id: AnyHashable) -> Bool { self.id == id }
+    func isSelected(_ id: AnyHashable) -> Bool {
+        if case .blocks(let ids) = self { return ids.contains(id) }
+        return self.id == id
+    }
 }
 
 /// What a key means in the editor.
@@ -53,12 +69,8 @@ enum EditorSelection: Equatable {
 /// in the state, three overrides on the text view, five more on the block responder, and the
 /// delegate — with two of those paths reaching the same handler for the same key.
 enum EditorCommand: Equatable {
-    /// Return in text: split the block, carrying a list marker across.
-    case splitBlock
     /// Return on a card: open a text block after it.
     case insertBlockAfter
-    /// Backspace at the start of a block: join it onto the one above.
-    case mergeBackward
     /// Backspace on a card.
     case deleteBlock
     /// Tab / Shift-Tab inside a list item.
@@ -69,4 +81,6 @@ enum EditorCommand: Equatable {
     case selectReference(NSRange)
     /// Escape.
     case dismiss
+    /// Cmd-A past the end of a single block: every block at once.
+    case selectAllBlocks
 }

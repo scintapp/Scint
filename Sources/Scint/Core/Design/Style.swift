@@ -3,10 +3,19 @@ import SwiftUI
 
 struct Style {
     enum Shape {
-        static var small: RoundedRectangle { RoundedRectangle(cornerRadius: 12, style: .continuous) }
-        static var medium: RoundedRectangle { RoundedRectangle(cornerRadius: 16, style: .continuous) }
-        static var large: RoundedRectangle { RoundedRectangle(cornerRadius: 20, style: .continuous) }
-        static var panel: RoundedRectangle { RoundedRectangle(cornerRadius: 30, style: .continuous) }
+        // Named separately because a layer needs the number, not the shape: anything hosting
+        // SwiftUI in an AppKit window has to round its own backing to match.
+        static let tinyRadius: CGFloat = 9
+        static let smallRadius: CGFloat = 14
+        static let mediumRadius: CGFloat = 17
+        static let largeRadius: CGFloat = 20
+        static let panelRadius: CGFloat = 30
+
+        static var tiny: RoundedRectangle { RoundedRectangle(cornerRadius: tinyRadius, style: .continuous) }
+        static var small: RoundedRectangle { RoundedRectangle(cornerRadius: smallRadius, style: .continuous) }
+        static var medium: RoundedRectangle { RoundedRectangle(cornerRadius: mediumRadius, style: .continuous) }
+        static var large: RoundedRectangle { RoundedRectangle(cornerRadius: largeRadius, style: .continuous) }
+        static var panel: RoundedRectangle { RoundedRectangle(cornerRadius: panelRadius, style: .continuous) }
         static var capsule: Capsule { Capsule() }
     }
 
@@ -20,12 +29,10 @@ struct Style {
         static let xxxl: CGFloat = 32
 
         static let rowHeight: CGFloat = 26
-        static let rowDetailHeight: CGFloat = 40
+        static let rowDetailHeight: CGFloat = 36
 
         static let contentMaxWidth: CGFloat = 660
         static let cardHeight: CGFloat = 64
-        /// Indent added per level of list nesting. The hanging indent within a level is
-        /// measured from the marker itself, so this is only the nesting step.
         static let listIndent: CGFloat = 16
         static let menuWidth: CGFloat = 256
         static let menuListHeight: CGFloat = 336
@@ -34,7 +41,7 @@ struct Style {
 
     enum Dimension {
         static let border: CGFloat = 1
-        static let icon: CGFloat = 16
+        static let icon: CGFloat = 14
         static let iconLarge: CGFloat = 20
         static let control: CGFloat = 32
         static let taskRowMinHeight: CGFloat = 56
@@ -65,7 +72,7 @@ struct Style {
     }
 
     enum Border {
-        static var base: Color { Color(red: 0.19008, green: 0.19033, blue: 0.19057) }
+        static var base: Color { Color(red: 0.18824, green: 0.18824, blue: 0.19216) }
         static var group: Color { Color(red: 0.24008, green: 0.24033, blue: 0.24057) }
         static var raised: Color { Color(red: 0.20008, green: 0.20033, blue: 0.20057) }
     }
@@ -77,7 +84,7 @@ struct Style {
         static let faint = 0.38
         static let washed = 0.06
         static let hairline = 0.04
-        static let disabled = 0.86
+        static let disabled = 0.086
     }
 
     enum Duration {
@@ -86,17 +93,20 @@ struct Style {
     }
 
     enum Background {
-        static var frame: Color { Color(red: 0.090191, green: 0.090211, blue: 0.090234) }
-        static var panel: Color { Color(red: 0.10191, green: 0.10211, blue: 0.10231) }
-        static var card: Color { Color(red: 0.13181, green: 0.13198, blue: 0.13291) }
-        static var control: Color { Color(red: 0.12821, green: 0.12821, blue: 0.13124) }
-        static var raised: Color { Color(red: 0.14821, green: 0.14821, blue: 0.15124) }
-        static var group: Color { Color(red: 0.18821, green: 0.18821, blue: 0.19124).opacity(0.25) }
+        static var base: Color { Color(red: 0.097196, green: 0.097196, blue: 0.099118) }
+        static var panel: Color { Color(red: 0.11313, green: 0.11333, blue: 0.11355) }
+        static var surface: Color { Color(red: 0.13725, green: 0.13725, blue: 0.14118) }
+        static var group: Color { Color(red: 0.18821, green: 0.18821, blue: 0.19124).opacity(0.5) }
+        static var form: Color { Color(red: 0.12821, green: 0.12821, blue: 0.12124).opacity(0.5) }
+        static var card: Color { Color(red: 0.39181, green: 0.39198, blue: 0.39291).opacity(0.05) }
+        static var control: Color { Color(red: 0.72821, green: 0.72821, blue: 0.73124).opacity(0.5) }
+        static var raised: Color { Color(red: 0.12821, green: 0.12821, blue: 0.13124) }
         static var overlay: Color { Color(red: 0.162, green: 0.165, blue: 0.169) }
     }
 
     enum Foreground {
         static var base: Color { Color(red: 0.908, green: 0.912, blue: 0.924) }
+        static var secondary: Color { Color(red: 0.83891, green: 0.84939, blue: 0.86086) }
         static var subtle: Color { Color(red: 0.73891, green: 0.74939, blue: 0.76086) }
         static var muted: Color { Color(red: 0.60891, green: 0.60939, blue: 0.61086) }
         static var faint: Color { Color(red: 0.49099, green: 0.49147, blue: 0.4927) }
@@ -104,14 +114,15 @@ struct Style {
     }
 
     enum Tint {
+        static var accent: Color { Color(red: 0.60784, green: 0.69804, blue: 0.82745) }
         static var artifact: Color { Color(red: 0.92549, green: 0.82353, blue: 0.93333) }
-        static var command: Color { Color(red: 0.50784, green: 0.82353, blue: 0.69804) }
-        static var harness: Color { Color(red: 0.50784, green: 0.82353, blue: 0.69804) }
+        static var command: Color { Color(red: 0.82353, green: 0.50784, blue: 0.69804) }
+        static var harness: Color { Color(red: 0.82353, green: 0.50784, blue: 0.69804) }
         static var material: Color { Color(red: 0.97294, green: 0.84314, blue: 0.75294) }
         static var transcript: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
         static var task: Color { Color(red: 0.9443, green: 0.7645, blue: 0.7823) }
-        static var space: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
-        static var bridge: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
+        static var space: Color { Color(red: 0.892, green: 0.729, blue: 0.892) }
+        static var bridge: Color { Color(red: 0.892, green: 0.729, blue: 0.892) }
         static var alert: Color { Color(red: 0.812, green: 0.545, blue: 0.545) }
 
         enum Intent {

@@ -262,17 +262,17 @@ struct SpacesList: Mapper {
                 }
         }
 
-        func space(for ref: Reference, owner: Reference) -> ItemParams {
+        func space(for ref: Reference, origin: Reference) -> ItemParams {
             .init(
                 ref: ref,
-                origin: owner,
+                origin: origin,
                 name: ref.descriptor.name,
                 image: "app",
-                items: sorted(Space.with(ref, { $0.spaces.map { space(for: $0, owner: ref) }}) ?? [])
+                items: sorted(Space.with(ref, { $0.spaces.map { space(for: $0, origin: ref) }}) ?? [])
             )
         }
 
-        let spaces = Workspace.with(workspace, { $0.spaces.map { space(for: $0, owner: workspace) } }) ?? []
+        let spaces = Workspace.with(workspace, { $0.spaces.map { space(for: $0, origin: workspace) } }) ?? []
 
         return .init(
             id: "spaces",

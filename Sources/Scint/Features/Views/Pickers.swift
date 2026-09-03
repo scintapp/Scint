@@ -32,6 +32,39 @@ struct ContentPicker: View {
     }
 }
 
+
+struct AssistantPicker: View {
+    let panel: AssistantPanel
+
+    private func selection(for surface: AssistantPanel.PanelSurface) -> Binding<Bool> {
+        Binding(
+            get: { panel.state.presented && panel.surface == surface },
+            set: { selected in
+                if selected {
+                    panel.surface = surface
+                    panel.state.presented = true
+                } else if panel.surface == surface {
+                    panel.state.presented = false
+                }
+            }
+        )
+    }
+
+    var body: some View {
+        ControlGroup {
+            ForEach(AssistantPanel.PanelSurface.allCases) { surface in
+                Toggle(isOn: selection(for: surface)) {
+                    Image(systemName: surface.symbol)
+                }
+            }
+        }
+        .controlGroupStyle(.navigation)
+        .foregroundStyle(Style.Foreground.base, Style.Foreground.base, Style.Foreground.base)
+        .tint(Style.Background.group)
+    }
+}
+
+
 struct DetailPicker: View {
     let panel: ContentPanel
 
@@ -71,7 +104,7 @@ struct HarnessPicker: View {
         Button { panel.state.presented.toggle() } label: {
             Image(systemName: "gearshape")
         }
-        .popover(isPresented: panel.state.bindable.presented) {
+        .popover(isPresented: panel.bindable.presented) {
             let surface = AnySurface(panel: panel, model: model)
             surface.render(surface, HarnessGroup.parameters(model), HarnessGroup.controls(model))
         }

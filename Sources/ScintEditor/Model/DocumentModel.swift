@@ -2,45 +2,155 @@ import Foundation
 import SwiftUI
 
 
+/// A stretch of the document that renders as one view.
+///
+/// Contiguous text blocks share a single editor. A block is a line — `Markdown.holdsMultipleLines`
+/// is only true of code fences, and `write` splits anything else on newlines — so a run of them is
+/// a multi-line string, and the correspondence back is line index to block id.
+///
+/// This is why the caret works inside a run without help: it is one text view, so movement,
+/// selection, and undo are the text view's own. Only crossing a card needs the editor.
+enum BlockRun: Identifiable {
+    case text(TextRun)
+    case card(Material.Block)
+
+    var id: AnyHashable {
+        switch self {
+            case .text(let run): return run.id
+            case .card(let block): return block.id
+        }
+    }
+
+    static func runs(of blocks: [Material.Block]) -> [BlockRun] {
+        var runs: [BlockRun] = []
+        var pending: [Material.Block] = []
+
+        for block in blocks {
+            if case .text = block { pending.append(block); continue }
+            if !pending.isEmpty { runs.append(.text(TextRun(pending))); pending = [] }
+            runs.append(.card(block))
+        }
+
+        if !pending.isEmpty { runs.append(.text(TextRun(pending))) }
+        return runs
+    }
+}
+
+/// Contiguous text blocks addressed as one string, and the translation both ways.
+struct TextRun: Identifiable {
+    let blocks: [Material.Block]
+
+    init(_ blocks: [Material.Block]) { self.blocks = blocks }
+
+    var id: AnyHashable { blocks.first?.id ?? AnyHashable(UUID()) }
+    var ids: [AnyHashable] { blocks.map(\.id) }
+    var text: String { blocks.map(Self.line).joined(separator: "\n") }
+
+    /// The frame is reported under the last block so a click below the document lands at the end of
+    /// the run rather than the start of it.
+    var frameID: AnyHashable { blocks.last?.id ?? id }
+
+    static func line(_ block: Material.Block) -> String {
+        if case .text(_, let text) = block { return text }
+        return ""
+    }
+
+    /// A caret inside one of the run's blocks, in run coordinates.
+    func offset(of id: AnyHashable, _ range: NSRange) -> NSRange? {
+        var start = 0
+        for block in blocks {
+            guard block.id != id else {
+                return NSRange(location: start + range.location, length: range.length)
+            }
+            start += (Self.line(block) as NSString).length + 1
+        }
+        return nil
+    }
+
+    /// The block a run offset falls in, and where in that block.
+    func locate(_ location: Int) -> (id: AnyHashable, range: NSRange)? {
+        var start = 0
+        for block in blocks {
+            let length = (Self.line(block) as NSString).length
+            if location <= start + length {
+                return (block.id, NSRange(location: max(0, location - start), length: 0))
+            }
+            start += length + 1
+        }
+        guard let last = blocks.last else { return nil }
+        return (last.id, NSRange(location: (Self.line(last) as NSString).length, length: 0))
+    }
+}
+
 struct MaterialView: View {
     @Environment(DocumentModel.self) private var material
     let selection: EditorSelection
-    let onTextChange: (AnyHashable, String, NSRange) -> Void
-    let onSelectionChange: (AnyHashable, NSRange) -> Void
+    let onRunChange: ([AnyHashable], String, NSRange) -> Void
+    let onRunSelectionChange: ([AnyHashable], NSRange) -> Void
+    let onRunCommand: ([AnyHashable], Selector, NSRange, Int) -> Bool
+    let onRunFocusGained: ([AnyHashable]) -> Void
     let onCaretRectChange: (AnyHashable, CGRect) -> Void
     let onFocusGained: (AnyHashable) -> Void
     let onEdit: (AnyHashable, CGRect) -> Void
     let onCommand: (Selector, NSRange, Int) -> Bool
-    let onPanelChange: (AnyHashable, CGRect) -> Void
+    let onFrames: ([AnyHashable: CGRect]) -> Void
+
+    private func caret(in run: TextRun) -> NSRange? {
+        guard let editing = selection.editing, let range = selection.range else { return nil }
+        return run.offset(of: editing, range)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Style.Spacing.md) {
-            ForEach(material.blocks) { block in
-                MaterialCard(
-                    block: block,
-                    selection: selection.caret(in: block.id),
-                    isEditing: selection.editing == block.id,
-                    isSelected: !selection.isEditing && selection.isSelected(block.id),
-                    onTextChange: { onTextChange(block.id, $0, $1) },
-                    onSelectionChange: { onSelectionChange(block.id, $0) },
-                    onCaretRectChange: { onCaretRectChange(block.id, $0) },
-                    onFocusGained: { onFocusGained(block.id) },
-                    onEdit: { onEdit(block.id, $0) },
-                    onCommand: onCommand
-                )
-                .id(block.id)
-                .background {
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: EntryPanelsKey.self,
-                            value: [block.id: proxy.frame(in: .named("canvas"))]
+            ForEach(BlockRun.runs(of: material.blocks)) { entry in
+                switch entry {
+                    case .text(let run):
+                        EditorInput(
+                            id: run.id,
+                            ids: run.ids,
+                            text: run.text,
+                            selection: caret(in: run),
+                            isEditing: run.ids.contains { $0 == selection.editing },
+                            onTextChange: { onRunChange(run.ids, $0, $1) },
+                            onSelectionChange: { onRunSelectionChange(run.ids, $0) },
+                            onCaretRectChange: { onCaretRectChange(selection.editing ?? run.id, $0) },
+                            onFocusGained: { onRunFocusGained(run.ids) },
+                            onCommand: { onRunCommand(run.ids, $0, $1, $2) }
                         )
-                    }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .background {
+                            Style.Shape.medium.fill(
+                                !selection.isEditing && run.ids.contains(where: selection.isSelected)
+                                ? Color.primary.opacity(Style.Opacity.hairline)
+                                : Color.clear
+                            )
+                        }
+                        .id(run.id)
+                        .background { frameReader(run.frameID) }
+
+                    case .card(let block):
+                        MaterialCard(
+                            block: block,
+                            isSelected: !selection.isEditing && selection.isSelected(block.id),
+                            onFocusGained: { onFocusGained(block.id) },
+                            onEdit: { onEdit(block.id, $0) },
+                            onCommand: onCommand
+                        )
+                        .id(block.id)
+                        .background { frameReader(block.id) }
                 }
             }
         }
-        .onPreferenceChange(EntryPanelsKey.self) { frames in
-            for (id, frame) in frames { onPanelChange(id, frame) }
+        // The preference carries every rendered run, reduced across the whole subtree, so it is a
+        // complete snapshot rather than a delta. Merging it into a long-lived dictionary is what let
+        // frames outlive their blocks; assigning it makes the map the rendered set by construction.
+        .onPreferenceChange(EntryPanelsKey.self) { frames in onFrames(frames) }
+    }
+
+    private func frameReader(_ id: AnyHashable) -> some View {
+        GeometryReader { proxy in
+            Color.clear.preference(key: EntryPanelsKey.self, value: [id: proxy.frame(in: .named("canvas"))])
         }
     }
 }
@@ -192,62 +302,45 @@ struct MaterialView: View {
         }
     }
 
+    /// Reconciles a run's edited text back onto its blocks, one line per block.
+    ///
+    /// Ids are kept positionally so the caret survives an edit: line *n* stays block *n* and is
+    /// rewritten in place, extra lines become new blocks, and lines that went away take their
+    /// blocks with them. Returns the run's block ids in order.
     @discardableResult
-    func mergeText(at id: AnyHashable) -> (id: AnyHashable, caret: NSRange)? {
-        return structural {
-            Material.update(ref) { material -> (AnyHashable, NSRange)? in
-                guard let index = material.blocks.firstIndex(where: { $0.id == id }),
-                      index > material.blocks.startIndex,
-                      case .text(_, let text) = material.blocks[index],
-                      case .text(let previousID, let previous) = material.blocks[index - 1]
-                else { return nil }
+    func replaceRun(_ ids: [AnyHashable], with lines: [String]) -> [AnyHashable] {
+        structural {
+            Material.update(ref) { material -> [AnyHashable] in
+                guard let start = material.blocks.firstIndex(where: { $0.id == ids.first }) else { return [] }
+                var result: [AnyHashable] = []
 
-                let caret = NSRange(location: (previous as NSString).length, length: 0)
-                material.update(.text(previousID, previous + text), at: index - 1)
-                material.delete(at: index)
-                return (previousID, caret)
-            } ?? nil
-        }
+                for (offset, line) in lines.enumerated() {
+                    let index = start + offset
+                    if offset < ids.count, index < material.blocks.endIndex, material.blocks[index].id == ids[offset] {
+                        if Self.text(of: material.blocks[index]) != line {
+                            material.update(.text(ids[offset] as? UUID ?? UUID(), line), at: index)
+                        }
+                        result.append(material.blocks[index].id)
+                    } else {
+                        let id = UUID()
+                        material.insert(.text(id, line), at: index)
+                        result.append(AnyHashable(id))
+                    }
+                }
+
+                for index in stride(from: start + ids.count - 1, through: start + lines.count, by: -1)
+                where material.blocks.indices.contains(index) {
+                    material.delete(at: index)
+                }
+
+                return result
+            } ?? []
+        } ?? []
     }
 
-    @discardableResult
-    func splitText(at id: AnyHashable, range: NSRange, prefix: String) -> (id: AnyHashable, caret: NSRange)? {
-        return structural {
-            let next = UUID()
-
-            return Material.update(ref) { material -> (AnyHashable, NSRange)? in
-                guard let index = material.blocks.firstIndex(where: { $0.id == id }),
-                      case .text(let textID, let text) = material.blocks[index]
-                else { return nil }
-
-                let source = text as NSString
-                let location = min(max(range.location, 0), source.length)
-                let length = min(range.length, source.length - location)
-
-                let before = source.substring(to: location)
-                let after = source.substring(from: location + length)
-
-                material.update(.text(textID, before), at: index)
-                material.insert(.text(next, prefix + after), at: index + 1)
-
-                return (next, NSRange(location: (prefix as NSString).length, length: 0))
-            } ?? nil
-        }
-    }
-
-    @discardableResult
-    func replaceText(at id: AnyHashable, with lines: [String]) -> (id: AnyHashable, caret: NSRange)? {
-        return structural {
-            guard let last = lines.last else { return nil }
-            let ids = lines.map { _ in UUID() }
-
-            return Material.update(ref) { material -> (AnyHashable, NSRange)? in
-                guard let index = material.blocks.firstIndex(where: { $0.id == id }) else { return nil }
-                material.delete(at: index)
-                material.insert(zip(ids, lines).map { .text($0, $1) }, at: index)
-                return (ids[ids.index(before: ids.endIndex)], NSRange(location: (last as NSString).length, length: 0))
-            } ?? nil
-        }
+    private static func text(of block: Material.Block) -> String? {
+        if case .text(_, let text) = block { return text }
+        return nil
     }
 
     @discardableResult

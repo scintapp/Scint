@@ -4,26 +4,6 @@ import Foundation
 
 enum MenuFocus: Hashable { case filter, formPrimary }
 
-struct MenuFormValues: Equatable {
-    var primary: String
-    var completed: Bool
-
-    static let empty = MenuFormValues(primary: "", completed: false)
-}
-
-struct MenuOutcome {
-    enum Choice {
-        case item(MenuItem)
-        case form(MenuFormKind, MenuFormValues)
-    }
-
-    let choice: Choice
-    let kind: MenuKind
-    let isInserting: Bool
-    let target: AnyHashable
-    let replacementRange: NSRange
-}
-
 enum MenuKind: Equatable {
     case fixed
     case dynamic
@@ -137,15 +117,31 @@ enum MenuItem: Identifiable, Equatable {
         }
     }
 
-    static func command(
-        id: String,
-        label: String,
-        icon: String? = nil,
-        keywords: [String] = [],
-        opens: MenuFormKind? = nil
-    ) -> MenuItem {
+    static func command(id: String, label: String, icon: String? = nil,
+                        keywords: [String] = [], opens: MenuFormKind? = nil) -> MenuItem {
+
         .commandItem(id: id, label: label, icon: icon, keywords: keywords, opens: opens)
     }
 
     static func divider(_ id: String) -> MenuItem { .dividerItem(id) }
+}
+
+struct MenuFormValues: Equatable {
+    var primary: String
+    var completed: Bool
+
+    static let empty = MenuFormValues(primary: "", completed: false)
+}
+
+struct MenuOutcome {
+    enum Choice {
+        case item(MenuItem)
+        case form(MenuFormKind, MenuFormValues)
+    }
+
+    let choice: Choice
+    let kind: MenuKind
+    let isInserting: Bool
+    let target: AnyHashable
+    let replacementRange: NSRange
 }

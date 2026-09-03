@@ -92,13 +92,13 @@ struct Space: Structural {
         return self.ref
     }
 
-    static func new(_ owner: Reference, name: String = "New Space") -> Reference {
-        guard owner.type == Space.self || owner.type == Workspace.self else { RuntimeError.fatal("Not a valid space or workspace.") }
+    static func new(_ origin: Reference, name: String = "New Space") -> Reference {
+        guard origin.type == Space.self || origin.type == Workspace.self else { RuntimeError.fatal("Not a valid space or workspace.") }
         var instance = Space(.init(Self.self))
         Descriptor.new(instance.ref, name: name, tags: ["space"])
-        instance.closure = Closure.new("Closure", owner: instance.ref)
+        instance.closure = Closure.new("Closure", origin: instance.ref)
         Workspaces.shared.add(instance.ref, instance)
-        Space.update(instance.ref) { $0.attach(to: owner) }
+        Space.update(instance.ref) { $0.attach(to: origin) }
         return instance.ref
     }
 }

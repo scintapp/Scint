@@ -17,8 +17,9 @@ struct TranscriptSurface: Surface {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .scrollEdgeEffectStyle(.soft, for: .top)
             .padding(.horizontal, 12)
+            Color.clear.frame(height: 128)
         }
+        .scrollEdgeEffectStyle(.hard, for: .vertical)
     }
 }

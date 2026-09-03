@@ -15,7 +15,9 @@ struct TaskCompletionIndicator: View {
 }
 
 struct TaskItem: View {
-    var material: Reference
+    var panel: any Panel
+    var model: any Model
+    var ref: Reference
     var task: Material.Block
 
     var body: some View {
@@ -32,6 +34,13 @@ struct TaskItem: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: .zero)
+                    Button { } label: {
+
+                    }
+                    .popover(isPresented: panel.bindable.presented) {
+                        let surface = AnySurface(panel: panel, model: model)
+                        surface.render(surface, HarnessGroup.parameters(model), HarnessGroup.controls(model))
+                    }
                 }
                 .padding(.vertical, Style.Spacing.sm + 1)
                 .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
@@ -45,7 +54,7 @@ struct TaskItem: View {
     }
 
     private func toggle(_ id: AnyHashable) {
-        Material.update(material) { material in
+        Material.update(ref) { material in
             guard let index = material.blocks.firstIndex(where: { $0.id == id }),
                   case .task(let id, let text, let completed) = material.blocks[index]
                     else { return }
@@ -92,12 +101,13 @@ struct TasksHeader: View {
 struct TasksSection: View {
     @State private var expanded = true
 
+    var panel: any Panel
     var model: any Model
-    var material: Reference
+    var ref: Reference
     var showsCompleted: Bool
 
     var allTasks: [Material.Block] {
-        Material.with(material) { material in
+        Material.with(ref) { material in
             material.blocks.filter { if case .task = $0 { true } else { false } }
         } ?? []
     }
@@ -111,8 +121,8 @@ struct TasksSection: View {
         if !allTasks.isEmpty {
             VStack(alignment: .leading, spacing: Style.Spacing.md) {
                 HStack(spacing: Style.Spacing.md) {
-                    Button { model.open(material) } label: {
-                        Text(material.descriptor.name)
+                    Button { model.open(ref) } label: {
+                        Text(ref.descriptor.name)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Style.Foreground.base)
                             .lineLimit(Style.Limit.singleLine)
@@ -138,7 +148,7 @@ struct TasksSection: View {
                 if expanded {
                     VStack(alignment: .leading, spacing: Style.Spacing.xs) {
                         ForEach(tasks) { task in
-                            TaskItem(material: material, task: task)
+                            TaskItem(panel: panel, model: model, ref: ref, task: task)
                         }
                     }
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -155,16 +165,17 @@ struct TasksSurface: Surface {
     var panel: any Panel
     var model: any Model
 
-    var origin: Reference { model.session.origin }
+    var origin: Reference { model.session.opened.material ?? model.session.origin }
 
-    var materials: [Reference] {
-        Space.with(origin, { $0.materials })
+    var refs: [Reference] {
+        if let material = model.session.opened.material { return [material] }
+        return Space.with(origin, { $0.materials })
         ?? Workspace.with(origin, { $0.materials })
         ?? []
     }
 
     var tasks: [Material.Block] {
-        materials.flatMap { material in
+        refs.flatMap { material in
             Material.with(material) { material in
                 material.blocks.filter { if case .task = $0 { true } else { false } }
             } ?? []
@@ -181,54 +192,17 @@ struct TasksSurface: Surface {
     }
 
     var visibleMaterials: [Reference] {
-        guard !showsCompleted else { return materials }
-        return materials.filter { material in
+        guard !showsCompleted else { return refs }
+        return refs.filter { material in
             Material.with(material) { value in
                 value.blocks.contains { if case .task(_, _, false) = $0 { true } else { false } }
             } == true
         }
     }
 
-    var body: some View {
-        ZStack(alignment: .top) {
-            TasksHeader(
-                completed: completed,
-                showsCompleted: showsCompleted,
-                onToggleCompleted: { withAnimation(.smooth(duration: 0.18)) { showsCompleted.toggle() } },
-                onClearCompleted: { confirmsClear = true }
-            )
-            .padding(.horizontal, Style.Spacing.xl)
-            .padding(.top, Style.Spacing.lg)
-
-            LazyVStack(alignment: .leading, spacing: Style.Spacing.xxl) {
-                Color.clear.frame(height: Style.Spacing.xxl)
-                ForEach(visibleMaterials) { material in
-                    TasksSection(
-                        model: model,
-                        material: material,
-                        showsCompleted: showsCompleted
-                    )
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .padding(.horizontal, Style.Spacing.xl)
-            .padding(.top, Style.Spacing.lg)
-            .padding(.bottom, Style.Spacing.xxl)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .confirmationDialog("Clear completed tasks?", isPresented: $confirmsClear, titleVisibility: .visible) {
-            Button("Clear \(completed) Completed \(completed == 1 ? "Task" : "Tasks")", role: .destructive) {
-                hide()
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("This removes completed tasks from their materials.")
-        }
-    }
-
-    private func hide() {
-        for material in materials {
-            Material.update(material) { value in
+    var hide: Void {
+        for ref in refs {
+            Material.update(ref) { value in
                 let completed = value.blocks.indices.filter { index in
                     if case .task(_, _, true) = value.blocks[index] { true } else { false }
                 }
@@ -236,4 +210,46 @@ struct TasksSurface: Surface {
             }
         }
     }
+
+    var body: some View {
+        ScrollView {
+            ZStack(alignment: .top) {
+                TasksHeader(
+                    completed: completed,
+                    showsCompleted: showsCompleted,
+                    onToggleCompleted: { withAnimation(.smooth(duration: 0.18)) { showsCompleted.toggle() } },
+                    onClearCompleted: { confirmsClear = true }
+                )
+                .padding(.horizontal, Style.Spacing.xl)
+                .padding(.top, Style.Spacing.lg)
+
+                LazyVStack(alignment: .leading, spacing: Style.Spacing.xxl) {
+                    Color.clear.frame(height: Style.Spacing.xxl)
+                    ForEach(refs) { ref in
+                        TasksSection(
+                            panel: panel,
+                            model: model,
+                            ref: ref,
+                            showsCompleted: showsCompleted
+                        )
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .padding(.horizontal, Style.Spacing.xl)
+                .padding(.top, Style.Spacing.lg)
+                .padding(.bottom, Style.Spacing.xxl)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .confirmationDialog("Clear completed tasks?", isPresented: $confirmsClear, titleVisibility: .visible) {
+                Button("Clear \(completed) Completed \(completed == 1 ? "Task" : "Tasks")", role: .destructive) {
+                    hide
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This removes completed tasks from their materials.")
+            }
+        }
+        .scrollEdgeEffectStyle(.hard, for: .vertical)
+    }
 }
+

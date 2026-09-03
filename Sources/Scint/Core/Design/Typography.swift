@@ -3,40 +3,30 @@ import SwiftUI
 
 
 enum Typography {
-    /// The one prose scale.
-    ///
-    /// SwiftUI prose (`Typography.prose`, transcripts and cards) and AppKit prose
-    /// (`Typography.Prose.appKit*`, the editor) both derive from this, so one document renders at
-    /// one size wherever it appears. The two used to carry independent numbers — 13pt body and
-    /// 24/20/17 headings on the SwiftUI side against 16pt body and 36/24/20 headings in the
-    /// editor — so the same text changed size when it moved between surfaces.
     enum Scale {
-        static let body: CGFloat = 14
-        static let code: CGFloat = 14
+        static let body: CGFloat = 14.5
+        static let code: CGFloat = 13.5
         static let hiddenSyntax: CGFloat = 0.1
-        /// Inline reference chips, a step down from the prose they sit in so a chip reads as a
-        /// token within the sentence rather than an interruption of it.
-        static let chip: CGFloat = 12
-        static let inline: CGFloat = 11
-        static let bodyWeight: Weight = .light
+        static let chip: CGFloat = 13
+        static let inline: CGFloat = 12
+        static let bodyWeight: Weight = .regular
 
         static func heading(_ level: Int) -> CGFloat {
             switch level {
-                case 1: 24
-                case 2: 20
+                case 1: 21
+                case 2: 19
                 default: 17
             }
         }
 
         static func headingWeight(_ level: Int) -> Weight {
             switch level {
-                case 1: .bold
+                case 1: .semibold
                 case 2: .semibold
                 default: .medium
             }
         }
 
-        /// Bridges one weight onto both font APIs so the scale can name a single value.
         enum Weight {
             case light
             case regular
@@ -73,17 +63,17 @@ enum Typography {
     static let proseCode = Font.system(size: Scale.code, design: .monospaced)
     static let quote = Font.system(size: Scale.body, weight: Scale.bodyWeight.swiftUI)
     static let chip = Font.system(size: Scale.chip, weight: .regular)
-    static let cardHeading = Font.system(size: 14, weight: .regular)
-    static let cardRow = Font.system(size: 13, weight: .regular)
-    static let cardTitle = Font.system(size: 12, weight: .medium)
-    static let row = Font.system(size: 12)
-    static let caption = Font.system(size: 12, weight: .light)
-    static let label = Font.system(size: 10)
-    static let badge = Font.system(size: 11, weight: .medium)
+    static let cardHeading = Font.system(size: 15, weight: .regular)
+    static let cardRow = Font.system(size: 14, weight: .regular)
+    static let cardTitle = Font.system(size: 13, weight: .medium)
+    static let row = Font.system(size: 13)
+    static let caption = Font.system(size: 13, weight: .light)
+    static let label = Font.system(size: 11)
+    static let badge = Font.system(size: 12, weight: .medium)
 
     static func cardDetail(_ design: Font.Design = .default) -> Font {
         .system(
-            size: 12,
+            size: 13,
             weight: design == .monospaced ? .medium : .regular,
             design: design
         )
@@ -97,7 +87,7 @@ enum Typography {
         }
     }
 
-    static var appKitRow: NSFont { .systemFont(ofSize: 13) }
+    static var appKitRow: NSFont { .systemFont(ofSize: 14) }
 
     enum Prose {
         static var syntaxHidden: Font { .system(size: Scale.hiddenSyntax) }
@@ -109,8 +99,6 @@ enum Typography {
             .systemFont(ofSize: Scale.heading(level), weight: Scale.headingWeight(level).appKit)
         }
 
-        /// Line height of the body font, for anything that has to match a line of prose —
-        /// the caret, and the minimum height of an empty block.
         static var appKitLineHeight: CGFloat {
             let font = appKitText
             return ceil(font.ascender - font.descender + font.leading)
@@ -142,10 +130,6 @@ enum Typography {
             return paragraph
         }
 
-        /// - Parameters:
-        ///   - indent: how far the whole item sits in, from its nesting depth.
-        ///   - hanging: the width of this item's own marker, so wrapped lines align under the
-        ///     content instead of under a single constant guessed for one marker.
         static func listParagraphStyle(indent: CGFloat, hanging: CGFloat) -> NSParagraphStyle {
             let paragraph = NSMutableParagraphStyle()
             paragraph.firstLineHeadIndent = indent

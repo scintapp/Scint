@@ -53,15 +53,15 @@ struct Closure: Structural {
         return (content + capabilities).joined(separator: "\n\n")
     }
 
-    static func new(_ name: String, owner: Reference) -> Reference {
+    static func new(_ name: String, origin: Reference) -> Reference {
         var instance = Closure(.init(Self.self))
-        instance.origin = owner
-        instance.input = Material.new(owner, input: true)
+        instance.origin = origin
+        instance.input = Material.new(origin, input: true)
         Descriptor.new(instance.ref, name: name, tags: ["closure"], published: false)
         Workspaces.shared.add(instance.ref, instance)
-        if owner.type == Workspace.self { Workspace.update(owner, { $0.closure = instance.ref}) }
-        else if owner.type == Space.self { Space.update(owner, { $0.closure = instance.ref}) }
-        else { Bridge.update(owner, { $0.closure = instance.ref}) }
+        if origin.type == Workspace.self { Workspace.update(origin, { $0.closure = instance.ref}) }
+        else if origin.type == Space.self { Space.update(origin, { $0.closure = instance.ref}) }
+        else { Bridge.update(origin, { $0.closure = instance.ref}) }
         return instance.ref
     }
 }

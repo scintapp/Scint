@@ -5,7 +5,7 @@ import Darwin
 
 final class ServiceDaemon: NSObject, ServiceProviding {
     private let connection: NSXPCConnection
-    private let ownerID = UUID()
+    private let originID = UUID()
     private let store = ProcessStore.shared
 
     init(connection: NSXPCConnection) {
@@ -14,7 +14,7 @@ final class ServiceDaemon: NSObject, ServiceProviding {
     }
 
     func start(_ command: String, _ arguments: [String], _ environment: [String: String], _ reply: @escaping (Int32, String?, String?) -> Void) {
-        store.start(ownerID: ownerID, command: command, arguments: arguments, env: environment, emit: emit, reply: reply)
+        store.start(originID: originID, command: command, arguments: arguments, env: environment, emit: emit, reply: reply)
     }
 
     func stop(pid: Int32, reply: @escaping (Bool) -> Void) {
@@ -46,7 +46,7 @@ final class ServiceDaemon: NSObject, ServiceProviding {
     }
 
     func request(_ json: String, reply: @escaping (String) -> Void) {
-        store.request(ownerID: ownerID, json: json, emit: emit, reply: reply)
+        store.request(originID: originID, json: json, emit: emit, reply: reply)
     }
 
     func registerService(_ json: String, reply: @escaping (String) -> Void) {
@@ -64,7 +64,7 @@ final class ServiceDaemon: NSObject, ServiceProviding {
     }
 
     func startService(_ id: String, reply: @escaping (String) -> Void) {
-        store.startService(id: id, emit: emit, ownerID: ownerID, reply: reply)
+        store.startService(id: id, emit: emit, originID: originID, reply: reply)
     }
 
     func stopService(_ id: String, reply: @escaping (Bool) -> Void) {
@@ -72,7 +72,7 @@ final class ServiceDaemon: NSObject, ServiceProviding {
     }
 
     func restartService(_ id: String, reply: @escaping (String) -> Void) {
-        store.restartService(id: id, emit: emit, ownerID: ownerID, reply: reply)
+        store.restartService(id: id, emit: emit, originID: originID, reply: reply)
     }
 
     private func emit(pid: Int32, chunk: String) {

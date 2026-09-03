@@ -69,23 +69,14 @@ struct WorkspaceNavigator: Mapper {
                     header: false,
                     items: [
                         .init(name: "Inbox", image: "tray"),
-                        .init(name: "Schedule", image: "calendar"),
-                        .init(name: "Library", image: "building.classical.columns")
-                    ]
-                ),
-                .init(
-                    id: "projects",
-                    name: "Projects",
-                    header: true,
-                    items: [
-                        .init(name: "Goals", image: "target"),
+                        .init(name: "Library", image: "building.classical.columns"),
                         .init(name: "Outlines", image: "checklist.unchecked"),
                         .init(name: "Tasks", image: "checkmark.app"),
                     ]
                 ),
                 .init(
-                    id: "spaces",
-                    name: "Spaces",
+                    id: "projects",
+                    name: "Projects",
                     header: true,
                     items: SpacesList
                         .parameters(model)

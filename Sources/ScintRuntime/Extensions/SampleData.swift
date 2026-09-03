@@ -495,8 +495,8 @@ enum SampleData {
         }
 
         @discardableResult
-        func material(_ name: String, owner: Reference, title: String, body: [String], components: [Reference], tasks: [(String, Bool)]) -> Reference {
-            let ref = Material.new(owner, name: name)
+        func material(_ name: String, origin: Reference, title: String, body: [String], components: [Reference], tasks: [(String, Bool)]) -> Reference {
+            let ref = Material.new(origin, name: name)
             write(ref, title: title, body: body, components: components, tasks: tasks)
             return ref
         }
@@ -516,7 +516,7 @@ enum SampleData {
 
         let editorialCharter = material(
             "Editorial System Charter",
-            owner: contentProduction,
+            origin: contentProduction,
             title: "Editorial System Charter",
             body: [
                 "This space runs a professional publishing practice where research notes become briefs, drafts, newsletters, and reusable clips.",
@@ -532,7 +532,7 @@ enum SampleData {
 
         let voiceRules = material(
             "Voice and Evidence Rules",
-            owner: contentProduction,
+            origin: contentProduction,
             title: "Voice and Evidence Rules",
             body: [
                 "Define the house style for content writing. The writing should be specific, grounded, and willing to leave rough edges where the operator needs to decide.",
@@ -556,7 +556,7 @@ enum SampleData {
 
         let researchBrief = material(
             "Research Brief Template",
-            owner: researchDesk,
+            origin: researchDesk,
             title: "Research Brief Template",
             body: [
                 "Turn a topic prompt into a research brief with a working question, audience context, source plan, and expected use of the finished work.",
@@ -571,7 +571,7 @@ enum SampleData {
 
         let reliabilityNotes = material(
             "Source Reliability Notes",
-            owner: researchDesk,
+            origin: researchDesk,
             title: "Source Reliability Notes",
             body: [
                 "The output is a source ledger. It does not need to be elegant, but it needs to be traceable."
@@ -594,7 +594,7 @@ enum SampleData {
 
         let publishingCadence = material(
             "Publishing Cadence",
-            owner: editorialCalendar,
+            origin: editorialCalendar,
             title: "Publishing Cadence",
             body: [
                 "Maintain an editorial calendar that reflects actual production capacity. A calendar item is not ready just because it has a title. It needs a usable angle and source path."
@@ -609,7 +609,7 @@ enum SampleData {
 
         let draftReadiness = material(
             "Draft Readiness Checklist",
-            owner: editorialCalendar,
+            origin: editorialCalendar,
             title: "Draft Readiness Checklist",
             body: [
                 "Before a draft run starts, check whether the piece has a clear reader, point of view, evidence base, and desired action.",

@@ -26,8 +26,8 @@ struct SpaceGrid: Mapper {
                 else { model.open(ref) }
             },
             surfacePalette: {
-                guard let owner = model.session.selected.structure else { return [] }
-                return Action.surfaceItems(for: owner)
+                guard let origin = model.session.selected.structure else { return [] }
+                return Action.surfaceItems(for: origin)
             },
             surfaceDropTarget: {
                 model.session.selected.structure.map { .init(ref: $0, name: $0.descriptor.name) }

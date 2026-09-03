@@ -76,36 +76,54 @@ struct Theme: @unchecked Sendable {
     /// It also does not open an edit transaction: the caller decides, because the main caller is
     /// `NSTextStorageDelegate.textStorage(_:didProcessEditing:…)`, which already runs inside one.
     /// Nesting `beginEditing`/`endEditing` there re-enters `processEditing`.
-    func applyStyle(to storage: NSMutableAttributedString) {
+    /// Styles the storage, writing only where `scope` reaches.
+    ///
+    /// This runs from `didProcessEditing`, once per character, and a run holds the whole document —
+    /// so re-attributing all of it per keystroke is what made typing unusable.
+    ///
+    /// The scan stays whole and the ranges stay absolute. An earlier version scanned just the
+    /// edited lines and shifted the results back by the fragment's offset, which was faster still
+    /// and silently produced no styling at all. Deciding from the whole document and *writing* to
+    /// one line is the version with nothing to get wrong: what gets computed is identical to
+    /// styling whole, and only the attribute writes and the layout they invalidate are narrowed.
+    ///
+    /// A fenced code block is the one construct spanning lines, so an edit anywhere in a document
+    /// containing one restyles whole rather than leave following lines stale.
+    func applyStyle(to storage: NSMutableAttributedString, in scope: NSRange? = nil) {
         let text = storage.string
         let full = NSRange(location: 0, length: storage.length)
+        let source = text as NSString
+
+        let scoped: NSRange = {
+            guard let scope, !Markdown.holdsMultipleLines(text), full.length > 0 else { return full }
+            let location = min(max(scope.location, 0), full.length)
+            let length = min(max(scope.length, 0), full.length - location)
+            return source.lineRange(for: NSRange(location: location, length: length))
+        }()
 
         // Each inline reference is one attachment character standing in for a whole link, and a
         // blanket `setAttributes` would strip it. Lift them out and put them back.
         var attachments: [(NSRange, NSTextAttachment)] = []
-        storage.enumerateAttribute(.attachment, in: full) { value, range, _ in
+        storage.enumerateAttribute(.attachment, in: scoped) { value, range, _ in
             if let attachment = value as? NSTextAttachment { attachments.append((range, attachment)) }
         }
 
-        storage.setAttributes(baseAttributes, range: full)
+        storage.setAttributes(baseAttributes, range: scoped)
         for (range, attachment) in attachments {
             storage.addAttribute(.attachment, value: attachment, range: range)
         }
-        guard !text.isEmpty else { return }
+        guard !text.isEmpty, scoped.length > 0 else { return }
 
         let document = Markdown.scan(text)
 
-        let source = text as NSString
         for block in document.blocks {
-            guard block.range.length > 0 else { continue }
-            storage.addAttributes(
-                [.paragraphStyle: paragraphStyle(for: block, in: source)],
-                range: block.range
-            )
+            let range = NSIntersectionRange(block.range, scoped)
+            guard range.length > 0 else { continue }
+            storage.addAttributes([.paragraphStyle: paragraphStyle(for: block, in: source)], range: range)
         }
 
         for span in document.spans {
-            let range = clamp(span.range, within: full)
+            let range = NSIntersectionRange(clamp(span.range, within: full), scoped)
             guard range.length > 0 else { continue }
             storage.addAttributes(attributes(for: span.kind, in: source, at: range), range: range)
         }

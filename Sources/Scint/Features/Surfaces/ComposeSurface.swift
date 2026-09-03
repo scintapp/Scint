@@ -31,8 +31,9 @@ struct ComposeSurface: Surface {
     var panel: any Panel
     var model: any Model
 
-
     var origin: Reference { model.session.origin }
+    var material: Reference? { model.session.opened.material }
+
     var input: Reference {
         if origin.type == Space.self { return Space.with(origin, { $0.input })! }
         else { return Workspace.with(origin, { $0.input })! }
@@ -55,11 +56,11 @@ struct ComposeSurface: Surface {
                         .frame(alignment: .trailing)
                         .opacity(0)
                 }
-                .background { Style.Shape.medium.fill(Style.Background.group) }
-                .overlay { Style.Shape.medium.stroke(Style.Border.base, lineWidth: 1, antialiased: true) }
-                .frame(maxWidth: 680)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+                .background { Style.Shape.medium.fill(Style.Background.raised) }
+                .overlay { Style.Shape.medium.stroke(Style.Border.base, lineWidth: 0.5, antialiased: true) }
+                .frame(maxWidth: 540)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
         }
     }

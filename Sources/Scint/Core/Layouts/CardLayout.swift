@@ -97,15 +97,13 @@ struct CommandCard: View {
     let ref: Reference
 
     var body: some View {
-        let name = Command.with(ref, { $0.name }) ?? "tool"
-
-        return CardLayout(
+        CardLayout(
             icon: Iconography.Icon(
                 symbol: Iconography.Custom.dispatch.rawValue,
                 tint: Style.Tint.command,
                 sizing: Style.Spacing.xl
             ),
-            title: name,
+            title: Command.with(ref, { $0.name }) ?? "Command",
             detail: BlockSummary.commandDescription(ref)
         )
     }
@@ -114,18 +112,18 @@ struct CommandCard: View {
 struct MaterialRefCard: View {
     let ref: Reference
 
-    var body: some View {
-        let name = Material.with(ref, { $0.name }) ?? "Material"
-        let description = Material.with(ref, { $0.description }) ?? ""
-        let blocks = Material.with(ref, { $0.blocks }) ?? []
-        let facts = BlockSummary.materialFacts(blocks)
+    var icon: Iconography.Icon {
+        let base = Iconography.icon(for: ref, size: Style.Spacing.xl)
+        return Iconography.Icon(symbol: base.symbol, tint: base.tint, sizing: Style.Spacing.xl, tinted: true)
+    }
+    var name: String { Material.with(ref, { $0.name }) ?? "Material" }
+    var description: String { Material.with(ref, { $0.description }) ?? "" }
+    var blocks: [Material.Block] { Material.with(ref, { $0.blocks }) ?? [] }
+    var facts: [String] { BlockSummary.materialFacts(blocks) }
 
-        return CardLayout(
-            icon: Iconography.Icon(
-                symbol: "text.alignleft",
-                tint: Style.Tint.material,
-                sizing: Style.Spacing.xl
-            ),
+    var body: some View {
+        CardLayout(
+            icon: icon,
             title: name,
             detail: description.isEmpty ? BlockSummary.firstPreview(blocks) : description,
             badges: Array(facts.prefix(Style.Limit.cardBadges)),
@@ -138,12 +136,7 @@ struct MaterialCard: View {
     @Environment(\.editorFocus) private var focus
     @State private var isHovered = false
     let block: Material.Block
-    let selection: NSRange?
-    let isEditing: Bool
     let isSelected: Bool
-    let onTextChange: (String, NSRange) -> Void
-    let onSelectionChange: (NSRange) -> Void
-    let onCaretRectChange: (CGRect) -> Void
     let onFocusGained: () -> Void
     let onEdit: (CGRect) -> Void
     let onCommand: (Selector, NSRange, Int) -> Bool
@@ -164,55 +157,37 @@ struct MaterialCard: View {
     }
 
     var body: some View {
-        switch block {
-            case .text(_, let text):
-                EditorInput(
+        content
+//            .background {
+//                Style.Shape.medium
+//                    .fill(
+//                        isSelected || isHovered
+//                        ? Style.Background.card
+//                        : Color.clear
+//                    )
+//            }
+//            .overlay {
+//                Style.Shape.medium
+//                    .strokeBorder(
+//                        isSelected
+//                        ? Style.Border.base
+//                        : isHovered
+//                        ? Style.Border.base
+//                        : .clear,
+//                        lineWidth: 0.5,
+//                        antialiased: true
+//                    )
+//            }
+            .onHover { isHovered = $0 }
+            .overlay {
+                EntryResponder(
                     id: block.id,
-                    text: text,
-                    selection: selection,
-                    isEditing: isEditing,
-                    onTextChange: onTextChange,
-                    onSelectionChange: onSelectionChange,
-                    onCaretRectChange: onCaretRectChange,
+                    focus: focus,
                     onFocusGained: onFocusGained,
-                    onCommand: onCommand
+                    onEdit: onEdit,
+                    onCommand: { onCommand($0, NSRange(location: 0, length: 0), 0) }
                 )
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-            default:
-                content
-                    .background {
-                        Style.Shape.medium
-                            .fill(
-                                isSelected
-                                ? Color.primary.opacity(Style.Opacity.hairline)
-                                : isHovered
-                                ? Color.primary.opacity(Style.Opacity.hairline)
-                                : Color.clear
-                            )
-                    }
-                    .overlay {
-                        Style.Shape.medium
-                            .strokeBorder(
-                                isSelected
-                                ? Style.Tint.space.opacity(Style.Opacity.washed)
-                                : isHovered
-                                ? Color.primary.opacity(Style.Opacity.hairline)
-                                : .clear,
-                                lineWidth: 1
-                            )
-                    }
-                    .onHover { isHovered = $0 }
-                    .overlay {
-                        EntryResponder(
-                            id: block.id,
-                            focus: focus,
-                            onFocusGained: onFocusGained,
-                            onEdit: onEdit,
-                            onCommand: { onCommand($0, NSRange(location: 0, length: 0), 0) }
-                        )
-                    }
-        }
+            }
     }
 }
 
@@ -249,11 +224,11 @@ struct TranscriptCard: View {
             .padding(.horizontal, Style.Spacing.md)
             .padding(.vertical, Style.Spacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                Style.Shape.medium.fill(
-                    Style.Background.raised
-                )
-            )
+//            .background(
+//                Style.Shape.medium.fill(
+//                    Style.Background.surface
+//                )
+//            )
             .contentShape(Style.Shape.medium)
         }
         .buttonStyle(.plain)
@@ -291,9 +266,9 @@ struct CardLayout: View {
         let shape = Style.Shape.medium
 
         HStack(alignment: .center, spacing: Style.Spacing.lg) {
-            Style.Shape.capsule
-                .fill(icon.tint.opacity(Style.Opacity.full))
-                .frame(width: Style.Spacing.sm)
+//            Style.Shape.capsule
+//                .fill(icon.tint.opacity(Style.Opacity.full))
+//                .frame(width: Style.Spacing.sm)
 
             icon
                 .frame(
@@ -338,13 +313,14 @@ struct CardLayout: View {
             maxHeight: Style.Spacing.cardHeight,
             alignment: .leading
         )
-        .background(Style.Background.raised)
+//        .background(Style.Background.card)
         .clipShape(shape)
-        .overlay {
-            shape.strokeBorder(
-                Color.primary.opacity(Style.Opacity.hairline),
-                lineWidth: 1
-            )
-        }
+//        .overlay {
+//            shape.strokeBorder(
+//                Color.primary.opacity(Style.Opacity.hairline),
+//                lineWidth: 0.5,
+//                antialiased: true
+//            )
+//        }
     }
 }

@@ -30,11 +30,9 @@ struct Material: Malleable {
         self.origin = ref
     }
 
-    var rendered: String { rendered(depth: 0) }
+    var rendered: String { rendered(blocks, depth: 0) }
 
-    func rendered(depth: Int) -> String { rendered(blocks, depth: depth) }
-
-    private func rendered(_ source: [Block], depth: Int) -> String {
+    func rendered(_ source: [Block] = [], depth: Int) -> String {
         source.map { block in
             switch block {
                 case .artifact(let ref):
@@ -49,8 +47,7 @@ struct Material: Malleable {
                     string
             }
         }
-        .filter { !$0.isEmpty }
-        .joined(separator: "\n")
+        .joined()
     }
 
     mutating func insert(_ block: Block, at index: Int?) {
@@ -100,22 +97,23 @@ struct Material: Malleable {
         return value
     }
 
-    static func new(_ owner: Reference, name: String = "New Material") -> Reference {
-        guard owner.type == Space.self || owner.type == Workspace.self else { RuntimeError.fatal("Not a valid material origin.") }
+    static func new(_ origin: Reference, name: String = "New Material") -> Reference {
+        guard origin.type == Space.self || origin.type == Workspace.self
+        else { RuntimeError.fatal("Not a valid material origin.") }
         var instance = Self(.init(Self.self))
-        instance.origin = owner
-        Descriptor.new(instance.ref, name: name, tags: ["material"])
+        instance.origin = origin
+        Descriptor.new(instance.ref, name: name, tags: [])
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
-        if owner.type == Workspace.self { Workspace.with(owner, { $0.add(instance.ref) }) }
-        else {  Space.with(owner, { $0.add(instance.ref) }) }
+        if origin.type == Workspace.self { Workspace.with(origin, { $0.add(instance.ref) }) }
+        else {  Space.with(origin, { $0.add(instance.ref) }) }
         return instance.ref
     }
 
-    static func new(_ owner: Reference, input: Bool = true) -> Reference {
-        guard owner.type == Space.self || owner.type == Workspace.self
+    static func new(_ origin: Reference, input: Bool = true) -> Reference {
+        guard origin.type == Space.self || origin.type == Workspace.self
         else { RuntimeError.fatal("Not a valid transcript origin.") }
         var instance = Self(.init(Self.self))
-        instance.origin = owner
+        instance.origin = origin
         Descriptor.new(instance.ref, name: "Input", tags: ["input"], published: false)
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
         return instance.ref

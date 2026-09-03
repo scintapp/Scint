@@ -75,8 +75,8 @@ import Foundation
             refsByKey[oldKey] = nil
         }
 
-        if let owner = refsByKey[newKey] {
-            precondition(owner == ref, "Key '\(newKey)' points to Reference '\(owner).'")
+        if let origin = refsByKey[newKey] {
+            precondition(origin == ref, "Key '\(newKey)' points to Reference '\(origin).'")
         }
 
         entries[ref] = value

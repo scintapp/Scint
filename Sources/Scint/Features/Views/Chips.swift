@@ -42,15 +42,16 @@ struct ReferenceComponent: View {
             ReferenceRouter.open(ref)
         } label: {
             card
-                .background(Style.Shape.medium.fill(Style.Background.panel))
+                .background(Style.Shape.medium.fill(Style.Background.card))
                 .overlay(
                     Style.Shape.medium.strokeBorder(
                         isSelected
-                            ? Iconography.accent(for: ref).opacity(Style.Opacity.faint)
+                        ? Iconography.accent(for: ref).opacity(Style.Opacity.hairline)
                             : isHovered
-                            ? Color.primary.opacity(Style.Opacity.hairline)
-                            : Style.Border.raised,
-                        lineWidth: 1
+                            ? Iconography.accent(for: ref).opacity(Style.Opacity.hairline)
+                            : Style.Border.base,
+                        lineWidth: 0.5,
+                        antialiased: true
                     )
                 )
                 .contentShape(Style.Shape.medium)
@@ -73,42 +74,31 @@ struct ReferenceChip: View {
     let ref: Reference
     let label: String
 
-    @State private var isHovered = false
-
-    private var tint: Color { Iconography.accent(for: ref) }
-    private var isSelected: Bool { ReferenceSelection.shared.selected == ref }
-
-    private var fill: Color {
-        tint.opacity(isSelected ? Style.Opacity.faint : isHovered ? Style.Opacity.hairline : Style.Opacity.washed)
-    }
-
-    private var stroke: Color {
-        tint.opacity(isSelected ? Style.Opacity.strong : Style.Opacity.faint)
-    }
-
     var body: some View {
         Button {
             ReferenceSelection.shared.selected = ref
             ReferenceRouter.open(ref)
         } label: {
             HStack(spacing: Style.Spacing.sm) {
-                Iconography.icon(for: ref, size: Typography.Scale.inline)
-                    .frame(width: Typography.Scale.inline, height: Typography.Scale.inline)
+                Image(systemName: Iconography.icon(for: ref, size: Typography.Scale.inline).symbol)
+                    .font(.system(size: Typography.Scale.inline))
+                    .symbolRenderingMode(.monochrome)
 
                 Text(label)
                     .font(Typography.chip)
-                    .foregroundStyle(Style.Foreground.base)
                     .lineLimit(Style.Limit.singleLine)
             }
-            .padding(.horizontal, Style.Spacing.md)
-            // Matched to the line it sits on, so a chip never pushes the leading around it.
+            .foregroundStyle(Style.Tint.accent)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Style.Tint.accent)
+                    .frame(height: Style.Dimension.border)
+            }
+            .padding(.horizontal, Style.Spacing.xs)
             .frame(height: Typography.Prose.appKitLineHeight)
-            .background(Style.Shape.capsule.fill(fill))
-            .overlay(Style.Shape.capsule.strokeBorder(stroke, lineWidth: 1))
-            .contentShape(Style.Shape.capsule)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
         .referenceMenu(ref)
     }
 }

@@ -11,39 +11,11 @@ struct Scint: App {
     static let logger = Logger(subsystem: "com.kaechle.scint", category: "App")
 
     var body: some Scene {
-        Window("Studio", id: "studio") {
-            if let scint {
-                Studio()
-                    .environment(scint)
-                    .environment(scint.studio)
-                    .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
-                    .focusable(false)
-                    .onOpenURL { ReferenceRouter.handle($0) }
-            } else {
-                ProgressView()
-                    .task { await load() }
-                    .onOpenURL { pending = $0 }
-            }
-        }
-
         Window("Assistant", id: "assistant") {
             if let scint {
                 Assistant()
                     .environment(scint)
                     .environment(scint.assistant)
-                    .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
-                    .focusable(false)
-            } else {
-                ProgressView()
-                    .task { await load() }
-            }
-        }
-
-        Window("Editor", id: "editor") {
-            if let scint {
-                Editor()
-                    .environment(scint)
-                    .environment(scint.editor)
                     .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
                     .focusable(false)
             } else {
@@ -81,3 +53,32 @@ struct Scint: App {
         }
     }
 }
+
+
+//Window("Studio", id: "studio") {
+//    if let scint {
+//        Studio()
+//            .environment(scint)
+//            .environment(scint.studio)
+//            .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
+//            .focusable(false)
+//            .onOpenURL { ReferenceRouter.handle($0) }
+//    } else {
+//        ProgressView()
+//            .task { await load() }
+//            .onOpenURL { pending = $0 }
+//    }
+//}
+
+//Window("Editor", id: "editor") {
+//    if let scint {
+//        Editor()
+//            .environment(scint)
+//            .environment(scint.editor)
+//            .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
+//            .focusable(false)
+//    } else {
+//        ProgressView()
+//            .task { await load() }
+//    }
+//}

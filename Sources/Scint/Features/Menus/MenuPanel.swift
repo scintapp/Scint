@@ -111,6 +111,14 @@ final class MenuPanelWindow: NSPanel {
             panel.contentView = NSHostingView(rootView: content)
         }
 
+        // The panel is transparent, but its hosting view's backing layer is not, and it is square.
+        // SwiftUI clipping the content does not clip that layer, which is the hairline of unrounded
+        // backing visible behind the panel's corners.
+        panel.contentView?.wantsLayer = true
+        panel.contentView?.layer?.cornerRadius = Style.Shape.largeRadius
+        panel.contentView?.layer?.cornerCurve = .continuous
+        panel.contentView?.layer?.masksToBounds = true
+
         panel.setFrame(frame(for: size, anchor: anchor, on: host.screen), display: true)
 
         if self.host !== host {

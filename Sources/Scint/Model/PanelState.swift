@@ -11,6 +11,7 @@ import SwiftUI
     var index: Int = 0
     var filter: String = ""
     var expanded: Set<AnyHashable>
+    var collapsed: Set<Reference> = []
     var surface: String = ""
     var values: Values = [:]
 

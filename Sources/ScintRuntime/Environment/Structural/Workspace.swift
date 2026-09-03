@@ -60,7 +60,7 @@ struct Workspace: Structural {
     static func new(_ name: String) -> Reference {
         var instance = Workspace(.init(Self.self))
         Descriptor.new(instance.ref, name: name, tags: ["space"])
-        instance.closure = Closure.new("Closure", owner: instance.ref)
+        instance.closure = Closure.new("Closure", origin: instance.ref)
         Workspaces.shared.add(instance.ref, instance)
         return instance.ref
     }

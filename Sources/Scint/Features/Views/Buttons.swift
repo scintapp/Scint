@@ -94,15 +94,49 @@ struct NavigationButtons: View {
 
     var body: some View {
         ControlGroup {
-            Button {
-                model.session.back()
-            } label: { Image(systemName: "chevron.backward") }
-                .disabled(!model.session.navigation.canGoBack)
-            Button {
-                model.session.forward()
-            } label: { Image(systemName: "chevron.forward") }
-                .disabled(!model.session.navigation.canGoForward)
+            Button { model.session.back() } label: {
+                Image(systemName: "chevron.backward")
+            }
+            .disabled(!model.session.navigation.canGoBack)
+
+            Button { model.session.forward() } label: {
+                Image(systemName: "chevron.forward")
+            }
+            .disabled(!model.session.navigation.canGoForward)
         }
         .controlGroupStyle(.navigation)
+        .buttonStyle(.plain)
+    }
+}
+
+struct NewSpaceButton: View {
+    @State var text: String = ""
+    @State var presented: Bool = false
+
+    var model: any Model
+
+    var body: some View {
+        HStack {
+            Button {
+                text = ""
+                presented = true
+            } label: {
+                Image(systemName: "plus.app")
+            }
+            .sheet(isPresented: $presented) {
+                VStack(alignment: .trailing, spacing: Style.Spacing.xl) {
+                    TextField("Name", text: $text)
+                        .onSubmit { Action.createSpace(in: model.session.origin, name: text, model: model) }
+
+                    HStack(spacing: Style.Spacing.md) {
+                        Button("Cancel", role: .cancel) { presented = false }
+                        Button("Create") { Action.createSpace(in: model.session.origin, name: text, model: model) }
+                            .keyboardShortcut(.defaultAction)
+                    }
+                }
+                .padding(Style.Spacing.xxl)
+                .frame(width: Style.Spacing.menuWidth)
+            }
+        }
     }
 }

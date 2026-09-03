@@ -14,7 +14,7 @@ struct HSplitHandle: View {
         ZStack(alignment: .leading) {
             Rectangle()
                 .fill(Style.Border.base)
-                .frame(width: 1)
+                .frame(width: 0.5)
 
             Color.clear
                 .frame(width: hitWidth)

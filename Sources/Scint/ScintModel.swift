@@ -68,16 +68,12 @@ enum ModelKey: String, Identifiable, CaseIterable {
     var panels: PanelManager = .init()
 
     var assistant: AssistantModel { model(for: .assistant) as! AssistantModel }
-    var editor: EditorModel { model(for: .editor) as! EditorModel }
-    var studio: StudioModel { model(for: .studio) as! StudioModel }
 
     func model(for key: ModelKey) -> any Model { models[key]! }
     func panel(for key: PanelKey) -> any Panel { panels.panel(for: key) }
 
     func load() async {
         models[.assistant] = AssistantModel(Self.read(.studio))
-        models[.editor] = EditorModel(Self.read(.editor))
-        models[.studio] = StudioModel(Self.read(.studio))
 
         ReferenceRouter.register(ReferenceTrigger.action) { request in
             ReferenceTrigger.handle(request)
@@ -85,11 +81,11 @@ enum ModelKey: String, Identifiable, CaseIterable {
 
         ReferenceRouter.register(ReferenceRouter.openAction) { [weak self] request in
             guard let self, let ref = request.reference else { return false }
-            return ReferenceActions.open(ref, in: studio)
+            return ReferenceActions.open(ref, in: assistant)
         }
 
-        var seeded = await SampleData.load(editor.session.workspace, for: .editor)
-        seeded = await SampleData.load(studio.session.workspace, for: .studio) || seeded
+        var seeded = await SampleData.load(assistant.session.workspace, for: .editor)
+        seeded = await SampleData.load(assistant.session.workspace, for: .studio) || seeded
         if seeded { await Runtime.shared.save() }
         await host.load()
     }

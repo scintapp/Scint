@@ -7,7 +7,7 @@ private struct TrackedProcess {
     let arguments: [String]
     let outputPipe: Pipe
     let inputPipe: Pipe
-    let ownerID: UUID
+    let originID: UUID
     let label: String?
     let started: Date
     var exitCode: Int32?
@@ -25,7 +25,7 @@ final class ProcessStore: @unchecked Sendable {
     private lazy var userEnvironment: [String: String] = resolveUserEnvironment()
     let started = Date()
 
-    func start(ownerID: UUID, command: String, arguments: [String], env: [String: String] = [:], label: String? = nil, restartCount: Int = 0, policy: ServicePolicy = .never, emit: @escaping (Int32, String) -> Void, reply: @escaping (Int32, String?, String?) -> Void) {
+    func start(originID: UUID, command: String, arguments: [String], env: [String: String] = [:], label: String? = nil, restartCount: Int = 0, policy: ServicePolicy = .never, emit: @escaping (Int32, String) -> Void, reply: @escaping (Int32, String?, String?) -> Void) {
         let sanitizedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !sanitizedCommand.isEmpty else { reply(-1, nil, "Command is required")
@@ -69,7 +69,7 @@ final class ProcessStore: @unchecked Sendable {
                     arguments: expandedArguments,
                     outputPipe: outputPipe,
                     inputPipe: inputPipe,
-                    ownerID: ownerID,
+                    originID: originID,
                     label: label,
                     started: started,
                     exitCode: nil,
@@ -106,7 +106,7 @@ final class ProcessStore: @unchecked Sendable {
                     let savedCommand = tracked.command
                     let savedArgs = tracked.arguments
                     let savedPolicy = tracked.policy
-                    let savedOwnerID = tracked.ownerID
+                    let savedOwnerID = tracked.originID
                     let nextCount = tracked.restartCount + 1
 
                     savedEmit(
@@ -121,7 +121,7 @@ final class ProcessStore: @unchecked Sendable {
                     guard shouldRestart else { return }
 
                     DispatchQueue.global().asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                        self?.start(ownerID: savedOwnerID, command: savedCommand,
+                        self?.start(originID: savedOwnerID, command: savedCommand,
                                     arguments: savedArgs, label: savedLabel, restartCount: nextCount,
                                     policy: savedPolicy, emit: savedEmit) {
 
@@ -212,7 +212,7 @@ final class ProcessStore: @unchecked Sendable {
             let label = tracked.label
             let nextCount = tracked.restartCount + 1
             let policy = tracked.policy
-            let ownerID = tracked.ownerID
+            let originID = tracked.originID
 
             tracked.process.terminate()
             tracked.outputPipe.fileHandleForReading.readabilityHandler = nil
@@ -225,7 +225,7 @@ final class ProcessStore: @unchecked Sendable {
 
             DispatchQueue.global().async { [weak self] in
                 self?.start(
-                    ownerID: ownerID,
+                    originID: originID,
                     command: command,
                     arguments: arguments,
                     label: label,
@@ -390,7 +390,7 @@ final class ProcessStore: @unchecked Sendable {
         }
     }
 
-    func startService(id: String, emit: @escaping (Int32, String) -> Void, ownerID: UUID, reply: @escaping (String) -> Void) {
+    func startService(id: String, emit: @escaping (Int32, String) -> Void, originID: UUID, reply: @escaping (String) -> Void) {
         guard let def = registry.definition(for: id) else {
             reply(jsonString(["ok": false, "error": "service_not_found", "id": id]))
             return
@@ -405,7 +405,7 @@ final class ProcessStore: @unchecked Sendable {
             }
 
             self.start(
-                ownerID: ownerID,
+                originID: originID,
                 command: def.command,
                 arguments: def.arguments,
                 label: def.id,
@@ -428,7 +428,7 @@ final class ProcessStore: @unchecked Sendable {
         stop(pid: pid, reply: reply)
     }
 
-    func restartService(id: String,emit: @escaping (Int32, String) -> Void,ownerID: UUID,reply: @escaping (String) -> Void) {
+    func restartService(id: String,emit: @escaping (Int32, String) -> Void,originID: UUID,reply: @escaping (String) -> Void) {
         guard let def = registry.definition(for: id) else {
             reply(jsonString(["ok": false, "error": "service_not_found", "id": id]))
             return
@@ -447,7 +447,7 @@ final class ProcessStore: @unchecked Sendable {
             }
 
             DispatchQueue.global().async { [weak self] in
-                self?.start(ownerID: ownerID, command: def.command, arguments: def.arguments,
+                self?.start(originID: originID, command: def.command, arguments: def.arguments,
                             label: def.id, restartCount:  0, policy: def.policy,
                             emit: emit) { [ weak self] pid, _, error in
 
@@ -461,7 +461,7 @@ final class ProcessStore: @unchecked Sendable {
 
 
     func request(
-        ownerID: UUID, json: String,
+        originID: UUID, json: String,
         emit: @escaping (Int32, String) -> Void,
         reply: @escaping (String) -> Void) {
 
@@ -490,7 +490,7 @@ final class ProcessStore: @unchecked Sendable {
                 let label = req["label"] as? String
                 let policy = ServicePolicy.from(req["policy"] as? String)
 
-                start(ownerID: ownerID, command: command, arguments: arguments,
+                start(originID: originID, command: command, arguments: arguments,
                       label: label, policy: policy, emit: emit) { pid, _, error in
                     if let error { reply(jsonString(["ok": false, "error": error]))}
                     else { reply(jsonString(["ok": true, "pid": Int(pid)])) }
@@ -532,7 +532,7 @@ final class ProcessStore: @unchecked Sendable {
             case "service/start":
                 guard let id = req["id"] as? String
                 else { reply(#"{"ok":false,"error":"missing_id"}"#); return }
-                startService(id: id, emit: emit, ownerID: ownerID, reply: reply)
+                startService(id: id, emit: emit, originID: originID, reply: reply)
 
             case "service/stop":
                 guard let id = req["id"] as? String
@@ -542,7 +542,7 @@ final class ProcessStore: @unchecked Sendable {
             case "service/restart":
                 guard let id = req["id"] as? String
                 else { reply(#"{"ok":false,"error":"missing_id"}"#); return }
-                restartService(id: id, emit: emit, ownerID: ownerID, reply: reply)
+                restartService(id: id, emit: emit, originID: originID, reply: reply)
 
             default:
                 reply(jsonString(["ok": false, "error": "unknown_action", "action": action]))

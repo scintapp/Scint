@@ -7,19 +7,26 @@ import SwiftUI
         let symbol: String
         let size: CGFloat
         let tint: Color
+        /// Draws the glyph itself in `tint` rather than in the foreground ramp, which is how the
+        /// badges colour theirs. Off by default so every existing icon keeps its colour.
+        let tinted: Bool
 
-        init(symbol: String, tint: Color, sizing: CGFloat = 14, selected: Bool = true) {
+        init(symbol: String, tint: Color, sizing: CGFloat = 14, selected: Bool = true, tinted: Bool = false) {
             self.symbol = symbol
             self.size = sizing
             self.tint = tint
             self.selected = selected
+            self.tinted = tinted
         }
 
         private var custom: Bool { Iconography.Custom(rawValue: symbol) != nil }
         private var sizing: CGFloat { custom ? size * 1.2 : size * 1.3 }
         private var radius: CGFloat { size * 0.3 }
         private var padding: CGFloat { custom ? size * 0.1 : 0 }
-        private var primary: Color { selected ? Style.Foreground.base : Style.Foreground.muted }
+        private var primary: Color {
+            if tinted { return tint }
+            return selected ? Style.Foreground.base : Style.Foreground.muted
+        }
         private var secondary: Color { selected ? tint : Style.Foreground.muted }
         private var background: Color { selected ? tint.opacity(0.28) : tint.opacity(0.14) }
 

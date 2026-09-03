@@ -2,24 +2,6 @@ import AppKit
 import SwiftUI
 
 
-struct Item: Identifiable {
-    let id: String
-    let label: String
-    let image: String
-    let role: ButtonRole?
-    let enabled: @MainActor (any Model) -> Bool
-    let action: @MainActor (any Model) -> Void
-
-    init(id: String, label: String, image: String = "", role: ButtonRole? = nil, enabled: @escaping @MainActor (any Model) -> Bool = { _ in true }, action: @escaping @MainActor (any Model) -> Void) {
-        self.id = id
-        self.label = label
-        self.image = image
-        self.role = role
-        self.enabled = enabled
-        self.action = action
-    }
-}
-
 @MainActor enum Action {
     private static var clipboard: (refs: [Reference], origin: Reference?, move: Bool)?
     static func create(_ ref: Reference, in model: any Model) {}
@@ -51,7 +33,7 @@ struct Item: Identifiable {
     }
 
     static func delete(_ ref: Reference, from origin: Reference?, in model: any Model) {
-//        Task { try? await ref.delete() }
+        //        Task { try? await ref.delete() }
     }
 
     static func cut(_ ref: Reference, from origin: Reference?, in model: any Model) {
@@ -81,8 +63,8 @@ struct Item: Identifiable {
         Task { await Runtime.shared.save() }
     }
 
-    static func createSpace(in origin: Reference, model: any Model) {
-        let ref = Space.new("New Space", origin: origin)
+    static func createSpace(in origin: Reference, name: String = "New Space", model: any Model) {
+        let ref = Space.new(origin, name: name)
         model.select(ref)
         Task { await Runtime.shared.save() }
     }
@@ -113,6 +95,24 @@ struct Item: Identifiable {
 
     private static func canMove(_ ref: Reference, from origin: Reference?) -> Bool {
         ref.type is Space.Type || origin != nil
+    }
+}
+
+struct Item: Identifiable {
+    let id: String
+    let label: String
+    let image: String
+    let role: ButtonRole?
+    let enabled: @MainActor (any Model) -> Bool
+    let action: @MainActor (any Model) -> Void
+
+    init(id: String, label: String, image: String = "", role: ButtonRole? = nil, enabled: @escaping @MainActor (any Model) -> Bool = { _ in true }, action: @escaping @MainActor (any Model) -> Void) {
+        self.id = id
+        self.label = label
+        self.image = image
+        self.role = role
+        self.enabled = enabled
+        self.action = action
     }
 }
 

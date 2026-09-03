@@ -466,6 +466,7 @@ extension Factory {
                         .padding(.horizontal, 8)
                         .padding(.bottom, 8)
                     }
+                    .scrollEdgeEffectStyle(.hard, for: .vertical)
                     .onChange(of: cursor) { _, id in
                         guard let id else { return }
                         proxy.scrollTo(id, anchor: .center)

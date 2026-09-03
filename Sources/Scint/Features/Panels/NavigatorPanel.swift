@@ -24,7 +24,7 @@ import SwiftUI
         AnySurface(panel: self, model: model)
             .toolbar(removing: .sidebarToggle)
             .toolbar {
-                ToolbarItem(placement: .primaryAction) { NavigatorToggle(presented: state.bindable.presented) }
+                ToolbarItem(placement: .primaryAction) { NavigatorToggle(presented: bindable.presented) }
                 ToolbarSpacer(.fixed, placement: .primaryAction)
             }
             .scrollEdgeEffectStyle(.soft, for: .top)

@@ -66,7 +66,7 @@ extension Structural {
     static func new(_ name: String, origin: Reference? = nil) -> Reference {
         var instance = Space(.init(Self.self))
         Descriptor.new(instance.ref, name: name, tags: [])
-        instance.closure = Closure.new(name, owner: instance.ref)
+        instance.closure = Closure.new(name, origin: instance.ref)
         Workspaces.shared.add(instance.ref, instance)
         if let origin { Space.update(instance.ref) { $0.attach(to: origin) } }
         return instance.ref

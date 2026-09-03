@@ -8,22 +8,21 @@ struct TextEditor: View {
 
     private var material: DocumentModel { editor.material }
     let autofocus: Bool
+    let active: Bool
     let minHeight: CGFloat
     let maxHeight: CGFloat?
     let onFocus: (AnyHashable) -> Void
 
-    init(autofocus: Bool = true, minHeight: CGFloat = 0, maxHeight: CGFloat? = nil,
-         onFocus: @escaping (AnyHashable) -> Void) {
+    init(autofocus: Bool = true, active: Bool = true, minHeight: CGFloat = 0,
+         maxHeight: CGFloat? = nil, onFocus: @escaping (AnyHashable) -> Void) {
 
         self.autofocus = autofocus
+        self.active = active
         self.minHeight = minHeight
         self.maxHeight = maxHeight
         self.onFocus = onFocus
     }
 
-    /// Binds the menu to a child window on the host window. Nothing about placement lives here
-    /// any more: the panel positions itself against the screen from a caret rect already in screen
-    /// coordinates.
     private var menuPanel: some View {
         MenuPanelHost(
             controller: editor.menu,
@@ -49,8 +48,13 @@ struct TextEditor: View {
 
             MaterialView(
                 selection: editor.selection,
-                onTextChange: editor.write,
-                onSelectionChange: editor.setCaret,
+                onRunChange: editor.writeRun,
+                onRunSelectionChange: editor.setRunCaret,
+                onRunCommand: editor.handleRunInput,
+                onRunFocusGained: { ids in
+                    editor.focusGained(run: ids)
+                    if let first = ids.first { onFocus(first) }
+                },
                 onCaretRectChange: editor.updateCaretRect,
                 onFocusGained: { id in
                     editor.focusGained(id: id)
@@ -58,7 +62,7 @@ struct TextEditor: View {
                 },
                 onEdit: editor.editBlock,
                 onCommand: editor.handleInput,
-                onPanelChange: editor.updateBlockFrame
+                onFrames: editor.setBlockFrames
             )
             .environment(material)
         }
@@ -72,8 +76,8 @@ struct TextEditor: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
             }
-            
             .frame(height: min(max(contentHeight, minHeight), maxHeight), alignment: .bottom)
+            .scrollEdgeEffectStyle(.hard, for: .vertical)
         } else {
             canvas
         }
@@ -82,10 +86,13 @@ struct TextEditor: View {
     var body: some View {
         viewport
             .coordinateSpace(name: "canvas")
-            // First responder derives from the selection, one way. This was two `onChange`
-            // handlers reconciling `editor.editing` against `material.selection`, which is exactly
-            // the disagreement the focus coordinator's retries were compensating for.
-            .onChange(of: editor.selection) { _, selection in focus.focus(selection.id) }
+            .onChange(of: editor.selection) { _, selection in
+                switch selection {
+                    case .none: focus.focus(nil)
+                    case .blocks: break
+                    case .block(let id), .caret(let id, _): focus.focus(id)
+                }
+            }
             .onChange(of: editor.menu.isOpen) { _, isOpen in
                 guard !isOpen else { focus.focus(nil); return }
                 Task { @MainActor in
@@ -94,9 +101,15 @@ struct TextEditor: View {
                 }
             }
             .onAppear {
+                guard autofocus else {
+                    material.inlineReferenceBlocks()
+                    editor.ensureTrailingText()
+                    return
+                }
                 editor.prepare()
-                if autofocus { focus.focus(editor.selection.id) }
+                focus.focus(editor.selection.id)
             }
+            .onChange(of: active) { _, active in if !active { editor.deactivate(pruning: false) } }
             .onDisappear { editor.deactivate() }
             .background { menuPanel }
     }
@@ -104,16 +117,22 @@ struct TextEditor: View {
 
 struct EditorComponent: View {
     @State private var state: EditorState
+    /// One coordinator per editor.
+    ///
+    /// `editorFocus` has no injected value anywhere, so every editor on screen was sharing the
+    /// environment key's default instance — one `targetID` and one view registry between all of
+    /// them. A deactivating editor blanking the first responder would then resign the view the
+    /// editor being activated had just claimed, which is a race, not a rule.
+    @State private var focus: EditorFocusCoordinator
+    let autofocus: Bool
+    let active: Bool
     let minHeight: CGFloat
     let maxHeight: CGFloat?
     let onFocus: (AnyHashable) -> Void
 
-    init(
-        _ material: Reference,
-        minHeight: CGFloat = 0,
-        maxHeight: CGFloat? = nil,
-        onFocus: @escaping (AnyHashable) -> Void = { _ in }
-    ) {
+    init(_ material: Reference, autofocus: Bool = true, active: Bool = true, minHeight: CGFloat = 0, maxHeight: CGFloat? = nil, onFocus: @escaping (AnyHashable) -> Void = { _ in }) {
+        self.autofocus = autofocus
+        self.active = active
         self.minHeight = minHeight
         self.maxHeight = maxHeight
         self.onFocus = onFocus
@@ -125,14 +144,18 @@ struct EditorComponent: View {
                 search: MenuSurface.search(_:kind:)
             )
         )
+        _focus = State(initialValue: EditorFocusCoordinator())
     }
 
     var body: some View {
         TextEditor(
+            autofocus: autofocus,
+            active: active,
             minHeight: minHeight,
             maxHeight: maxHeight,
             onFocus: onFocus
         )
             .environment(state)
+            .environment(\.editorFocus, focus)
     }
 }
