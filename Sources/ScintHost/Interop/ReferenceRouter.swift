@@ -4,7 +4,7 @@ import Foundation
 
 /// The `scint://` inbound surface.
 ///
-/// `ReferenceURL` in the runtime knows how to write and resolve a reference as a URL. It stops
+/// `Reference.Link` in the runtime knows how to write and resolve a reference as a URL. It stops
 /// there, because *acting* on one is a protocol, not an identity — which puts it here, beside the
 /// MCP server, as the app's other way in. A URL arriving from Raycast, a Shortcut, a terminal, or
 /// a click on an inline chip all land in the same place.
@@ -38,9 +38,6 @@ import Foundation
         handlers[action] = handler
     }
 
-    // MARK: - Routing
-
-    /// Routes a URL, then follows whichever return path the outcome calls for.
     @discardableResult
     static func handle(_ url: URL) -> Bool {
         guard let request = parse(url) else { return false }
@@ -54,7 +51,6 @@ import Foundation
         return handled
     }
 
-    /// Opens a reference, the way clicking one in a document does.
     @discardableResult
     static func open(_ ref: Reference) -> Bool {
         handle(
@@ -70,10 +66,8 @@ import Foundation
         )
     }
 
-    // MARK: - Parsing
-
     static func parse(_ url: URL) -> Request? {
-        guard url.scheme?.lowercased() == ReferenceURL.scheme,
+        guard url.scheme?.lowercased() == Reference.Link.scheme,
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         else { return nil }
 
@@ -86,7 +80,7 @@ import Foundation
         guard host == callbackHost else {
             return Request(
                 action: openAction,
-                reference: ReferenceURL.reference(in: url),
+                reference: Reference.Link.reference(in: url),
                 parameters: query,
                 success: nil,
                 error: nil,
@@ -98,7 +92,7 @@ import Foundation
         let success = query.removeValue(forKey: "x-success").flatMap(URL.init(string:))
         let failure = query.removeValue(forKey: "x-error").flatMap(URL.init(string:))
         let cancel = query.removeValue(forKey: "x-cancel").flatMap(URL.init(string:))
-        let reference = query.removeValue(forKey: "ref").flatMap(ReferenceURL.resolve)
+        let reference = query.removeValue(forKey: "ref").flatMap(Reference.Link.resolve)
         let kind = query.removeValue(forKey: "kind")
 
         return Request(
@@ -122,7 +116,7 @@ import Foundation
         cancel: URL? = nil
     ) -> URL? {
         var components = URLComponents()
-        components.scheme = ReferenceURL.scheme
+        components.scheme = Reference.Link.scheme
         components.host = callbackHost
         components.path = "/\(action)"
 

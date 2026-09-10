@@ -97,23 +97,9 @@ struct ToolParameter: Sendable {
     }
 }
 
-/// The family of runtime object a tool acts on, and the namespace it is called under.
-///
-/// Not a naming convention: each case is bound to one of the runtime's own protocols, so a
-/// namespace is derived from what a tool operates on rather than typed into its name. A tool
-/// cannot be named into a family its subject does not belong to, and the tool surface stays a
-/// mirror of the runtime instead of a parallel vocabulary someone has to keep in their head.
-///
-/// The names are the families as they are spoken about, not as the protocols are spelled. That
-/// also keeps them out of the way of `ReferenceURL`, whose host is the concrete *type* — so
-/// `scint://material/<id>` is a Material and `scint.content.*` is the family holding Material and
-/// Transcript, with no word doing both jobs.
 enum ToolNamespace: String, CaseIterable, Sendable {
-    /// `Malleable` — Material, Transcript.
     case content
-    /// `Functional` — Artifact, Command, Harness.
     case interfaces
-    /// `Structural` — Bridge, Closure, Space, Workspace.
     case structures
 
     static func of(_ type: (any Resolvable.Type)?) -> ToolNamespace? {
@@ -127,7 +113,6 @@ enum ToolNamespace: String, CaseIterable, Sendable {
 
     static func of(_ ref: Reference) -> ToolNamespace? { of(ref.type) }
 
-    /// The namespace a tool name is in, so a name can be read as well as written.
     static func of(name: String) -> ToolNamespace? {
         let parts = name.split(separator: ".")
         guard parts.count >= 2, parts[0] == prefix else { return nil }
@@ -139,30 +124,15 @@ enum ToolNamespace: String, CaseIterable, Sendable {
     func qualified(_ operation: String) -> String { "\(Self.prefix).\(rawValue).\(operation)" }
 }
 
-/// Something the MCP server can list and call.
-///
-/// This replaces `Facet`, which was a struct of closures plus one adapter extension per tool type
-/// — a protocol-shaped hole filled by hand. A tool now says what it is and answers when called.
 protocol Tool: Sendable {
-    /// The family this tool acts on. Determines the namespace half of its name.
     var namespace: ToolNamespace { get }
-    /// What this tool does, within its namespace.
     var operation: String { get }
-
     var name: String { get }
     var title: String { get }
     var summary: String { get }
 
-    /// The runtime object this tool *is*, when it is one.
-    ///
-    /// An interface and an artifact are objects; a content verb operating over many documents is
-    /// not, and has none. When present, the tool's address is published alongside its definition —
-    /// and because both are keyed on the descriptor id, an address found in a document resolves to
-    /// the tool that acts on it without anyone having to be told the rule twice.
     var subject: Reference? { get }
 
-    /// What the tool takes. Leave empty and override `inputSchema` when the shape is derived at
-    /// runtime rather than declared.
     var parameters: [ToolParameter] { get }
     var inputSchema: Property { get }
 
@@ -175,7 +145,6 @@ extension Tool {
     var parameters: [ToolParameter] { [] }
     var inputSchema: Property { ToolParameter.schema(for: parameters) }
 
-    /// The MCP tool definition, assembled once for every tool.
     var definition: Property {
         var value: [String: Property] = [
             "name": .string(name),
@@ -183,21 +152,14 @@ extension Tool {
             "description": .string(summary),
             "inputSchema": inputSchema
         ]
-        if let subject, let url = ReferenceURL.url(for: subject) {
+        if let subject, let url = Reference.Link.url(for: subject) {
             value["_meta"] = .object(["com.kaechle.scint/address": .string(url.absoluteString)])
         }
         return .object(value)
     }
 }
 
-/// Every tool available in a space.
 enum Tools {
-    /// Providers, by the family they serve. Adding a kind of tool means adding a line here — it
-    /// used to mean editing the type that erased them.
-    ///
-    /// `CatalogTool` supplies `list` and `describe` to every family; the rest is what differs.
-    /// Interfaces keep a tool per object as well, so a client gets a real schema for each one
-    /// rather than an opaque `call(interface:arguments:)`.
     private static let providers: [ToolNamespace: [@MainActor (Reference) -> [any Tool]]] = [
         .content: [{ CatalogTool.all(.content, in: $0) }, { ContentTool.all(in: $0) }],
         .interfaces: [{ CatalogTool.all(.interfaces, in: $0) }, { InterfaceTool.all(in: $0) }],
@@ -211,6 +173,5 @@ enum Tools {
         }
     }
 
-    /// The namespaces that actually have tools, for reporting an unknown name usefully.
     static var populated: [ToolNamespace] { ToolNamespace.allCases.filter { providers[$0]?.isEmpty == false } }
 }

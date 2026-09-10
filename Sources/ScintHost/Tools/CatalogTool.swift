@@ -1,11 +1,6 @@
 import Foundation
 
 
-/// Listing and describing, for any family.
-///
-/// Every runtime object carries a `Descriptor` and resolves from a `Reference`, so these two verbs
-/// are the same work whatever the family. Written once and parameterised rather than three times
-/// with the nouns changed — and a family added to `ToolNamespace` gets both for free.
 struct CatalogTool: Tool {
     let origin: Reference
     let namespace: ToolNamespace
@@ -154,7 +149,7 @@ struct CatalogTool: Tool {
     @MainActor
     func resolve(_ arguments: Properties, _ key: String? = nil) -> Reference? {
         guard let supplied = arguments[key ?? noun]?.string, !supplied.isEmpty,
-              let ref = ReferenceURL.reference(in: supplied) ?? ReferenceURL.resolve(supplied),
+              let ref = Reference.Link.reference(in: supplied) ?? Reference.Link.resolve(supplied),
               Scope.reachable(ref, in: origin)
         else { return nil }
         return ref
@@ -165,7 +160,7 @@ struct CatalogTool: Tool {
     /// One line: what it is, where it is, and enough to decide whether to look closer.
     @MainActor
     static func line(_ ref: Reference) -> String {
-        let address = ReferenceURL.url(for: ref)?.absoluteString ?? ref.id.uuidString
+        let address = Reference.Link.url(for: ref)?.absoluteString ?? ref.id.uuidString
         let description = ref.descriptor.description.trimmingCharacters(in: .whitespacesAndNewlines)
         let head = "\(ref.descriptor.name)  \(kind(ref))  \(address)"
         return description.isEmpty ? head : "\(head)\n  \(description)"
@@ -177,7 +172,7 @@ struct CatalogTool: Tool {
         var lines = [
             descriptor.name,
             "kind: \(kind(ref))",
-            "address: \(ReferenceURL.url(for: ref)?.absoluteString ?? ref.id.uuidString)",
+            "address: \(Reference.Link.url(for: ref)?.absoluteString ?? ref.id.uuidString)",
         ]
         if !descriptor.description.isEmpty { lines.append("description: \(descriptor.description)") }
         if !descriptor.tags.isEmpty { lines.append("tags: \(descriptor.tags.sorted().joined(separator: ", "))") }

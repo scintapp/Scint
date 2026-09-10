@@ -1,7 +1,7 @@
 import Foundation
 
 
-indirect enum Value: Codable, Sendable, Equatable {
+enum Value: Codable, Sendable, Equatable {
     case bool(Bool)
     case integer(Int)
     case decimal(Decimal)
@@ -121,7 +121,7 @@ indirect enum Value: Codable, Sendable, Equatable {
     var rendered: [String] { Renderer.value(self) }
 }
 
-struct Chunk: Keyable {
+struct Chunk: Keyed {
     let key: Key
     let origin: Reference
     let value: Value

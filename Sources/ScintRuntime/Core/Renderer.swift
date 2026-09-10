@@ -38,7 +38,7 @@ struct Renderer {
             .filter { !$0.descriptor.tags.contains("input") && $0.descriptor.published }
             .map { ref -> String in
                 let description = ref.descriptor.description.trimmingCharacters(in: .whitespacesAndNewlines)
-                let address = ReferenceURL.url(for: ref)?.absoluteString ?? ref.id.uuidString
+                let address = Reference.Link.url(for: ref)?.absoluteString ?? ref.id.uuidString
                 return description.isEmpty
                 ? "- \(ref.descriptor.name) — \(address)"
                 : "- \(ref.descriptor.name) — \(address)\n  \(description)"
@@ -56,7 +56,7 @@ struct Renderer {
             .sorted { $0.descriptor.name < $1.descriptor.name }
             .map { ref -> String in
                 let description = ref.descriptor.description.trimmingCharacters(in: .whitespacesAndNewlines)
-                let address = ReferenceURL.url(for: ref)?.absoluteString ?? ref.id.uuidString
+                let address = Reference.Link.url(for: ref)?.absoluteString ?? ref.id.uuidString
                 return description.isEmpty
                 ? "- \(ref.descriptor.name) — \(address)"
                 : "- \(ref.descriptor.name) — \(address)\n  \(description)"

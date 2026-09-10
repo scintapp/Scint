@@ -2,39 +2,37 @@ import SwiftUI
 
 
 struct Assistant: View {
-    @Environment(ScintModel.self) var scint
-    @Environment(AssistantModel.self) var assistant
+    @Environment(ScintModel.self) var model
 
     var body: some View {
+        let assistant = model.assistant
         assistant.content.surface(assistant)
-            .environment(scint)
+            .environment(model)
             .environment(assistant)
             .toolbar(removing: .title)
-            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
     }
 }
 
 struct Editor: View {
-    @Environment(ScintModel.self) var scint
-    @Environment(EditorModel.self) var editor
+    @Environment(ScintModel.self) var model
 
     var body: some View {
-        let content = editor.content.surface(editor)
-        let navigator = editor.navigator.surface(editor)
+        let content = model.editor.content.surface(model.editor)
+        let navigator = model.editor.navigator.surface(model.editor)
 
         NavigationSplitView(sidebar: { navigator }, detail: { content })
-            .environment(scint)
-            .environment(editor)
+            .environment(model)
+            .environment(model.editor)
             .scrollEdgeEffectHidden()
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
     }
 }
 
 struct Studio: View {
-    @Environment(ScintModel.self) var scint
-    @Environment(StudioModel.self) var studio
+    @Environment(ScintModel.self) var model
 
     var body: some View {
+        let studio = model.studio
         let content: some View = studio.content.surface(studio)
         let inspector: some View = studio.inspector.surface(studio)
         let navigator: some View = studio.navigator.surface(studio)
@@ -51,7 +49,7 @@ struct Studio: View {
                     .frame(height: 0.75, alignment: .top)
             }
         }
-        .environment(scint)
+        .environment(model)
         .environment(studio)
         .toolbar(removing: .title)
         .inspector(isPresented: presented) {

@@ -15,6 +15,8 @@ struct Space: Structural {
         self.closure = ref
     }
 
+    var composable: Bool { harness != nil }
+
     func configure(_ value: Value?, for key: String) {
         Closure.update(closure) { $0.config[key] = value }
     }

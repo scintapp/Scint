@@ -138,12 +138,13 @@ struct Theme: @unchecked Sendable {
         let source = storage.string as NSString
 
         for link in Markdown.scan(storage.string).links.reversed() {
-            guard let ref = ReferenceURL.reference(in: source.substring(with: link.url)) else { continue }
+            guard let ref = Reference.Link.reference(in: source.substring(with: link.url)) else { continue }
 
             let attachment = ReferenceAttachment(
                 ref: ref,
                 label: source.substring(with: link.label),
-                source: source.substring(with: link.range)
+                source: source.substring(with: link.range),
+                standalone: ReferenceAttachment.isStandalone(in: source, range: link.range)
             )
             let replacement = NSMutableAttributedString(attachment: attachment)
             replacement.addAttributes(
@@ -233,7 +234,7 @@ struct Theme: @unchecked Sendable {
             case .linkURL:
                 // An internal reference has no URL worth showing — the label is the whole point.
                 // An external link keeps its address visible.
-                guard !ReferenceURL.isReference(text.substring(with: range)) else {
+                guard !Reference.Link.isReference(text.substring(with: range)) else {
                     return [
                         .foregroundColor: theme.syntaxHiddenColor,
                         .font: Typography.Prose.appKitSyntaxHidden,

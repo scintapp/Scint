@@ -1,5 +1,93 @@
 import Foundation
+import OrderedCollections
 
+
+typealias Encode = @Sendable (any Resolvable, JSONEncoder) throws -> Data
+typealias Decode = @Sendable (Data, JSONDecoder) throws -> any Resolvable
+typealias EncodeFrom = @Sendable (Bounding, Reference, JSONEncoder) throws -> Data?
+
+typealias Config = OrderedDictionary<String, Value>
+
+protocol Storable: Codable & Sendable {}
+protocol Bounding: Sendable { func store(for ref: Reference?) -> Store?; var stores: [Store] { get } }
+protocol Storing: Sendable { func store(for ref: Reference?) -> Store? }
+
+extension Bounding {
+    func add(_ ref: Reference, _ value: Resolvable) {
+        guard let store = store(for: ref) else { return }
+        store.add(ref, value)
+        changed(ref)
+    }
+
+    func remove(_ ref: Reference) {
+        guard let store = store(for: ref), store.remove(ref) != nil else { return }
+        changed(ref)
+    }
+
+    func all<T: Resolvable>(as type: T.Type) -> [(Reference, T)] { store(for: Reference(T.self))?.all(as: type) ?? [] }
+
+    func changed(_ ref: Reference) { Task { await Coordinator.shared.schedule(ref) } }
+
+    func with<T: Resolvable, R>(_ ref: Reference, as type: T.Type = T.self, _ body: (T) throws -> R) rethrows -> R? {
+        try store(for: ref)?.with(ref, as: type, body)
+    }
+
+    func update<T: Resolvable, R>(_ ref: Reference, as type: T.Type = T.self, _ body: (inout T) throws -> R) rethrows -> R? {
+        guard let store = store(for: ref) else { return nil }
+        var updated = false
+        let result = try store.update(ref, as: type) { value in
+            let result = try body(&value)
+            updated = true
+            return result
+        }
+        if updated { changed(ref) }
+        return result
+    }
+
+    func record(for ref: Reference) throws -> StorableObject? {
+        guard let value = store(for: ref)?.with(ref, as: (any Resolvable).self, { $0 }) else { return nil }
+        guard let descriptor = Catalog.shared.get(ref)
+                else { throw RuntimeError.Catalog.missingDescriptor(ref) }
+        return StorableObject(descriptor: descriptor, value: value)
+    }
+
+    func records() throws -> [StorableObject] {
+        try stores.flatMap { store in
+            try store.values().map { value in
+                guard let record = try record(for: value.ref)
+                        else { throw RuntimeError.persistence(.encodingFailed(value.ref)) }
+                return record
+            }
+        }
+    }
+
+    func encode(for ref: Reference) async throws {
+        guard let record = try record(for: ref) else { return }
+        let url = Runtime.shared.settings.persistence.libraryPath(for: ref)
+        try await Persistence.shared.write(PersistedObject(url: url, value: record))
+    }
+
+    func decode(_ records: [StorableObject]) {
+        for record in records {
+            Catalog.shared.set(record.value.ref, record.descriptor)
+            store(for: record.value.ref)?.add(record.value.ref, record.value)
+        }
+    }
+}
+
+extension Storing {
+    func add(_ ref: Reference, _ value: Resolvable) { store(for: ref)?.add(ref, value) }
+    func remove(_ ref: Reference) { store(for: ref)?.remove(ref) }
+    func all<T: Resolvable>(as type: T.Type) -> [(Reference, T)] { store(for: Reference(T.self))?.all(as: type) ?? [] }
+
+    func with<T: Resolvable, R>(_ ref: Reference, as type: T.Type = T.self, _ body: (T) throws -> R) rethrows -> R? {
+        try store(for: ref)?.with(ref, as: type, body)
+    }
+
+    func update<T: Resolvable, R>(_ ref: Reference, as type: T.Type = T.self, _ body: (inout T) throws -> R) rethrows -> R? {
+        try store(for: ref)?.update(ref, as: type, body)
+    }
+}
 
 struct Codec: @unchecked Sendable {
     let format: Format

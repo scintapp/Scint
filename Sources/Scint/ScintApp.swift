@@ -5,18 +5,39 @@ import OSLog
 @main
 struct Scint: App {
     @Environment(\.openWindow) private var openWindow
-    @State private var scint: ScintModel?
+    @State private var model: ScintModel?
     @State private var loading = false
     @State private var pending: URL?
-    static let logger = Logger(subsystem: "com.kaechle.scint", category: "App")
+    static let logger = Logger(subsystem: "com.kaechle.model", category: "App")
 
     var body: some Scene {
         Window("Assistant", id: "assistant") {
-            if let scint {
+            if let model {
                 Assistant()
-                    .environment(scint)
-                    .environment(scint.assistant)
-                    .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
+                    .environment(model)
+                    .onAppear(perform: { ShortcutManager.shared.register(model: model) } )
+                    .focusable(false)
+            } else {
+                ProgressView()
+                    .task { await load() }
+            }
+        }
+
+        Window("Editor", id: "editor") {
+            if let model {
+                Editor()
+                    .environment(model)
+                    .focusable(false)
+            } else {
+                ProgressView()
+                    .task { await load() }
+            }
+        }
+
+        Window("Studio", id: "studio") {
+            if let model {
+                Studio()
+                    .environment(model)
                     .focusable(false)
             } else {
                 ProgressView()
@@ -25,11 +46,11 @@ struct Scint: App {
         }
 
         MenuBarExtra(content: {
-            if let scint {
+            if let model {
                 Host()
-                    .environment(scint)
-                    .environment(scint.host)
-                    .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
+                    .environment(model)
+                    .environment(model.host)
+                    .onAppear(perform: { ShortcutManager.shared.register(model: model) } )
                     .focusable(false)
             } else {
                 Text("Scint is loading…")
@@ -38,14 +59,14 @@ struct Scint: App {
     }
 
     func load() async {
-        guard scint == nil, !loading else { return }
+        guard model == nil, !loading else { return }
         loading = true
         defer { loading = false }
         do {
             try await Runtime.shared.load()
-            let model = ScintModel()
-            await model.load()
-            scint = model
+            let scint = ScintModel()
+            await scint.load()
+            model = scint
             if let pending { ReferenceRouter.handle(pending) }
             pending = nil
         } catch {
@@ -53,32 +74,3 @@ struct Scint: App {
         }
     }
 }
-
-
-//Window("Studio", id: "studio") {
-//    if let scint {
-//        Studio()
-//            .environment(scint)
-//            .environment(scint.studio)
-//            .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
-//            .focusable(false)
-//            .onOpenURL { ReferenceRouter.handle($0) }
-//    } else {
-//        ProgressView()
-//            .task { await load() }
-//            .onOpenURL { pending = $0 }
-//    }
-//}
-
-//Window("Editor", id: "editor") {
-//    if let scint {
-//        Editor()
-//            .environment(scint)
-//            .environment(scint.editor)
-//            .onAppear(perform: { ShortcutManager.shared.register(scint: scint) } )
-//            .focusable(false)
-//    } else {
-//        ProgressView()
-//            .task { await load() }
-//    }
-//}

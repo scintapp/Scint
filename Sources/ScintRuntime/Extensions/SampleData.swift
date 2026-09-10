@@ -439,19 +439,17 @@ enum SampleData {
     @discardableResult
     static func load(_ workspace: Reference, for key: ModelKey) async -> Bool {
         switch key {
-            case .assistant: await assistant(workspace); return false
             case .editor: await editor(workspace); return false
-            case .studio: return await studio(workspace)
+            case .studio: await studio(workspace); return false
+            case .assistant: return await assistant(workspace)
         }
     }
 
-    static func assistant(_ workspace: Reference) async { }
-    static func builder(_ workspace: Reference) async { }
     static func editor(_ workspace: Reference) async { }
-    static func panels(_ workspace: Reference) async { }
+    static func studio(_ workspace: Reference) async { }
 
     @discardableResult
-    static func studio(_ workspace: Reference) async -> Bool {
+    static func assistant(_ workspace: Reference) async -> Bool {
         guard Workspace.with(workspace, { $0.spaces.isEmpty }) ?? true else { return false }
 
         let codexHarness = interfaces.codexHarness
@@ -463,7 +461,6 @@ enum SampleData {
             interfaces.fetchURLHeaders,
             interfaces.concatSwiftRepo
         ]
-
 
         Workspace.update(workspace, { ws in
             let components = [

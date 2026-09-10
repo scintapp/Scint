@@ -140,3 +140,19 @@ struct SearchResults: Codable, Sendable {
         self.all = all
     }
 }
+
+extension String {
+    var normalized: String {
+        folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .map { $0.isLetter || $0.isNumber ? String($0).lowercased() : " " }
+            .joined()
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+    }
+
+    var tokenized: [String] {
+        normalized
+            .split(whereSeparator: \.isWhitespace)
+            .map(String.init)
+    }
+}

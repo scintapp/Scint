@@ -6,13 +6,29 @@ struct Composition: Sendable {
     private var context: Context? { Composer.shared.context(space) }
     private var intents: [Intent] { context?.handlers.map { $0.intent } ?? [] }
 
-    enum State: Sendable { case inactive, active, working }
+    enum State: Sendable { case inactive, active, working, completed, failed }
 
     init(_ space: Reference) { self.space = space }
 
     var state: State {
+        switch signal {
+            case .failed: return .failed
+            case .completed: return .completed
+            default: break
+        }
+
         if intents.isEmpty { return .inactive }
-        return .active
+        if intents.allSatisfy({ $0 == .observe }) { return .active }
+        return .working
+    }
+
+    private var signal: Signal? {
+        return Transcript.with(transcript) { record -> Signal? in
+            for entry in record.entries.reversed() {
+                if case .event(let signal, _) = entry { return signal }
+            }
+            return nil
+        } ?? nil
     }
 
     var closure: Reference {

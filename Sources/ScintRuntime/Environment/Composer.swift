@@ -11,22 +11,17 @@ import Foundation
     }
 
     func compose(_ ref: Reference) -> Composition? {
-        guard (ref.type == Workspace.self || ref.type == Space.self) else { return nil }
-
-        if ref.type == Workspace.self {
-            guard let harness = Workspace.with(ref, { $0 })?.harness, Harness.with(harness, { $0 }) != nil
-            else { return nil }
-        } else if ref.type == Space.self {
-            guard let harness = Space.with(ref, { $0 })?.harness, Harness.with(harness, { $0 }) != nil
-            else { return nil }
+        let harness: Reference?
+        switch ref.type {
+            case is Workspace.Type: harness = Workspace.with(ref, { $0 })?.harness
+            case is Space.Type: harness = Space.with(ref, { $0 })?.harness
+            default: return nil
         }
 
+        guard let harness, Harness.with(harness, { $0 }) != nil else { return nil }
         if let resolved = resolve(ref) { return resolved }
-        else {
-            let context = Context.new(ref)
-            contexts.set(ref, context)
-            return resolve(ref)
-        }
+        contexts.set(ref, Context.new(ref))
+        return resolve(ref)
     }
 
     func context(_ ref: Reference) -> Context? {

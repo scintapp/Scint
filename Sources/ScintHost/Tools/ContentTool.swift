@@ -1,14 +1,6 @@
 import Foundation
 
 
-/// Reading and changing the content of a space.
-///
-/// Content is the `Malleable` family: materials, which are written, and transcripts, which are
-/// recorded. `read` serves both because both render; only a material can be written to, and
-/// saying so is more useful than hiding transcripts from a verb that would work on them.
-///
-/// Listing and describing are `CatalogTool`'s — they are the same work for every family, so they
-/// are not repeated here.
 struct ContentTool: Tool {
     let origin: Reference
     let action: Operation
@@ -100,7 +92,7 @@ struct ContentTool: Tool {
         guard let supplied = arguments[key]?.string, !supplied.isEmpty else {
             return .failed(.failure("A \(key) address is required."))
         }
-        guard let ref = ReferenceURL.reference(in: supplied) ?? ReferenceURL.resolve(supplied),
+        guard let ref = Reference.Link.reference(in: supplied) ?? Reference.Link.resolve(supplied),
               Scope.reachable(ref, in: origin)
         else {
             return .failed(.failure("No content in this space matches \(supplied). Use scint.content.list."))
@@ -191,7 +183,7 @@ struct ContentTool: Tool {
             }
         }
 
-        let address = ReferenceURL.url(for: ref)?.absoluteString ?? ref.id.uuidString
+        let address = Reference.Link.url(for: ref)?.absoluteString ?? ref.id.uuidString
         return .ok("Created \(name) in \(target.descriptor.name) at \(address).")
     }
 
@@ -202,16 +194,16 @@ struct ContentTool: Tool {
     static func address(_ block: Material.Block) -> String {
         switch block {
             case .artifact(let ref), .command(let ref), .material(let ref):
-                return ReferenceURL.url(for: ref)?.absoluteString ?? ref.id.uuidString.lowercased()
+                return Reference.Link.url(for: ref)?.absoluteString ?? ref.id.uuidString.lowercased()
             case .task(let id, _, _), .text(let id, _):
-                return "\(ReferenceURL.scheme)://block/\(id.uuidString.lowercased())"
+                return "\(Reference.Link.scheme)://block/\(id.uuidString.lowercased())"
         }
     }
 
     static func normalized(_ value: String) -> String {
         let trimmed = value.trimmingCharacters(in: CharacterSet(charactersIn: "[] ")).lowercased()
         guard let id = UUID(uuidString: trimmed) else { return trimmed }
-        return "\(ReferenceURL.scheme)://block/\(id.uuidString.lowercased())"
+        return "\(Reference.Link.scheme)://block/\(id.uuidString.lowercased())"
     }
 
     @MainActor

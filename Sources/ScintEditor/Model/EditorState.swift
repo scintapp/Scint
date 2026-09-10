@@ -300,7 +300,7 @@ import SwiftUI
     /// objects; selecting one is one behaviour.
     private func componentRanges(in text: NSString) -> [NSRange] {
         Markdown.scan(text as String).links.compactMap { link in
-            guard ReferenceURL.reference(in: text.substring(with: link.url)) != nil else { return nil }
+            guard Reference.Link.reference(in: text.substring(with: link.url)) != nil else { return nil }
             return link.range
         }
     }
@@ -329,7 +329,7 @@ import SwiftUI
         selection = .caret(id, range)
         guard let link = Markdown.scan(text as String).links.first(where: { $0.range == range })
         else { return }
-        ReferenceSelection.shared.selected = ReferenceURL.reference(in: text.substring(with: link.url))
+        ReferenceSelection.shared.selected = Reference.Link.reference(in: text.substring(with: link.url))
     }
 
     /// Moves to the block `offset` away from `id`, landing on the edge it is approached from.

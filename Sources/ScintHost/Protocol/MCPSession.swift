@@ -15,14 +15,6 @@ struct MCPSession {
             guard let composition = Runtime.shared.resolve().first(where: { holds(context, $0) })
                     else { return .refused(unmatched(context)) }
 
-//            guard composition.space.type == Space.self else {
-//                return .refused(
-//                    "\(composition.space.descriptor.name) is a "
-//                    + "\(composition.space.type.map { String(describing: $0).lowercased() } ?? "unknown") — "
-//                    + "tools are served from a space."
-//                )
-//            }
-
             guard composition.state != .inactive else {
                 return .refused(
                     "\(composition.space.descriptor.name) is composed but not running. Start it, or "

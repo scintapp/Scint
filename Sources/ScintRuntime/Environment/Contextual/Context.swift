@@ -39,12 +39,9 @@ struct Context: Contextual {
             case .started, .updated:
                 Transcript.update(transcript) { $0.insert(signal) }
 
-            case .stopped:
+            case .stopped, .completed, .failed:
                 Transcript.update(transcript) { $0.insert(signal) }
                 handlers.removeAll()
-
-            case .completed, .failed:
-                Transcript.update(transcript) { $0.insert(signal) }
         }
     }
 

@@ -102,6 +102,7 @@ struct Material: Malleable {
         else { RuntimeError.fatal("Not a valid material origin.") }
         var instance = Self(.init(Self.self))
         instance.origin = origin
+        instance.insert(.text(.init(), "# \(name)"), at: 0)
         Descriptor.new(instance.ref, name: name, tags: [])
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
         if origin.type == Workspace.self { Workspace.with(origin, { $0.add(instance.ref) }) }

@@ -32,7 +32,7 @@
 ****What it is.** A description of what should appear and where it sits in the composition —**
 **addressed by reference. A coordinate plus a semantic role, not a payload.**
 
-****Produced by.** Mappers, exclusively.**
+****Produced by.** Queries, exclusively.**
 ****Consumed by.** The Factory, exclusively.**
 ****Never.** Carries anything the reference can answer.**
 
@@ -42,7 +42,7 @@
 **expressed as a static description because it involves interaction, transfer, or an effect**
 **that crosses a module boundary.**
 
-****Produced by.** Mappers.**
+****Produced by.** Queries.**
 ****Consumed by.** The Factory, which wires them into the views it stamps out.**
 
 ****In scope:** activation and selection; transfer (drag, drop, paste, reference exchange);**
@@ -58,7 +58,7 @@
 **views, or between a view and the world outside the framework*. If not, it belongs**
 **somewhere else, and that somewhere else must be named in the rejection.**
 
-### **Mappers**
+### **Queries**
 
 ****What it is.** The only place the runtime is read for presentation. A pure function from**
 **(model, reference scope) to (params, controls).**
@@ -223,7 +223,7 @@
 
 **Cheap to add, but bounded:**
 
-- ******Mappers.** No views. Pure — same inputs, same params. No stored param property that a****
+- ******Queries.** No views. Pure — same inputs, same params. No stored param property that a****
   **reference could answer. Runtime writes go through controls, not through `parameters`.**
 - ******Views.** Design tokens only, no literals. No runtime access. No domain types in the****
   **signature beyond `Reference`. Reusable at two or more call sites, or the work belonged**

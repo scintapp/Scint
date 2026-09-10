@@ -3,13 +3,19 @@ import Foundation
 
 
 enum Intent: CaseIterable, Codable, Sendable {
-    case compose
-    case dispatch
-    case observe
-    case evaluate
-    case search
+    case compose, dispatch, observe, evaluate, search
 
     var rawValue: String { String(describing: self) }
+
+    var forms: (label: String, running: String, completed: String) {
+        switch self {
+            case .compose: ("Compose", "Composing", "Composed")
+            case .dispatch: ("Dispatch", "Dispatching", "Dispatched")
+            case .observe: ("Observe", "Observing", "Observed")
+            case .evaluate: ("Evaluate", "Evaluating", "Evaluated")
+            case .search: ("Research", "Researching", "Researched")
+        }
+    }
 }
 
 enum Signal: Codable, Sendable, Equatable {

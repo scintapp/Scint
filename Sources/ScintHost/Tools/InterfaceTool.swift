@@ -1,14 +1,6 @@
 import Foundation
 
 
-/// Using the interfaces attached to a space.
-///
-/// Interfaces are the `Functional` family: artifacts, which are links you read, and commands and
-/// harnesses, which are things you run. Both are authored by whoever uses the app, so there is a
-/// fixed pair of verbs here that take an address, rather than a tool per object — a surface that
-/// grew with user content would churn every time someone edited one, and name everything by UUID.
-///
-/// What a command takes is reported by `scint.interfaces.describe`, which returns its schema.
 struct InterfaceTool: Tool {
     let origin: Reference
     let action: Operation
@@ -17,8 +9,6 @@ struct InterfaceTool: Tool {
         case read, call
     }
 
-    /// Files can be large and context cannot. Past this the content is cut and the caller is told,
-    /// rather than being handed a truncated document it has no way to notice.
     static let readLimit = 40_000
 
     var namespace: ToolNamespace { .interfaces }
@@ -122,7 +112,7 @@ struct InterfaceTool: Tool {
     @MainActor
     private func resolve(_ arguments: Properties) -> Reference? {
         guard let supplied = arguments["interface"]?.string, !supplied.isEmpty,
-              let ref = ReferenceURL.reference(in: supplied) ?? ReferenceURL.resolve(supplied),
+              let ref = Reference.Link.reference(in: supplied) ?? Reference.Link.resolve(supplied),
               Scope.reachable(ref, in: origin)
         else { return nil }
         return ref

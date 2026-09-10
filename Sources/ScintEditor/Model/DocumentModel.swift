@@ -12,12 +12,12 @@ import SwiftUI
 /// selection, and undo are the text view's own. Only crossing a card needs the editor.
 enum BlockRun: Identifiable {
     case text(TextRun)
-    case card(Material.Block)
+    case block(Material.Block)
 
     var id: AnyHashable {
         switch self {
             case .text(let run): return run.id
-            case .card(let block): return block.id
+            case .block(let block): return block.id
         }
     }
 
@@ -28,7 +28,7 @@ enum BlockRun: Identifiable {
         for block in blocks {
             if case .text = block { pending.append(block); continue }
             if !pending.isEmpty { runs.append(.text(TextRun(pending))); pending = [] }
-            runs.append(.card(block))
+            runs.append(.block(block))
         }
 
         if !pending.isEmpty { runs.append(.text(TextRun(pending))) }
@@ -84,6 +84,7 @@ struct TextRun: Identifiable {
 
 struct MaterialView: View {
     @Environment(DocumentModel.self) private var material
+    @Environment(\.editorFocus) private var focus
     let selection: EditorSelection
     let onRunChange: ([AnyHashable], String, NSRange) -> Void
     let onRunSelectionChange: ([AnyHashable], NSRange) -> Void
@@ -129,22 +130,26 @@ struct MaterialView: View {
                         .id(run.id)
                         .background { frameReader(run.frameID) }
 
-                    case .card(let block):
-                        MaterialCard(
+                    case .block(let block):
+                        MaterialBlock(
                             block: block,
-                            isSelected: !selection.isEditing && selection.isSelected(block.id),
-                            onFocusGained: { onFocusGained(block.id) },
-                            onEdit: { onEdit(block.id, $0) },
-                            onCommand: onCommand
+                            isSelected: !selection.isEditing && selection.isSelected(block.id)
                         )
+                        .overlay {
+                            // Reference blocks use the Reference itself as their identity.
+                            EntryResponder(
+                                id: block.id,
+                                focus: focus,
+                                onFocusGained: { onFocusGained(block.id) },
+                                onEdit: { onEdit(block.id, $0) },
+                                onCommand: { onCommand($0, NSRange(location: 0, length: 0), 0) }
+                            )
+                        }
                         .id(block.id)
                         .background { frameReader(block.id) }
                 }
             }
         }
-        // The preference carries every rendered run, reduced across the whole subtree, so it is a
-        // complete snapshot rather than a delta. Merging it into a long-lived dictionary is what let
-        // frames outlive their blocks; assigning it makes the map the rendered set by construction.
         .onPreferenceChange(EntryPanelsKey.self) { frames in onFrames(frames) }
     }
 
@@ -212,7 +217,7 @@ struct MaterialView: View {
                     case .artifact(let ref), .command(let ref), .material(let ref): reference = ref
                     case .task, .text: continue
                 }
-                guard let link = ReferenceURL.markdown(for: reference) else { continue }
+                guard let link = Reference.Link.markdown(for: reference) else { continue }
                 material.update(.text(UUID(), link), at: index)
                 changed = true
             }

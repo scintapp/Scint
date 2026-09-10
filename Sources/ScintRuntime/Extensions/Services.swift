@@ -2,6 +2,29 @@ import Foundation
 import OSLog
 
 
+@objc protocol ServiceHandling {
+    func handle(pid: Int32, chunk: String)
+}
+
+@objc protocol ServiceProviding {
+    func start(_ command: String, _ arguments: [String], _ environment: [String: String], _ reply: @escaping (Int32, String?, String?) -> Void)
+    func stop(pid: Int32, reply: @escaping (Bool) -> Void)
+    func restart(pid: Int32, reply: @escaping (Int32, String?, String?) -> Void)
+    func list(reply: @escaping ([String]) -> Void)
+    func inspect(pid: Int32, reply: @escaping (String?) -> Void)
+    func write(pid: Int32, input: String, close: Bool, reply: @escaping (String) -> Void)
+    func ping(reply: @escaping (Bool) -> Void)
+    func status(reply: @escaping (String) -> Void)
+    func request(_ json: String, reply: @escaping (String) -> Void)
+    func registerService(_ json: String, reply: @escaping (String) -> Void)
+    func unregisterService(_ id: String, reply: @escaping (Bool) -> Void)
+    func services(reply: @escaping (String) -> Void)
+    func startService(_ id: String, reply: @escaping (String) -> Void)
+    func stopService(_ id: String, reply: @escaping (Bool) -> Void)
+    func restartService(_ id: String, reply: @escaping (String) -> Void)
+}
+
+
 final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Sendable {
     private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Services")
     private let connection: NSXPCConnection

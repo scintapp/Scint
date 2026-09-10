@@ -100,7 +100,7 @@ Two forms of composition meet at the application boundary:
 
 - **Runtime composition** maps a structural origin and its live context into a
   `Composition` without duplicating process state.
-- **View composition** maps references and session state through `Mapper` into
+- **View composition** maps references and session state through `Query` into
   presentation `Params`, behavioral `Controls`, and native surfaces without duplicating
   domain state.
 

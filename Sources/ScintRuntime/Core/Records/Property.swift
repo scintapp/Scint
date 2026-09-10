@@ -2,6 +2,17 @@ import Foundation
 
 
 
+protocol ExpressibleThings: ExpressibleByStringLiteral, ExpressibleByBooleanLiteral, ExpressibleByNilLiteral {}
+protocol ExpressibleNumbers: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {}
+protocol Expressible: ExpressibleNumbers, ExpressibleThings {}
+protocol Convertible: Sendable { var property: Property { get } }
+
+extension Int: Convertible { var property: Property { .integer(self) }}
+extension Double: Convertible { var property: Property { .decimal(self) }}
+extension String: Convertible { var property: Property { .string(self) }}
+extension Bool: Convertible { var property: Property { .bool(self) }}
+extension Optional: Convertible where Wrapped: Convertible { var property: Property { self?.property ?? .null } }
+
 enum Property: Codable, Convertible, Equatable, Hashable, Expressible {
     case bool(Bool)
     case integer(Int)

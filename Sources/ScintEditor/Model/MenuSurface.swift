@@ -2,11 +2,6 @@ import AppKit
 import SwiftUI
 
 
-/// The editor's half of the menu.
-///
-/// `MenuController` decides what the reader picked; this decides what that means in a `Material`.
-/// Everything here is knowledge the menu used to hold and shouldn't have: which items exist, which
-/// references can become blocks, and how an outcome turns into a mutation.
 @MainActor enum MenuSurface {
     static let menu: [MenuItem] = [
         MenuItem.command(id: "new-task", label: "Task", icon: "checkmark.circle", keywords: ["task", "todo"], opens: .task),
@@ -24,15 +19,13 @@ import SwiftUI
         MenuItem.command(id: "add-files", label: "Files or Folders...", icon: "folder.badge.plus", keywords: ["file", "folder", "directory", "artifact", "open"])
     ]
 
-    /// Resolves a query for the kinds that are backed by references. Form kinds return nothing,
-    /// which is how the controller learns they are forms rather than lists.
     static func search(_ query: String, kind: MenuKind) -> [MenuItem] {
         switch kind {
             case .dynamic:
-                return MenuSearch.items(for: query) { ReferenceURL.url(for: $0) != nil }
+                return SearchMenu.search(for: query) { Reference.Link.url(for: $0) != nil }
             case .update(let form):
                 guard let type = referenceType(for: form) else { return [] }
-                return MenuSearch.items(for: query) { $0.type == type }
+                return SearchMenu.search(for: query) { $0.type == type }
             case .fixed, .create:
                 return []
         }
@@ -47,7 +40,6 @@ import SwiftUI
         }
     }
 
-    /// The form that edits an existing block, prefilled.
     static func form(for block: Material.Block) -> (MenuFormKind, MenuFormValues)? {
         switch block {
             case .task(_, let text, let completed):
@@ -67,40 +59,23 @@ import SwiftUI
         }
     }
 
-    /// Applies a committed choice to the document.
-    ///
-    /// Returns the block the caret should land on and, when the insertion stayed inside one text
-    /// block, where in it.
-    static func apply(
-        _ outcome: MenuOutcome,
-        to material: DocumentModel
-    ) -> (id: AnyHashable, caret: NSRange?)? {
-        guard let blocks = blocks(for: outcome, in: material) else { return nil }
+    static func apply(_ outcome: MenuOutcome, to model: DocumentModel) -> (id: AnyHashable, caret: NSRange?)? {
+        guard let blocks = blocks(for: outcome, in: model) else { return nil }
 
         guard outcome.isInserting else {
-            guard let block = blocks.first,
-                  let id = material.update(block, replacing: outcome.target)
+            guard let block = blocks.first, let id = model.update(block, replacing: outcome.target)
             else { return nil }
             return (id, nil)
         }
 
-        return material.insert(blocks, replacing: outcome.replacementRange, in: outcome.target)
+        return model.insert(blocks, replacing: outcome.replacementRange, in: outcome.target)
     }
 
-    /// A reference always lands inline, whichever menu produced it.
-    ///
-    /// `/` creates the object and `@` finds one that already exists, but what reaches the document
-    /// is the same thing either way: a markdown link. A reference used to arrive from `/` as a
-    /// block of its own — a full-width row wrapped around a single chip, taking a line to say what
-    /// a few characters could, and a second representation of something that already had one.
-    ///
-    /// `DocumentModel.insert` splices an all-text insertion into the block at the replacement
-    /// range, so this needs no separate path.
     private static func inlined(_ blocks: [Material.Block]) -> [Material.Block]? {
         let pieces = blocks.compactMap { block -> String? in
             switch block {
                 case .artifact(let ref), .command(let ref), .material(let ref):
-                    return ReferenceURL.markdown(for: ref)
+                    return Reference.Link.markdown(for: ref)
                 case .text(_, let value):
                     return value
                 case .task:
@@ -108,7 +83,6 @@ import SwiftUI
             }
         }
 
-        // A task is a real block; anything holding one stays as it is.
         guard pieces.count == blocks.count else { return blocks }
         guard !pieces.isEmpty else { return nil }
         return [.text(UUID(), pieces.joined(separator: " "))]
@@ -118,7 +92,7 @@ import SwiftUI
         switch outcome.choice {
             case .item(let item):
                 if let ref = item.ref {
-                    guard let link = ReferenceURL.markdown(for: ref, name: item.label) else { return nil }
+                    guard let link = Reference.Link.markdown(for: ref, name: item.label) else { return nil }
                     return [.text(UUID(), link)]
                 }
                 guard let built = build(for: item), !built.isEmpty else { return nil }
