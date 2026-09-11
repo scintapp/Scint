@@ -1,16 +1,44 @@
 import SwiftUI
+import LinkPresentation
 
 
-struct ReferenceCard: View {
+enum CardStyle { case group, list }
+
+struct Card: View {
     let ref: Reference
-    var isSelected = false
+    let style: CardStyle
     var onSelect: (() -> Void)? = nil
 
-    @State private var isHovered = false
+    @State var isSelected: Bool = false
+    @State var isHovered: Bool = false
+    @State var linkMetadata: (url: URL, value: LPLinkMetadata)?
 
-    static func text(for ref: Reference) -> (name: String, description: String) {
+    var url: URL? { Self.link(for: ref) }
+    var metadata: LPLinkMetadata? { linkMetadata.flatMap { $0.url == url ? $0.value : nil } }
+    var selected: Bool { isSelected || ReferenceSelection.shared.selected == ref }
+    var icon: Iconography.Icon { Iconography.icon(for: ref, size: style == .group ? 14 : 18) }
+
+    static func link(for ref: Reference) -> URL? {
+        Artifact.with(ref) { artifact in
+            guard case .bookmark(let url) = artifact.handler else { return nil }
+            return url
+        } ?? nil
+    }
+
+    static func text(for ref: Reference, metadata: LPLinkMetadata? = nil) -> (name: String, description: String) {
         let descriptor = ref.descriptor
         var result = (name: descriptor.name, description: descriptor.description)
+
+        if let url = link(for: ref) {
+            if let title = metadata?.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
+                result.name = title
+            }
+            result.description = metadata?.url?.host(percentEncoded: false)
+            ?? metadata?.originalURL?.host(percentEncoded: false)
+            ?? url.host(percentEncoded: false)
+            ?? url.absoluteString
+            return result
+        }
 
         guard let blocks = Material.with(ref, { $0.blocks }),
               case .text(_, let first)? = blocks.first,
@@ -36,7 +64,7 @@ struct ReferenceCard: View {
         switch ref.type {
             case is Material.Type:
                 return Material.with(ref) { material in
-                    var counts = EntryCounts()
+                    var counts = ComponentCount()
                     counts.include(material.blocks)
 
                     return counts.totalTasks > 0 ? ["\(counts.completedTasks)/\(counts.totalTasks) tasks"] : []
@@ -45,7 +73,7 @@ struct ReferenceCard: View {
             case is Space.Type:
                 return Space.with(ref) { space in
                     let materials = space.materials
-                    var counts = EntryCounts()
+                    var counts = ComponentCount()
                     for material in materials {
                         Material.with(material) { counts.include($0.blocks, countMaterials: false) }
                     }
@@ -77,130 +105,107 @@ struct ReferenceCard: View {
         }
     }
 
-    var body: some View {
-        let text = Self.text(for: ref)
-        let icon = Iconography.icon(for: ref)
+    var content: some View {
+        let text = Self.text(for: ref, metadata: metadata)
         let badges = Array(Self.badges(for: ref).prefix(Style.Limit.cardBadges))
-        let selected = isSelected || ReferenceSelection.shared.selected == ref
-        let shape = Style.Shape.medium
+
+        return VStack(alignment: .leading) {
+            HStack(alignment: .center, spacing: 8) {
+                icon
+                    .frame(maxHeight: .infinity, alignment: .center)
+
+                VStack(alignment: .leading) {
+                    Text(text.name)
+                        .frame(maxHeight: .infinity, alignment: .topLeading)
+                        .font(Typography.cardTitle)
+                        .foregroundStyle(Style.Foreground.primary)
+                        .lineLimit(Style.Limit.singleLine)
+
+                    if !text.description.isEmpty {
+                        Text(text.description)
+                            .font(Typography.cardDetail())
+                            .foregroundStyle(Style.Foreground.muted)
+                            .lineLimit(Style.Limit.doubleLine)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                    }
+                }
+
+                Spacer()
+
+                if !badges.isEmpty {
+                    HStack(spacing: Style.Spacing.sm) {
+                        ForEach(Array(badges.enumerated()), id: \.offset) { _, label in
+                            Badge(label: label, tint: icon.tint, outlined: true)
+                        }
+                    }
+                    .frame(maxHeight: .infinity, alignment: .center)
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: 30, alignment: .center)
+            .layoutPriority(1)
+        }
+    }
+
+    var body: some View {
+        let shape = Style.Shape.large
 
         Button {
-            if let onSelect {
-                onSelect()
-            } else {
+            if let onSelect { onSelect() }
+            else {
                 ReferenceSelection.shared.selected = ref
-                ReferenceRouter.open(ref)
+                CallbackRouter.open(ref)
             }
         } label: {
-            VStack(alignment: .leading, spacing: Style.Spacing.md) {
-                HStack(alignment: .top, spacing: Style.Spacing.lg) {
-                    HStack(spacing: Style.Spacing.md) {
-                        icon
-                        Text(text.name)
-                            .font(Typography.cardTitle)
-                            .foregroundStyle(Style.Foreground.base)
-                            .lineLimit(Style.Limit.singleLine)
+            switch style {
+                case .group:
+                    VStack {
+                        content
+                            .multilineTextAlignment(.leading)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 14)
+                            .frame(maxWidth: .infinity, maxHeight: 80, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .layoutPriority(1)
-
-                    if !badges.isEmpty {
-                        HStack(spacing: Style.Spacing.sm) {
-                            ForEach(Array(badges.enumerated()), id: \.offset) { _, label in
-                                Badge(label: label, tint: icon.tint, outlined: true)
-                            }
+                    .background { selected ? shape.fill(icon.tint.opacity(0.03)) : shape.fill(Style.Background.card) }
+                    .overlay {
+                        shape.strokeBorder(
+                            selected || isHovered
+                            ? icon.tint.opacity(selected ? Style.Opacity.strong : Style.Opacity.muted)
+                            : Style.Border.card,
+                            lineWidth: selected ? 1 : 0.5
+                        )
+                    }
+                    .contentShape(shape)
+                    .offset(y: isHovered ? -1 : 0)
+                    .onHover { hovered in
+                        withAnimation(.easeInOut(duration: Style.Duration.interaction)) {
+                            isHovered = hovered
                         }
-                        .fixedSize(horizontal: true, vertical: false)
                     }
-                }
 
-                if !text.description.isEmpty {
-                    Text(text.description)
-                        .font(Typography.cardDetail())
-                        .foregroundStyle(Style.Foreground.muted)
-                        .lineLimit(Style.Limit.doubleLine)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                case .list:
+                    VStack {
+                        content
+                            .multilineTextAlignment(.leading)
+                            .padding(.vertical, 8)
+                            .padding(.bottom, 4)
+                            .frame(maxWidth: .infinity, maxHeight: 80, alignment: .leading)
+                            .contentShape(shape)
+                        Divider()
+                            .padding(.leading, 24)
+                    }
             }
-            .multilineTextAlignment(.leading)
-            .padding(.horizontal, Style.Spacing.xl)
-            .padding(.vertical, Style.Spacing.lg)
-            .frame(maxWidth: .infinity, minHeight: Style.Spacing.cardHeight, alignment: .leading)
-            .background(shape.fill(Style.Background.card))
-            .overlay {
-                shape.strokeBorder(
-                    selected || isHovered
-                        ? icon.tint.opacity(selected ? Style.Opacity.strong : Style.Opacity.muted)
-                        : Color.primary.opacity(Style.Opacity.hairline),
-                    lineWidth: selected || isHovered ? Style.Dimension.border : Style.Dimension.hairline
-                )
-            }
-            .contentShape(shape)
         }
         .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
         .referenceMenu(ref)
-    }
-}
-
-
-#if DEBUG
-#Preview("Cards") {
-    let previewData = FileManager.default.temporaryDirectory
-        .appending(path: "ScintCardPreviews")
-        .appending(path: String(ProcessInfo.processInfo.processIdentifier))
-    precondition(setenv("XDG_DATA_HOME", previewData.path, 1) == 0)
-
-    let workspace = Workspace.new("Research Desk")
-    Workspace.update(workspace) { $0.description = "Shared research, materials, and tools." }
-    let space = Space.new(workspace, name: "Client research")
-    Space.update(space) { $0.description = "Prepare the next discovery call." }
-    let file = Artifact.register("Design notes.md", previewData.appending(path: "Design notes.md"))
-    Artifact.update(file) { $0.description = "Notes and reference material for the interview." }
-    let link = Artifact.register("SwiftUI documentation", URL(string: "https://developer.apple.com/documentation/swiftui")!)
-    Artifact.update(link) { $0.description = "Apple's documentation for SwiftUI." }
-    let executable = Artifact.register("curl", URL(filePath: "/usr/bin/curl"))
-    let command = Command.register("Fetch Web Page", exec: executable, params: [
-        .fixed(.string("-L")),
-        .fixed(.string("--max-time 20")),
-        .argument(name: "URL", type: .string(""), required: true)
-    ])
-    Command.update(command) { $0.description = "Fetch the contents of a web page with curl." }
-    let harness = Harness.register("Research Harness", command: command, intent: .observe)
-    Harness.update(harness) { $0.description = "Observe changes while collecting research." }
-
-    let material = Material.new(space, name: "Descriptor fallback title")
-    Material.update(material) {
-        $0.description = "Descriptor fallback description."
-        $0.update(.text(UUID(), "# Research Brief Template"), at: 0)
-        $0.insert(.text(UUID(), "Turn a topic into a research brief with a working question, audience context, and source plan.\nCapture the intended use of the finished brief."), at: nil)
-        $0.insert(.task(UUID(), "Review the brief", false), at: nil)
-        $0.insert(.task(UUID(), "Collect design references", true), at: nil)
-        $0.insert(.artifact(file), at: nil)
-    }
-    let fallback = Material.new(space, name: "Material without a heading")
-    Material.update(fallback) {
-        $0.description = "This card uses its descriptor because the heading and following text are absent."
-        $0.delete(at: 0)
-    }
-    let transcript = Transcript.new(workspace)
-    Transcript.update(transcript) {
-        $0.name = "Observe Transcript"
-        $0.description = "Watch the Research Desk for changes."
-    }
-    let refs = [material, fallback, command, harness, transcript, file, link, space, workspace]
-
-    return ScrollView {
-        VStack(alignment: .leading, spacing: Style.Spacing.xl) {
-            ForEach(refs) { ref in
-                ReferenceCard(ref: ref)
-            }
+        .task(id: url) {
+            guard linkMetadata?.url != url else { return }
+            linkMetadata = nil
+            guard let url else { return }
+            let provider = LPMetadataProvider()
+            guard let metadata = try? await provider.startFetchingMetadata(for: url), !Task.isCancelled else { return }
+            linkMetadata = (url, metadata)
         }
-        .padding(Style.Spacing.xxl)
     }
-    .frame(width: Style.Spacing.contentMaxWidth, height: Style.Dimension.taskPanel.height)
-    .background(Style.Background.base)
-    .preferredColorScheme(.dark)
 }
-#endif

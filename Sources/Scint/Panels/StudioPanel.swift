@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-@Observable final class ContentPanel: Panel {
+@Observable final class StudioPanel: Panel {
     var mode: Modality = .fixed
     var state: PanelState = .init(presented: true, position: 340)
     var surface: PanelSurface = .project

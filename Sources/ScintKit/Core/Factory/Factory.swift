@@ -208,6 +208,11 @@ import Foundation
                     controls.onChange?(params, $0)
                 }
 
+            case .range:
+                ItemRangePicker(value: params.value ?? "", items: params.items) {
+                    controls.onChange?(params, $0)
+                }
+
             case .field:
                 ItemField(value: params.value ?? "") {
                     controls.onValueChange?(params, $0)
@@ -404,7 +409,7 @@ extension Factory {
             return .handled
         }
 
-        return PanelLayout {
+        return PanelView {
             if let detail {
                 PanelDetail(params: detail) {
                     ForEach(detail.sections) { component in

@@ -36,6 +36,72 @@ struct ItemPicker: View {
     }
 }
 
+struct ItemRangePicker: View {
+    let value: String
+    let items: [ItemParams]
+    let onChange: (ItemParams) -> Void
+
+    private static let track: CGFloat = 84
+    private static let height: CGFloat = 16
+    private static let notch: CGFloat = 3
+
+    private var index: Int {
+        let found = items.firstIndex { ($0.value ?? "") == value } ?? 0
+        return min(max(found, 0), max(items.count - 1, 0))
+    }
+
+    var body: some View {
+        HStack(spacing: Style.Spacing.md) {
+            Text(items.indices.contains(index) ? items[index].name : "")
+                .font(.system(size: 12))
+                .foregroundStyle(Style.Foreground.subtle)
+                .lineLimit(Style.Limit.singleLine)
+
+            Spacer(minLength: 0)
+
+            let step = step(for: Self.track)
+
+            ZStack(alignment: .leading) {
+                Style.Shape.capsule.fill(Style.Background.control)
+
+                ForEach(Array(items.indices), id: \.self) { notch in
+                    Circle()
+                        .fill(Style.Foreground.faint)
+                        .frame(width: Self.notch, height: Self.notch)
+                        .offset(x: Self.height / 2 + step * CGFloat(notch) - Self.notch / 2)
+                }
+
+                Circle()
+                    .fill(Style.Foreground.primary)
+                    .frame(width: Self.height, height: Self.height)
+                    .offset(x: step * CGFloat(index))
+            }
+            .frame(width: Self.track, height: Self.height)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { drag in select(at: drag.location.x) }
+            )
+            .animation(.smooth(duration: 0.15), value: index)
+        }
+        .frame(width: 132, alignment: .trailing)
+    }
+
+    private func step(for width: CGFloat) -> CGFloat {
+        guard items.count > 1 else { return 0 }
+        return (width - Self.height) / CGFloat(items.count - 1)
+    }
+
+    private func select(at x: CGFloat) {
+        let step = step(for: Self.track)
+        guard step > 0 else { return }
+        let position = (x - Self.height / 2) / step
+        let target = min(max(Int(position.rounded()), 0), items.count - 1)
+        guard target != index else { return }
+        onChange(items[target])
+    }
+}
+
 struct ItemDatePicker: View {
     let value: String
     let onChange: (String) -> Void
@@ -80,15 +146,15 @@ struct AssistantSurfacePicker: View {
             }
         }
         .controlGroupStyle(.navigation)
-        .foregroundStyle(Style.Foreground.base, Style.Foreground.base, Style.Foreground.base)
+        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.primary)
         .tint(Style.Background.control)
     }
 }
 
 struct ContentSurfacePicker: View {
-    let panel: ContentPanel
+    let panel: StudioPanel
 
-    private func selection(for surface: ContentPanel.PanelSurface) -> Binding<Bool> {
+    private func selection(for surface: StudioPanel.PanelSurface) -> Binding<Bool> {
         Binding(
             get: { panel.state.presented && panel.surface == surface },
             set: { selected in
@@ -104,22 +170,22 @@ struct ContentSurfacePicker: View {
 
     var body: some View {
         ControlGroup {
-            ForEach(ContentPanel.PanelSurface.allCases) { surface in
+            ForEach(StudioPanel.PanelSurface.allCases) { surface in
                 Toggle(isOn: selection(for: surface)) {
                     Image(systemName: surface.symbol)
                 }
             }
         }
         .controlGroupStyle(.navigation)
-        .foregroundStyle(Style.Foreground.base, Style.Foreground.base, Style.Foreground.base)
+        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.primary)
         .tint(Style.Background.group)
     }
 }
 
 struct DetailPicker: View {
-    let panel: ContentPanel
+    let panel: StudioPanel
 
-    private func selection(for detail: ContentPanel.PanelDetail) -> Binding<Bool> {
+    private func selection(for detail: StudioPanel.PanelDetail) -> Binding<Bool> {
         Binding(
             get: { panel.state.presented && panel.detail == detail },
             set: { selected in
@@ -135,14 +201,14 @@ struct DetailPicker: View {
 
     var body: some View {
         ControlGroup {
-            ForEach(ContentPanel.PanelDetail.allCases) { detail in
+            ForEach(StudioPanel.PanelDetail.allCases) { detail in
                 Toggle(isOn: selection(for: detail)) {
                     Image(systemName: detail.symbol)
                 }
             }
         }
         .controlGroupStyle(.navigation)
-        .foregroundStyle(Style.Foreground.base, Style.Foreground.base, Style.Foreground.base)
+        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.primary)
         .tint(Style.Background.group)
     }
 }
@@ -152,8 +218,6 @@ struct SettingsPicker: View {
     var model: any Model
 
     var surface: AnySurface { .init(panel: panel, model: model) }
-    var controls: Controls { SpaceSettings.controls(model) }
-    var parameters: Params { SpaceSettings.parameters(model) }
 
     @State private var presented = false
 
@@ -162,9 +226,93 @@ struct SettingsPicker: View {
             Image(systemName: "gearshape")
         }
         .popover(isPresented: $presented) {
-            surface.render(surface, parameters, controls)
+            surface.render(surface, SpaceSettings.parameters(model), SpaceSettings.controls(model))
                 .frame(maxWidth: 340, maxHeight: .infinity)
                 .scrollEdgeEffectStyle(.soft, for: .top)
+        }
+    }
+}
+
+struct PathPicker: View {
+    var panel: any Panel
+    var model: any Model
+
+    var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.workspace) }
+    var selection: Selection { model.session.selection }
+    var surface: AnySurface { .init(panel: panel, model: model) }
+
+    @State private var presented = false
+    @State private var hovered = false
+    @State private var text = ""
+
+    private var query: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    private var matches: [Reference] {
+        guard !query.isEmpty else { return [] }
+
+        return Runtime.shared.all(as: Space.self)
+            .map { $0.0 }
+            .filter { $0.descriptor.name.localizedCaseInsensitiveContains(query) }
+            .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
+    }
+
+    private func parent(of ref: Reference) -> String? {
+        (Space.with(ref, { $0.space }) ?? nil)?.descriptor.name
+    }
+
+    var body: some View {
+        if let ref = path.last {
+            Button { presented.toggle() } label: {
+                HStack(alignment: .center) {
+                    Iconography.icon(for: ref, size: 13.5)
+                    Text(ref.descriptor.name).font(.system(size: 13.5, weight: .medium))
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Style.Foreground.faint)
+                        .frame(width: 9)
+                        .opacity(hovered || presented ? Style.Opacity.full : .zero)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .onHover { isHovered in
+                withAnimation(.smooth(duration: Style.Duration.interaction)) { hovered = isHovered }
+            }
+            .popover(isPresented: $presented) {
+                VStack(spacing: 8) {
+                    Filter(text: $text)
+
+                    if query.isEmpty {
+                        surface.render(surface, AssistantNavigator.parameters(model), AssistantNavigator.controls(model))
+                    } else if matches.isEmpty {
+                        EmptyState(title: "No Matches")
+                    } else {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ForEach(matches, id: \.self) { match in
+                                    ListLink(
+                                        name: match.descriptor.name,
+                                        detail: parent(of: match),
+                                        ref: match,
+                                        image: "",
+                                        selected: selection.selected(match)
+                                    ) {
+                                        model.select(match)
+                                        model.focus(match)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 8)
+                        }
+                    }
+                }
+                .frame(width: 260, height: 280)
+                .padding(.top, 8)
+            }
+            .onChange(of: presented) { _, shown in if !shown { text = "" } }
+            .onChange(of: model.session.selection) { presented = false }
         }
     }
 }

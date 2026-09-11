@@ -12,6 +12,8 @@ enum ModelKey: String, Identifiable, CaseIterable {
 }
 
 @MainActor protocol Model: AnyObject {
+    associatedtype Panel
+    var content: Panel { get }
     var session: Session { get set }
     func focus(_ ref: Reference?)
     func select(_ ref: Reference, entry: UUID?, url: URL?)
@@ -45,7 +47,9 @@ extension Model {
     @discardableResult
     func stop(_ ref: Reference) -> Composition? { Runtime.shared.stop(ref) }
 
-    func search(_ query: String, limit: Int) -> SearchResults { Runtime.shared.search(query, limit: limit) }
+    func search(_ query: String, filters: [String] = [], limit: Int) -> SearchResults {
+        Runtime.shared.search(query, filters: filters, limit: limit)
+    }
 
     func artifacts(_ workspace: Reference) -> [Reference] {
         Workspace.with(workspace) { workspace in
@@ -62,11 +66,11 @@ extension Model {
 }
 
 final class AnyModel: Model {
-    var panel: any Panel
+    var content: any Panel
     var session: Session
 
     init(_ workspace: Reference) {
-        self.panel = AnyPanel()
+        self.content = AnyPanel()
         self.session = .init(anyRef)
     }
 }

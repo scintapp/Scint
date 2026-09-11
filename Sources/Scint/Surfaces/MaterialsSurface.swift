@@ -98,7 +98,7 @@ struct MaterialSurface: Surface {
     func content(_ minHeight: CGFloat) -> some View {
         ScrollView {
             VStack {
-                EditorComponent(ref, autofocus: false, active: model.session.selected.content == ref, minHeight: minHeight) { id in
+                EditorComponent(ref, autofocus: false, active: model.session.selection.content == ref, minHeight: minHeight) { id in
                     if let ref = id as? Reference { model.select(ref) }
                     else if let id = id as? UUID { model.select(ref, entry: id, url: nil) }
                 }
@@ -114,7 +114,12 @@ struct MaterialSurface: Surface {
         .scrollEdgeEffectStyle(.soft, for: .top)
         .scrollIndicators(.hidden)
         .scrollDisabled(!maximized)
-        .simultaneousGesture(TapGesture().onEnded { model.select(ref) })
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                model.select(ref)
+                model.open(ref)
+            }
+        )
     }
 
     var body: some View {

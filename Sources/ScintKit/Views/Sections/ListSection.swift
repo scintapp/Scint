@@ -176,7 +176,7 @@ struct ListRow<Content: View>: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: described == nil ? Style.Spacing.rowHeight : Style.Spacing.rowDetailHeight)
-        .background(RoundedRectangle(cornerRadius: 7).fill(selected ? Color.secondary.opacity(0.1) : Color.clear))
+        .background(RoundedRectangle(cornerRadius: 7).fill(selected ? Style.Tint.accent.opacity(0.3) : Color.clear))
         .foregroundStyle(.primary)
         .contentShape(RoundedRectangle(cornerRadius: 7))
     }

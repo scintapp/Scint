@@ -1,14 +1,14 @@
 import SwiftUI
 
 
-struct AssistantSidebar: Query {
+struct AssistantNavigator: Query {
     static func controls(_ model: any Model) -> Controls {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
                 if ref.type is Transcript.Type { return model.session.transcript == ref }
-                if let url = item.path { return model.session.selected.selected(ref, url) }
-                return model.session.selected.selected(ref)
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
@@ -26,28 +26,43 @@ struct AssistantSidebar: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        .init(
+        let spaces = SpacesList
+            .parameters(model)
+            .sections
+            .flatMap { $0.items }
+
+        let transcripts = TranscriptsList
+            .parameters(model)
+            .sections
+            .flatMap { $0.items }
+
+        let materials = MaterialsList
+            .parameters(model)
+            .sections
+            .flatMap { $0.items }
+
+
+        return .init(
             nesting: .recursive,
             header: true,
             sections: [
                 .init(
-                    id: "base",
-                    header: false,
-                    items: [
-                        .init(name: "Inbox", image: "tray"),
-                        .init(name: "Library", image: "building.classical.columns"),
-                        .init(name: "Outlines", image: "checklist.unchecked"),
-                        .init(name: "Tasks", image: "checkmark.app"),
-                    ]
+                    id: "workspace",
+                    name: "Workspace",
+                    header: true,
+                    items: spaces
                 ),
                 .init(
-                    id: "projects",
-                    name: "Projects",
+                    id: "materials",
+                    name: "Recent Materials",
                     header: true,
-                    items: SpacesList
-                        .parameters(model)
-                        .sections
-                        .flatMap { $0.items }
+                    items: materials
+                ),
+                .init(
+                    id: "transcripts",
+                    name: "Recent Transcripts",
+                    header: true,
+                    items: transcripts
                 )
             ]
         )

@@ -67,7 +67,7 @@ struct Scint: App {
             let scint = ScintModel()
             await scint.load()
             model = scint
-            if let pending { ReferenceRouter.handle(pending) }
+            if let pending { CallbackRouter.handle(pending) }
             pending = nil
         } catch {
             Self.logger.error("Runtime load failed: \(String(describing: error), privacy: .public)")

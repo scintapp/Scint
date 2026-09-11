@@ -25,13 +25,13 @@ struct ActionButton: View {
 
     var body: some View {
         Button { onAction(title) } label: {
-            Iconography.Icon(symbol: symbol, tint: Style.Foreground.base, sizing: iconSize)
+            Iconography.Icon(symbol: symbol, tint: Style.Foreground.primary, sizing: iconSize)
                 .frame(width: controlSize, height: controlSize)
         }
         .help(helpText)
         .buttonStyle(.plain)
         .font(.system(size: 10.5, weight: .semibold))
-        .foregroundStyle(Style.Foreground.base)
+        .foregroundStyle(Style.Foreground.primary)
         .background { Circle().fill(fill) }
         .overlay {
             if opensTranscript { Circle().strokeBorder(stroke, lineWidth: 0.75) }

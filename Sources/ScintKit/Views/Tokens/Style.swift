@@ -3,8 +3,9 @@ import SwiftUI
 
 struct Style {
     enum Shape {
+        static let codeRadius: CGFloat = 5
         static let tinyRadius: CGFloat = 9
-        static let smallRadius: CGFloat = 14
+        static let smallRadius: CGFloat = 13
         static let mediumRadius: CGFloat = 17
         static let largeRadius: CGFloat = 20
         static let panelRadius: CGFloat = 30
@@ -18,6 +19,14 @@ struct Style {
     }
 
     enum Spacing {
+        static let markdownLineSpacing: CGFloat = 4
+        static let markdownBlockSpacing: CGFloat = 12
+        static let markdownListSpacing: CGFloat = .zero
+        static let markdownListInset: CGFloat = 4
+        static let transcriptEntrySpacing: CGFloat = 24
+        static let markdownTextInset: CGFloat = 2
+        static let markdownTableHorizontal: CGFloat = 8
+        static let markdownTableVertical: CGFloat = 6
         static let xxs: CGFloat = 1
         static let xs: CGFloat = 2
         static let sm: CGFloat = 4
@@ -41,6 +50,9 @@ struct Style {
     }
 
     enum Dimension {
+        static let markdownBullet: CGFloat = 4
+        static let markdownQuoteBar: CGFloat = 3
+        static let markdownColumnWidth: CGFloat = 200
         static let hairline: CGFloat = 0.5
         static let border: CGFloat = 1
         static let icon: CGFloat = 14
@@ -48,6 +60,7 @@ struct Style {
         static let control: CGFloat = 32
         static let taskRowMinHeight: CGFloat = 56
         static let assignmentDescriptionHeight: CGFloat = 112
+        static let transcriptMaxWidth: CGFloat = 680
 
         static let taskPanel = CGSize(width: 860, height: 560)
         static let taskPanelMinimum = CGSize(width: 640, height: 420)
@@ -62,6 +75,7 @@ struct Style {
     }
 
     enum Scale {
+        static let transcriptInputWidth: CGFloat = 0.68
         static let identity: CGFloat = 1
         static let minimum: CGFloat = 0.5
         static let maximum: CGFloat = 1.6
@@ -69,6 +83,7 @@ struct Style {
     }
 
     enum Limit {
+        static let activityMessageLines = 5
         static let singleLine = 1
         static let doubleLine = 2
         static let cardBadges = 3
@@ -76,8 +91,10 @@ struct Style {
 
     enum Border {
         static var base: Color { Color(red: 0.18824, green: 0.18824, blue: 0.19216) }
+        static var card: Color { Color(red: 0.27255, green: 0.27647, blue: 0.28039) }
         static var group: Color { Color(red: 0.24008, green: 0.24033, blue: 0.24057).opacity(0.5) }
         static var raised: Color { Color(red: 0.20008, green: 0.20033, blue: 0.20057) }
+        static var field: Color { Color(red: 0.888, green: 0.888, blue: 0.888).opacity(0.25) }
     }
 
     enum Opacity {
@@ -96,19 +113,20 @@ struct Style {
     }
 
     enum Background {
-        static var base: Color { Color(red: 0.097196, green: 0.097196, blue: 0.099118) }
+        static var base: Color { Color(red: 0.10588, green: 0.10588, blue: 0.1098) }
         static var panel: Color { Color(red: 0.11313, green: 0.11333, blue: 0.11355) }
         static var surface: Color { Color(red: 0.13725, green: 0.13725, blue: 0.14118) }
         static var group: Color { Color(red: 0.18821, green: 0.18821, blue: 0.19124).opacity(0.1) }
         static var form: Color { Color(red: 0.12821, green: 0.12821, blue: 0.12124).opacity(0.5) }
-        static var card: Color { Color(red: 0.39181, green: 0.39198, blue: 0.39291).opacity(0.05) }
+        static var card: Color { Color(red: 0.11588, green: 0.11588, blue: 0.1198) }
         static var control: Color { Color(red: 0.72821, green: 0.72821, blue: 0.73124).opacity(0.2) }
         static var raised: Color { Color(red: 0.12821, green: 0.12821, blue: 0.13124) }
         static var overlay: Color { Color(red: 0.162, green: 0.165, blue: 0.169) }
+        static var field: Color { Color(red: 0.888, green: 0.888, blue: 0.888).opacity(0.1) }
     }
 
     enum Foreground {
-        static var base: Color { Color(red: 0.908, green: 0.912, blue: 0.924) }
+        static var primary: Color { Color(red: 0.908, green: 0.912, blue: 0.924) }
         static var secondary: Color { Color(red: 0.83891, green: 0.84939, blue: 0.86086) }
         static var subtle: Color { Color(red: 0.73891, green: 0.74939, blue: 0.76086) }
         static var muted: Color { Color(red: 0.60891, green: 0.60939, blue: 0.61086) }
@@ -118,7 +136,7 @@ struct Style {
     }
 
     enum Tint {
-        static var accent: Color { Color(red: 0.60784, green: 0.69804, blue: 0.82745) }
+        static var accent: Color { Color.accent }
         static var artifact: Color { Color(red: 0.72294, green: 0.84843, blue: 0.9749) }
         static var command: Color { Color(red: 0.96353, green: 0.84784, blue: 0.98804) }
         static var harness: Color { Color(red: 0.96353, green: 0.84784, blue: 0.98804) }

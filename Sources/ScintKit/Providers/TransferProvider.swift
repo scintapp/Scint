@@ -14,13 +14,53 @@ extension UTType {
 }
 
 enum ReferenceTransfer {
-    private struct Payload: Codable {
-        let ref: Reference
-        let origin: Reference?
+    /// What a drag carries. A runtime object travels as its reference and nothing else — where it
+    /// came from is resolved from the reference at the drop site. A row standing for a file inside
+    /// a directory artifact has no reference of its own, so the URL travels instead.
+    private enum Payload: Codable {
+        case reference(Reference)
+        case file(URL, name: String)
     }
 
-    static func handle(_ providers: [NSItemProvider], target: ItemParams) -> Bool {
-        guard canDrop(on: target), let origin = target.ref else { return false }
+    // MARK: - Reference-addressed
+
+    /// The parent a transferable object moves out of: a space's `space`, a material's `origin`.
+    ///
+    /// Transfer deals only in the normal flow of domain objects. Interfaces have no parent — they are
+    /// shared members of many spaces, so they copy on drop — and transcripts and closures are internal,
+    /// so they never transfer at all.
+    static func origin(of ref: Reference) -> Reference? {
+        if ref.type is Space.Type { return Space.with(ref, { $0.space }) ?? nil }
+        if let origin = Material.with(ref, { $0.origin }) { return origin }
+        return nil
+    }
+
+    static func canDrag(_ ref: Reference) -> Bool {
+        guard exists(ref) else { return false }
+        return ref.type is Space.Type || origin(of: ref) != nil || canShare(ref)
+    }
+
+    static func canDrop(on ref: Reference) -> Bool {
+        ref.type is Workspace.Type || ref.type is Space.Type
+    }
+
+    static func dropTypes(for ref: Reference) -> [UTType] {
+        canDrop(on: ref) ? UTType.scint : []
+    }
+
+    static func provider(for ref: Reference) -> NSItemProvider? {
+        guard exists(ref), let type = type(for: ref) else { return nil }
+        return provider(.reference(ref), as: type, named: ref.descriptor.name)
+    }
+
+    /// Nothing is registered here: a cancelled drag should leave no artifact behind, so the URL
+    /// travels and the artifact is created at the drop site.
+    static func provider(forFile url: URL, named name: String) -> NSItemProvider? {
+        provider(.file(url, name: name), as: .artifact, named: name)
+    }
+
+    static func handle(_ providers: [NSItemProvider], target: Reference) -> Bool {
+        guard canDrop(on: target) else { return false }
         var accepted = false
 
         for provider in providers {
@@ -29,7 +69,11 @@ enum ReferenceTransfer {
                 provider.loadDataRepresentation(forTypeIdentifier: type.identifier) { data, _ in
                     guard let data, let payload = try? JSONDecoder().decode(Payload.self, from: data) else { return }
                     Task { @MainActor in
-                        if move(payload.ref, by: payload.origin, to: origin) { await Runtime.shared.save() }
+                        let moved = switch payload {
+                            case .reference(let ref): move(ref, from: nil, to: target)
+                            case .file(let url, let name): move(Artifact.register(name, url), from: nil, to: target)
+                        }
+                        if moved { await Runtime.shared.save() }
                     }
                 }
                 break
@@ -39,14 +83,11 @@ enum ReferenceTransfer {
         return accepted
     }
 
-    static func provider(for item: ItemParams) -> NSItemProvider? {
-        guard
-            let ref = transferableRef(for: item, create: true), let type = type(for: ref),
-            let data = try? JSONEncoder().encode(Payload(ref: ref, origin: item.path == nil ? item.origin : nil))
-                else { return nil }
+    private static func provider(_ payload: Payload, as type: UTType, named name: String) -> NSItemProvider? {
+        guard let data = try? JSONEncoder().encode(payload) else { return nil }
 
         let provider = NSItemProvider()
-        provider.suggestedName = item.name
+        provider.suggestedName = name
         provider.registerDataRepresentation(forTypeIdentifier: type.identifier, visibility: .all) { completion in
             completion(data, nil)
             return nil
@@ -54,9 +95,40 @@ enum ReferenceTransfer {
         return provider
     }
 
-    static func dropTypes(for target: ItemParams) -> [UTType] {
-        canDrop(on: target) ? UTType.scint : []
+    // MARK: - Param-addressed
+    //
+    // The old factory addresses rows by param object. These resolve a reference and hand off.
+
+    static func handle(_ providers: [NSItemProvider], target: ItemParams) -> Bool {
+        guard target.path == nil, let ref = target.ref else { return false }
+        return handle(providers, target: ref)
     }
+
+    static func provider(for item: ItemParams) -> NSItemProvider? {
+        guard let ref = item.ref else { return nil }
+        guard let path = item.path else { return provider(for: ref) }
+        guard ref.type is Artifact.Type else { return nil }
+        if Artifact.with(ref, { $0.handler.url }) == path { return provider(for: ref) }
+        return provider(forFile: path, named: item.name)
+    }
+
+    static func dropTypes(for target: ItemParams) -> [UTType] {
+        guard target.path == nil, let ref = target.ref else { return [] }
+        return dropTypes(for: ref)
+    }
+
+    static func canDrag(_ item: ItemParams) -> Bool {
+        guard let ref = item.ref else { return false }
+        guard item.path == nil else { return ref.type is Artifact.Type }
+        return canDrag(ref)
+    }
+
+    static func canDrop(on target: ItemParams) -> Bool {
+        guard target.path == nil, let ref = target.ref else { return false }
+        return canDrop(on: ref)
+    }
+
+    // MARK: - Membership
 
     static func exists(_ ref: Reference) -> Bool {
         switch ref.type {
@@ -78,38 +150,36 @@ enum ReferenceTransfer {
     }
 
     static func canShare(_ ref: Reference) -> Bool {
-        exists(ref) && (ref.type is any Functional.Type || ref.type is Transcript.Type)
-    }
-
-    static func canDrag(_ item: ItemParams) -> Bool {
-        guard item.path == nil else { return transferableRef(for: item, create: false) != nil }
-        guard let ref = item.ref, exists(ref) else { return false }
-        return item.origin != nil || ref.type is Space.Type || canShare(ref)
-    }
-
-    static func canDrop(on target: ItemParams) -> Bool {
-        guard target.path == nil, let ref = target.ref else { return false }
-        return ref.type is Workspace.Type || ref.type is Space.Type
+        exists(ref) && ref.type is any Functional.Type
     }
 
     @discardableResult
-    static func paste(_ refs: [Reference], by: Reference?, move: Bool, to origin: Reference) -> Reference? {
+    static func paste(_ refs: [Reference], by source: Reference?, move shouldMove: Bool, to origin: Reference) -> Reference? {
         var pasted: Reference?
         for ref in refs {
-            if move {
-                if Self.move(ref, by: origin, to: origin) { pasted = ref }
-            } else if canShare(ref), attach(ref, to: origin) {
+            if shouldMove {
+                if move(ref, from: source, to: origin) { pasted = ref }
+            } else if canShare(ref), move(ref, from: nil, to: origin, sharing: true) {
                 pasted = ref
             }
         }
         return pasted
     }
 
+    /// Removes `ref` from a parent through the structures' own methods: a space leaves through
+    /// `detach(child:)` or its workspace's `remove`, anything else leaves its parent's closure.
+    ///
+    /// Moving a space never needs this — `attach(child:)` removes it from its previous parent on the
+    /// way in. `add(_:)` does not do the same for materials, which is why `move` detaches them first.
     @discardableResult
     static func detach(_ ref: Reference, from origin: Reference?) -> Bool {
         if ref.type is Space.Type {
-            let parent = origin ?? Space.with(ref, { $0.space }) ?? nil
-            if let parent { return Space.update(ref) { $0.detach(from: parent) } != nil }
+            guard let parent = origin ?? (Space.with(ref, { $0.space }) ?? nil) else { return false }
+            if Space.with(parent, { _ in true }) == true {
+                Space.update(parent) { $0.detach(child: ref) }
+                return true
+            }
+            if let workspace = Workspace.with(parent, { $0 }) { workspace.remove(ref); return true }
             return false
         }
 
@@ -124,34 +194,42 @@ enum ReferenceTransfer {
         return false
     }
 
-    private static func transferableRef(for item: ItemParams, create: Bool) -> Reference? {
-        guard let ref = item.ref else { return nil }
-        guard let path = item.path else { return ref }
-        guard ref.type is Artifact.Type else { return nil }
-        if Artifact.with(ref, { $0.handler.url }) == path { return ref }
-        return create ? Artifact.register(item.name, path) : ref
-    }
+    @discardableResult
+    private static func move(_ ref: Reference, from source: Reference?, to destination: Reference, sharing: Bool = false) -> Bool {
+        // Only objects with a transfer type move; transcripts and closures are internal and have none.
+        guard ref != destination, type(for: ref) != nil else { return false }
 
-    private static func move(_ ref: Reference, by: Reference?, to origin: Reference) -> Bool {
-        guard ref != origin else { return false }
-        if ref.type is Space.Type, contains(ref, origin) { return false }
-        detach(ref, from: origin)
-        return attach(ref, to: origin)
-    }
-
-    private static func attach(_ ref: Reference, to origin: Reference) -> Bool {
-        switch ref.type {
-            case is Space.Type:
-                return Space.update(ref) { $0.attach(to: origin) } != nil
-            case is Artifact.Type, is Material.Type, is Transcript.Type, is any Functional.Type:
-                if let space = Space.with(origin, { $0 }) { space.add(ref) }
-                else if let workspace = Workspace.with(origin, { $0 }) { workspace.add(ref) }
-                else { return false }
-                if ref.type is Material.Type { Material.update(ref) { $0.origin = origin } }
+        if ref.type is Space.Type {
+            guard !contains(ref, destination) else { return false }
+            if Space.with(destination, { _ in true }) == true {
+                Space.update(destination) { $0.attach(child: ref) }
                 return true
-            default:
-                return false
+            }
+            if let workspace = Workspace.with(destination, { $0 }) { workspace.add(ref); return true }
+            return false
         }
+
+        // `add` appends without leaving the previous parent, so anything with a single parent is
+        // detached first. The parent comes off the reference unless a caller supplies one. Sharing is
+        // the explicit exception: the reference joins the destination and stays where it was.
+        if !sharing, let source = source ?? Self.origin(of: ref), source != destination, relocates(ref, from: source) {
+            detach(ref, from: source)
+        }
+
+        if let space = Space.with(destination, { $0 }) { space.add(ref) }
+        else if let workspace = Workspace.with(destination, { $0 }) { workspace.add(ref) }
+        else { return false }
+
+        return true
+    }
+
+    /// Whether a drop should remove `ref` from the space it was dragged out of, or leave it there.
+    ///
+    /// A space has exactly one parent and a malleable knows its `origin`, so both relocate. An
+    /// interface never does: it always arrives from a source that needs no restructuring — a library
+    /// list, a panel of commands — so dragging one is a copy to the drop site.
+    private static func relocates(_ ref: Reference, from source: Reference) -> Bool {
+        ref.type is Space.Type || origin(of: ref) != nil
     }
 
     private static func contains(_ child: Reference, _ parent: Reference) -> Bool {

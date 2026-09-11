@@ -9,6 +9,7 @@ enum Value: Codable, Sendable, Equatable {
     case date(Date)
     case reference(Reference)
     case sequence([Value])
+    case range([Value])
     case collection([String: Value])
 
     static func reference(_ type: Resolvable.Type) -> Value { .reference(Reference(type)) }
@@ -27,7 +28,7 @@ enum Value: Codable, Sendable, Equatable {
             case .integer: return Int.self
             case .decimal: return Decimal.self
             case .string: return String.self
-            case .sequence: return Array<Value>.self
+            case .sequence, .range: return Array<Value>.self
             case .collection: return Dictionary<String, Value>.self
             case .reference(let ref): return ref.type
         }
@@ -46,6 +47,12 @@ enum Value: Codable, Sendable, Equatable {
                 if values.count == 1 { return "\(values[0].described)..." }
                 let choices = values.compactMap { if case .string(let value) = $0 { value } else { nil } }
                 return choices.count == values.count ? "<\(choices.joined(separator: "|"))>" : "<\(values.map(\.described).joined(separator: "|"))>"
+            case .range(let values):
+                let choices = values.compactMap { if case .string(let value) = $0 { value } else { nil } }
+                if choices.count == values.count, let first = choices.first, let last = choices.last {
+                    return "<\(first)..\(last)>"
+                }
+                return "<\(values.map(\.described).joined(separator: "|"))>"
             case .collection(let values):
                 return values.keys.sorted().map { key in
                     guard let value = values[key] else { return key }
@@ -57,7 +64,7 @@ enum Value: Codable, Sendable, Equatable {
     var references: [Reference] {
         switch self {
             case .reference(let ref): return [ref]
-            case .sequence(let values): return values.flatMap(\.references)
+            case .sequence(let values), .range(let values): return values.flatMap(\.references)
             case .collection(let values): return values.values.flatMap(\.references)
             default: return []
         }
@@ -91,6 +98,14 @@ enum Value: Codable, Sendable, Equatable {
 
             case (.sequence(let alternatives), _) where alternatives.count > 1:
                 guard alternatives.contains(where: { (try? $0.construct(supplied, name: name)) != nil })
+                        else { throw ParsingError.invalid("Argument \(name) is not an allowed value.") }
+                return supplied
+
+            case (.range(let scale), .integer(let index)) where !scale.isEmpty:
+                return scale[min(max(index, 0), scale.count - 1)]
+
+            case (.range(let scale), _):
+                guard scale.contains(supplied)
                         else { throw ParsingError.invalid("Argument \(name) is not an allowed value.") }
                 return supplied
 
@@ -205,7 +220,9 @@ extension Array where Element == Reading {
         .init(match: ["type": "item.completed", "item.type": "command_execution"], kind: "tool", fields: ["name": "item.command", "output": "item.aggregated_output", "status": "item.status"]),
         .init(match: ["type": "item.completed", "item.type": "mcp_tool_call"], kind: "tool", fields: ["name": "item.tool", "server": "item.server", "arguments": "item.arguments", "status": "item.status", "result": "item.result", "error": "item.error"]),
         .init(match: ["type": "item.completed", "item.type": "function_call"], kind: "tool", fields: ["name": "item.name", "arguments": "item.arguments"]),
-        .init(match: ["type": "item.completed", "item.type": "web_search"], kind: "tool", fields: ["name": "item.query"])
+        .init(match: ["type": "item.completed", "item.type": "web_search"], kind: "tool", fields: ["name": "item.query"]),
+        .init(match: ["type": "item.completed", "item.type": "error"], kind: "error", fields: ["text": "item.message"]),
+        .init(match: ["type": "turn.failed"], kind: "error", fields: ["text": "error.message"])
     ] }
 
     static var claude: [Reading] { [

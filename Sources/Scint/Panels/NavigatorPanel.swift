@@ -13,11 +13,11 @@ import SwiftUI
     }
 
     func controls(_ model: any Model) -> Controls {
-        AssistantSidebar.controls(model)
+        SpacesList.controls(model)
     }
 
     func parameters(_ model: any Model) -> Params {
-        AssistantSidebar.parameters(model)
+        SpacesList.parameters(model)
     }
 
     func surface(_ model: any Model) -> some View {

@@ -120,7 +120,7 @@ struct Artifact: Functional {
         }
 
         private static func normalize(_ url: URL) -> URL {
-            url.standardizedFileURL.resolvingSymlinksInPath()
+            url.standardizedFileURL
         }
     }
 

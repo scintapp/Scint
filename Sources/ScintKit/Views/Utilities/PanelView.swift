@@ -94,7 +94,7 @@ struct PanelModes: View {
                         Text(item.name)
                             .font(.system(size: 11, weight: active ? .medium : .regular))
                     }
-                    .foregroundStyle(active ? Style.Foreground.base : Style.Foreground.faint)
+                    .foregroundStyle(active ? Style.Foreground.primary : Style.Foreground.faint)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .contentShape(Style.Shape.panel)
@@ -126,8 +126,8 @@ struct PanelRow: View {
                 .font(.system(size: 16, weight: active ? .medium : .regular))
                 .foregroundColor(
                     active
-                    ? Style.Foreground.base
-                    : Style.Foreground.muted
+                    ? Style.Foreground.primary
+                    : Style.Foreground.secondary
                 ),
             detail: params.description.isEmpty ? nil : Text(params.description)
                 .font(.system(size: 13))
@@ -183,7 +183,7 @@ struct PanelDetail<Content: View>: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(params.name)
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(Style.Foreground.base)
+                        .foregroundStyle(Style.Foreground.primary)
                         .lineLimit(1)
 
                     if !params.description.isEmpty {
@@ -229,7 +229,7 @@ struct PanelPin: View {
         Button(action: onToggle) {
             Image(systemName: pinned ? "pin.fill" : "pin")
                 .font(.system(size: 11))
-                .foregroundStyle(pinned ? Style.Foreground.base : Style.Foreground.faint)
+                .foregroundStyle(pinned ? Style.Foreground.primary : Style.Foreground.faint)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
         }
@@ -258,7 +258,7 @@ struct PanelShortcuts: View {
     }
 }
 
-struct PanelLayout<Content: View>: View {
+struct PanelView<Content: View>: View {
     let content: Content
 
     init(@ViewBuilder content: () -> Content) { self.content = content() }

@@ -8,7 +8,7 @@ struct InspectorTabs: View {
         Button { panel.surface = surface } label: {
             Image(systemName: surface.image)
                 .frame(maxWidth: .infinity, maxHeight: 28, alignment: .center)
-                .foregroundStyle(Style.Foreground.base)
+                .foregroundStyle(Style.Foreground.primary)
                 .font(.system(size: 12.5))
                 .contentShape(Style.Shape.panel)
         }
@@ -40,7 +40,7 @@ struct NavigatorTabs: View {
         Button { panel.surface = surface } label: {
             Image(systemName: surface.image)
                 .frame(maxWidth: .infinity, maxHeight: 28, alignment: .center)
-                .foregroundStyle(Style.Foreground.base)
+                .foregroundStyle(Style.Foreground.primary)
                 .font(.system(size: 12.5))
                 .contentShape(Style.Shape.panel)
         }

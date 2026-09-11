@@ -1,20 +1,75 @@
-import AppKit
 import Foundation
+import AppKit
 
 
-/// The `scint://` inbound surface.
-///
-/// `Reference.Link` in the runtime knows how to write and resolve a reference as a URL. It stops
-/// there, because *acting* on one is a protocol, not an identity — which puts it here, beside the
-/// MCP server, as the app's other way in. A URL arriving from Raycast, a Shortcut, a terminal, or
-/// a click on an inline chip all land in the same place.
-@MainActor enum ReferenceRouter {
+@MainActor enum CallbackTrigger {
+    static let action = "trigger"
+
+    static func handle(_ request: CallbackRouter.Request) -> Bool {
+        guard let ref = request.reference else { return false }
+        do {
+            try start(ref, with: request.parameters)
+            return true
+        } catch {
+            NSLog("Scint: trigger failed for \(ref.descriptorId): \(String(describing: error))")
+            return false
+        }
+    }
+
+    static func start(_ ref: Reference, with parameters: [String: String]) throws {
+        guard ref.type == Space.self || ref.type == Workspace.self,
+              let harness = (Space.with(ref, { $0.harness }) ?? Workspace.with(ref, { $0.harness })) ?? nil
+                else { throw CallbackError.invalidTrigger(ref) }
+
+        let declared = Harness.with(harness, { $0.parameters }) ?? []
+
+        for (name, value) in try bind(parameters, against: declared) {
+            if ref.type == Space.self { Space.with(ref, { $0.configure(value, for: name) }) }
+            else { Workspace.with(ref, { $0.configure(value, for: name) }) }
+        }
+
+        guard Runtime.shared.start(ref) != nil else { throw CallbackError.dispatchFailed(ref) }
+    }
+
+    private static func bind(_ parameters: [String: String], against declared: [Harness.Parameter]) throws -> [String: Value] {
+        let templates = declared.reduce(into: [String: Value]()) { templates, parameter in
+            switch parameter {
+                case .argument(let name, let type, _, _): templates[name] = type
+                case .requirement(let name, let type, _): templates[name] = type
+                case .target(let name, let type, _): templates[name] = type
+                case .command: break
+            }
+        }
+
+        return try parameters.reduce(into: [String: Value]()) { values, entry in
+            guard let template = templates[entry.key]
+                    else { throw ParsingError.unexpectedArguments([entry.key]) }
+            values[entry.key] = try template.construct(read(entry.value, as: template), name: entry.key)
+        }
+    }
+
+    private static func read(_ text: String, as template: Value) -> Value {
+        switch template {
+            case .reference:
+                guard let ref = Reference.Link.reference(in: text) ?? Reference.Link.resolve(text)
+                        else { return .string(text) }
+                return .reference(ref)
+
+            case .sequence(let values) where values.count == 1:
+                return read(text, as: values[0])
+
+            case .collection(let values) where values.count == 1:
+                return read(text, as: values.values.first!)
+
+            default:
+                return .string(text)
+        }
+    }
+}
+
+@MainActor enum CallbackRouter {
     private static var handlers: [String: (Request) -> Bool] = [:]
 
-    /// What a `scint://` URL is asking for.
-    ///
-    /// Both shapes parse to this: the plain `scint://command/<id>` is an `open` with no callbacks,
-    /// and `scint://x-callback-url/<action>?…` carries an action, parameters and return paths.
     struct Request: Sendable {
         let action: String
         let reference: Reference?
@@ -22,18 +77,12 @@ import Foundation
         let success: URL?
         let error: URL?
         let cancel: URL?
-
-        /// The type the URL claimed, when it named one. Advisory — the catalog resolved the
-        /// reference, not this.
         let kind: String?
     }
 
     static let callbackHost = "x-callback-url"
     static let openAction = "open"
 
-    // MARK: - Registration
-
-    /// Registers what an action means. A handler reports whether it dealt with the request.
     static func register(_ action: String, handler: @escaping (Request) -> Bool) {
         handlers[action] = handler
     }
@@ -69,7 +118,7 @@ import Foundation
     static func parse(_ url: URL) -> Request? {
         guard url.scheme?.lowercased() == Reference.Link.scheme,
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        else { return nil }
+                else { return nil }
 
         let host = (components.host ?? "").lowercased()
         var query = Dictionary(
@@ -106,7 +155,6 @@ import Foundation
         )
     }
 
-    /// Writes an x-callback URL for `action`, with optional return paths.
     static func callback(
         _ action: String,
         for ref: Reference? = nil,
@@ -130,3 +178,4 @@ import Foundation
         return components.url
     }
 }
+

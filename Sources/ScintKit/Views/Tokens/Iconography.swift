@@ -33,7 +33,7 @@ import SwiftUI
                         .padding(.top, padding)
                     Image(symbol)
                         .font(.system(size: sizing))
-                        .symbolRenderingMode(.monochrome)
+                        .symbolRenderingMode(.palette)
                         .foregroundStyle(primary, secondary)
                         .padding(.top, padding)
                 }
@@ -58,7 +58,7 @@ import SwiftUI
             self.active = active
         }
 
-        private var primary: Color { active ? Style.Foreground.base : Style.Foreground.muted }
+        private var primary: Color { active ? Style.Foreground.primary : Style.Foreground.muted }
         private var secondary: Color { active ? tint : Style.Foreground.muted }
         private var background: Color { active ? tint : tint.opacity(0.66) }
 
@@ -220,10 +220,38 @@ import SwiftUI
 
     static func icon(for entry: Transcript.Entry, size: CGFloat = 14) -> Icon {
         switch entry {
-            case .event: Icon(symbol: "calendar", tint: Style.Tint.transcript, sizing: size)
-            case .transcript(let ref, _, _): Iconography.icon(for: ref, size: size)
-            case .record: Icon(symbol: "info.circle", tint: Style.Foreground.faint, sizing: size)
+            case .event: return Icon(symbol: "calendar", tint: Style.Tint.transcript, sizing: size)
+            case .transcript(let ref, _, _): return Iconography.icon(for: ref, size: size)
+            case .record(let chunk, _):
+                if chunk.origin.type == Command.self || chunk.origin.type == Artifact.self {
+                    return icon(for: chunk.origin, size: size)
+                }
+                if case .collection(let fields) = chunk.value, case .string("tool")? = fields["type"] {
+                    if case .string(let name)? = fields["name"], let call = ToolCall.named(name) {
+                        return icon(for: call, size: size)
+                    }
+                    return Icon(symbol: "wrench.and.screwdriver", tint: Style.Foreground.muted, sizing: size)
+                }
+                return Icon(symbol: "info.circle", tint: Style.Foreground.faint, sizing: size)
         }
+    }
+
+    static func icon(for call: ToolCall, size: CGFloat = 14) -> Icon {
+        let symbol = switch call {
+            case .catalog(_, .list): "list.bullet"
+            case .catalog(_, .search): "magnifyingglass"
+            case .catalog(_, .describe): "info.circle"
+            case .catalog(_, .update): "tag"
+            case .content(.read), .interface(.read), .structure(.read): "book"
+            case .content(.write): "pencil"
+            case .content(.create), .structure(.create): "plus.square"
+            case .structure(.add): "tray.and.arrow.down"
+            case .structure(.remove): "tray.and.arrow.up"
+            case .structure(.start): "play"
+            case .structure(.stop): "stop"
+            case .interface(.call): "switch.2"
+        }
+        return Icon(symbol: symbol, tint: Style.Foreground.muted, sizing: size)
     }
 
     static func icon(for handle: Artifact.Handler, size: CGFloat = 14) -> Icon {
@@ -247,9 +275,7 @@ import SwiftUI
                 return Iconography.icon(for: artifact.handler, size: size)
 
             case is Space.Type:
-                guard let space = Space.with(ref, { $0.harness }).flatMap({ $0 }), let harness = Harness.with(space, { $0.intent })
-                else { return Icon(symbol: "space.custom", tint: Style.Tint.space, sizing: size) }
-                return Icon(symbol: Iconography.icon(for: harness, size: size).symbol, tint: Style.Tint.space, sizing: size)
+                return Icon(symbol: "space.custom", tint: Style.Tint.space, sizing: size)
 
             case is Command.Type:
                 return Icon(symbol: "switch.2", tint: Style.Tint.command, sizing: size)
@@ -258,9 +284,9 @@ import SwiftUI
                 return Icon(symbol: "app.connected.to.app.below.fill", tint: Style.Tint.bridge, sizing: size)
 
             case is Harness.Type:
-                guard let intent = Harness.with(ref, { $0.intent })
-                else { return Icon(symbol: "gear", tint: Style.Tint.harness, sizing: size) }
-                return Icon(symbol: Iconography.icon(for: intent, size: size).symbol, tint: Style.Tint.harness, sizing: size)
+                guard let harness = Harness.with(ref, { $0 })
+                else { return Icon(symbol: "gearshape", tint: Style.Tint.harness, sizing: size) }
+                return Icon(symbol: "gearshape", tint: Iconography.accent(for: harness.ref), sizing: size)
 
             case is Material.Type:
                 return Icon(symbol: "text.alignleft", tint: Style.Tint.material, sizing: size)

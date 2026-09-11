@@ -12,7 +12,7 @@ struct InterfaceTool: Tool {
     static let readLimit = 40_000
 
     var namespace: ToolNamespace { .interfaces }
-    var operation: String { action.rawValue }
+    var value: String { action.rawValue }
 
     var title: String {
         switch action {

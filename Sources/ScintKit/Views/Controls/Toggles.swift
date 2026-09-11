@@ -21,7 +21,7 @@ struct NavigatorToggle: View {
             NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
         } label: {
             Image(systemName: "sidebar.squares.left")
-                .foregroundStyle(Style.Foreground.base)
+                .foregroundStyle(Style.Foreground.primary)
         }
         .padding(.horizontal, 1)
         .labelsHidden()
@@ -37,7 +37,7 @@ struct InspectorToggle: View {
             NSApp.sendAction(#selector(NSSplitViewController.toggleInspector(_:)), to: nil, from: nil)
         } label: {
             Image(systemName: "sidebar.squares.right")
-                .foregroundStyle(Style.Foreground.base)
+                .foregroundStyle(Style.Foreground.primary)
         }
         .padding(.horizontal, 1)
         .labelsHidden()

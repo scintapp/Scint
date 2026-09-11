@@ -22,7 +22,7 @@ struct MenuForm: View {
 
             Text(kind.title(updating: updating))
                 .font(Typography.row.weight(.medium))
-                .foregroundStyle(Style.Foreground.base)
+                .foregroundStyle(Style.Foreground.primary)
 
             Spacer()
         }
@@ -35,7 +35,7 @@ struct MenuForm: View {
             formField(
                 placeholder: kind.primaryPlaceholder,
                 text: $primary,
-                focusValue: .formPrimary,
+                focusValue: .form,
                 commit: onCommit
             )
 
@@ -226,7 +226,7 @@ struct MenuList: View {
                                     title: Text(item.label)
                                         .font(Typography.row.weight(selected ? .medium : .regular))
                                         .foregroundColor(
-                                            selected ? Style.Foreground.base : Style.Foreground.secondary
+                                            selected ? Style.Foreground.primary : Style.Foreground.secondary
                                         ),
                                     detail: item.detail.isEmpty ? nil : Text(item.detail)
                                         .font(Typography.caption.weight(.medium))
@@ -289,7 +289,7 @@ struct Menu: View {
     private var initialFocus: MenuFocus? {
         switch kind {
             case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.material): nil
-            case .create, .update: .formPrimary
+            case .create, .update: .form
         }
     }
 

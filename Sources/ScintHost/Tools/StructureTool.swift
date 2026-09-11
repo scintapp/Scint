@@ -10,7 +10,7 @@ struct StructureTool: Tool {
     }
 
     var namespace: ToolNamespace { .structures }
-    var operation: String { action.rawValue }
+    var value: String { action.rawValue }
 
     var title: String {
         switch action {

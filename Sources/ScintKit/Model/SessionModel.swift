@@ -2,42 +2,42 @@ import Foundation
 
 
 @MainActor struct Session: Codable, Sendable {
-    private(set) var focused: Focus = .nothing
-    private(set) var selected: Selection = .init()
-    private(set) var opened: Open = .init()
+    private(set) var focus: Focus = .nothing
+    private(set) var selection: Selection = .init()
+    private(set) var opened: Opened = .init()
     private(set) var navigation: Navigation = .init()
     private(set) var workspace: Reference
 
     init(_ workspace: Reference) {
         self.workspace = workspace
-        self.selected = Selection(structure: workspace)
-        self.navigation.reset(to: selected)
+        self.selection = Selection(structure: workspace)
+        self.navigation.reset(to: selection)
     }
 
-    var origin: Reference { if let ref = selected.structure, ref.type is Space.Type { ref } else { workspace } }
+    var origin: Reference { if let ref = selection.structure, ref.type is Space.Type { ref } else { workspace } }
 
     mutating func load(_ workspace: Reference) {
         self.workspace = workspace
         opened = .init()
-        focused = .nothing
+        focus = .nothing
         let initial = Selection(structure: workspace)
-        selected = initial
+        selection = initial
         navigation.reset(to: initial)
     }
 
     mutating func focus(_ ref: Reference?) {
-        guard let ref else { focused = .nothing; return }
+        guard let ref else { focus = .nothing; return }
         switch ref.type {
-            case is Workspace.Type, is Space.Type: focused = .structure(ref)
-            case is any Functional.Type: focused = .interface(ref)
-            case is any Malleable.Type: focused = .content(ref)
-            default: focused = .nothing
+            case is Workspace.Type, is Space.Type: focus = .structure(ref)
+            case is any Functional.Type: focus = .interface(ref)
+            case is any Malleable.Type: focus = .content(ref)
+            default: focus = .nothing
         }
     }
 
     mutating func select(_ ref: Reference, entry: UUID? = nil, url: URL? = nil) {
         if opened.material != nil  && opened.material != ref { close(opened.material!) }
-        apply(selected.selecting(ref, entry,  url))
+        apply(selection.selecting(ref, entry,  url))
     }
 
     mutating func open(_ ref: Reference) {
@@ -47,15 +47,15 @@ import Foundation
 
     mutating func close(_ ref: Reference) {
         opened.close(ref)
-        if selected.content == ref { selected = selected.clearing(.content) }
-        if focused == .content(ref) { focused = .nothing }
+        if selection.content == ref { selection = selection.clearing(.content) }
+        if focus == .content(ref) { focus = .nothing }
     }
 
     @discardableResult
     mutating func forward() -> Selection? {
         guard let target = navigation.forward() else { return nil }
         apply(target, push: false)
-        if let content = selected.content { opened.open(content) }
+        if let content = selection.content { opened.open(content) }
         return target
     }
 
@@ -64,14 +64,14 @@ import Foundation
         if opened.material != nil { close(opened.material!) }
         guard let target = navigation.back() else { return nil }
         apply(target, push: false)
-        if let content = selected.content { opened.open(content) }
+        if let content = selection.content { opened.open(content) }
         return target
     }
 
     @discardableResult
     mutating func apply(_ next: Selection, push: Bool = true) -> Bool {
-        guard next != selected else { return false }
-        selected = next
+        guard next != selection else { return false }
+        selection = next
         if push { navigation.push(next) }
         return true
     }
@@ -84,7 +84,7 @@ extension Session {
     }
 
     var transcript: Reference? {
-        if case .content(let ref) = focused, ref.type is Transcript.Type { return ref }
+        if case .content(let ref) = focus, ref.type is Transcript.Type { return ref }
         return transcripts.first
     }
 
@@ -95,7 +95,7 @@ extension Session {
     }
 
     var material: Reference? {
-        guard let content = selected.content else { return nil }
+        guard let content = selection.content else { return nil }
         guard content.type is Material.Type else { return nil }
         return content
     }
@@ -108,8 +108,8 @@ extension Session {
 
     var rendered: Value {
         Value.collection([
-            "focused": focused.resolved,
-            "selected": selected.resolved,
+            "focused": focus.resolved,
+            "selected": selection.resolved,
             "opened": opened.resolved
         ])
     }

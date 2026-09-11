@@ -10,7 +10,7 @@ struct CatalogTool: Tool {
         case list, search, describe, update
     }
 
-    var operation: String { action.rawValue }
+    var value: String { action.rawValue }
 
     var title: String {
         switch action {

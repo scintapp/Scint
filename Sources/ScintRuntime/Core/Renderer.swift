@@ -103,12 +103,11 @@ extension Renderer {
         case .integer(let value): return [String(value)]
         case .decimal(let value): return [String(describing: value)]
         case .string(let value): return [value]
-            case .sequence(let values): return values.flatMap { Renderer.value($0) }
+            case .sequence(let values), .range(let values): return values.flatMap { Renderer.value($0) }
         case .collection(let values):
                 return values.keys.sorted().flatMap { key -> [String] in
                     guard let value = values[key] else { return [] }
-                    let rendered = Renderer.value(value)
-                    return ["\(key)=\(rendered.joined(separator: ","))"]
+                    return Renderer.value(value).map { "\(key)=\($0)" }
                 }
             case .reference(let ref):
                 let rendered = Renderer.reference(ref)

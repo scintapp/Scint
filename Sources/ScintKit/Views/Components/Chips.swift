@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 
-struct ReferenceChip: View {
+struct Chip: View {
     let ref: Reference
     var label: String? = nil
     var isSelected = false
@@ -15,7 +15,7 @@ struct ReferenceChip: View {
 
         Button {
             ReferenceSelection.shared.selected = ref
-            ReferenceRouter.open(ref)
+            CallbackRouter.open(ref)
         } label: {
             HStack(spacing: Style.Spacing.sm) {
                 icon
@@ -49,6 +49,15 @@ struct ReferenceChip: View {
 extension View {
     func referenceMenu(_ ref: Reference) -> some View {
         contextMenu {
+            Button("Open") {}
+            Divider()
+            Button("Remove") { }
+            Divider()
+            Button("Copy") { }
+            Button("Duplicate") { }
+            Button("Rename") { }
+            Button("Move") { }
+            Divider()
             Button("Copy Link") {
                 guard let url = Reference.Link.url(for: ref) else { return }
                 NSPasteboard.general.clearContents()
@@ -62,30 +71,3 @@ extension View {
         }
     }
 }
-
-#if DEBUG
-#Preview("Chips") {
-    let previewData = FileManager.default.temporaryDirectory
-        .appending(path: "ScintCardPreviews")
-        .appending(path: String(ProcessInfo.processInfo.processIdentifier))
-    precondition(setenv("XDG_DATA_HOME", previewData.path, 1) == 0)
-
-    let workspace = Workspace.new("Research Desk")
-    let material = Material.new(workspace, name: "Research Brief Template")
-    let file = Artifact.register("Design notes.md", previewData.appending(path: "Design notes.md"))
-    let executable = Artifact.register("curl", URL(filePath: "/usr/bin/curl"))
-    let command = Command.register("Fetch Web Page", exec: executable)
-
-    return VStack(alignment: .leading, spacing: Style.Spacing.lg) {
-        ReferenceChip(ref: material)
-        ReferenceChip(ref: command)
-        ReferenceChip(ref: file)
-        ReferenceChip(ref: workspace)
-        ReferenceChip(ref: material, label: "Selected reference", isSelected: true)
-    }
-    .padding(Style.Spacing.xxl)
-    .frame(width: Style.Spacing.contentMaxWidth, alignment: .leading)
-    .background(Style.Background.base)
-    .preferredColorScheme(.dark)
-}
-#endif

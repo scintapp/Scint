@@ -51,7 +51,7 @@ struct TableRow: View {
 
                 Text(intent.forms.label)
                     .font(Typography.cardRow)
-                    .foregroundStyle(enabled ? Style.Foreground.base : Style.Foreground.faint)
+                    .foregroundStyle(enabled ? Style.Foreground.primary : Style.Foreground.faint)
                     .lineLimit(Style.Limit.singleLine)
 
                 Spacer(minLength: .zero)
@@ -92,7 +92,7 @@ struct TableCard<Rows: View>: View {
                 VStack(alignment: .leading, spacing: Style.Spacing.xs) {
                     Text(space.descriptor.name)
                         .font(Typography.cardHeading)
-                        .foregroundStyle(selected ? Style.Foreground.base : Style.Foreground.subtle)
+                        .foregroundStyle(selected ? Style.Foreground.primary : Style.Foreground.subtle)
                         .lineLimit(Style.Limit.singleLine)
 
                     if running {

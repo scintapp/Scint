@@ -1,6 +1,45 @@
 import Foundation
 
 
+enum MCPHandshake {
+    static func validate(_ request: MCPRequest) throws(MCPError) {
+        if let meta = request.parameters["_meta"]?.object,
+           let requested = meta["io.modelcontextprotocol/protocolVersion"]?.string {
+            if let client = meta["io.modelcontextprotocol/clientInfo"], !isValidImplementation(client) {
+                throw MCPError.invalidParameters("Client information is invalid.", status: 400)
+            }
+            guard request.http.header("MCP-Protocol-Version") == requested else {
+                throw MCPError.headerMismatch("MCP-Protocol-Version")
+            }
+            guard MCPResponse.supportedVersions.contains(requested) else {
+                throw MCPError.unsupportedVersion(requested: requested, supported: MCPResponse.protocolVersion)
+            }
+        }
+
+        if let header = request.http.header("Mcp-Method"), header != request.method {
+            throw MCPError.headerMismatch("Mcp-Method")
+        }
+        if request.method == MCPRequest.Method.callTool,
+           let header = request.http.header("Mcp-Name").flatMap(decoded),
+           header != request.parameters["name"]?.string {
+            throw MCPError.headerMismatch("Mcp-Name")
+        }
+    }
+
+    private static func isValidImplementation(_ value: Property) -> Bool {
+        guard let value = value.object else { return false }
+        return value["name"]?.string != nil && value["version"]?.string != nil
+    }
+
+    private static func decoded(_ value: String) -> String? {
+        let prefix = "=?base64?"
+        guard value.hasPrefix(prefix), value.hasSuffix("?=") else { return value }
+        let encoded = String(value.dropFirst(prefix.count).dropLast(2))
+        guard let data = Data(base64Encoded: encoded) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+}
+
 struct MCPSession {
     let context: ContextId
     let space: Reference
@@ -78,44 +117,5 @@ struct MCPSession {
         guard parts.count == 2, String(parts[0]).caseInsensitiveCompare("Bearer") == .orderedSame
                 else { return nil }
         return UUID(uuidString: String(parts[1]))
-    }
-}
-
-enum MCPHandshake {
-    static func validate(_ request: MCPRequest) throws(MCPError) {
-        if let meta = request.parameters["_meta"]?.object,
-           let requested = meta["io.modelcontextprotocol/protocolVersion"]?.string {
-            if let client = meta["io.modelcontextprotocol/clientInfo"], !isValidImplementation(client) {
-                throw MCPError.invalidParameters("Client information is invalid.", status: 400)
-            }
-            guard request.http.header("MCP-Protocol-Version") == requested else {
-                throw MCPError.headerMismatch("MCP-Protocol-Version")
-            }
-            guard MCPResponse.supportedVersions.contains(requested) else {
-                throw MCPError.unsupportedVersion(requested: requested, supported: MCPResponse.protocolVersion)
-            }
-        }
-
-        if let header = request.http.header("Mcp-Method"), header != request.method {
-            throw MCPError.headerMismatch("Mcp-Method")
-        }
-        if request.method == MCPRequest.Method.callTool,
-           let header = request.http.header("Mcp-Name").flatMap(decoded),
-           header != request.parameters["name"]?.string {
-            throw MCPError.headerMismatch("Mcp-Name")
-        }
-    }
-
-    private static func isValidImplementation(_ value: Property) -> Bool {
-        guard let value = value.object else { return false }
-        return value["name"]?.string != nil && value["version"]?.string != nil
-    }
-
-    private static func decoded(_ value: String) -> String? {
-        let prefix = "=?base64?"
-        guard value.hasPrefix(prefix), value.hasSuffix("?=") else { return value }
-        let encoded = String(value.dropFirst(prefix.count).dropLast(2))
-        guard let data = Data(base64Encoded: encoded) else { return nil }
-        return String(data: data, encoding: .utf8)
     }
 }

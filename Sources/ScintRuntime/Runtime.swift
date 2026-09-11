@@ -58,8 +58,8 @@ extension Runtime {
             .filter { $0.0.descriptor.published == true }
     }
 
-    func search(_ text: String = "", limit: Int = 20) -> SearchResults {
-        let search = Search(text)
+    func search(_ text: String = "", filters: [String] = [], limit: Int = 20) -> SearchResults {
+        let search = Search(text, filters: filters)
         let results = Catalog.shared.values().compactMap { SearchResult(descriptor: $0, search: search) }
 
         return SearchResults(

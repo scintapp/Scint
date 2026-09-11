@@ -21,13 +21,6 @@ import SwiftUI
         themeRevision &+= 1
     }
 
-    /// Focus the model did not ask for — the user clicked or tabbed onto a block.
-    ///
-    /// Focus the model *did* ask for arrives here too, because setting `selection` moves the first
-    /// responder, which calls back in. Answering that would make this a second writer of the value
-    /// that caused it, racing the first: whoever lost set `selection` to a block the caret was not
-    /// in, which is how backspace deleted a block two above the caret. It reports, it does not
-    /// re-decide.
     func focusGained(id: AnyHashable) {
         guard selection.id != id, material.block(id: id) != nil else { return }
         enterEditing(id)
@@ -45,17 +38,9 @@ import SwiftUI
         if blockFrames != frames { blockFrames = frames }
     }
 
-    // MARK: - Runs
-
-    /// A run's text came back edited. Split it on newlines, reconcile onto its blocks, and put the
-    /// selection back on whichever block the caret landed in.
     func writeRun(ids: [AnyHashable], text: String, selection range: NSRange) {
         let lines = text.components(separatedBy: "\n")
 
-        // The ordinary keystroke adds and removes no line, so one block's text changed and nothing
-        // structural happened. Writing that block directly skips both the reconcile and the undo
-        // snapshot in `structural` — which copies every block, re-reads every block, and deep-
-        // compares the two with their strings, three whole-document passes for one character.
         guard lines.count != ids.count else {
             for (id, line) in zip(ids, lines) {
                 guard case .text(_, let current)? = material.block(id: id), current != line else { continue }
@@ -79,7 +64,6 @@ import SwiftUI
         openMenuIfTriggered()
     }
 
-    /// The caret moved inside a run. Nothing changes but where the user is.
     func setRunCaret(ids: [AnyHashable], selection range: NSRange) {
         if range.length == 0 { ReferenceSelection.shared.selected = nil }
 
@@ -101,9 +85,6 @@ import SwiftUI
         enterEditing(first, caret: NSRange(location: 0, length: 0))
     }
 
-    /// Keys inside a run belong to the text view — splitting a line, joining two, moving the caret
-    /// are all plain text edits that `writeRun` turns back into blocks. The editor only has to
-    /// answer at the run's edges, where the next thing is a card rather than a line.
     func handleRunInput(ids: [AnyHashable], _ selector: Selector, selection range: NSRange, textLength: Int) -> Bool {
         if menu.isOpen {
             let result = menu.handleInput(selector)
@@ -127,9 +108,6 @@ import SwiftUI
                 return selectAllBlocks()
             case #selector(NSResponder.cancelOperation(_:)):
                 return endEditing()
-            // Nesting is marker-aware, so it stays the editor's: a native tab would insert
-            // whitespace without moving the list marker with it. `nest` works off `selection`,
-            // which `setRunCaret` keeps pointed at the right line.
             case #selector(NSResponder.insertTab(_:)):
                 return nest(by: 1)
             case #selector(NSResponder.insertBacktab(_:)):
@@ -234,16 +212,12 @@ import SwiftUI
             return (block, frame)
         }.sorted { $0.1.minY < $1.1.minY }
 
-        // Every index is resolved from the block's own id at the point of use. Sorting by geometry
-        // and then reusing the enumeration index captured before the sort is what let a frame that
-        // was out of order insert the new block somewhere unrelated to what was clicked.
         if let hit = framed.first(where: { $0.1.contains(point) })
             ?? framed.last(where: { point.y >= $0.1.maxY }),
            let index = material.index(for: hit.0.id) {
             return beginEditing(near: hit.0, insertingAfter: index)
         }
 
-        // Clicked above everything: the start of the first text block the view actually draws.
         if let first = framed.first(where: { if case .text = $0.0 { true } else { false } })?.0,
            let index = material.index(for: first.id) {
             return beginEditing(near: first, insertingAfter: index, atStart: true)
@@ -292,12 +266,6 @@ import SwiftUI
         return true
     }
 
-    /// Every inline reference, chip or component alike.
-    ///
-    /// This used to filter to `.component`, so a chip was a component to the text view — which
-    /// draws no selection over an attachment — and a plain text range to the editor, which then
-    /// never set `ReferenceSelection`. Chips ended up with neither highlight. They are both atomic
-    /// objects; selecting one is one behaviour.
     private func componentRanges(in text: NSString) -> [NSRange] {
         Markdown.scan(text as String).links.compactMap { link in
             guard Reference.Link.reference(in: text.substring(with: link.url)) != nil else { return nil }
@@ -332,11 +300,6 @@ import SwiftUI
         ReferenceSelection.shared.selected = Reference.Link.reference(in: text.substring(with: link.url))
     }
 
-    /// Moves to the block `offset` away from `id`, landing on the edge it is approached from.
-    ///
-    /// This is the editor's whole idea of "somewhere else": a neighbour, and which end of it.
-    /// Arrow keys pass the current block; a run passes whichever of its blocks sits at the edge
-    /// the caret is leaving. Nothing else distinguishes the two.
     private func step(from id: AnyHashable?, _ offset: Int) -> Bool {
         let blocks = material.blocks
 
@@ -379,8 +342,6 @@ import SwiftUI
             return ""
         }
 
-        // Nothing to renumber without an ordered item, and a document of prose or bullets has none.
-        // Cheaper than `Markdown.renumbered`, which classifies and re-derives depth for every line.
         guard lines.contains(where: { $0.drop(while: \.isWhitespace).first?.isNumber == true })
         else { return }
 
@@ -416,11 +377,6 @@ import SwiftUI
         return true
     }
 
-    /// Puts the user on a block, and is the only thing that decides what that means.
-    ///
-    /// Text takes a caret — `caret` when given, the end of the text otherwise. Everything else is a
-    /// card, and cards are selected rather than edited. This was written out at nine call sites,
-    /// each free to disagree with the others about what landing on a block does.
     private func enterEditing(_ id: AnyHashable, caret: NSRange? = nil) {
         guard case .text(_, let text)? = material.block(id: id) else {
             selection = .block(id)
@@ -446,11 +402,6 @@ import SwiftUI
         if let trailing = ensureTrailingText() { enterEditing(trailing) }
     }
 
-    /// Ensures the document ends in a text block, and answers which one. Moving the selection there
-    /// is the caller's decision: `prepare` wants it, an editor that opened without focus does not.
-    ///
-    /// A material whose last block is a card has nowhere to type — the canvas is exactly as tall as
-    /// its content, so there is no empty area below the last card to click into either.
     @discardableResult
     func ensureTrailingText() -> AnyHashable? {
         let blocks = material.blocks
@@ -458,9 +409,6 @@ import SwiftUI
         return material.insertText(at: blocks.endIndex)
     }
 
-    /// `pruning` is false when the editor is merely losing focus rather than going away: the
-    /// trailing text block is the click target at the end of the document, so pruning it while the
-    /// material is still on screen takes that target away again.
     func deactivate(pruning: Bool = true) {
         if pruning { pruneTrailingEmptyText() }
         ReferenceSelection.shared.selected = nil

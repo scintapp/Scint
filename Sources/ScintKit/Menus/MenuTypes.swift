@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 
-enum MenuFocus: Hashable { case filter, formPrimary }
+enum MenuFocus: Hashable { case filter, form }
 
 enum MenuKind: Equatable {
     case fixed

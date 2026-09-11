@@ -50,17 +50,9 @@ struct Search: Codable, Sendable, Hashable {
         }
     }
 
-    init(_ input: String) {
-        var terms: [String] = []
-        var filters: [String] = []
-
-        for token in input.split(whereSeparator: \.isWhitespace).map(String.init) {
-            if token.hasPrefix("!"), token.count > 1 { filters.append(String(token.dropFirst())) }
-            else { terms.append(token) }
-        }
-
+    init(_ input: String, filters: [String] = []) {
         self.input = input
-        self.text = terms.joined(separator: " ")
+        self.text = input.split(whereSeparator: \.isWhitespace).joined(separator: " ")
         self.filters = filters
             .map(Query.token)
             .filter { !$0.isEmpty }

@@ -209,7 +209,6 @@ final class FloatingPanel: NSPanel {
 
     let actions: ActionsPanel = .init()
     let search: SearchPanel = .init()
-    let assistant: AssistantPanel = .init()
 
     func panel(for key: PanelKey) -> any Panel {
         switch key {

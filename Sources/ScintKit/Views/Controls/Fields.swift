@@ -25,20 +25,20 @@ struct Filter: View {
             HStack {
                 Image(systemName: "line.3.horizontal.decrease.circle")
                     .padding(.leading, 8)
-                    .foregroundStyle(.secondary.opacity(0.9))
+                    .foregroundStyle(isFocused ? Style.Foreground.secondary : Style.Foreground.muted)
                     .font(.system(size: 13))
 
                 TextField("Filter", text: $text)
                     .focused($isFocused)
                     .frame(maxWidth: .infinity, maxHeight: height, alignment: .leading)
-                    .foregroundStyle(.primary.opacity(0.9))
+                    .foregroundStyle(isFocused ? Style.Foreground.secondary : Style.Foreground.muted)
                     .font(.system(size: 13))
                     .textFieldStyle(.plain)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, maxHeight: height, alignment: .leading)
-            .glassEffect(.regular, in: shape)
-            .clipShape(shape)
+            .background(shape.fill(Style.Background.field).stroke(Style.Border.field, lineWidth: 0.5))
+            .contentShape(shape)
         }
         .frame(maxWidth: .infinity, maxHeight: height)
         .padding(.horizontal, 8)

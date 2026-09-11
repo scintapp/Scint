@@ -15,7 +15,7 @@ struct TaskItem: View {
                         .padding(.top, 1)
                     Text(text)
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(completed ? Style.Foreground.faint : Style.Foreground.base)
+                        .foregroundStyle(completed ? Style.Foreground.faint : Style.Foreground.primary)
                         .strikethrough(completed, color: Style.Foreground.disabled)
                         .lineSpacing(Style.Spacing.xs)
                         .multilineTextAlignment(.leading)
@@ -104,7 +104,7 @@ struct TasksSection: View {
                     Button { model.open(ref) } label: {
                         Text(ref.descriptor.name)
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Style.Foreground.base)
+                            .foregroundStyle(Style.Foreground.primary)
                             .lineLimit(Style.Limit.singleLine)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())

@@ -33,104 +33,41 @@ struct TranscriptHeader: View {
     }
 }
 
-struct TranscriptEntry: View {
-    var transcript: Reference
-    var entry: Transcript.Entry
-    var model: any Model
-
-    var input: String? {
-        switch entry {
-            case .record(let chunk, _) where chunk.origin.type == Material.self:
-                chunk.value.rendered.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-            default:
-                nil
-        }
-    }
-
-    private func field(_ value: Value, _ name: String) -> String? {
-        guard case .collection(let fields) = value, let found = fields[name] else { return nil }
-        let text = found.rendered.joined(separator: " ")
-        return text.isEmpty ? nil : text
-    }
-
-    var body: some View {
-        Group {
-            if let input, !input.isEmpty {
-                HStack {
-                    Spacer()
-
-                    Text(input)
-                        .foregroundStyle(Style.Foreground.subtle)
-                        .padding(.horizontal, Style.Spacing.lg)
-                        .padding(.vertical, Style.Spacing.lg)
-                        .background(Style.Shape.medium.fill(Style.Background.overlay))
-                        .overlay(
-                            Style.Shape.medium
-                                .strokeBorder(Style.Border.group, lineWidth: 0.5)
-                        )
-                }
-            } else {
-                switch entry {
-                    case .record(let chunk, _) where field(chunk.value, "type") == "reasoning":
-                        Text(Attribute.text(field(chunk.value, "text") ?? "", reasoning: true))
-
-                    case .record(let chunk, _) where field(chunk.value, "type") == "tool":
-                        HStack(alignment: .firstTextBaseline, spacing: Style.Spacing.md) {
-                            Iconography.icon(for: Intent.dispatch, size: Style.Spacing.lg)
-
-                            Text(field(chunk.value, "name") ?? "tool")
-                                .font(Typography.cardDetail(.monospaced))
-                                .foregroundStyle(Style.Foreground.subtle)
-
-                            if let status = field(chunk.value, "status") {
-                                Text(status)
-                                    .font(Typography.label)
-                                    .foregroundStyle(Style.Foreground.faint)
-                            }
-
-                            Spacer(minLength: 0)
-                        }
-
-                    case .record(let chunk, _) where field(chunk.value, "type") != nil:
-                        Text(Attribute.text(field(chunk.value, "text") ?? ""))
-
-                    case .event, .record, .transcript:
-                        EmptyView()
-                }
-            }
-        }
-        .font(Typography.prose)
-        .foregroundStyle(Style.Foreground.base)
-        .lineSpacing(Style.Spacing.sm)
-        .textSelection(.enabled)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if case .transcript = entry { return }
-            model.select(transcript)
-        }
-    }
-}
-
 struct TranscriptSurface: Surface {
     var panel: any Panel
     var model: any Model
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: Style.Spacing.xxl) {
-                if let transcript = model.session.transcript {
-                    ForEach(Transcript.with(transcript, { $0.entries }) ?? []) { entry in
-                        TranscriptEntry(transcript: transcript, entry: entry, model: model)
-                            .padding(.vertical, Style.Spacing.xl)
-                            .frame(maxWidth: 680)
+        GeometryReader { geometry in
+            let width = min(Style.Dimension.transcriptMaxWidth, max(0, geometry.size.width - Style.Spacing.lg * 2))
+            Color.clear.frame(height: 16)
+
+            ScrollView {
+                LazyVStack(spacing: Style.Spacing.transcriptEntrySpacing) {
+                    if let transcript = model.session.transcript {
+                        let records = (Transcript.with(transcript, { $0.entries }) ?? []).filter { entry in
+                            if case .record = entry { true } else { false }
+                        }
+
+                        ForEach(records) { entry in
+                            TranscriptEntry(
+                                transcript: transcript,
+                                entry: entry,
+                                model: model,
+                                inputMaxWidth: width * Style.Scale.transcriptInputWidth
+                            )
+                            .frame(maxWidth: Style.Dimension.transcriptMaxWidth)
+                        }
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.horizontal, Style.Spacing.xxl)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.horizontal, 12)
+            .defaultScrollAnchor(.bottom, for: .initialOffset)
+            .scrollEdgeEffectStyle(.soft, for: .vertical)
+            .id(model.session.transcript)
+
+            Color.clear.frame(height: 8)
         }
-        .scrollEdgeEffectStyle(.soft, for: .vertical)
     }
 }

@@ -225,12 +225,6 @@ enum SampleInterfaces {
                     default: .collection(["--sandbox": .string("workspace-write")])
                 ),
                 .argument(
-                    name: "continuation",
-                    type: .collection(["resume": .string("")]),
-                    required: false,
-                    default: nil
-                ),
-                .argument(
                     name: "input",
                     type: .string(""),
                     required: true,
@@ -252,7 +246,10 @@ enum SampleInterfaces {
                     .fixed(.string("--print")),
                     .fixed(.string("--output-format")),
                     .fixed(.string("stream-json")),
-                    .fixed(.string("--verbose"))
+                    .fixed(.string("--verbose")),
+                    .fixed(.string("--mcp-config")),
+                    .fixed(.string(#"{"mcpServers":{"scint":{"type":"http","url":"http://127.0.0.1:7345/mcp","headers":{"Authorization":"Bearer $SCINT_CONTEXT"}}}}"#)),
+                    .fixed(.string("--strict-mcp-config"))
                 ]
             ),
             .evaluate,
@@ -260,9 +257,11 @@ enum SampleInterfaces {
                 .argument(
                     name: "model",
                     type: .collection(["--model": .sequence([
-                        .string("opus"),
-                        .string("sonnet"),
-                        .string("haiku")
+                        .string("claude-fable-5-1"),
+                        .string("claude-opus-5"),
+                        .string("claude-sonnet-5"),
+                        .string("claude-haiku-4-5"),
+                        .string("claude-opus-4-8")
                     ])]),
                     required: false,
                     default: nil
@@ -275,7 +274,7 @@ enum SampleInterfaces {
                 ),
                 .argument(
                     name: "reasoningEffort",
-                    type: .collection(["--effort": .sequence([
+                    type: .collection(["--effort": .range([
                         .string("low"),
                         .string("medium"),
                         .string("high"),
@@ -298,7 +297,6 @@ enum SampleInterfaces {
                     required: false,
                     default: .collection(["--permission-mode": .string("default")])
                 ),
-                .argument(name: "continuation", type: .collection(["--resume": .string("")]), required: false, default: nil),
                 .argument(name: "input", type: .string(""), required: true, default: nil)
             ],
             description: "Evaluate a request against this space with Claude Code, reading its documents and calling its capabilities, and report what was found or done."
@@ -318,7 +316,11 @@ enum SampleInterfaces {
                     .fixed(.string("--color")),
                     .fixed(.string("never")),
                     .fixed(.string("--skip-git-repo-check")),
-                    .fixed(.string("--dangerously-bypass-approvals-and-sandbox"))
+                    .fixed(.string("--dangerously-bypass-approvals-and-sandbox")),
+                    .fixed(.string("-c")),
+                    .fixed(.string("mcp_servers.scint.url=http://127.0.0.1:7345/mcp")),
+                    .fixed(.string("-c")),
+                    .fixed(.string("mcp_servers.scint.bearer_token_env_var=SCINT_CONTEXT"))
                 ]
             ),
             .evaluate,
@@ -326,12 +328,11 @@ enum SampleInterfaces {
                 .argument(
                     name: "model",
                     type: .collection(["--model": .sequence([
+                        .string("gpt-6-astra"),
                         .string("gpt-5.6-sol"),
                         .string("gpt-5.6-terra"),
                         .string("gpt-5.6-luna"),
-                        .string("gpt-5.5"),
-                        .string("gpt-5.4"),
-                        .string("gpt-5.4-mini")
+                        .string("gpt-5.5")
                     ])]),
                     required: false,
                     default: nil
@@ -345,7 +346,7 @@ enum SampleInterfaces {
                 ),
                 .argument(
                     name: "reasoningEffort",
-                    type: .collection(["-c": .collection(["model_reasoning_effort": .sequence([
+                    type: .collection(["-c": .collection(["model_reasoning_effort": .range([
                         .string("low"),
                         .string("medium"),
                         .string("high"),
@@ -358,7 +359,7 @@ enum SampleInterfaces {
                 ),
                 .argument(
                     name: "sandbox",
-                    type: .collection(["--sandbox": .sequence([
+                    type: .collection(["--sandbox": .range([
                         .string("read-only"),
                         .string("workspace-write"),
                         .string("danger-full-access")
@@ -366,7 +367,6 @@ enum SampleInterfaces {
                     required: false,
                     default: .collection(["--sandbox": .string("workspace-write")])
                 ),
-                .argument(name: "continuation", type: .collection(["resume": .string("")]), required: false, default: nil),
                 .argument(name: "input", type: .string(""), required: true, default: nil)
             ],
             description: "Evaluate a request against this space, reading its documents and calling its capabilities, and report what was found or done."

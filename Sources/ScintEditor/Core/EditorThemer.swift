@@ -22,7 +22,7 @@ struct Theme: @unchecked Sendable {
     var syntaxHiddenColor: NSColor
 
     static let dark = Theme(
-        textColor: NSColor(Style.Foreground.base),
+        textColor: NSColor(Style.Foreground.primary),
         caretColor: NSColor(Color.accentColor),
         caretWidth: 2,
         baseFont: Typography.Prose.appKitText,
@@ -30,21 +30,18 @@ struct Theme: @unchecked Sendable {
         h2Font: Typography.Prose.appKitHeading(2),
         h3Font: Typography.Prose.appKitHeading(3),
         codeFont: Typography.Prose.appKitCode,
-        codeBgColor: NSColor.white.withAlphaComponent(Style.Opacity.muted),
+        codeBgColor: NSColor(Style.Background.overlay),
         codeFenceColor: NSColor.white.withAlphaComponent(Style.Opacity.washed),
         bulletColor: NSColor.white.withAlphaComponent(Style.Opacity.faint),
         checkboxCheckedColor: NSColor.white.withAlphaComponent(Style.Opacity.muted),
         checkboxUncheckedColor: NSColor.white.withAlphaComponent(Style.Opacity.faint),
-        linkLabelColor: NSColor(Style.Foreground.base).withAlphaComponent(Style.Opacity.strong),
-        linkURLColor: NSColor(Style.Foreground.base).withAlphaComponent(Style.Opacity.faint),
-        completedColor: NSColor(Style.Foreground.base).withAlphaComponent(Style.Opacity.faint),
+        linkLabelColor: NSColor(Style.Foreground.primary).withAlphaComponent(Style.Opacity.strong),
+        linkURLColor: NSColor(Style.Foreground.primary).withAlphaComponent(Style.Opacity.faint),
+        completedColor: NSColor(Style.Foreground.primary).withAlphaComponent(Style.Opacity.faint),
         syntaxHiddenColor: .clear
     )
 }
 
-/// The AppKit half of the markdown pipeline. `Markdown.scan` decides what each range *is*;
-/// this decides what it looks like. The SwiftUI half is `Attribute.text`, which maps the same
-/// spans onto `AttributedString` — the two stay in step because neither one classifies text.
 @MainActor final class EditorThemer: NSObject {
     var theme: Theme = .dark
     var typingAttributes: [NSAttributedString.Key: Any] { baseAttributes }
@@ -57,38 +54,26 @@ struct Theme: @unchecked Sendable {
         ]
     }
 
-    /// Builds a fresh attributed string. Used only when the editor first takes on a value —
-    /// every subsequent restyle goes through `applyStyle(to:)`, which never touches characters.
     func attributedString(for text: String) -> NSAttributedString {
         let attributed = NSMutableAttributedString(string: text, attributes: baseAttributes)
         attributed.beginEditing()
         applyStyle(to: attributed)
         attributed.endEditing()
+        substituteTables(in: attributed)
         substituteReferences(in: attributed)
         return attributed
     }
 
-    /// Restyles `storage` in place, setting attributes only.
-    ///
-    /// This never replaces characters, which is what keeps marked text (IME composition, dead-key
-    /// accents), the undo stack, and the selection anchor intact across a keystroke.
-    ///
-    /// It also does not open an edit transaction: the caller decides, because the main caller is
-    /// `NSTextStorageDelegate.textStorage(_:didProcessEditing:…)`, which already runs inside one.
-    /// Nesting `beginEditing`/`endEditing` there re-enters `processEditing`.
-    /// Styles the storage, writing only where `scope` reaches.
-    ///
-    /// This runs from `didProcessEditing`, once per character, and a run holds the whole document —
-    /// so re-attributing all of it per keystroke is what made typing unusable.
-    ///
-    /// The scan stays whole and the ranges stay absolute. An earlier version scanned just the
-    /// edited lines and shifted the results back by the fragment's offset, which was faster still
-    /// and silently produced no styling at all. Deciding from the whole document and *writing* to
-    /// one line is the version with nothing to get wrong: what gets computed is identical to
-    /// styling whole, and only the attribute writes and the layout they invalidate are narrowed.
-    ///
-    /// A fenced code block is the one construct spanning lines, so an edit anywhere in a document
-    /// containing one restyles whole rather than leave following lines stale.
+    private func substituteTables(in storage: NSMutableAttributedString) {
+        let source = storage.string as NSString
+        for range in Markdown.tableRanges(storage.string).reversed() {
+            let attachment = MarkdownTableAttachment(source: source.substring(with: range))
+            let replacement = NSMutableAttributedString(attachment: attachment)
+            replacement.addAttributes(baseAttributes, range: NSRange(location: 0, length: replacement.length))
+            storage.replaceCharacters(in: range, with: replacement)
+        }
+    }
+
     func applyStyle(to storage: NSMutableAttributedString, in scope: NSRange? = nil) {
         let text = storage.string
         let full = NSRange(location: 0, length: storage.length)
@@ -101,8 +86,6 @@ struct Theme: @unchecked Sendable {
             return source.lineRange(for: NSRange(location: location, length: length))
         }()
 
-        // Each inline reference is one attachment character standing in for a whole link, and a
-        // blanket `setAttributes` would strip it. Lift them out and put them back.
         var attachments: [(NSRange, NSTextAttachment)] = []
         storage.enumerateAttribute(.attachment, in: scoped) { value, range, _ in
             if let attachment = value as? NSTextAttachment { attachments.append((range, attachment)) }
@@ -127,13 +110,23 @@ struct Theme: @unchecked Sendable {
             guard range.length > 0 else { continue }
             storage.addAttributes(attributes(for: span.kind, in: source, at: range), range: range)
         }
+
+        for link in document.links {
+            let range = NSIntersectionRange(link.label, scoped)
+            guard range.length > 0, let url = URL(string: source.substring(with: link.url)) else { continue }
+            storage.addAttribute(.link, value: url, range: range)
+        }
+
+        for span in document.spans where span.kind == .inlineCode {
+            let codeRange = NSIntersectionRange(span.range, scoped)
+            if codeRange.length > 0 { storage.addAttribute(.font, value: theme.codeFont, range: codeRange) }
+            for location in [span.range.location - 1, NSMaxRange(span.range)] where location >= 0 && location < storage.length {
+                let range = NSIntersectionRange(NSRange(location: location, length: 1), scoped)
+                if range.length > 0 { storage.addAttribute(.kern, value: Style.Spacing.sm, range: range) }
+            }
+        }
     }
 
-    /// Replaces each `scint://` link with an attachment carrying the reference.
-    ///
-    /// Works back to front so the ranges ahead of each replacement stay valid. The attachment
-    /// keeps the original markdown, which is what goes back to the document — the stored text is
-    /// still exactly what was typed.
     private func substituteReferences(in storage: NSMutableAttributedString) {
         let source = storage.string as NSString
 
@@ -160,16 +153,25 @@ struct Theme: @unchecked Sendable {
             case .heading(let level): return Typography.Prose.headingParagraphStyle(level)
             case .bullet, .numbered, .checklist: return listParagraphStyle(for: block, in: text)
             case .quote: return Typography.Prose.quoteParagraphStyle
-            case .paragraph, .codeFence, .codeBlock: return Typography.Prose.paragraphStyle
+            case .codeFence:
+                let paragraph = NSMutableParagraphStyle()
+                paragraph.maximumLineHeight = Typography.Scale.hiddenSyntax
+                return paragraph
+            case .codeBlock:
+                let paragraph = Typography.Prose.paragraphStyle.mutableCopy() as! NSMutableParagraphStyle
+                paragraph.headIndent = Style.Spacing.lg
+                paragraph.firstLineHeadIndent = Style.Spacing.lg
+                paragraph.tailIndent = -Style.Spacing.lg
+                return paragraph
+            case .paragraph: return Typography.Prose.paragraphStyle
         }
     }
 
-    /// Measures this item's own marker for the hanging indent, and adds one nesting step per level.
     private func listParagraphStyle(for block: Markdown.Block, in text: NSString) -> NSParagraphStyle {
         let prefix = text.substring(with: block.prefix)
         let hanging = (prefix as NSString).size(withAttributes: [.font: theme.baseFont]).width
         return Typography.Prose.listParagraphStyle(
-            indent: CGFloat(block.depth) * Style.Spacing.listIndent,
+            indent: Style.Spacing.markdownListInset + CGFloat(block.depth) * Style.Spacing.listIndent,
             hanging: hanging
         )
     }
@@ -186,8 +188,12 @@ struct Theme: @unchecked Sendable {
             case .quote:
                 return [.foregroundColor: theme.textColor.withAlphaComponent(Style.Opacity.muted)]
 
-            case .quoteMarker, .listMarker:
-                return [.foregroundColor: theme.bulletColor]
+            case .quoteMarker:
+                return [.foregroundColor: theme.syntaxHiddenColor, .font: Typography.Prose.appKitSyntaxHidden]
+
+            case .listMarker:
+                let ordered = text.substring(with: range).first?.isNumber == true
+                return [.foregroundColor: ordered ? theme.bulletColor : theme.syntaxHiddenColor]
 
             case .checkbox(let checked):
                 return [
@@ -204,11 +210,11 @@ struct Theme: @unchecked Sendable {
             case .codeBlock:
                 return [
                     .font: theme.codeFont,
-                    .foregroundColor: theme.textColor.withAlphaComponent(Style.Opacity.disabled),
+                    .foregroundColor: theme.textColor,
                 ]
 
             case .codeFence:
-                return [.font: theme.codeFont, .foregroundColor: theme.codeFenceColor]
+                return [.font: Typography.Prose.appKitSyntaxHidden, .foregroundColor: theme.syntaxHiddenColor]
 
             case .strong:
                 return [.font: NSFont.systemFont(ofSize: theme.baseFont.pointSize, weight: .semibold)]
@@ -217,7 +223,7 @@ struct Theme: @unchecked Sendable {
                 return [.font: NSFontManager.shared.convert(theme.baseFont, toHaveTrait: .italicFontMask)]
 
             case .inlineCode:
-                return [.font: theme.codeFont, .backgroundColor: theme.codeBgColor]
+                return [.font: theme.codeFont]
 
             case .strikethrough:
                 return [
@@ -232,15 +238,7 @@ struct Theme: @unchecked Sendable {
                 ]
 
             case .linkURL:
-                // An internal reference has no URL worth showing — the label is the whole point.
-                // An external link keeps its address visible.
-                guard !Reference.Link.isReference(text.substring(with: range)) else {
-                    return [
-                        .foregroundColor: theme.syntaxHiddenColor,
-                        .font: Typography.Prose.appKitSyntaxHidden,
-                    ]
-                }
-                return [.font: theme.codeFont, .foregroundColor: theme.linkURLColor]
+                return [.foregroundColor: theme.syntaxHiddenColor, .font: Typography.Prose.appKitSyntaxHidden]
 
             case .syntax:
                 return [

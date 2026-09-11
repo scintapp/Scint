@@ -340,7 +340,7 @@ struct MaterialView: View {
 
                 return result
             } ?? []
-        } ?? []
+        }
     }
 
     private static func text(of block: Material.Block) -> String? {

@@ -6,8 +6,8 @@ struct MaterialsGroup: Query {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                if let entry = item.entryId { return model.session.selected.selected(ref, entry) }
-                return model.session.selected.selected(ref)
+                if let entry = item.entryId { return model.session.selection.selected(ref, entry) }
+                return model.session.selection.selected(ref)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
@@ -65,7 +65,7 @@ struct MaterialsGroup: Query {
             }
         }
 
-        guard case .content(let material) = model.session.focused, material.type is Material.Type
+        guard case .content(let material) = model.session.focus, material.type is Material.Type
                 else { return .init(layout: .group) }
         let items = Material.with(material, { value in value.blocks.map { item(for: $0, origin: material) } }) ?? []
 
@@ -91,7 +91,7 @@ struct MaterialsGroup: Query {
 struct ArtifactsGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var space: Reference {
-            if case .structure(let ref) = model.session.focused { return ref }
+            if case .structure(let ref) = model.session.focus { return ref }
             else { return model.session.origin }
         }
 
@@ -157,7 +157,7 @@ struct ArtifactsGroup: Query {
 
     static func parameters(_ model: any Model) -> Params {
         var space: Reference {
-            if case .structure(let ref) = model.session.focused { return ref }
+            if case .structure(let ref) = model.session.focus { return ref }
             else { return model.session.origin }
         }
 
@@ -226,7 +226,7 @@ struct ArtifactsGroup: Query {
 struct CommandsGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var space: Reference {
-            if case .structure(let ref) = model.session.focused { return ref }
+            if case .structure(let ref) = model.session.focus { return ref }
             else { return model.session.origin }
         }
 
@@ -292,7 +292,7 @@ struct CommandsGroup: Query {
 
     static func parameters(_ model: any Model) -> Params {
         var space: Reference {
-            if case .structure(let ref) = model.session.focused { return ref }
+            if case .structure(let ref) = model.session.focus { return ref }
             else { return model.session.origin }
         }
 
@@ -359,7 +359,7 @@ struct CommandsGroup: Query {
 struct HarnessGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var space: Reference {
-            if case .structure(let ref) = model.session.focused { return ref }
+            if case .structure(let ref) = model.session.focus { return ref }
             else { return model.session.origin }
         }
 
@@ -399,7 +399,7 @@ struct HarnessGroup: Query {
 
     static func parameters(_ model: any Model) -> Params {
         var space: Reference {
-            if case .structure(let ref) = model.session.focused { return ref }
+            if case .structure(let ref) = model.session.focus { return ref }
             else { return model.session.origin }
         }
 
@@ -420,8 +420,7 @@ struct HarnessGroup: Query {
 
         let settingItems = parameters.compactMap { parameter -> ItemParams? in
             guard case .argument(let key, let type, let required, let defaultValue) = parameter,
-                  !required,
-                  key != "continuation"
+                  !required
                     else { return nil }
 
             let configured = config[key]
@@ -466,17 +465,19 @@ struct HarnessGroup: Query {
                 )
             }
 
-            let selectedValue = configured?.rendered.last ?? ""
-            let choices = options(type)
+            let ordered = scale(type)
+            let resting = ordered == nil ? "" : (defaultValue.map(leaf)?.rendered.last ?? "")
+            let selectedValue = configured?.rendered.last ?? resting
+            let choices = ordered ?? options(type)
 
             if !choices.isEmpty {
                 var items = choices.compactMap { value -> ItemParams? in
                     guard let rendered = value.rendered.last, !rendered.isEmpty else { return nil }
-                    return .init(name: label(rendered), value: rendered)
+                    return .init(key: key, name: label(rendered), value: rendered)
                 }
 
                 if !selectedValue.isEmpty, !items.contains(where: { $0.value == selectedValue }) {
-                    items.append(.init(name: label(selectedValue), value: selectedValue))
+                    items.append(.init(key: key, name: label(selectedValue), value: selectedValue))
                 }
 
                 return .init(
@@ -484,9 +485,9 @@ struct HarnessGroup: Query {
                     name: label(key),
                     image: "slider.horizontal.3",
                     tint: Style.Tint.command,
-                    trailingKind: .picker,
+                    trailingKind: ordered == nil ? .picker : .range,
                     value: selectedValue,
-                    items: [.init(name: "Default")] + items
+                    items: ordered == nil ? [.init(name: "Default")] + items : items
                 )
             }
 
@@ -521,7 +522,7 @@ struct HarnessGroup: Query {
                         trailingKind: .field,
                         value: selectedValue
                     )
-                case .sequence, .collection, .reference:
+                case .sequence, .range, .collection, .reference:
                     return nil
             }
         }
@@ -536,6 +537,14 @@ struct HarnessGroup: Query {
             }.capitalized
         }
 
+        func scale(_ value: Value) -> [Value]? {
+            switch value {
+                case .collection(let values) where values.count == 1: values.values.first.flatMap(scale)
+                case .range(let values): values
+                default: nil
+            }
+        }
+
         func options(_ value: Value) -> [Value] {
             switch value {
                 case .collection(let values) where values.count == 1: values.values.first.map(options) ?? []
@@ -548,6 +557,7 @@ struct HarnessGroup: Query {
             switch value {
                 case .collection(let values) where values.count == 1: values.values.first.map(leaf) ?? value
                 case .sequence(let values) where values.count > 1: values.first.map(leaf) ?? value
+                case .range(let values): values.first.map(leaf) ?? value
                 default: value
             }
         }

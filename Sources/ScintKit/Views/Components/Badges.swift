@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-struct EntryCounts {
+struct ComponentCount: Sendable {
     var notes = 0
     var spaces = 0
     var artifacts = 0
@@ -39,6 +39,17 @@ struct EntryCounts {
     }
 }
 
+struct RunningIndicator: View {
+    var size: ControlSize = .small
+
+    var body: some View {
+        ProgressView()
+            .progressViewStyle(.circular)
+            .controlSize(size)
+            .tint(Style.Tint.space)
+    }
+}
+
 struct Badge: View {
     var label: String
     var image: String = ""
@@ -56,7 +67,7 @@ struct Badge: View {
 
             Text(label)
                 .font(outlined ? Typography.badge : Typography.badge.weight(.light))
-                .foregroundStyle(active ? outlined ? tint : Style.Foreground.base : Style.Foreground.faint)
+                .foregroundStyle(active ? outlined ? tint : Style.Foreground.primary : Style.Foreground.faint)
                 .lineLimit(Style.Limit.singleLine)
         }
         .padding(.horizontal, outlined ? Style.Spacing.md : .zero)
@@ -74,65 +85,13 @@ struct Badge: View {
     }
 }
 
-struct RunningIndicator: View {
-    var size: ControlSize = .small
-
-    var body: some View {
-        ProgressView()
-            .progressViewStyle(.circular)
-            .controlSize(size)
-            .tint(Style.Tint.space)
-    }
-}
-
-struct RunningBadge: View {
-    let model: any Model
-
-    private var running: Int {
-        var seen: Set<Reference> = []
-        var total = 0
-
-        func visit(_ ref: Reference) {
-            guard seen.insert(ref).inserted else { return }
-            if let composition = model.compose(ref), case .working = composition.state { total += 1 }
-            let children = Space.with(ref, { $0.spaces })
-                ?? Workspace.with(ref, { $0.spaces })
-                ?? []
-            for child in children { visit(child) }
-        }
-
-        visit(model.session.origin)
-        return total
-    }
-
-    var body: some View {
-        let running = running
-
-        if running > 0 {
-            HStack(alignment: .center, spacing: Style.Spacing.sm) {
-                RunningIndicator(size: .mini)
-
-                Text("Working · \(running)")
-                    .font(Typography.label)
-                    .monospacedDigit()
-                    .foregroundStyle(Style.Foreground.subtle)
-                    .lineLimit(Style.Limit.singleLine)
-            }
-            .padding(.horizontal, Style.Spacing.md)
-            .frame(height: Style.Spacing.rowHeight)
-            .background(Style.Shape.capsule.fill(Style.Background.group))
-            .accessibilityLabel("\(running) running")
-        }
-    }
-}
-
 struct Badges: View {
     let model: any Model
 
     var origin: Reference { model.session.origin }
 
-    var counts: EntryCounts {
-        var counts = EntryCounts()
+    var counts: ComponentCount {
+        var counts = ComponentCount()
         var materials: [Reference] = []
         let scoped = model.session.opened.material
 

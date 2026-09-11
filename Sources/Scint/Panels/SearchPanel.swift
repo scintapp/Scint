@@ -64,7 +64,6 @@ struct SearchDetail: Query {
             switch verb {
                 case .open: "arrow.up.forward.square"
                 case .execute: "play"
-//                case .copy: "doc.on.doc"
                 case .insert: "text.insert"
             }
         }
@@ -83,7 +82,6 @@ struct SearchDetail: Query {
         switch verb {
             case .open: model.open(ref)
             case .execute: _ = Runtime.shared.start(ref)
-//            case .copy: Action.copy(ref, from: nil, in: model)
             case .insert:
                 let origin = model.session.origin
                 if origin.type is Workspace.Type { Workspace.with(origin, { $0 })?.add(ref) }

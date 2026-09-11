@@ -173,6 +173,8 @@ struct InterfaceRunner {
             case .date: return .object(["type": .string("string"), "format": .string("date-time")])
             case .sequence(let values) where values.count > 1:
                 return .object(["enum": .array(values.map(literal))])
+            case .range(let values):
+                return .object(["enum": .array(values.map(literal))])
             case .sequence(let values):
                 return .object([
                     "type": .string("array"),
@@ -197,7 +199,7 @@ struct InterfaceRunner {
             case .decimal(let value): return .decimal(NSDecimalNumber(decimal: value).doubleValue)
             case .string(let value): return .string(value)
             case .date(let value): return .string(Value.formatter.string(from: value))
-            case .sequence(let values): return .array(values.map(literal))
+            case .sequence(let values), .range(let values): return .array(values.map(literal))
             case .collection(let values): return .object(values.mapValues(literal))
             case .reference(let ref): return .string(ref.id.uuidString.lowercased())
         }
@@ -233,6 +235,10 @@ struct InterfaceRunner {
                       })
                         else { throw ParsingError.invalid("Argument \(name) references an unavailable value.") }
                 return .reference(ref)
+            case .range(let scale):
+                let member = try untypedValue(supplied, name: name)
+                guard scale.contains(member) else { throw invalid(name) }
+                return member
             case .sequence(let alternatives) where alternatives.count > 1:
                 for alternative in alternatives {
                     if let value = try? value(supplied, as: alternative, available: available, name: name) { return value }

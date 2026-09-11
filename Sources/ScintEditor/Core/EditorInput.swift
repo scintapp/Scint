@@ -105,6 +105,7 @@ struct EditorInput: NSViewRepresentable {
 
         func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
             guard let view else { return false }
+            if selector == #selector(NSResponder.insertNewline(_:)), view.editSelectedTable() { return true }
             return onCommand(selector, view.plainSelectedRange, (view.plainText as NSString).length)
         }
 
@@ -112,6 +113,10 @@ struct EditorInput: NSViewRepresentable {
             reportCaretRect()
             onFocusGained()
             scheduleCaretScroll()
+        }
+
+        func textDidEndEditing(_ notification: Notification) {
+            view?.restoreTablePresentation()
         }
 
         func textDidChange(_ notification: Notification) {
@@ -194,7 +199,7 @@ final class EditorInputView: NSTextView {
         let display = storage.string as NSString
         var result = ""
         storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
-            if let attachment = value as? ReferenceAttachment { result += attachment.source }
+            if let attachment = value as? any SourceAttachment { result += attachment.source }
             else { result += display.substring(with: range) }
         }
         return result
@@ -218,7 +223,7 @@ final class EditorInputView: NSTextView {
         var source = 0
 
         storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
-            let length = (value as? ReferenceAttachment).map { ($0.source as NSString).length } ?? range.length
+            let length = (value as? any SourceAttachment).map { ($0.source as NSString).length } ?? range.length
             result.append(
                 Run(
                     display: NSRange(location: display, length: range.length),
@@ -404,10 +409,128 @@ final class EditorInputView: NSTextView {
             restyle()
         }
 
+        connectTableActions()
         renderedText = text
         setPlainSelectedRange(selectedRange)
         resetTypingAttributes()
         invalidateEditorLayout()
+    }
+
+    private func connectTableActions() {
+        storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, _, _ in
+            guard let table = value as? MarkdownTableAttachment else { return }
+            table.onEdit = { [weak self, weak table] in
+                guard let self, let table else { return }
+                var found: NSRange?
+                self.storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: self.storage.length)) { value, range, stop in
+                    if (value as? MarkdownTableAttachment) === table { found = range; stop.pointee = true }
+                }
+                guard let found else { return }
+                self.window?.makeFirstResponder(self)
+                self.setSelectedRange(found)
+                _ = self.editSelectedTable()
+            }
+        }
+    }
+
+    @discardableResult fileprivate func editSelectedTable() -> Bool {
+        let selection = selectedRange()
+        guard selection.length == 1, selection.location < storage.length,
+              let table = storage.attribute(.attachment, at: selection.location, effectiveRange: nil) as? MarkdownTableAttachment,
+              let styler else { return false }
+        isApplyingTextStorageChange = true
+        defer { isApplyingTextStorageChange = false }
+        let source = NSMutableAttributedString(string: table.source)
+        styler.applyStyle(to: source)
+        replaceTablePresentation(in: selection, with: source)
+        setSelectedRange(NSRange(location: selection.location, length: 0))
+        invalidateEditorLayout()
+        return true
+    }
+
+    fileprivate func restoreTablePresentation() {
+        guard let styler else { return }
+        let source = plainText
+        let selection = plainSelectedRange
+        isApplyingTextStorageChange = true
+        defer { isApplyingTextStorageChange = false }
+        guard !Markdown.tableRanges(storage.string).isEmpty else { return }
+        replaceTablePresentation(in: NSRange(location: 0, length: storage.length), with: styler.attributedString(for: source))
+        connectTableActions()
+        setPlainSelectedRange(selection)
+        invalidateEditorLayout()
+    }
+
+    /// Presentation replacements change TextKit offsets too. Keep their inverse
+    /// in native undo history so text edits never replay against collapsed ranges.
+    private func replaceTablePresentation(in range: NSRange, with replacement: NSAttributedString) {
+        breakUndoCoalescing()
+        let previous = storage.attributedSubstring(from: range)
+        let selection = selectedRange()
+        let replaced = NSRange(location: range.location, length: replacement.length)
+        undoManager?.registerUndo(withTarget: self) { view in
+            view.replaceTablePresentation(in: replaced, with: previous)
+            view.setSelectedRange(selection)
+            view.connectTableActions()
+            view.invalidateEditorLayout()
+        }
+        storage.replaceCharacters(in: range, with: replacement)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let document = Markdown.scan(storage.string)
+        let origin = textContainerOrigin
+        let frames: (NSRange) -> [CGRect] = { range in
+            guard range.length > 0,
+                  let start = self.contentStorage.location(self.contentStorage.documentRange.location, offsetBy: range.location),
+                  let end = self.contentStorage.location(self.contentStorage.documentRange.location, offsetBy: NSMaxRange(range)),
+                  let textRange = NSTextRange(location: start, end: end) else { return [] }
+            var result: [CGRect] = []
+            self.layout.enumerateTextSegments(in: textRange, type: .standard, options: [.rangeNotRequired]) { _, rect, _, _ in
+                result.append(rect.offsetBy(dx: origin.x, dy: origin.y))
+                return true
+            }
+            return result
+        }
+        for span in document.spans where span.kind == .inlineCode {
+            for rect in frames(span.range) {
+                MarkdownDecoration.code(rect.insetBy(dx: -Style.Spacing.sm, dy: -Style.Spacing.xs))
+            }
+        }
+        var codeRect: CGRect?
+        // Segments stop short of the spacing between lines, so a run of quote lines is gathered into one bar.
+        var quoteRect: CGRect?
+        for block in document.blocks {
+            if block.kind == .codeBlock {
+                for rect in frames(block.range) { codeRect = codeRect.map { $0.union(rect) } ?? rect }
+                continue
+            }
+            if let rect = codeRect {
+                MarkdownDecoration.code(CGRect(x: origin.x, y: rect.minY - Style.Spacing.xs, width: container.size.width, height: rect.height + Style.Spacing.sm))
+                codeRect = nil
+            }
+            if block.kind == .quote {
+                for rect in frames(block.range) { quoteRect = quoteRect.map { $0.union(rect) } ?? rect }
+                continue
+            }
+            if let rect = quoteRect {
+                NSColor(Style.Foreground.faint).setFill()
+                CGRect(x: origin.x, y: rect.minY, width: Style.Dimension.markdownQuoteBar, height: rect.height).fill()
+                quoteRect = nil
+            }
+            if block.kind == .bullet, let rect = frames(block.marker).first {
+                NSColor(Style.Foreground.subtle).setFill()
+                NSBezierPath(ovalIn: CGRect(x: rect.minX, y: rect.midY - Style.Dimension.markdownBullet / 2, width: Style.Dimension.markdownBullet, height: Style.Dimension.markdownBullet)).fill()
+            }
+        }
+        if let rect = codeRect {
+            MarkdownDecoration.code(CGRect(x: origin.x, y: rect.minY - Style.Spacing.xs, width: container.size.width, height: rect.height + Style.Spacing.sm))
+        }
+        if let rect = quoteRect {
+            NSColor(Style.Foreground.faint).setFill()
+            CGRect(x: origin.x, y: rect.minY, width: Style.Dimension.markdownQuoteBar, height: rect.height).fill()
+        }
+        super.draw(dirtyRect)
     }
 
     override func didChangeText() {
@@ -501,7 +624,7 @@ final class EditorInputView: NSTextView {
 
         var found: NSRange?
         storage.enumerateAttribute(.attachment, in: selected) { value, range, stop in
-            guard value is ReferenceAttachment, range == selected else { return }
+            guard value is any SourceAttachment, range == selected else { return }
             found = range
             stop.pointee = true
         }
@@ -522,7 +645,7 @@ final class EditorInputView: NSTextView {
 
         var found: NSRange?
         storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, range, stop in
-            guard value is ReferenceAttachment,
+            guard value is any SourceAttachment,
                   let start = contentStorage.location(contentStorage.documentRange.location, offsetBy: range.location),
                   let end = contentStorage.location(contentStorage.documentRange.location, offsetBy: NSMaxRange(range)),
                   let textRange = NSTextRange(location: start, end: end)
@@ -547,6 +670,7 @@ final class EditorInputView: NSTextView {
 
         if window?.firstResponder !== self { window?.makeFirstResponder(self) }
         setSelectedRange(range)
+        if event.clickCount == 2 { _ = editSelectedTable() }
     }
 
     override func drawInsertionPoint(in rect: NSRect, color: NSColor, turnedOn flag: Bool) {

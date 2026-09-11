@@ -4,24 +4,24 @@ import SwiftUI
 
 enum Typography {
     enum Scale {
-        static let body: CGFloat = 14.5
-        static let code: CGFloat = 13.5
+        static let body: CGFloat = 14
+        static let code: CGFloat = 13
         static let hiddenSyntax: CGFloat = 0.1
-        static let chip: CGFloat = 13
-        static let inline: CGFloat = 12
+        static let chip: CGFloat = 14
+        static let inline: CGFloat = 13
         static let bodyWeight: Weight = .regular
 
         static func heading(_ level: Int) -> CGFloat {
             switch level {
-                case 1: 21
-                case 2: 19
-                default: 17
+                case 1: 24
+                case 2: 18
+                default: 16
             }
         }
 
         static func headingWeight(_ level: Int) -> Weight {
             switch level {
-                case 1: .semibold
+                case 1: .bold
                 case 2: .semibold
                 default: .medium
             }
@@ -69,7 +69,7 @@ enum Typography {
     static let row = Font.system(size: 13)
     static let caption = Font.system(size: 13, weight: .light)
     static let label = Font.system(size: 11)
-    static let badge = Font.system(size: 12, weight: .medium)
+    static let badge = Font.system(size: 12)
 
     static func cardDetail(_ design: Font.Design = .default) -> Font {
         .system(
@@ -93,6 +93,7 @@ enum Typography {
         static var syntaxHidden: Font { .system(size: Scale.hiddenSyntax) }
         static var appKitText: NSFont { .systemFont(ofSize: Scale.body, weight: Scale.bodyWeight.appKit) }
         static var appKitCode: NSFont { .monospacedSystemFont(ofSize: Scale.code, weight: .regular) }
+        static var appKitTableHeader: NSFont { .systemFont(ofSize: Scale.body, weight: .semibold) }
         static var appKitSyntaxHidden: NSFont { .systemFont(ofSize: Scale.hiddenSyntax) }
 
         static func appKitHeading(_ level: Int) -> NSFont {
@@ -106,46 +107,28 @@ enum Typography {
 
         static var paragraphStyle: NSParagraphStyle {
             let paragraph = NSMutableParagraphStyle()
-            paragraph.lineSpacing = Style.Spacing.sm
-            paragraph.paragraphSpacing = .zero
+            paragraph.lineSpacing = Style.Spacing.markdownLineSpacing
             return paragraph
         }
 
         static func headingParagraphStyle(_ level: Int) -> NSParagraphStyle {
-            let paragraph = NSMutableParagraphStyle()
-            switch level {
-                case 1:
-                    paragraph.lineSpacing = .zero
-                    paragraph.paragraphSpacingBefore = .zero
-                    paragraph.paragraphSpacing = Style.Spacing.xl
-                case 2:
-                    paragraph.lineSpacing = Style.Spacing.xs
-                    paragraph.paragraphSpacingBefore = Style.Spacing.xxl
-                    paragraph.paragraphSpacing = Style.Spacing.lg
-                default:
-                    paragraph.lineSpacing = Style.Spacing.sm
-                    paragraph.paragraphSpacingBefore = Style.Spacing.xl
-                    paragraph.paragraphSpacing = Style.Spacing.md
-            }
-            return paragraph
+            paragraphStyle
         }
 
         static func listParagraphStyle(indent: CGFloat, hanging: CGFloat) -> NSParagraphStyle {
             let paragraph = NSMutableParagraphStyle()
             paragraph.firstLineHeadIndent = indent
             paragraph.headIndent = indent + hanging
-            paragraph.lineSpacing = Style.Spacing.sm
-            paragraph.paragraphSpacing = Style.Spacing.sm
+            paragraph.lineSpacing = Style.Spacing.markdownLineSpacing
             paragraph.tabStops = [NSTextTab(textAlignment: .left, location: indent + hanging)]
             return paragraph
         }
 
         static var quoteParagraphStyle: NSParagraphStyle {
             let paragraph = NSMutableParagraphStyle()
-            paragraph.headIndent = .zero
-            paragraph.firstLineHeadIndent = .zero
-            paragraph.lineSpacing = Style.Spacing.sm
-            paragraph.paragraphSpacing = Style.Spacing.lg
+            paragraph.headIndent = Style.Spacing.lg
+            paragraph.firstLineHeadIndent = Style.Spacing.lg
+            paragraph.lineSpacing = Style.Spacing.markdownLineSpacing
             return paragraph
         }
     }
@@ -153,7 +136,7 @@ enum Typography {
 
 enum Attribute {
     static func text(_ text: String, reasoning: Bool = false) -> AttributedString {
-        let base = reasoning ? Style.Foreground.faint : Style.Foreground.base
+        let base = reasoning ? Style.Foreground.faint : Style.Foreground.primary
         var attributed = AttributedString(text)
         attributed.font = reasoning ? Typography.prose.italic() : Typography.prose
         attributed.foregroundColor = base
@@ -358,7 +341,7 @@ struct Markdown {
         var blocks: [Block] = []
         var spans: [Span] = []
         var links: [Link] = []
-        var insideFence = false
+        var fence: (character: Character, count: Int)?
         var lineStart = 0
 
         while lineStart < string.length {
@@ -373,22 +356,29 @@ struct Markdown {
 
             let lineRange = NSRange(location: lineStart, length: contentsEnd - lineStart)
             let line = string.substring(with: lineRange)
-            let kind = insideFence ? fenceKind(line) : classify(line)
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            let marker = trimmed.first
+            let fenceCount = trimmed.prefix { $0 == marker }.count
+            let kind: BlockKind
+            if let opened = fence {
+                let closing = marker == opened.character && fenceCount >= opened.count
+                    && trimmed.dropFirst(fenceCount).trimmingCharacters(in: .whitespaces).isEmpty
+                kind = closing ? .codeFence : .codeBlock
+                if closing { fence = nil }
+            } else {
+                kind = classify(line)
+                if kind == .codeFence, let marker { fence = (marker, fenceCount) }
+            }
             let block = block(kind: kind, line: line, in: lineRange)
 
             blocks.append(block)
             append(block, line: line, to: &spans, links: &links)
 
-            if case .codeFence = kind { insideFence.toggle() }
             lineStart = lineEnd
         }
 
         spans.sort { $0.kind.rank < $1.kind.rank }
         return Document(blocks: blocks, spans: spans, links: links)
-    }
-
-    private static func fenceKind(_ line: String) -> BlockKind {
-        line.hasPrefix("```") ? .codeFence : .codeBlock
     }
 
     private static func indentLength(of line: String) -> Int {
@@ -414,14 +404,14 @@ struct Markdown {
 
     private static func classify(_ line: String) -> BlockKind {
         let line = (line as NSString).substring(from: indentLength(of: line))
-        if line.hasPrefix("```") { return .codeFence }
+        if line.hasPrefix("```") || line.hasPrefix("~~~") { return .codeFence }
         if line.hasPrefix("- [ ] ") { return .checklist(checked: false) }
         if line.hasPrefix("- [x] ") || line.hasPrefix("- [X] ") { return .checklist(checked: true) }
         if line.hasPrefix("### ") { return .heading(level: 3) }
         if line.hasPrefix("## ") { return .heading(level: 2) }
         if line.hasPrefix("# ") { return .heading(level: 1) }
-        if line.hasPrefix("> ") { return .quote }
-        if line.hasPrefix("- ") { return .bullet }
+        if line == ">" || line.hasPrefix("> ") { return .quote }
+        if line.hasPrefix("- ") || line.hasPrefix("* ") || line.hasPrefix("+ ") { return .bullet }
         if numberedPattern.firstMatch(
             in: line,
             range: NSRange(location: 0, length: (line as NSString).length)
@@ -505,62 +495,115 @@ struct Markdown {
 
     private static func appendInline(in text: String, offset: Int, to spans: inout [Span]) {
         let range = NSRange(location: 0, length: (text as NSString).length)
-
-        for pattern in inlinePatterns {
+        let code = codeRanges(text)
+        for (full, content) in code {
+            append(NSRange(location: offset + content.location, length: content.length), as: .inlineCode, to: &spans)
+            append(NSRange(location: offset + full.location, length: content.location - full.location), as: .syntax, to: &spans)
+            append(NSRange(location: offset + NSMaxRange(content), length: NSMaxRange(full) - NSMaxRange(content)), as: .syntax, to: &spans)
+        }
+        for pattern in inlinePatterns where pattern.kind != .inlineCode {
             for match in pattern.regex.matches(in: text, range: range) {
                 let delimiterLength = pattern.delimiterLength
                 guard match.range.length > delimiterLength * 2 else { continue }
-
+                let opening = NSRange(location: match.range.location, length: delimiterLength)
+                let closing = NSRange(location: NSMaxRange(match.range) - delimiterLength, length: delimiterLength)
+                guard !code.contains(where: {
+                    NSIntersectionRange($0.0, opening).length > 0 || NSIntersectionRange($0.0, closing).length > 0
+                }) else { continue }
                 let full = NSRange(location: offset + match.range.location, length: match.range.length)
-                append(
-                    NSRange(
-                        location: full.location + delimiterLength,
-                        length: full.length - delimiterLength * 2
-                    ),
-                    as: pattern.kind,
-                    to: &spans
-                )
-                append(
-                    NSRange(location: full.location, length: delimiterLength),
-                    as: .syntax,
-                    to: &spans
-                )
-                append(
-                    NSRange(location: NSMaxRange(full) - delimiterLength, length: delimiterLength),
-                    as: .syntax,
-                    to: &spans
-                )
+                append(NSRange(location: full.location + delimiterLength, length: full.length - delimiterLength * 2), as: pattern.kind, to: &spans)
+                append(NSRange(location: full.location, length: delimiterLength), as: .syntax, to: &spans)
+                append(NSRange(location: NSMaxRange(full) - delimiterLength, length: delimiterLength), as: .syntax, to: &spans)
             }
         }
     }
 
+    private static func codeRanges(_ text: String) -> [(NSRange, NSRange)] {
+        let source = text as NSString
+        var result: [(NSRange, NSRange)] = []
+        var index = 0
+        while index < source.length {
+            guard source.character(at: index) == 96 else { index += 1; continue }
+            let start = index
+            while index < source.length, source.character(at: index) == 96 { index += 1 }
+            let count = index - start
+            let contentStart = index
+            var search = index
+            var found = false
+            while search < source.length {
+                guard source.character(at: search) == 96 else { search += 1; continue }
+                let endStart = search
+                while search < source.length, source.character(at: search) == 96 { search += 1 }
+                if search - endStart == count {
+                    result.append((NSRange(location: start, length: search - start), NSRange(location: contentStart, length: endStart - contentStart)))
+                    index = search; found = true; break
+                }
+            }
+            if !found { index = contentStart }
+        }
+        return result
+    }
+
     private static func appendLinks(in text: String, offset: Int, to spans: inout [Span], links: inout [Link]) {
-        let range = NSRange(location: 0, length: (text as NSString).length)
-
-        for match in linkPattern.matches(in: text, range: range) {
-            guard match.numberOfRanges == 3 else { continue }
-
-            let label = NSRange(
-                location: offset + match.range(at: 1).location,
-                length: match.range(at: 1).length
+        let source = text as NSString
+        let code = codeRanges(text)
+        var index = 0
+        while index < source.length {
+            guard source.character(at: index) == 91,
+                  !code.contains(where: { NSLocationInRange(index, $0.0) }),
+                  index == 0 || source.character(at: index - 1) != 92 else { index += 1; continue }
+            let start = index
+            var cursor = index + 1
+            var brackets = 1
+            while cursor < source.length, brackets > 0 {
+                let char = source.character(at: cursor)
+                if char == 92 { cursor += 2; continue }
+                if char == 91 { brackets += 1 }
+                if char == 93 { brackets -= 1 }
+                cursor += 1
+            }
+            guard brackets == 0, cursor < source.length, source.character(at: cursor) == 40 else { index += 1; continue }
+            let label = NSRange(location: start + 1, length: cursor - start - 2)
+            let urlStart = cursor + 1
+            cursor = urlStart
+            var parentheses = 1
+            while cursor < source.length, parentheses > 0 {
+                let char = source.character(at: cursor)
+                if char == 92 { cursor += 2; continue }
+                if char == 40 { parentheses += 1 }
+                if char == 41 { parentheses -= 1 }
+                cursor += 1
+            }
+            guard parentheses == 0, cursor <= source.length else { index += 1; continue }
+            var destinationStart = urlStart
+            let destinationEnd = cursor - 1
+            while destinationStart < destinationEnd, let scalar = UnicodeScalar(source.character(at: destinationStart)), CharacterSet.whitespaces.contains(scalar) { destinationStart += 1 }
+            var urlEnd = destinationStart
+            if destinationStart < destinationEnd, source.character(at: destinationStart) == 60 {
+                destinationStart += 1
+                urlEnd = destinationStart
+                while urlEnd < destinationEnd, source.character(at: urlEnd) != 62 { urlEnd += 1 }
+            } else {
+                while urlEnd < destinationEnd {
+                    if source.character(at: urlEnd) == 92, urlEnd + 1 < destinationEnd { urlEnd += 2; continue }
+                    if let scalar = UnicodeScalar(source.character(at: urlEnd)), CharacterSet.whitespaces.contains(scalar) { break }
+                    urlEnd += 1
+                }
+            }
+            let destination = NSRange(location: destinationStart, length: urlEnd - destinationStart)
+            let full = NSRange(location: start, length: cursor - start)
+            let shifted = Link(
+                range: NSRange(location: offset + full.location, length: full.length),
+                label: NSRange(location: offset + label.location, length: label.length),
+                url: NSRange(location: offset + destination.location, length: destination.length)
             )
-            let url = NSRange(
-                location: offset + match.range(at: 2).location,
-                length: match.range(at: 2).length
-            )
-
-            links.append(
-                Link(
-                    range: NSRange(location: offset + match.range.location, length: match.range.length),
-                    label: label,
-                    url: url
-                )
-            )
-            append(label, as: .linkLabel, to: &spans)
-            append(url, as: .linkURL, to: &spans)
-            append(NSRange(location: offset + match.range.location, length: 1), as: .syntax, to: &spans)
-            append(NSRange(location: NSMaxRange(label), length: 2), as: .syntax, to: &spans)
-            append(NSRange(location: NSMaxRange(url), length: 1), as: .syntax, to: &spans)
+            links.append(shifted)
+            append(shifted.label, as: .linkLabel, to: &spans)
+            append(shifted.url, as: .linkURL, to: &spans)
+            append(NSRange(location: offset + start, length: 1), as: .syntax, to: &spans)
+            append(NSRange(location: NSMaxRange(shifted.label), length: shifted.url.location - NSMaxRange(shifted.label)), as: .syntax, to: &spans)
+            append(NSRange(location: NSMaxRange(shifted.url), length: offset + cursor - NSMaxRange(shifted.url)), as: .syntax, to: &spans)
+            index = cursor
         }
     }
 
@@ -623,7 +666,7 @@ extension Markdown {
         return offset
     }
 
-    static func holdsMultipleLines(_ text: String) -> Bool { text.contains("```") }
+    static func holdsMultipleLines(_ text: String) -> Bool { text.contains("```") || text.contains("~~~") }
 
     static func depth(of line: String) -> Int {
         depth(ofIndent: (line as NSString).substring(to: indentLength(of: line)))

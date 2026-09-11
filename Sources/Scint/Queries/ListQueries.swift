@@ -6,8 +6,8 @@ struct FoldersList: Query {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                if let url = item.path { return model.session.selected.selected(ref, url) }
-                return model.session.selected.selected(ref)
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
@@ -80,8 +80,8 @@ struct ArtifactsList: Query {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                if let url = item.path { return model.session.selected.selected(ref, url) }
-                return model.session.selected.selected(ref)
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
@@ -154,7 +154,7 @@ struct MaterialsList: Query {
         return .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                return model.session.material == ref || model.session.selected.selected(ref)
+                return model.session.material == ref || model.session.selection.selected(ref)
             },
             onSelect: { item in
                 guard let ref = item.ref, ref.type is Material.Type else { return }
@@ -229,8 +229,8 @@ struct SpacesList: Query {
         .init(
             selected: { item in
                 guard let ref = item.ref else { return false }
-                if let url = item.path { return model.session.selected.selected(ref, url) }
-                return model.session.selected.selected(ref)
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
@@ -266,23 +266,25 @@ struct SpacesList: Query {
             .init(
                 ref: ref,
                 origin: origin,
-                name: ref.descriptor.name,
+                name: ref.type is Workspace.Type ? "Home" : ref.descriptor.name,
                 image: "app",
-                items: sorted(Space.with(ref, { $0.spaces.map { space(for: $0, origin: ref) }}) ?? [])
+                items: sorted(
+                    ref.type is Workspace.Type
+                    ? Workspace.with(ref, { $0.spaces.map { space(for: $0, origin: ref) }}) ?? []
+                    : Space.with(ref, { $0.spaces.map { space(for: $0, origin: ref) }}) ?? []
+                )
             )
         }
 
-        let spaces = Workspace.with(workspace, { $0.spaces.map { space(for: $0, origin: workspace) } }) ?? []
-
         return .init(
-            id: "spaces",
+            id: "workspaces",
             nesting: .recursive,
             header: false,
             sections: [
                 .init(
-                    id: "spaces",
-                    name: "Spaces",
-                    items: sorted(spaces)
+                    id: "workspace",
+                    name: "Workspace",
+                    items: sorted([space(for: workspace, origin: workspace)])
                 )
             ]
         )

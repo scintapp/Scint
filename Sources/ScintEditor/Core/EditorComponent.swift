@@ -116,19 +116,14 @@ struct TextEditor: View {
 }
 
 struct EditorComponent: View {
-    @State private var state: EditorState
-    /// One coordinator per editor.
-    ///
-    /// `editorFocus` has no injected value anywhere, so every editor on screen was sharing the
-    /// environment key's default instance — one `targetID` and one view registry between all of
-    /// them. A deactivating editor blanking the first responder would then resign the view the
-    /// editor being activated had just claimed, which is a race, not a rule.
-    @State private var focus: EditorFocusCoordinator
     let autofocus: Bool
     let active: Bool
     let minHeight: CGFloat
     let maxHeight: CGFloat?
     let onFocus: (AnyHashable) -> Void
+
+    @State private var state: EditorState
+    @State private var focus: EditorFocusCoordinator
 
     init(_ material: Reference, autofocus: Bool = true, active: Bool = true, minHeight: CGFloat = 0, maxHeight: CGFloat? = nil, onFocus: @escaping (AnyHashable) -> Void = { _ in }) {
         self.autofocus = autofocus
@@ -155,7 +150,7 @@ struct EditorComponent: View {
             maxHeight: maxHeight,
             onFocus: onFocus
         )
-            .environment(state)
-            .environment(\.editorFocus, focus)
+        .environment(state)
+        .environment(\.editorFocus, focus)
     }
 }

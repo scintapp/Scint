@@ -109,7 +109,7 @@ struct GroupHeader: View {
                 Text(name)
                     .frame(alignment: .leading)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Style.Foreground.base)
+                    .foregroundStyle(Style.Foreground.primary)
                     .padding(.top, 10)
             }
 

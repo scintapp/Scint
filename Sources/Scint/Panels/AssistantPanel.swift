@@ -23,16 +23,15 @@ import SwiftUI
         }
     }
 
-    func controls(_ model: any Model) -> Controls { SpaceSettings.controls(model) }
-    func parameters(_ model: any Model) -> Params { SpaceSettings.parameters(model) }
-
     func surface(_ model: any Model) -> some View {
         Group {
             switch surface {
                 case .space:
                     switch model.session.opened.material {
-                        case .none: SpaceSurface(panel: self, model: model)
-                        case .some(let ref): MaterialSurface(panel: self, model: model, ref: ref)
+                        case .none:
+                            SpaceSurface(panel: self, model: model)
+                        case .some(let ref):
+                            MaterialSurface(panel: self, model: model, ref: ref)
                     }
                 case .transcript:
                     TranscriptSurface(panel: self, model: model)
@@ -41,24 +40,25 @@ import SwiftUI
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Style.Background.base)
         .toolbar {
-            ToolbarItem(placement: .navigation) { BackButton(model: model) }
+            ToolbarItem(placement: .navigation) { NavigationButtons(model: model) }
+            ToolbarSpacer(.flexible, placement: .automatic)
+            ToolbarItem(placement: .principal) { PathPicker(panel: self, model: model) }
+                .sharedBackgroundVisibility(.hidden)
             ToolbarSpacer(.flexible, placement: .automatic)
             ToolbarItem(placement: .primaryAction) { AssistantSurfacePicker(panel: self) }
             ToolbarSpacer(.fixed, placement: .automatic)
             ToolbarItem(placement: .primaryAction) { SettingsPicker(panel: self, model: model) }
         }
-        .safeAreaInset(edge: .top) {
-            HStack(alignment: .center) {
-                PathBar(model: model)
-                Spacer()
-                RunningBadge(model: model)
-                Badges(model: model)
-            }
-            .padding(.horizontal, 8)
-        }
         .safeAreaInset(edge: .bottom) {
-            ComposeBar(model: model) { self.surface = .transcript }
+            VStack {
+                if surface != .transcript {
+                    ActivitySurface(panel: self, model: model) { self.surface = .transcript }
+                }
+                ComposeBar(model: model) {}
+                    .padding(.bottom, 10)
+            }
         }
     }
 }

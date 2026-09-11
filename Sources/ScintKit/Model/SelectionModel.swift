@@ -19,7 +19,7 @@ enum Focus: Codable, Equatable, Sendable {
     }
 }
 
-struct Open: Codable, Equatable, Sendable {
+struct Opened: Codable, Equatable, Sendable {
     var material: Reference?
     var transcript: Reference?
 

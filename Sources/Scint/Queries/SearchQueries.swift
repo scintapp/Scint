@@ -5,20 +5,18 @@ struct ContentSearch: Query {
     static func controls(_ model: any Model) -> Controls {
         .init(
             results: { input in
-                let found = model.search(input, limit: 200).all
-
-                return [
+                [
                     .init(
                         id: "materials",
-                        results: Array(found.filter { $0.ref.type is Material.Type }.prefix(50))
+                        results: model.search(input, filters: ["material"], limit: 50).all
                     )
                 ]
             },
             detail: { SearchDetail.parameters($0) },
             selected: { item in
                 guard let ref = item.ref else { return false }
-                if let url = item.path { return model.session.selected.selected(ref, url) }
-                return model.session.selected.selected(ref)
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
@@ -40,12 +38,10 @@ struct InterfaceSearch: Query {
     static func controls(_ model: any Model) -> Controls {
         .init(
             results: { input in
-                let found = model.search(input, limit: 200).all
-
-                return [
-                    .init(id: "artifacts", name: "Artifacts", results: found.filter { $0.ref.type is Artifact.Type }),
-                    .init(id: "commands", name: "Commands", results: found.filter { $0.ref.type is Command.Type }),
-                    .init(id: "harnesses", name: "Harnesses", results: found.filter { $0.ref.type is Harness.Type }),
+                [
+                    .init(id: "artifacts", name: "Artifacts", results: model.search(input, filters: ["artifact"], limit: 50).all),
+                    .init(id: "commands", name: "Commands", results: model.search(input, filters: ["command"], limit: 50).all),
+                    .init(id: "harnesses", name: "Harnesses", results: model.search(input, filters: ["harness"], limit: 50).all),
                 ]
             },
             detail: { SearchDetail.parameters($0) },
@@ -67,15 +63,10 @@ struct WorkspaceSearch: Query {
     static func controls(_ model: any Model) -> Controls {
         .init(
             results: { input in
-                let found = model.search(input, limit: 200).all
-                let spaces = found.filter { $0.ref.type is Space.Type }
-                let edges = found.filter { $0.ref.type is Bridge.Type }
-                let workspace = found.filter { $0.ref == model.session.workspace }
-
-                return [
+                [
                     .init(
                         id: "spaces",
-                        results: Array((spaces + edges + workspace).prefix(50))
+                        results: model.search(input, filters: ["structure"], limit: 50).all
                     )
                 ]
             },
@@ -100,24 +91,18 @@ struct EverythingSearch: Query {
     static func controls(_ model: any Model) -> Controls {
         .init(
             results: { input in
-                let found = model.search(input, limit: 200).all
                 let limit = 50 / 3
 
-                let content = found.filter { $0.ref.type is Material.Type }
-                let interfaces = found.filter { $0.ref.type is any Functional.Type }
-                let spaces = found.filter { $0.ref.type is Space.Type || $0.ref.type is Bridge.Type }
-                let workspace = found.filter { $0.ref == model.session.workspace }
-
                 return [
-                    .init(id: "content", name: "Content", image: "text.alignleft", results: Array(content.prefix(limit))),
-                    .init(id: "interfaces", name: "Interfaces", image: "switch.2", results: Array(interfaces.prefix(limit))),
-                    .init(id: "workspace", name: "Workspace", image: "cube.transparent", results: Array((spaces + workspace).prefix(limit))),
+                    .init(id: "content", name: "Content", image: "text.alignleft", results: model.search(input, filters: ["material"], limit: limit).all),
+                    .init(id: "interfaces", name: "Interfaces", image: "switch.2", results: model.search(input, filters: ["interface"], limit: limit).all),
+                    .init(id: "workspace", name: "Workspace", image: "cube.transparent", results: model.search(input, filters: ["structure"], limit: limit).all),
                 ]
             },
             detail: { SearchDetail.parameters($0) },
             selected: { item in
                 guard let ref = item.ref else { return false }
-                return model.session.selected.selected(ref)
+                return model.session.selection.selected(ref)
             },
             onSelect: { item in
                 guard let ref = item.ref else { return }
