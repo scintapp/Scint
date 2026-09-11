@@ -9,7 +9,7 @@ struct ComposeControl: View {
     var origin: Reference { model.session.origin }
 
     var composable: Bool {
-        Space.with(origin, { $0.composable }) ?? Workspace.with(origin, { $0.composable }) ?? false
+        Space.with(origin, { $0.composable }) ?? false
     }
 
     var empty: Bool {

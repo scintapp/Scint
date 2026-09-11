@@ -95,15 +95,13 @@ struct Transcript: Malleable {
     }
 
     static func new(_ origin: Reference) -> Reference {
-        guard origin.type == Space.self || origin.type == Workspace.self || origin.type == Transcript.self
+        guard origin.type == Space.self || origin.type == Transcript.self
         else { RuntimeError.fatal("Not a valid transcript origin.") }
         var instance = Self(.init(Self.self))
         instance.origin = origin
         Descriptor.new(instance.ref, name: "Context", tags: ["context"])
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
-        if origin.type == Workspace.self { guard let _ = Workspace.with(origin, { $0.add(instance.ref) })
-        else { RuntimeError.fatal() } }
-        else if origin.type == Space.self { guard let _ = Space.with(origin, { $0.add(instance.ref) })
+        if origin.type == Space.self { guard let _ = Space.with(origin, { $0.add(instance.ref) })
         else { RuntimeError.fatal() } }
         return instance.ref
     }

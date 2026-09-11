@@ -2,7 +2,7 @@ import SwiftUI
 
 
 typealias Values = [AnyHashable: AnyHashable]
-private let anyRef = Reference(Workspace.self)
+private let anyRef = Reference(Space.self)
 
 enum PanelKey: String, Identifiable, CaseIterable {
     case actions, search

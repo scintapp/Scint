@@ -37,11 +37,11 @@ enum ReferenceTransfer {
 
     static func canDrag(_ ref: Reference) -> Bool {
         guard exists(ref) else { return false }
-        return ref.type is Space.Type || origin(of: ref) != nil || canShare(ref)
+        return origin(of: ref) != nil || canShare(ref)
     }
 
     static func canDrop(on ref: Reference) -> Bool {
-        ref.type is Workspace.Type || ref.type is Space.Type
+        ref.type is Space.Type
     }
 
     static func dropTypes(for ref: Reference) -> [UTType] {
@@ -132,7 +132,6 @@ enum ReferenceTransfer {
 
     static func exists(_ ref: Reference) -> Bool {
         switch ref.type {
-            case is Workspace.Type: Workspace.with(ref, { _ in true }) == true
             case is Space.Type: Space.with(ref, { _ in true }) == true
             case is Closure.Type: Closure.with(ref, { _ in true }) == true
             case is Bridge.Type: Bridge.with(ref, { _ in true }) == true
@@ -179,7 +178,6 @@ enum ReferenceTransfer {
                 Space.update(parent) { $0.detach(child: ref) }
                 return true
             }
-            if let workspace = Workspace.with(parent, { $0 }) { workspace.remove(ref); return true }
             return false
         }
 
@@ -190,7 +188,6 @@ enum ReferenceTransfer {
 
         guard let origin else { return false }
         if let space = Space.with(origin, { $0 }) { space.remove(ref); return true }
-        if let workspace = Workspace.with(origin, { $0 }) { workspace.remove(ref); return true }
         return false
     }
 
@@ -205,7 +202,6 @@ enum ReferenceTransfer {
                 Space.update(destination) { $0.attach(child: ref) }
                 return true
             }
-            if let workspace = Workspace.with(destination, { $0 }) { workspace.add(ref); return true }
             return false
         }
 
@@ -217,7 +213,6 @@ enum ReferenceTransfer {
         }
 
         if let space = Space.with(destination, { $0 }) { space.add(ref) }
-        else if let workspace = Workspace.with(destination, { $0 }) { workspace.add(ref) }
         else { return false }
 
         return true
@@ -243,7 +238,6 @@ enum ReferenceTransfer {
 
     private static func type(for ref: Reference) -> UTType? {
         switch ref.type {
-            case is Workspace.Type: .workspace
             case is Space.Type: .space
             case is Material.Type: .material
             case is Artifact.Type: .artifact

@@ -279,6 +279,6 @@ struct InterfaceRunner {
     }
 
     private static func closure(for origin: Reference) -> Reference? {
-        Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure })
+        Space.with(origin, { $0.closure })
     }
 }

@@ -50,20 +50,17 @@ struct Space: Structural {
 
     mutating func attach(to parent: Reference) {
         guard parent != ref else { return }
-        if let previous = space, previous != parent {
-            if previous.type is Space.Type { Space.update(previous) { $0.spaces.remove(ref) } }
-            else if previous.type is Workspace.Type { Workspace.update(previous) { $0.spaces.remove(ref) } }
+        if let previous = space, previous != parent, previous.type is Space.Type {
+            Space.update(previous) { $0.spaces.remove(ref) }
         }
 
-        guard parent.type is Space.Type || parent.type is Workspace.Type else { return }
+        guard parent.type is Space.Type else { return }
         self.space = parent
-        if parent.type is Space.Type { Space.update(parent) { $0.spaces.update(with: ref) } }
-        else { Workspace.update(parent) { $0.spaces.update(with: ref) } }
+        Space.update(parent) { $0.spaces.update(with: ref) }
     }
 
     mutating func detach(from parent: Reference) {
         if parent.type is Space.Type { Space.update(parent) { $0.spaces.remove(ref) } }
-        else if parent.type is Workspace.Type { Workspace.update(parent) { $0.spaces.remove(ref) } }
         if space == parent { space = nil }
     }
 
@@ -80,25 +77,27 @@ struct Space: Structural {
     }
 
     func restructure() -> Reference {
-        if let parent = space {
-            if parent.type is Space.Type {
-                Space.update(parent) {
-                    $0.spaces.remove(ref)
-                    $0.spaces.formUnion(spaces)
-                }
-            } else if parent.type is Workspace.Type {
-                Workspace.update(parent) {
-                    $0.spaces.remove(ref)
-                    $0.spaces.formUnion(spaces)
-                }
+        if let parent = space, parent.type is Space.Type {
+            Space.update(parent) {
+                $0.spaces.remove(ref)
+                $0.spaces.formUnion(spaces)
             }
         }
         for child in spaces { Space.update(child) { $0.space = self.space } }
         return self.ref
     }
 
+    @discardableResult
+    static func new(_ name: String) -> Reference {
+        var instance = Space(.init(Self.self))
+        Descriptor.new(instance.ref, name: name, tags: ["space"])
+        instance.closure = Closure.new("Closure", origin: instance.ref)
+        Workspaces.shared.add(instance.ref, instance)
+        return instance.ref
+    }
+
     static func new(_ origin: Reference, name: String = "New Space") -> Reference {
-        guard origin.type == Space.self || origin.type == Workspace.self else { RuntimeError.fatal("Not a valid space or workspace.") }
+        guard origin.type == Space.self else { RuntimeError.fatal("Not a valid space.") }
         var instance = Space(.init(Self.self))
         Descriptor.new(instance.ref, name: name, tags: ["space"])
         instance.closure = Closure.new("Closure", origin: instance.ref)

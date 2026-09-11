@@ -6,7 +6,7 @@ struct NewSpacesList: NewQuery {
         let workspace = model.session.workspace
 
         func spaces(of ref: Reference) -> [Reference] {
-            let found = Space.with(ref, { $0.spaces }) ?? Workspace.with(ref, { $0.spaces }) ?? []
+            let found = Space.with(ref, { $0.spaces }) ?? []
             return found.sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
         }
 
@@ -55,23 +55,19 @@ struct NewSpaceSettings: NewQuery {
         }
 
         func configure(_ value: Value?, for key: String) {
-            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.configure(value, for: key) }
-            else { Space.with(space, { $0 })?.configure(value, for: key) }
+            Space.with(space, { $0 })?.configure(value, for: key)
         }
 
         func load(_ ref: Reference) {
-            if space.type is Workspace.Type { Workspace.update(space) { $0.harness = ref } }
-            else { Space.update(space) { $0.harness = ref } }
+            Space.update(space) { $0.harness = ref }
         }
 
         func add(_ ref: Reference) {
-            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.add(ref) }
-            else { Space.with(space, { $0 })?.add(ref) }
+            Space.with(space, { $0 })?.add(ref)
         }
 
         func remove(_ ref: Reference) {
-            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.remove(ref) }
-            else { Space.with(space, { $0 })?.remove(ref) }
+            Space.with(space, { $0 })?.remove(ref)
         }
 
         func label(_ value: String) -> String {
@@ -118,7 +114,6 @@ struct NewSpaceSettings: NewQuery {
 
         let harnesses = sorted(Runtime.shared.all(as: Harness.self).map { $0.0 })
         let harness = Space.with(space, { $0.harness }).flatMap { $0 }
-            ?? Workspace.with(space, { $0.harness }).flatMap { $0 }
 
         let declaration = harness.flatMap { ref in
             Harness.with(ref) { (intent: $0.intent, parameters: $0.parameters) }
@@ -149,7 +144,7 @@ struct NewSpaceSettings: NewQuery {
 
         // MARK: Parameters
 
-        let config = Space.with(space, { $0.config }) ?? Workspace.with(space, { $0.config }) ?? [:]
+        let config = Space.with(space, { $0.config }) ?? [:]
 
         let arguments: [Harness.Parameter] = {
             guard let declaration, declaration.intent == .evaluate || declaration.intent == .observe
@@ -219,7 +214,7 @@ struct NewSpaceSettings: NewQuery {
             params: parameters
         )
 
-        let loadedCommands = Space.with(space, { $0.commands }) ?? Workspace.with(space, { $0.commands }) ?? []
+        let loadedCommands = Space.with(space, { $0.commands }) ?? []
 
         let library = sorted(Runtime.shared.all(as: Command.self).map { $0.0 })
             .filter { !loadedCommands.contains($0) }
@@ -252,7 +247,7 @@ struct NewSpaceSettings: NewQuery {
             }
         )
 
-        let loadedArtifacts = Space.with(space, { $0.artifacts }) ?? Workspace.with(space, { $0.artifacts }) ?? []
+        let loadedArtifacts = Space.with(space, { $0.artifacts }) ?? []
         let artifactsSection = NewParams.Section(
             id: "artifacts",
             layout: .group,

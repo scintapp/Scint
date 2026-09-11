@@ -32,13 +32,13 @@ struct Composition: Sendable {
     }
 
     var closure: Reference {
-        guard let closure = Space.with(space, { $0.closure }) ?? Workspace.with(space, { $0.closure })
+        guard let closure = Space.with(space, { $0.closure })
         else { RuntimeError.fatal() }
         return closure
     }
 
     var harness: Reference {
-        guard let ref = Space.with(space, { $0 }), let harness = Harness.with(ref.ref, { $0 })
+        guard let ref = Space.with(space, { $0 })?.harness, let harness = Harness.with(ref, { $0 })
         else { RuntimeError.fatal() }
         return harness.ref
     }

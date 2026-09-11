@@ -112,7 +112,7 @@ struct StructureTool: Tool {
             return .failure("No parent space matches that address.")
         }
 
-        guard parent.type == Space.self || parent.type == Workspace.self else {
+        guard parent.type == Space.self else {
             return .failure("\(parent.descriptor.name) is a \(CatalogTool.kind(parent)) and cannot hold a space.")
         }
 
@@ -180,11 +180,11 @@ struct StructureTool: Tool {
             return .failure("No space matches that address.")
         }
 
-        guard ref.type == Space.self || ref.type == Workspace.self else {
+        guard ref.type == Space.self else {
             return .failure("\(ref.descriptor.name) is a \(CatalogTool.kind(ref)). Only a space can be started.")
         }
 
-        guard let harness = Space.with(ref, { $0.harness }) ?? Workspace.with(ref, { $0.harness }) else {
+        guard let harness = Space.with(ref, { $0.harness }) else {
             return .failure(
                 "\(ref.descriptor.name) has no harness and cannot start. Find one with "
                     + "scint.interfaces.search, then add it with scint.structures.add."

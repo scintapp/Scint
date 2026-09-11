@@ -13,7 +13,6 @@ import Foundation
     func compose(_ ref: Reference) -> Composition? {
         let harness: Reference?
         switch ref.type {
-            case is Workspace.Type: harness = Workspace.with(ref, { $0 })?.harness
             case is Space.Type: harness = Space.with(ref, { $0 })?.harness
             default: return nil
         }

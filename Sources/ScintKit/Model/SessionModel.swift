@@ -28,7 +28,7 @@ import Foundation
     mutating func focus(_ ref: Reference?) {
         guard let ref else { focus = .nothing; return }
         switch ref.type {
-            case is Workspace.Type, is Space.Type: focus = .structure(ref)
+            case is Space.Type: focus = .structure(ref)
             case is any Functional.Type: focus = .interface(ref)
             case is any Malleable.Type: focus = .content(ref)
             default: focus = .nothing
@@ -79,8 +79,7 @@ import Foundation
 
 extension Session {
     var input: Reference? {
-        if origin.type == Space.self { Space.with(origin, { $0.input }).flatMap { $0 } }
-        else { Workspace.with(origin, { $0.input }).flatMap { $0 } }
+        Space.with(origin, { $0.input }).flatMap { $0 }
     }
 
     var transcript: Reference? {
@@ -89,8 +88,7 @@ extension Session {
     }
 
     var transcripts: [Reference] {
-        let roots = if origin.type == Space.self { Space.with(origin, { $0.transcripts }) ?? [] }
-        else { Workspace.with(origin, { $0.transcripts }) ?? [] }
+        let roots = Space.with(origin, { $0.transcripts }) ?? []
         return roots.sorted { $0.descriptor.created > $1.descriptor.created }
     }
 
@@ -101,8 +99,7 @@ extension Session {
     }
 
     var materials: [Reference] {
-        let roots = if origin.type == Space.self { Space.with(origin, { $0.materials }) ?? [] }
-        else { Workspace.with(origin, { $0.materials }) ?? [] }
+        let roots = Space.with(origin, { $0.materials }) ?? []
         return roots.sorted { $0.descriptor.created > $1.descriptor.created }
     }
 

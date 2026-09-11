@@ -58,7 +58,6 @@ final class Library: Sendable {
         let url = Runtime.shared.settings.persistence.libraryPath(for: ref)
         Catalog.shared.delete(ref)
         for (_, space) in Runtime.shared.all(as: Space.self) { space.remove(ref) }
-        for (_, workspace) in Runtime.shared.all(as: Workspace.self) { workspace.remove(ref) }
         store(for: ref)?.remove(ref)
         try await Persistence.shared.delete(at: url)
         try await Workspaces.shared.save()

@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-private let anyRef = Reference(Workspace.self)
+private let anyRef = Reference(Space.self)
 
 enum ModelKey: String, Identifiable, CaseIterable {
     case assistant, editor, studio
@@ -52,7 +52,7 @@ extension Model {
     }
 
     func artifacts(_ workspace: Reference) -> [Reference] {
-        Workspace.with(workspace) { workspace in
+        Space.with(workspace) { workspace in
             workspace.artifacts.filter { ref in
                 Artifact.with(ref) {
                     switch $0.handler {

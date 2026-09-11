@@ -96,18 +96,15 @@ struct ArtifactsGroup: Query {
         }
 
         func add(_ ref: Reference) {
-            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.add(ref) }
-            else { Space.with(space, { $0 })?.add(ref) }
+            Space.with(space, { $0 })?.add(ref)
         }
 
         func remove(_ ref: Reference) {
-            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.remove(ref) }
-            else { Space.with(space, { $0 })?.remove(ref) }
+            Space.with(space, { $0 })?.remove(ref)
         }
 
         func configure(_ value: Value?, for key: String) {
-            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.configure(value, for: key) }
-            else { Space.with(space, { $0 })?.configure(value, for: key) }
+            Space.with(space, { $0 })?.configure(value, for: key)
         }
 
         return .init(
@@ -129,8 +126,7 @@ struct ArtifactsGroup: Query {
             },
             onAction: { item in
                 if let ref = item.ref, ref.type is Harness.Type {
-                    if space.type is Workspace.Type { Workspace.update(space) { $0.harness = ref } }
-                    else { Space.update(space) { $0.harness = ref } }
+                    Space.update(space) { $0.harness = ref }
                     return
                 }
 
@@ -148,8 +144,7 @@ struct ArtifactsGroup: Query {
                 guard panel.runModal() == .OK else { return }
                 for url in panel.urls {
                     let artifact = Artifact.register(url.lastPathComponent, url)
-                    if space.type is Workspace.Type { Workspace.with(space, { $0 })?.add(artifact) }
-                    else { Space.with(space, { $0 })?.add(artifact) }
+                    Space.with(space, { $0 })?.add(artifact)
                 }
             }
         )
@@ -183,7 +178,7 @@ struct ArtifactsGroup: Query {
             )
         }
 
-        let loaded = Space.with(space, { $0.artifacts }) ?? Workspace.with(space, { $0.artifacts }) ?? []
+        let loaded = Space.with(space, { $0.artifacts }) ?? []
         let library = sorted(Runtime.shared.all(as: Artifact.self).map { $0.0 }.filter { !file($0) })
 
         return .init(
@@ -231,18 +226,15 @@ struct CommandsGroup: Query {
         }
 
         func add(_ ref: Reference) {
-            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.add(ref) }
-            else { Space.with(space, { $0 })?.add(ref) }
+            Space.with(space, { $0 })?.add(ref)
         }
 
         func remove(_ ref: Reference) {
-            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.remove(ref) }
-            else { Space.with(space, { $0 })?.remove(ref) }
+            Space.with(space, { $0 })?.remove(ref)
         }
 
         func configure(_ value: Value?, for key: String) {
-            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.configure(value, for: key) }
-            else { Space.with(space, { $0 })?.configure(value, for: key) }
+            Space.with(space, { $0 })?.configure(value, for: key)
         }
 
         return .init(
@@ -264,8 +256,7 @@ struct CommandsGroup: Query {
             },
             onAction: { item in
                 if let ref = item.ref, ref.type is Harness.Type {
-                    if space.type is Workspace.Type { Workspace.update(space) { $0.harness = ref } }
-                    else { Space.update(space) { $0.harness = ref } }
+                    Space.update(space) { $0.harness = ref }
                     return
                 }
 
@@ -283,8 +274,7 @@ struct CommandsGroup: Query {
                 guard panel.runModal() == .OK else { return }
                 for url in panel.urls {
                     let artifact = Artifact.register(url.lastPathComponent, url)
-                    if space.type is Workspace.Type { Workspace.with(space, { $0 })?.add(artifact) }
-                    else { Space.with(space, { $0 })?.add(artifact) }
+                    Space.with(space, { $0 })?.add(artifact)
                 }
             }
         )
@@ -296,7 +286,7 @@ struct CommandsGroup: Query {
             else { return model.session.origin }
         }
 
-        let commands = Space.with(space, { $0.commands }) ?? Workspace.with(space, { $0.commands }) ?? []
+        let commands = Space.with(space, { $0.commands }) ?? []
 
         let commandLibrary = Runtime.shared.all(as: Command.self)
             .map { $0.0 }
@@ -364,13 +354,11 @@ struct HarnessGroup: Query {
         }
 
         func load(_ ref: Reference) {
-            if space.type is Workspace.Type { Workspace.update(space) { $0.harness = ref } }
-            else { Space.update(space) { $0.harness = ref } }
+            Space.update(space) { $0.harness = ref }
         }
 
         func configure(_ value: Value?, for key: String) {
-            if space.type is Workspace.Type { Workspace.with(space, { $0 })?.configure(value, for: key) }
-            else { Space.with(space, { $0 })?.configure(value, for: key) }
+            Space.with(space, { $0 })?.configure(value, for: key)
         }
 
         return .init(
@@ -403,14 +391,14 @@ struct HarnessGroup: Query {
             else { return model.session.origin }
         }
 
-        let selectedHarness = Space.with(space, { $0.harness }).flatMap { $0 } ?? Workspace.with(space, { $0.harness }).flatMap { $0 }
+        let selectedHarness = Space.with(space, { $0.harness }).flatMap { $0 }
         let declaration = selectedHarness.flatMap { ref in
             Harness.with(ref) { harness in
                 (ref: ref, intent: harness.intent, parameters: harness.parameters)
             }
         }
         let harness = declaration?.ref
-        let config = Space.with(space, { $0.config }) ?? Workspace.with(space, { $0.config }) ?? [:]
+        let config = Space.with(space, { $0.config }) ?? [:]
         let parameters: [Harness.Parameter]
         if let declaration, declaration.intent == .evaluate || declaration.intent == .observe {
             parameters = declaration.parameters
@@ -566,8 +554,7 @@ struct HarnessGroup: Query {
             let references: [Reference]
             switch value {
                 case .sequence(let values) where values.isEmpty:
-                    references = Runtime.shared.all(as: Workspace.self).map { $0.0 }
-                        + Runtime.shared.all(as: Space.self).map { $0.0 }
+                    references = Runtime.shared.all(as: Space.self).map { $0.0 }
                 case .reference(let ref) where ref.type is Command.Type:
                     references = Runtime.shared.all(as: Command.self).map { $0.0 }
                 case .reference:

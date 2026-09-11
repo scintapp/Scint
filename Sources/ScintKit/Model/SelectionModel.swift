@@ -86,7 +86,7 @@ struct Selection: Codable, Equatable, Sendable {
     func selecting(_ ref: Reference, _ entry: UUID? = nil, _ url: URL? = nil) -> Self {
         var next = self
         switch ref.type {
-            case is Workspace.Type, is Space.Type:
+            case is Space.Type:
                 next.structure = ref
                 next.interface = nil
                 next.content = nil

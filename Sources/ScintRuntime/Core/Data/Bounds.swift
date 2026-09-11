@@ -45,41 +45,20 @@ final class Structures: Bounding {
     let closures = Store()
     let bridges = Store()
     let spaces = Store()
-    let workspaces = Store()
-    var stores: [Store] { [bridges, closures, spaces, workspaces] }
+    var stores: [Store] { [bridges, closures, spaces] }
 
     func store(for ref: Reference?) -> Store? {
         switch ref?.type {
             case is Space.Type: return spaces
             case is Closure.Type: return closures
             case is Bridge.Type: return bridges
-            case is Workspace.Type: return workspaces
             default: return nil
         }
     }
 
-    func workspace(for ref: Reference) -> Reference? {
-        var current: Reference? = ref
-        var visited: Set<Reference> = []
+    func encode(_ space: Space) throws -> StorableCollection {
+        guard space.space == nil else { throw RuntimeError.persistence(.encodingFailed(space.ref)) }
 
-        while let ref = current, visited.insert(ref).inserted {
-            switch ref.type {
-                case is Workspace.Type:
-                    return workspaces.with(ref, as: Workspace.self, { $0.ref })
-                case is Space.Type:
-                    current = spaces.with(ref, as: Space.self, { $0.space }) ?? nil
-                case is Closure.Type:
-                    current = closures.with(ref, as: Closure.self, { $0.origin })
-                case is Bridge.Type:
-                    current = bridges.with(ref, as: Bridge.self, { $0.origin }) ?? nil
-                default:
-                    return nil
-            }
-        }
-        return nil
-    }
-
-    func encode(_ workspace: Workspace) throws -> StorableCollection {
         func records(_ refs: Set<Reference>) throws -> [StorableObject] {
             try refs.sorted { $0.storageId.uuidString < $1.storageId.uuidString }.map { ref in
                 guard let record = try record(for: ref) else { throw RuntimeError.persistence(.encodingFailed(ref)) }
@@ -89,8 +68,8 @@ final class Structures: Bounding {
 
         var spaceRefs: Set<Reference> = []
         var bridges: Set<Reference> = []
-        var closures: Set<Reference> = [workspace.closure]
-        var pending = Array(workspace.spaces)
+        var closures: Set<Reference> = []
+        var pending = [space.ref]
 
         while let ref = pending.popLast() {
             guard spaceRefs.insert(ref).inserted else { continue }
@@ -101,21 +80,15 @@ final class Structures: Bounding {
             pending.append(contentsOf: space.spaces)
         }
 
-        guard let record = try record(for: workspace.ref)
-        else { throw RuntimeError.persistence(.encodingFailed(workspace.ref)) }
         return StorableCollection(
             bridges: try records(bridges),
             closures: try records(closures),
-            spaces: try records(spaceRefs),
-            workspaces: [record]
+            spaces: try records(spaceRefs)
         )
     }
 
-    func decode(_ stored: StorableCollection) throws -> [(any Resolvable, Descriptor)] {
-        guard !stored.workspaces.isEmpty, stored.workspaces.allSatisfy({ $0.value is Workspace })
-        else { throw RuntimeError.persistence(.decodingFailed(URL(fileURLWithPath: "workspaces"))) }
-        return stored.workspaces.map { ($0.value, $0.descriptor) } +
-            stored.bridges.map { ($0.value, $0.descriptor) } +
+    func decode(_ stored: StorableCollection) -> [(any Resolvable, Descriptor)] {
+        stored.bridges.map { ($0.value, $0.descriptor) } +
             stored.closures.map { ($0.value, $0.descriptor) } +
             stored.spaces.map { ($0.value, $0.descriptor) }
     }

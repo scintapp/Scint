@@ -5,7 +5,7 @@ struct Renderer {
     let origin: Reference
     var transcript: Reference
 
-    private var closure: Reference? { Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure }) }
+    private var closure: Reference? { Space.with(origin, { $0.closure }) }
 
     private var preamble: String? {
         """
@@ -125,7 +125,6 @@ extension Renderer {
             case is Closure.Type: return Closure.with(ref, { $0.rendered }) ?? ""
             case is Bridge.Type: return Bridge.with(ref, { $0.rendered }) ?? ""
             case is Space.Type: return Space.with(ref, { $0.rendered }) ?? ""
-            case is Workspace.Type: return Workspace.with(ref, { $0.rendered }) ?? ""
             default: return ""
         }
     }

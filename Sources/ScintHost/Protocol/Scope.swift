@@ -3,7 +3,7 @@ import Foundation
 
 enum Scope {
     static func closure(of origin: Reference) -> Reference? {
-        Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure })
+        Space.with(origin, { $0.closure })
     }
 
     static func members(of namespace: ToolNamespace, in origin: Reference) -> [Reference] {
@@ -29,7 +29,7 @@ enum Scope {
     static func structures(in origin: Reference) -> [Reference] {
         var found: [Reference] = [origin]
         if let closure = closure(of: origin) { found.append(closure) }
-        found += Space.with(origin, { Array($0.bridges) }) ?? Workspace.with(origin, { Array($0.bridges) }) ?? []
+        found += Space.with(origin, { Array($0.bridges) }) ?? []
         return found
     }
 

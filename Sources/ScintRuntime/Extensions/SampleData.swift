@@ -450,7 +450,7 @@ enum SampleData {
 
     @discardableResult
     static func assistant(_ workspace: Reference) async -> Bool {
-        guard Workspace.with(workspace, { $0.spaces.isEmpty }) ?? true else { return false }
+        guard Space.with(workspace, { $0.spaces.isEmpty }) ?? true else { return false }
 
         let codexHarness = interfaces.codexHarness
         let assistantHarness = interfaces.assistantHarness
@@ -462,7 +462,7 @@ enum SampleData {
             interfaces.concatSwiftRepo
         ]
 
-        Workspace.update(workspace, { ws in
+        Space.update(workspace, { ws in
             let components = [
                 assistantHarness, mistralMessages, interfaces.codexHarness,
                 interfaces.composer, interfaces.dispatcher, interfaces.observer, interfaces.searcher

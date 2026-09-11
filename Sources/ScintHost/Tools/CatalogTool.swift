@@ -210,11 +210,11 @@ struct CatalogTool: Tool {
             else { return [] }
             return ["arguments:", json]
         }
-        if Space.with(ref, { $0 }) != nil || Workspace.with(ref, { $0 }) != nil {
+        if Space.with(ref, { $0 }) != nil {
             var lines = ToolNamespace.allCases.map { namespace in
                 "\(namespace.rawValue): \(Scope.members(of: namespace, in: ref).count)"
             }
-            let harness = Space.with(ref, { $0.harness }) ?? Workspace.with(ref, { $0.harness }) ?? nil
+            let harness = Space.with(ref, { $0.harness }) ?? nil
             lines.append("harness: \(harness?.descriptor.name ?? "none")")
             lines.append("state: \(Runtime.shared.compose(ref).map { "\($0.state)" } ?? "inactive")")
             return lines

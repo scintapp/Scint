@@ -192,36 +192,6 @@ struct StorableCollection: Storable {
     var bridges: [StorableObject]
     var closures: [StorableObject]
     var spaces: [StorableObject]
-    var workspaces: [StorableObject]
-
-    private enum CodingKeys: String, CodingKey { case bridges, closures, spaces, workspace, workspaces }
-
-    init(bridges: [StorableObject], closures: [StorableObject], spaces: [StorableObject], workspaces: [StorableObject]) {
-        self.bridges = bridges
-        self.closures = closures
-        self.spaces = spaces
-        self.workspaces = workspaces
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.bridges = try container.decode([StorableObject].self, forKey: .bridges)
-        self.closures = try container.decode([StorableObject].self, forKey: .closures)
-        self.spaces = try container.decode([StorableObject].self, forKey: .spaces)
-        self.workspaces = try container.decodeIfPresent([StorableObject].self, forKey: .workspaces) ?? []
-        if let workspace = try container.decodeIfPresent(StorableObject.self, forKey: .workspace),
-           !workspaces.contains(where: { $0.value.ref == workspace.value.ref }) {
-            workspaces.insert(workspace, at: 0)
-        }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(bridges, forKey: .bridges)
-        try container.encode(closures, forKey: .closures)
-        try container.encode(spaces, forKey: .spaces)
-        try container.encode(workspaces, forKey: .workspaces)
-    }
 }
 
 struct PersistedObject<Value: Storable>: Sendable {

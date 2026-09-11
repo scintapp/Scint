@@ -7,7 +7,7 @@ struct SearchDetail: Query {
 
     static func parameters(_ item: ItemParams) -> Params {
         guard let ref = item.ref else { return .init() }
-        let structural = ref.type is Space.Type || ref.type is Workspace.Type
+        let structural = ref.type is Space.Type
 
         func about() -> SectionParams {
             var items: [ItemParams] = [
@@ -22,7 +22,6 @@ struct SearchDetail: Query {
 
         func contents() -> SectionParams {
             let refs = Space.with(ref, { $0.spaces + $0.materials })
-            ?? Workspace.with(ref, { $0.spaces + $0.materials })
             ?? Material.with(ref, { $0.blocks.compactMap { block in
                 if case .material(let child) = block { return child }
                 if case .command(let child) = block { return child }
@@ -84,8 +83,7 @@ struct SearchDetail: Query {
             case .execute: _ = Runtime.shared.start(ref)
             case .insert:
                 let origin = model.session.origin
-                if origin.type is Workspace.Type { Workspace.with(origin, { $0 })?.add(ref) }
-                else { Space.with(origin, { $0 })?.add(ref) }
+                Space.with(origin, { $0 })?.add(ref)
         }
     }
 }

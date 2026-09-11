@@ -13,7 +13,7 @@ struct Navigation: Codable, Equatable, Sendable {
     func path(for selection: Selection, in workspace: Reference? = nil) -> [Reference] {
         var refs: [Reference] = workspace.map { [$0] } ?? []
         guard let structure = selection.structure else { return refs }
-        if structure.type is Workspace.Type { if refs.last != structure { refs.append(structure) } }
+        if (Space.with(structure, { $0.space }) ?? nil) == nil { if refs.last != structure { refs.append(structure) } }
         else { refs.append(contentsOf: spaces(to: structure)) }
         if let content = selection.content, pathable(content) { refs.append(content) }
         else if let interface = selection.interface { refs.append(interface) }
@@ -25,9 +25,9 @@ struct Navigation: Codable, Equatable, Sendable {
         var cursor: Reference? = space
         var depth = 0
 
-        while let current = cursor, current.type is Space.Type, depth < Self.maxPathDepth {
+        while let current = cursor, let parent = Space.with(current, { $0.space }) ?? nil, depth < Self.maxPathDepth {
             chain.append(current)
-            cursor = Space.with(current) { $0.space } ?? nil
+            cursor = parent
             depth += 1
         }
 

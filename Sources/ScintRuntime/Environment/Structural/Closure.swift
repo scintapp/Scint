@@ -59,8 +59,7 @@ struct Closure: Structural {
         instance.input = Material.new(origin, input: true)
         Descriptor.new(instance.ref, name: name, tags: ["closure"], published: false)
         Workspaces.shared.add(instance.ref, instance)
-        if origin.type == Workspace.self { Workspace.update(origin, { $0.closure = instance.ref}) }
-        else if origin.type == Space.self { Space.update(origin, { $0.closure = instance.ref}) }
+        if origin.type == Space.self { Space.update(origin, { $0.closure = instance.ref}) }
         else { Bridge.update(origin, { $0.closure = instance.ref}) }
         return instance.ref
     }

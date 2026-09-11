@@ -100,7 +100,6 @@
 				ScintRuntime/Environment/Structural/Bridge.swift,
 				ScintRuntime/Environment/Structural/Closure.swift,
 				ScintRuntime/Environment/Structural/Space.swift,
-				ScintRuntime/Environment/Structural/Workspace.swift,
 				ScintRuntime/Environment/Workspaces.swift,
 				ScintRuntime/Extensions/Observation.swift,
 				ScintRuntime/Extensions/Services.swift,

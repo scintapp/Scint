@@ -266,13 +266,9 @@ struct SpacesList: Query {
             .init(
                 ref: ref,
                 origin: origin,
-                name: ref.type is Workspace.Type ? "Home" : ref.descriptor.name,
+                name: ref == workspace ? "Home" : ref.descriptor.name,
                 image: "app",
-                items: sorted(
-                    ref.type is Workspace.Type
-                    ? Workspace.with(ref, { $0.spaces.map { space(for: $0, origin: ref) }}) ?? []
-                    : Space.with(ref, { $0.spaces.map { space(for: $0, origin: ref) }}) ?? []
-                )
+                items: sorted(Space.with(ref, { $0.spaces.map { space(for: $0, origin: ref) }}) ?? [])
             )
         }
 

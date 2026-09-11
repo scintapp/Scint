@@ -65,7 +65,7 @@ struct SpaceSurface: Surface {
     }
 
     var body: some View {
-        let spaces = Array(Space.with(origin, { $0.spaces }) ?? Workspace.with(origin, { $0.spaces }) ?? [])
+        let spaces = Array(Space.with(origin, { $0.spaces }) ?? [])
 
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Style.Spacing.lg) {

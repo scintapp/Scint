@@ -10,16 +10,16 @@ final class Runtime: @unchecked Sendable {
 
     func store(for ref: Reference) -> Store? {
         switch ref.type {
-            case is any Structural.Type: return Workspaces.shared.store(for: ref)?.store(for: ref)
-            case is any Malleable.Type, is any Functional.Type: return Library.shared.store(for: ref)?.store(for: ref)
-            default: return nil
+            case is any Structural.Type:  Workspaces.shared.store(for: ref)?.store(for: ref)
+            case is any Malleable.Type, is any Functional.Type: Library.shared.store(for: ref)?.store(for: ref)
+            default: nil
         }
     }
 
     func load() async throws {
         try await Workspaces.shared.load()
         try await Library.shared.load()
-        let composables = all(as: Workspace.self).map { $0.0 } + all(as: Space.self).map { $0.0 }
+        let composables = all(as: Space.self).map { $0.0 }
         Composer.shared.load(composables)
     }
 
@@ -53,9 +53,9 @@ extension Runtime {
     }
 
     func all<T: Resolvable>(as type: T.Type) -> [(Reference, T)] {
-        store(for: Reference(T.self))?
-            .all(as: type) ?? []
-            .filter { $0.0.descriptor.published == true }
+        guard let results = store(for: Reference(T.self))?.all(as: type), !results.isEmpty
+        else { return [] }
+        return results.filter { $0.0.descriptor.published == true }
     }
 
     func search(_ text: String = "", filters: [String] = [], limit: Int = 20) -> SearchResults {

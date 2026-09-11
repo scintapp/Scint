@@ -93,8 +93,8 @@ import SwiftUI
     static func read(_ key: ModelKey) -> Session {
         if let data = UserDefaults.standard.data(forKey: key.namespace),
            let session = try? JSONDecoder().decode(Session.self, from: data),
-           Workspace.with(session.workspace, { _ in true }) == true { return session }
-        let workspace = Workspace.new(key.namespace)
+           Space.with(session.workspace, { _ in true }) == true { return session }
+        let workspace = Space.new(key.namespace)
         let session = Session(workspace)
         write(session, for: key)
         return session

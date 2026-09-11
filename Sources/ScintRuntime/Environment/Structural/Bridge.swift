@@ -36,15 +36,6 @@ struct Bridge: Structural {
         Space.update(target, { $0.bridges.update(with: self.ref) })
     }
 
-    mutating func bridge(workspace origin: Reference, to target: Reference) {
-        Workspace.update(self.origin, { $0.bridges.remove(self.ref) })
-        Workspace.update(self.target, { $0.bridges.remove(self.ref) })
-        self.origin = origin
-        self.target = target
-        Workspace.update(origin, { $0.bridges.update(with: self.ref) })
-        Workspace.update(target, { $0.bridges.update(with: self.ref) })
-    }
-
     func add(_ ref: Reference) {
         switch ref.type {
             case is any Functional.Type:

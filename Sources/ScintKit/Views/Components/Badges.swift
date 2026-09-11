@@ -102,11 +102,6 @@ struct Badges: View {
             counts.artifacts = space.artifacts.count
             counts.commands = space.commands.count
             materials = space.materials
-        } else if let workspace = Workspace.with(origin, { $0 }) {
-            counts.spaces = workspace.spaces.count
-            counts.artifacts = workspace.artifacts.count
-            counts.commands = workspace.commands.count
-            materials = workspace.materials
         }
 
         materials.removeAll { $0.descriptor.tags.contains("input") }

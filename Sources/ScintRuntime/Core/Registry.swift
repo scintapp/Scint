@@ -28,7 +28,6 @@ struct Registry: Sendable {
         register(Bridge.self)
         register(Closure.self)
         register(Space.self)
-        register(Workspace.self)
     }
 
     mutating func register<T: Resolvable>(_ type: T.Type) {

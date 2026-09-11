@@ -177,11 +177,6 @@ struct GridIcon: View {
         let contents: ([Reference], Reference?)
 
         switch ref.type {
-            case is Workspace.Type:
-                contents = (
-                    Workspace.with(ref, { Array($0.spaces) }) ?? [],
-                    Workspace.with(ref, { $0.closure })
-                )
             case is Space.Type:
                 contents = (
                     Space.with(ref, { Array($0.spaces) }) ?? [],

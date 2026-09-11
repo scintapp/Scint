@@ -47,7 +47,7 @@ struct Context: Contextual {
 
     private mutating func compose() -> (intent: Intent, branch: Reference, arguments: [String: Value])? {
         guard let harness = Harness.with(self.harness, { $0 }) else { return nil }
-        let closure = (Space.with(origin, { $0.closure }) ?? Workspace.with(origin, { $0.closure }))!
+        let closure = Space.with(origin, { $0.closure })!
         let intent = harness.intent
         let branch = self.branch(for: intent)
         let material = Closure.with(closure, { $0.input })!
@@ -62,7 +62,7 @@ struct Context: Contextual {
     }
 
     private mutating func compose(_ input: String) -> [String: Value] {
-        let config = Space.with(origin, { $0.config }) ?? Workspace.with(origin, { $0.config }) ?? [:]
+        let config = Space.with(origin, { $0.config }) ?? [:]
         let inputValue = Value.string(Renderer.evaluation(origin, transcript: transcript, input: input))
         let values = Dictionary(uniqueKeysWithValues: config.map { ($0.key, $0.value) })
         var arguments: [String: Value] = [:]
@@ -111,7 +111,7 @@ struct Context: Contextual {
     }
 
     static func new(_ origin: Reference) -> Context {
-        let roots = Space.with(origin, { $0.transcripts }) ?? Workspace.with(origin, { $0.transcripts }) ?? []
+        let roots = Space.with(origin, { $0.transcripts }) ?? []
         let existing = roots.first { reference in
             Transcript.with(reference) { transcript in
                 transcript.entries.contains { entry in

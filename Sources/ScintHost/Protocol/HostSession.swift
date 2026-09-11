@@ -91,7 +91,6 @@ struct MCPSession {
     @MainActor
     private static func unmatched(_ context: ContextId) -> String {
         let spaces = Runtime.shared.all(as: Space.self).map(\.0)
-        + Runtime.shared.all(as: Workspace.self).map(\.0)
 
         guard let space = spaces.first(where: { $0.contextId == context }) else {
             let transcript = Runtime.shared.all(as: Transcript.self).map(\.0)
@@ -104,7 +103,7 @@ struct MCPSession {
             + "reseeding mints new references, and a token issued before it is stale."
         }
 
-        let harness = Space.with(space, { $0.harness }) ?? Workspace.with(space, { $0.harness }) ?? nil
+        let harness = Space.with(space, { $0.harness }) ?? nil
         guard harness != nil else {
             return "\(space.descriptor.name) has this context but no harness, so it has no composition."
         }

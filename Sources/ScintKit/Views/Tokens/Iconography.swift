@@ -194,7 +194,6 @@ import SwiftUI
             case is Material.Type: Style.Tint.material
             case is Transcript.Type: Style.Tint.transcript
             case is Space.Type: Style.Tint.space
-            case is Workspace.Type: Style.Tint.workspace
             case is Closure.Type: Style.Tint.closure
             default: Iconography.icon(for: ref).tint
         }
@@ -275,6 +274,8 @@ import SwiftUI
                 return Iconography.icon(for: artifact.handler, size: size)
 
             case is Space.Type:
+                guard (Space.with(ref, { $0.space }) ?? nil) != nil
+                else { return Icon(symbol: "cube.transparent", tint: Style.Tint.workspace, sizing: size) }
                 return Icon(symbol: "space.custom", tint: Style.Tint.space, sizing: size)
 
             case is Command.Type:
@@ -293,9 +294,6 @@ import SwiftUI
 
             case is Transcript.Type:
                 return Icon(symbol: "text.bubble", tint: Style.Tint.transcript, sizing: size)
-
-            case is Workspace.Type:
-                return Icon(symbol: "cube.transparent", tint: Style.Tint.workspace, sizing: size)
 
             case is Closure.Type:
                 return Icon(symbol: "rectangle.stack", tint: Style.Tint.closure, sizing: size)

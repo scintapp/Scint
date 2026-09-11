@@ -27,7 +27,7 @@ struct PersistenceSettings: Sendable {
     var config: URL { path(keys.persistence.config).appendingPathComponent(keys.name.lowercased(), isDirectory: true) }
     var library: URL { data.appendingPathComponent("library", isDirectory: true) }
     var transcripts: URL { data.appendingPathComponent("transcripts", isDirectory: true) }
-    var workspaces: URL { data.appendingPathComponent("workspaces", isDirectory: true) }
+    var spaces: URL { data.appendingPathComponent("spaces", isDirectory: true) }
 
     private func typePath(for ref: Reference) -> String {
         let name = switch ref.type {
@@ -83,8 +83,8 @@ struct PersistenceSettings: Sendable {
         library.appendingPathComponent(directory(for: type), isDirectory: true)
     }
 
-    func workspacePath(_ id: UUID) -> URL {
-        workspaces.appendingPathComponent("\(id.uuidString.lowercased()).json")
+    func spacePath(_ id: UUID) -> URL {
+        spaces.appendingPathComponent("\(id.uuidString.lowercased()).json")
     }
 
 

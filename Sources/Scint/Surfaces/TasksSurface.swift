@@ -150,7 +150,6 @@ struct TasksSurface: Surface {
     var refs: [Reference] {
         if let material = model.session.opened.material { return [material] }
         return Space.with(origin, { $0.materials })
-        ?? Workspace.with(origin, { $0.materials })
         ?? []
     }
 

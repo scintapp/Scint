@@ -140,7 +140,7 @@ struct ContentTool: Tool {
         func structure(_ arguments: Properties) -> Resolved {
             guard arguments["structure"]?.string?.isEmpty == false else { return .document(origin) }
             guard let ref = document(arguments, "structure").reference,
-                  ref.type == Space.self || ref.type == Workspace.self
+                  ref.type == Space.self
                     else { return .failed(.failure("No space in reach matches that address.")) }
             return .document(ref)
         }

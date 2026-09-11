@@ -98,20 +98,19 @@ struct Material: Malleable {
     }
 
     static func new(_ origin: Reference, name: String = "New Material") -> Reference {
-        guard origin.type == Space.self || origin.type == Workspace.self
+        guard origin.type == Space.self
         else { RuntimeError.fatal("Not a valid material origin.") }
         var instance = Self(.init(Self.self))
         instance.origin = origin
         instance.insert(.text(.init(), "# \(name)"), at: 0)
         Descriptor.new(instance.ref, name: name, tags: [])
         Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
-        if origin.type == Workspace.self { Workspace.with(origin, { $0.add(instance.ref) }) }
-        else {  Space.with(origin, { $0.add(instance.ref) }) }
+        Space.with(origin, { $0.add(instance.ref) })
         return instance.ref
     }
 
     static func new(_ origin: Reference, input: Bool = true) -> Reference {
-        guard origin.type == Space.self || origin.type == Workspace.self
+        guard origin.type == Space.self
         else { RuntimeError.fatal("Not a valid transcript origin.") }
         var instance = Self(.init(Self.self))
         instance.origin = origin

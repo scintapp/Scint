@@ -29,7 +29,7 @@ actor Coordinator {
 
         var failed = false
         if !workspaceRefs.isEmpty {
-            do { try await Workspaces.shared.save(workspaceRefs) }
+            do { try await Workspaces.shared.save() }
             catch {
                 workspaceDirty.formUnion(workspaceRefs)
                 failed = true

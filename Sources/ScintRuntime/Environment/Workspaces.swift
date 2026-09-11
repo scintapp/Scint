@@ -6,7 +6,7 @@ final class Workspaces: @unchecked Sendable {
     private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Workspaces")
     static let shared = Workspaces()
     private let structures: Structures = .init()
-    var workspaces: [Reference] { structures.workspaces.keys() }
+    var workspaces: [Reference] { structures.spaces.all(as: Space.self).filter { $0.1.space == nil }.map(\.0) }
 
     func store(for ref: Reference) -> (any Bounding)? {
         structures.store(for: ref) != nil ? structures : nil
@@ -17,28 +17,17 @@ final class Workspaces: @unchecked Sendable {
     func load() async throws {
         if !workspaces.isEmpty { return }
         let settings = Runtime.shared.settings.persistence
-        let urls = try await Persistence.shared.files(in: settings.workspaces)
+        let urls = try await Persistence.shared.files(in: settings.spaces)
         for url in urls where url.pathExtension == "json" { await load(url) }
-        if workspaces.isEmpty { Workspace.new("Workspace") }
+        if workspaces.isEmpty { Space.new("Workspace") }
     }
 
-    func load(_ ref: Reference) async { await load(Runtime.shared.settings.persistence.workspacePath(ref.storageId)) }
+    func load(_ ref: Reference) async { await load(Runtime.shared.settings.persistence.spacePath(ref.storageId)) }
 
     func load(_ url: URL) async {
         do {
             let stored = try await Persistence.shared.read(StorableCollection.self, at: url)
-            let values = try structures.decode(stored)
-            load(values)
-
-            let refs = Set(values.compactMap { value, _ in
-                value.ref.type is Workspace.Type ? value.ref : nil
-            })
-            let settings = Runtime.shared.settings.persistence
-            let canonical = Set(refs.map { settings.workspacePath($0.storageId).standardizedFileURL.path.lowercased() })
-            let source = url.standardizedFileURL.path.lowercased()
-            guard refs.count != 1 || !canonical.contains(source) else { return }
-            try await save(refs)
-            if !canonical.contains(source) { try await Persistence.shared.delete(at: url) }
+            load(structures.decode(stored))
         } catch {
             Self.logger.error("Workspace load failed (\(url.lastPathComponent, privacy: .public)): \(String(describing: error), privacy: .public)")
         }
@@ -52,32 +41,27 @@ final class Workspaces: @unchecked Sendable {
     }
 
     func save() async throws {
-        try await save(Set(workspaces))
-    }
-
-    func save(_ refs: Set<Reference>) async throws {
-        let workspaceRefs = Set(refs.compactMap { structures.workspace(for: $0) })
-        for ref in workspaceRefs.sorted(by: { $0.storageId.uuidString < $1.storageId.uuidString }) {
-            guard let workspace = Workspace.with(ref, { $0 }) else { throw RuntimeError.spaces(.loadFailed) }
-            let stored = try structures.encode(workspace)
-            let url = Runtime.shared.settings.persistence.workspacePath(workspace.ref.storageId)
+        for ref in workspaces.sorted(by: { $0.storageId.uuidString < $1.storageId.uuidString }) {
+            guard let space = Space.with(ref, { $0 }) else { throw RuntimeError.spaces(.loadFailed) }
+            let stored = try structures.encode(space)
+            let url = Runtime.shared.settings.persistence.spacePath(space.ref.storageId)
             try await Persistence.shared.write(PersistedObject(url: url, value: stored))
         }
     }
 
     func save(_ ref: Reference) async {
-        do { try await save([ref]) }
+        do { try await save() }
         catch {
             Self.logger.error("Workspace save failed for \(ref.id.uuidString, privacy: .public): \(String(describing: error), privacy: .public)")
         }
     }
 
     func delete(_ ref: Reference) async throws {
-        let closure = Space.with(ref, { $0.closure }) ?? Workspace.with(ref, { $0.closure })
+        let closure = Space.with(ref, { $0.closure })
         let input = closure.flatMap { Closure.with($0, { $0.input }) }
+        if ref.type is Space.Type { Space.update(ref) { $0.restructure() } }
         Runtime.shared.store(for: ref)?.remove(ref)
         Catalog.shared.delete(ref)
-        if ref.type == Space.self { Space.update(ref) { $0.restructure() } }
         store(for: ref)?.remove(ref)
         if let closure {
             Catalog.shared.delete(closure)

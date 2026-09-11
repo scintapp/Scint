@@ -9,8 +9,8 @@ import LinkPresentation
         .appending(path: String(ProcessInfo.processInfo.processIdentifier))
     precondition(setenv("XDG_DATA_HOME", previewData.path, 1) == 0)
 
-    let workspace = Workspace.new("Research Desk")
-    Workspace.update(workspace) { $0.description = "Shared research, materials, and tools." }
+    let workspace = Space.new("Research Desk")
+    Space.update(workspace) { $0.description = "Shared research, materials, and tools." }
     let space = Space.new(workspace, name: "Client research")
     Space.update(space) { $0.description = "Prepare the next discovery call." }
     let file = Artifact.register("Design notes.md", previewData.appending(path: "Design notes.md"))
@@ -67,7 +67,7 @@ import LinkPresentation
         .appending(path: String(ProcessInfo.processInfo.processIdentifier))
     precondition(setenv("XDG_DATA_HOME", previewData.path, 1) == 0)
 
-    let workspace = Workspace.new("Research Desk")
+    let workspace = Space.new("Research Desk")
     let material = Material.new(workspace, name: "Research Brief Template")
     let file = Artifact.register("Design notes.md", previewData.appending(path: "Design notes.md"))
     let executable = Artifact.register("curl", URL(filePath: "/usr/bin/curl"))
