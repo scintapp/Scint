@@ -35,11 +35,11 @@ struct Harness: Functional {
         return lines.joined(separator: "\n")
     }
 
-    func rendered(with values: [String: Value]? = nil) -> [String] {
+    func arguments(with values: [String: Value]? = nil) -> [String] {
         parameters.flatMap { parameter in
             switch parameter {
                 case .argument(let name, _, _, let value):
-                    return (values?[name] ?? value)?.rendered ?? []
+                    return (values?[name] ?? value).map(Arguments.marshal) ?? []
                 case .command, .requirement, .target:
                     return []
             }
@@ -92,7 +92,7 @@ struct Harness: Functional {
         else { return nil }
         let result = Runtime.shared.services.start(
             executable,
-            args: command.rendered(with: values) + rendered(with: values),
+            args: command.arguments(with: values) + arguments(with: values),
             env: env
         )
         if let output, let pid = result?.pid, result?.error == nil { Runtime.shared.services.output(pid: pid, output) }

@@ -3,7 +3,7 @@ import Foundation
 
 final class Runtime: @unchecked Sendable {
     static let shared = Runtime()
-    var workspaces: [Reference] { Workspaces.shared.workspaces }
+    var spaces: [Reference] { Workspaces.shared.spaces }
     let registry: Registry = Registry()
     let services: Services = .init()
     let settings: Settings = .init()

@@ -62,7 +62,7 @@ extension Structural {
 
     var input: Reference {
         guard let closure = Closure.with(closure, { $0 })
-                else { RuntimeError.fatal() }
+        else { RuntimeError.fatal() }
         return closure.input
     }
 

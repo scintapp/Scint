@@ -227,6 +227,10 @@ struct MaterialsList: Query {
 struct SpacesList: Query {
     static func controls(_ model: any Model) -> Controls {
         .init(
+            focused: { item in
+                guard let ref = item.ref else { return false }
+                return model.session.focus == .structure(ref)
+            },
             selected: { item in
                 guard let ref = item.ref else { return false }
                 if let url = item.path { return model.session.selection.selected(ref, url) }
@@ -238,10 +242,10 @@ struct SpacesList: Query {
                 model.focus(ref)
             },
             surfacePalette: {
-                Action.surfaceItems(for: model.session.workspace)
+                Action.surfaceItems(for: model.session.space)
             },
             surfaceDropTarget: {
-                .init(ref: model.session.workspace, name: "Workspace")
+                .init(ref: model.session.space, name: "Workspace")
             },
             itemPalette: { item in
                 item.path == nil ? Action.itemItems(for: item) : []
@@ -250,8 +254,6 @@ struct SpacesList: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        let workspace = model.session.workspace
-
         func sorted(_ items: [ItemParams]) -> [ItemParams] {
             items
                 .sorted {
@@ -266,21 +268,21 @@ struct SpacesList: Query {
             .init(
                 ref: ref,
                 origin: origin,
-                name: ref == workspace ? "Home" : ref.descriptor.name,
+                name: ref.descriptor.name,
                 image: "app",
                 items: sorted(Space.with(ref, { $0.spaces.map { space(for: $0, origin: ref) }}) ?? [])
             )
         }
 
         return .init(
-            id: "workspaces",
+            id: "spaces",
             nesting: .recursive,
             header: false,
             sections: [
                 .init(
-                    id: "workspace",
-                    name: "Workspace",
-                    items: sorted([space(for: workspace, origin: workspace)])
+                    id: "spaces",
+                    name: "Spaces",
+                    items: sorted(model.roots.map { space(for: $0, origin: $0) })
                 )
             ]
         )

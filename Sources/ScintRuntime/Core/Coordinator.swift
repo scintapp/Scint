@@ -5,13 +5,13 @@ import OSLog
 actor Coordinator {
     static let shared = Coordinator()
     private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Persistence")
-    private var workspaceDirty: Set<Reference> = []
+    private var spaceDirty: Set<Reference> = []
     private var libraryDirty: Set<Reference> = []
     private var task: Task<Void, Never>?
 
     func schedule(_ ref: Reference) {
         switch ref.type {
-            case is any Structural.Type: workspaceDirty.insert(ref)
+            case is any Structural.Type: spaceDirty.insert(ref)
             case is any Malleable.Type, is any Functional.Type: libraryDirty.insert(ref)
             default: return
         }
@@ -22,18 +22,18 @@ actor Coordinator {
     func flush() async {
         task?.cancel()
         task = nil
-        let workspaceRefs = workspaceDirty
+        let spaceRefs = spaceDirty
         let libraryRefs = libraryDirty
-        workspaceDirty.removeAll()
+        spaceDirty.removeAll()
         libraryDirty.removeAll()
 
         var failed = false
-        if !workspaceRefs.isEmpty {
+        if !spaceRefs.isEmpty {
             do { try await Workspaces.shared.save() }
             catch {
-                workspaceDirty.formUnion(workspaceRefs)
+                spaceDirty.formUnion(spaceRefs)
                 failed = true
-                Self.logger.error("Autosave failed for workspace: \(String(describing: error), privacy: .public)")
+                Self.logger.error("Autosave failed for space: \(String(describing: error), privacy: .public)")
             }
         }
         if !libraryRefs.isEmpty {

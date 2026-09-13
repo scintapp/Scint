@@ -10,8 +10,8 @@ struct Navigation: Codable, Equatable, Sendable {
     var canGoBack: Bool { cursor > 0 }
     var canGoForward: Bool { cursor < history.count - 1 }
 
-    func path(for selection: Selection, in workspace: Reference? = nil) -> [Reference] {
-        var refs: [Reference] = workspace.map { [$0] } ?? []
+    func path(for selection: Selection, in space: Reference? = nil) -> [Reference] {
+        var refs: [Reference] = space.map { [$0] } ?? []
         guard let structure = selection.structure else { return refs }
         if (Space.with(structure, { $0.space }) ?? nil) == nil { if refs.last != structure { refs.append(structure) } }
         else { refs.append(contentsOf: spaces(to: structure)) }

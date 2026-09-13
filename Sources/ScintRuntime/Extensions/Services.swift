@@ -7,7 +7,7 @@ import OSLog
 }
 
 @objc protocol ServiceProviding {
-    func start(_ command: String, _ arguments: [String], _ environment: [String: String], _ reply: @escaping (Int32, String?, String?) -> Void)
+    func start(_ command: String, _ args: [String], _ env: [String: String], _ reply: @escaping (Int32, String?, String?) -> Void)
     func stop(pid: Int32, reply: @escaping (Bool) -> Void)
     func restart(pid: Int32, reply: @escaping (Int32, String?, String?) -> Void)
     func list(reply: @escaping ([String]) -> Void)

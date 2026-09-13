@@ -37,7 +37,7 @@ struct PathBar: View {
     @State private var hovered = false
     let model: any Model
     var selection: Selection { model.session.selection }
-    var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.workspace) }
+    var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.space) }
 
     var body: some View {
         HStack(alignment: .center) {
@@ -55,7 +55,7 @@ struct PathMenu: View {
     @State private var hovered = false
     let model: any Model
     var selection: Selection { model.session.selection }
-    var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.workspace) }
+    var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.space) }
 
     var body: some View {
         if let ref = path.last {

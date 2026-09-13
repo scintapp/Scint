@@ -2,7 +2,7 @@
 
 Scint is a native Mac application for composing agentic work as an inspectable, repeatable, contextual processes and systems . It brings documents, files, tools, configuration, execution, and history into one spatial model that's runnable from a place with durable context—not from a prompt assembled just before you interact with the agent.
 
-Most agent interfaces begin with a chat and make the user repeatedly reconstruct the world around it. Scint begins with a workspace. Inside it, nested `Space`s hold materials, resources, capabilities, configuration, and prior runs. Give a space an active `Harness`, and that authored environment can become a live process without ceasing to
+Most agent interfaces begin with a chat and make the user repeatedly reconstruct the world around it. Scint begins with a space. Inside it, nested `Space`s hold materials, resources, capabilities, configuration, and prior runs. Give a space an active `Harness`, and that authored environment can become a live process without ceasing to
 be the place the user navigates and edits.
 
 > In Scint, an agent doesn't merely receive context. It's an agentic process evaluated from a place that already
@@ -16,7 +16,7 @@ runtime evaluate work in the context of that topology.
 
 | Term | Meaning in Scint |
 | --- | --- |
-| **Topological** | Context is organized as workspaces with nested spaces, local closures, and bridges between adjacent environments. Position, originship, and reachability determine what belongs to a process. |
+| **Topological** | Context is organized as spaces with nested spaces, local closures, and bridges between adjacent environments. Position, originship, and reachability determine what belongs to a process. |
 | **Agentic** | Commands supply executable capabilities; a harness binds a command to contextual parameters and an intent: compose, dispatch, observe, evaluate, or search. |
 | **Process composition** | The runtime maps an authored space and its active harness into a live context, evaluates ephemeral intents, and records their durable transcript history. |
 
@@ -33,7 +33,7 @@ editors, palettes, and transcripts continually resolve the runtime values they p
 
 A typical flow looks like this:
 
-1. **Choose a place.** Navigate a workspace or nested space representing a project,
+1. **Choose a place.** Navigate a space or nested space representing a project,
    client, investigation, recurring operation, or another meaningful boundary.
 2. **Author the environment.** Build `Material`s from text, tasks, and references to other
    materials, files, and commands. Attach directories, documents, URLs, scripts, skills,
@@ -55,9 +55,9 @@ A typical flow looks like this:
 
 The Studio experience is deliberately Mac-native:
 
-- a workspace sidebar for nested spaces, open materials, transcripts, library interfaces,
+- a space sidebar for nested spaces, open materials, transcripts, library interfaces,
   and attached filesystem locations;
-- a visual canvas for the contents of the selected workspace or space;
+- a visual canvas for the contents of the selected space or space;
 - a block editor for authoring materials and embedding runtime references;
 - a composer for input and streamed transcript output;
 - an inspector for harnesses, commands, files, and execution configuration;
@@ -177,7 +177,7 @@ The current Xcode targets use Swift 6 and deploy to macOS 27.0.
 3. Run on **My Mac**.
 
 Swift Package Manager resolves Swift Collections, KeyboardShortcuts, and the Swift MCP
-SDK. On an empty store, first launch creates a sample Scint workspace with materials,
+SDK. On an empty store, first launch creates a sample Scint space with materials,
 spaces, artifacts, commands, and harnesses.
 
 The development build phase invokes `Resources/serviceRegistration.sh`, which is
@@ -201,14 +201,14 @@ and falls back to:
 ~/.local/share/Scint
 ```
 
-Structural values are persisted together as a workspace graph. Materials, transcripts,
+Structural values are persisted together as a space graph. Materials, transcripts,
 artifacts, commands, and harnesses are stored as individual library records. Writes are
 atomic and coordinated through debounced runtime saves.
 
 ## Status and trust
 
 The app and service currently run without App Sandbox or Hardened Runtime. Executable
-artifacts and harnesses run with the user's authority. Treat workspaces, imported
+artifacts and harnesses run with the user's authority. Treat spaces, imported
 capabilities, and executable configuration as trusted input. The MCP server binds only
 to loopback and requires a live context identifier, but that does not make untrusted
 commands safe to evaluate.

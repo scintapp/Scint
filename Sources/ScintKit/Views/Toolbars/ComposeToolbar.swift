@@ -65,10 +65,10 @@ struct ComposeBar: View {
                 .padding(.horizontal, Style.Spacing.lg)
                 .padding(.top, Style.Spacing.lg)
             }
+            .padding(.bottom, 8)
+            .padding(.horizontal, 8)
             .frame(maxWidth: 660)
-            .overlay(alignment: .trailing) {
-                ComposeControl(model: model, input: input, onSend: onSend)
-            }
+            .overlay(alignment: .trailing) { ComposeControl(model: model, input: input, onSend: onSend) }
             .background {
                 Style.Shape.medium
                     .fill(Style.Background.card.opacity(0.5))

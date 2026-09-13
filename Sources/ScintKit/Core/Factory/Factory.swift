@@ -145,6 +145,7 @@ import Foundation
                     indent: indent,
                     isExpanded: surface.isExpanded(params.id),
                     selected: controls.selected?(params) ?? false,
+                    focused: controls.focused?(params) ?? true,
                     onSelect: { controls.onSelect?(params) },
                     onToggleExpanded: { surface.setExpanded(params.id) },
                     rowWrapper: { row in
@@ -172,6 +173,7 @@ import Foundation
                     accessory: controls.itemAccessory?(params, depth),
                     indent: indent,
                     selected: controls.selected?(params) ?? false,
+                    focused: controls.focused?(params) ?? true,
                     onSelect: { controls.onSelect?(params) }
                 )
             )

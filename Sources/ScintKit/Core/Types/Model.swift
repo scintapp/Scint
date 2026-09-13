@@ -4,7 +4,7 @@ import SwiftUI
 private let anyRef = Reference(Space.self)
 
 enum ModelKey: String, Identifiable, CaseIterable {
-    case assistant, editor, studio
+    case studio, assistant, editor
     var id: String { self.model }
     var app: String { self.rawValue }
     var model: String { "scint" }
@@ -12,8 +12,6 @@ enum ModelKey: String, Identifiable, CaseIterable {
 }
 
 @MainActor protocol Model: AnyObject {
-    associatedtype Panel
-    var content: Panel { get }
     var session: Session { get set }
     func focus(_ ref: Reference?)
     func select(_ ref: Reference, entry: UUID?, url: URL?)
@@ -21,8 +19,26 @@ enum ModelKey: String, Identifiable, CaseIterable {
 }
 
 extension Model {
-    func load(_ workspace: Reference) async {
-        session.load(workspace)
+    var roots: [Reference] {
+        Runtime.shared.spaces.sorted {
+            let order = $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name)
+            return order == .orderedSame ? $0.id.uuidString < $1.id.uuidString : order == .orderedAscending
+        }
+    }
+
+    func root(for space: Reference) -> Reference? {
+        guard space.type is Space.Type, Space.with(space, { _ in true }) == true else { return nil }
+        let first = session.navigation.spaces(to: space).first ?? space
+        return Space.with(first, { $0.space ?? first })
+    }
+
+    func load(_ space: Reference) async {
+        loadRoot(for: space)
+    }
+
+    private func loadRoot(for ref: Reference) {
+        guard let root = root(for: ref), root != session.space else { return }
+        session.load(root)
     }
 
     func focus(_ ref: Reference?) {
@@ -30,11 +46,13 @@ extension Model {
     }
 
     func select(_ ref: Reference, entry: UUID? = nil, url: URL? = nil) {
+        loadRoot(for: ref)
         session.focus(ref)
         session.select(ref, entry: entry, url: url)
     }
 
     func open(_ ref: Reference) {
+        loadRoot(for: ref)
         session.focus(ref)
         session.open(ref)
     }
@@ -51,9 +69,9 @@ extension Model {
         Runtime.shared.search(query, filters: filters, limit: limit)
     }
 
-    func artifacts(_ workspace: Reference) -> [Reference] {
-        Space.with(workspace) { workspace in
-            workspace.artifacts.filter { ref in
+    func artifacts(_ space: Reference) -> [Reference] {
+        Space.with(space) { space in
+            space.artifacts.filter { ref in
                 Artifact.with(ref) {
                     switch $0.handler {
                         case .directory, .file: true
@@ -69,8 +87,8 @@ final class AnyModel: Model {
     var content: any Panel
     var session: Session
 
-    init(_ workspace: Reference) {
+    init(_ space: Reference) {
         self.content = AnyPanel()
-        self.session = .init(anyRef)
+        self.session = .init(space)
     }
 }

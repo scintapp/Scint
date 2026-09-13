@@ -4,13 +4,12 @@ import SwiftUI
 
 
 extension UTType {
-    nonisolated static let workspace = UTType(exportedAs: "com.kaechle.scint.workspace")
     nonisolated static let space = UTType(exportedAs: "com.kaechle.scint.space")
     nonisolated static let material = UTType(exportedAs: "com.kaechle.scint.material")
     nonisolated static let artifact = UTType(exportedAs: "com.kaechle.scint.artifact")
     nonisolated static let control = UTType(exportedAs: "com.kaechle.scint.control")
     nonisolated static let service = UTType(exportedAs: "com.kaechle.scint.service")
-    nonisolated static var scint: [UTType] { [.workspace, .space, .material, .artifact, .control, .service] }
+    nonisolated static var scint: [UTType] { [.space, .space, .material, .artifact, .control, .service] }
 }
 
 enum ReferenceTransfer {
@@ -166,7 +165,7 @@ enum ReferenceTransfer {
     }
 
     /// Removes `ref` from a parent through the structures' own methods: a space leaves through
-    /// `detach(child:)` or its workspace's `remove`, anything else leaves its parent's closure.
+    /// `detach(child:)` or its space's `remove`, anything else leaves its parent's closure.
     ///
     /// Moving a space never needs this — `attach(child:)` removes it from its previous parent on the
     /// way in. `add(_:)` does not do the same for materials, which is why `move` detaches them first.

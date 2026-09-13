@@ -96,7 +96,7 @@ struct EverythingSearch: Query {
                 return [
                     .init(id: "content", name: "Content", image: "text.alignleft", results: model.search(input, filters: ["material"], limit: limit).all),
                     .init(id: "interfaces", name: "Interfaces", image: "switch.2", results: model.search(input, filters: ["interface"], limit: limit).all),
-                    .init(id: "workspace", name: "Workspace", image: "cube.transparent", results: model.search(input, filters: ["structure"], limit: limit).all),
+                    .init(id: "space", name: "Workspace", image: "cube.transparent", results: model.search(input, filters: ["structure"], limit: limit).all),
                 ]
             },
             detail: { SearchDetail.parameters($0) },

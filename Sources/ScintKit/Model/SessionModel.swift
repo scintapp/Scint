@@ -6,21 +6,20 @@ import Foundation
     private(set) var selection: Selection = .init()
     private(set) var opened: Opened = .init()
     private(set) var navigation: Navigation = .init()
-    private(set) var workspace: Reference
+    private(set) var space: Reference
 
-    init(_ workspace: Reference) {
-        self.workspace = workspace
-        self.selection = Selection(structure: workspace)
+    init(_ space: Reference) {
+        self.space = space
         self.navigation.reset(to: selection)
     }
 
-    var origin: Reference { if let ref = selection.structure, ref.type is Space.Type { ref } else { workspace } }
+    var origin: Reference { if let ref = selection.structure, ref.type is Space.Type { ref } else { space } }
 
-    mutating func load(_ workspace: Reference) {
-        self.workspace = workspace
+    mutating func load(_ space: Reference) {
+        self.space = space
         opened = .init()
         focus = .nothing
-        let initial = Selection(structure: workspace)
+        let initial = Selection(structure: space)
         selection = initial
         navigation.reset(to: initial)
     }
@@ -106,8 +105,7 @@ extension Session {
     var rendered: Value {
         Value.collection([
             "focused": focus.resolved,
-            "selected": selection.resolved,
-            "opened": opened.resolved
+            "selected": selection.resolved
         ])
     }
 }

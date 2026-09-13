@@ -72,6 +72,7 @@ struct Style {
         static let canvasSiblingGap: CGFloat = 40
         static let canvasLevelGap: CGFloat = 72
         static let canvasPadding: CGFloat = 64
+        static let canvasIcon: CGFloat = 24
     }
 
     enum Scale {
@@ -92,6 +93,7 @@ struct Style {
     enum Border {
         static var base: Color { Color(red: 0.18824, green: 0.18824, blue: 0.19216) }
         static var card: Color { Color(red: 0.27255, green: 0.27647, blue: 0.28039) }
+        static var node: Color { Color(red: 0.23922, green: 0.24314, blue: 0.24706) }
         static var group: Color { Color(red: 0.24008, green: 0.24033, blue: 0.24057).opacity(0.5) }
         static var raised: Color { Color(red: 0.20008, green: 0.20033, blue: 0.20057) }
         static var field: Color { Color(red: 0.888, green: 0.888, blue: 0.888).opacity(0.25) }
@@ -114,6 +116,7 @@ struct Style {
 
     enum Background {
         static var base: Color { Color(red: 0.10588, green: 0.10588, blue: 0.1098) }
+        static var node: Color { Color(red: 0.13333, green: 0.13333, blue: 0.13725) }
         static var panel: Color { Color(red: 0.11313, green: 0.11333, blue: 0.11355) }
         static var surface: Color { Color(red: 0.13725, green: 0.13725, blue: 0.14118) }
         static var group: Color { Color(red: 0.18821, green: 0.18821, blue: 0.19124).opacity(0.1) }
@@ -144,7 +147,6 @@ struct Style {
         static var transcript: Color { Color(red: 0.94294, green: 0.77314, blue: 0.64294) }
         static var task: Color { Color(red: 0.9443, green: 0.7645, blue: 0.7823) }
         static var space: Color { Color(red: 0.892, green: 0.912, blue: 0.962) }
-        static var workspace: Color { space }
         static var closure: Color { space }
         static var bridge: Color { Color(red: 0.892, green: 0.729, blue: 0.892) }
         static var alert: Color { Color(red: 0.812, green: 0.545, blue: 0.545) }

@@ -9,7 +9,7 @@ import SwiftUI
 }
 
 extension Surface {
-    var render: (Self, Params, Controls) -> some View { Factory.build(_ :_ :_ :) }
+    var render: (Self, Params, Controls) -> any View { Factory.build(_ :_ :_ :) }
     func isExpanded(_ id: AnyHashable) -> Bool { panel.state.isExpanded(id) }
     func setExpanded(_ id: AnyHashable) { panel.state.setExpanded(id) }
 }

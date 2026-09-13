@@ -2,58 +2,78 @@ import SwiftUI
 
 
 struct Assistant: View {
-    @Environment(ScintModel.self) var model
+    @Environment(ScintModel.self) var scint
 
     var body: some View {
+        let model = scint.assistant
+        let content = model.content
         let assistant = model.assistant
-        assistant.content.surface(assistant)
-            .environment(model)
-            .environment(assistant)
-            .toolbar(removing: .title)
-    }
-}
-
-struct Editor: View {
-    @Environment(ScintModel.self) var model
-
-    var body: some View {
-        let content = model.editor.content.surface(model.editor)
-        let navigator = model.editor.navigator.surface(model.editor)
-
-        NavigationSplitView(sidebar: { navigator }, detail: { content })
-            .environment(model)
-            .environment(model.editor)
-            .scrollEdgeEffectHidden()
-            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-    }
-}
-
-struct Studio: View {
-    @Environment(ScintModel.self) var model
-
-    var body: some View {
-        let studio = model.studio
-        let content: some View = studio.content.surface(studio)
-        let inspector: some View = studio.inspector.surface(studio)
-        let navigator: some View = studio.navigator.surface(studio)
-        let presented = studio.inspector.bindable.presented
-
+        let navigator = model.navigator
         NavigationSplitView {
-            navigator
+            navigator.surface(model)
         } detail: {
             ZStack(alignment: .top) {
-                content.frame(maxWidth: .infinity)
+                content.surface(model)
                     .background(Style.Background.base)
                 Rectangle()
                     .fill(Style.Border.base)
                     .frame(height: 0.75, alignment: .top)
             }
         }
-        .environment(model)
-        .environment(studio)
+        .environment(scint)
+        .toolbar(removing: .title)
+        .inspector(isPresented: assistant.bindable.presented) {
+            assistant.surface(model)
+                .inspectorColumnWidth(ideal: 340)
+        }
+    }
+}
+
+struct Editor: View {
+    @Environment(ScintModel.self) var scint
+
+    var body: some View {
+        let model = scint.editor
+        let editor = model.editor
+        let outline = model.outline
+        let navigator = model.navigator
+        let presented = outline.bindable.presented
+
+        NavigationSplitView {
+            navigator.surface(model)
+        } detail: {
+            editor.surface(model)
+        }
+        .environment(scint)
         .toolbar(removing: .title)
         .inspector(isPresented: presented) {
-            inspector.inspectorColumnWidth(ideal: 340)
+            outline.surface(model)
+                .inspectorColumnWidth(ideal: 340)
+        }
+    }
+}
+
+struct Studio: View {
+    @Environment(ScintModel.self) var scint
+
+    var body: some View {
+        let studio = scint.studio
+        let navigator = studio.navigator
+        let canvas = studio.canvas
+        let assistant = studio.assistant
+        let presented = assistant.bindable.presented
+
+        NavigationSplitView {
+            navigator.surface(studio)
+        } detail: {
+            canvas.surface(studio)
+        }
+        .environment(scint)
+        .toolbar(removing: .title)
+        .inspector(isPresented: presented) {
+            assistant.surface(studio)
+                .inspectorColumnWidth(ideal: 480)
+                .environment(scint)
         }
     }
 }

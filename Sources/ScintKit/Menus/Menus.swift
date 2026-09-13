@@ -68,8 +68,8 @@ struct Item: Identifiable {
         Task { try? await ref.delete() }
     }
 
-    static func createMaterial(in origin: Reference, model: any Model) {
-        let ref = Material.new(origin, name: "New Material")
+    static func createMaterial(in origin: Reference, name: String = "New Material", model: any Model) {
+        let ref = Material.new(origin, name: name)
         model.open(ref)
         Task { await Runtime.shared.save() }
     }

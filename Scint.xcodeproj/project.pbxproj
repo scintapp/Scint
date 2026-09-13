@@ -69,6 +69,7 @@
 		7CBB43643020FFC400B9D4D7 /* Exceptions for "Sources" folder in "scintd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				ScintRuntime/Core/Arguments.swift,
 				ScintRuntime/Core/Coordinator.swift,
 				ScintRuntime/Core/Data/Bounds.swift,
 				ScintRuntime/Core/Data/DataModel.swift,

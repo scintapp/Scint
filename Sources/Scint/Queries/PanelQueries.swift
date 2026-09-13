@@ -16,8 +16,8 @@ struct AssistantNavigator: Query {
             },
             sectionDropTarget: { section in
                 guard section.id == AnyHashable("spaces") else { return nil }
-                let workspace = model.session.workspace
-                return .init(ref: workspace, name: workspace.descriptor.name)
+                let space = model.session.space
+                return .init(ref: space, name: space.descriptor.name)
             },
             itemPalette: { item in
                 item.path == nil ? Action.itemItems(for: item) : []
@@ -47,7 +47,7 @@ struct AssistantNavigator: Query {
             header: true,
             sections: [
                 .init(
-                    id: "workspace",
+                    id: "space",
                     name: "Workspace",
                     header: true,
                     items: spaces

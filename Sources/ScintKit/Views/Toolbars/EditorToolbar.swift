@@ -7,7 +7,7 @@ struct OutlineControls: View {
     let icons: Bool
 
     var refs: [Reference] {
-        model.session.navigation.path(for: model.session.selection, in: model.session.workspace)
+        model.session.navigation.path(for: model.session.selection, in: model.session.space)
             .filter { $0.type != Material.self }
     }
 

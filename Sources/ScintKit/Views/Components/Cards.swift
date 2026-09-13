@@ -2,7 +2,7 @@ import SwiftUI
 import LinkPresentation
 
 
-enum CardStyle { case group, list }
+enum CardStyle { case group, list, node }
 
 struct Card: View {
     let ref: Reference
@@ -16,7 +16,7 @@ struct Card: View {
     var url: URL? { Self.link(for: ref) }
     var metadata: LPLinkMetadata? { linkMetadata.flatMap { $0.url == url ? $0.value : nil } }
     var selected: Bool { isSelected || ReferenceSelection.shared.selected == ref }
-    var icon: Iconography.Icon { Iconography.icon(for: ref, size: style == .group ? 14 : 18) }
+    var icon: Iconography.Icon { Iconography.icon(for: ref, size: style == .list ? 18 : 14) }
 
     static func link(for ref: Reference) -> URL? {
         Artifact.with(ref) { artifact in
@@ -195,6 +195,29 @@ struct Card: View {
                         Divider()
                             .padding(.leading, 24)
                     }
+
+                case .node:
+                    HStack(spacing: Style.Spacing.md) {
+                        icon
+                        Text(Self.text(for: ref, metadata: metadata).name)
+                            .font(Typography.row)
+                            .foregroundStyle(Style.Foreground.primary)
+                            .lineLimit(Style.Limit.singleLine)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, Style.Spacing.sm)
+                    .frame(maxWidth: .infinity, minHeight: Style.Spacing.rowHeight, alignment: .leading)
+                    .background {
+                        if selected || isHovered {
+                            Style.Shape.tiny.fill(
+                                selected
+                                ? icon.tint.opacity(Style.Opacity.washed)
+                                : Style.Foreground.primary.opacity(Style.Opacity.hairline)
+                            )
+                        }
+                    }
+                    .contentShape(Style.Shape.tiny)
+                    .onHover { isHovered = $0 }
             }
         }
         .buttonStyle(.plain)

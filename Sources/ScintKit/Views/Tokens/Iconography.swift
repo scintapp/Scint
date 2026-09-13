@@ -20,8 +20,8 @@ import SwiftUI
         private var radius: CGFloat { size * 0.3 }
         private var padding: CGFloat { custom ? size * 0.1 : 0 }
         private var primary: Color { tint }
-        private var secondary: Color { selected ? tint : Style.Foreground.muted }
-        private var background: Color { selected ? tint.opacity(0.28) : tint.opacity(0.14) }
+        private var secondary: Color { selected ? Style.Foreground.primary : Style.Foreground.secondary }
+        private var background: Color { tint.opacity(selected ? 0.2 : 0.1) }
 
         var body: some View {
             if custom {
@@ -34,7 +34,7 @@ import SwiftUI
                     Image(symbol)
                         .font(.system(size: sizing))
                         .symbolRenderingMode(.palette)
-                        .foregroundStyle(primary, secondary)
+                        .foregroundStyle(symbol == Custom.inactive.rawValue ? secondary : primary, secondary)
                         .padding(.top, padding)
                 }
                 .frame(width: sizing, height: sizing)
@@ -87,7 +87,6 @@ import SwiftUI
         case material(Block)
         case space
         case transcript(Entry)
-        case workspace
 
         enum Block {
             case artifact
@@ -141,7 +140,7 @@ import SwiftUI
         case completed = "space.badge.checkmark"
         case failed = "space.badge.xmark"
         case compose = "space.badge.ellipsis"
-        case dispatch = "space.badge.arrowup"
+        case dispatch = "space.badge.arrow.up"
         case observe = "space.badge.eye"
         case evaluate = "space.badge.sparkles"
         case search = "space.badge.magnifyingglass"
@@ -275,7 +274,7 @@ import SwiftUI
 
             case is Space.Type:
                 guard (Space.with(ref, { $0.space }) ?? nil) != nil
-                else { return Icon(symbol: "cube.transparent", tint: Style.Tint.workspace, sizing: size) }
+                else { return Icon(symbol: "cube.transparent", tint: Style.Tint.space, sizing: size) }
                 return Icon(symbol: "space.custom", tint: Style.Tint.space, sizing: size)
 
             case is Command.Type:
@@ -369,7 +368,7 @@ import SwiftUI
                     case .transcript: Icon(symbol: "rectangle.stack", tint: Style.Tint.transcript)
                 }
 
-            case .workspace:
+            case .space:
                 Icon(symbol: "cube.transparent", tint: Style.Tint.space)
         }
     }

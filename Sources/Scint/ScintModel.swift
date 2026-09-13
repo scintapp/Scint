@@ -2,44 +2,43 @@ import Foundation
 import SwiftUI
 
 
-
 @Observable @MainActor final class StudioModel: Model {
-    var content: StudioPanel
-    var inspector: InspectorPanel
+    var canvas: CanvasPanel
+    var assistant: AssistantPanel
     var navigator: NavigatorPanel
     var session: Session
 
     init(_ session: Session) {
-        self.content = .init()
-        self.inspector = .init()
-        self.navigator = .init() 
+        self.canvas = .init()
+        self.assistant = .init()
+        self.navigator = .init()
         self.session = session
     }
 }
 
 @Observable @MainActor final class AssistantModel: Model {
-    var content: AssistantPanel
-    var inspector: InspectorPanel
+    var content: ContentPanel
+    var assistant: AssistantPanel
     var navigator: NavigatorPanel
     var session: Session
 
     init(_ session: Session) {
         self.content = .init()
-        self.inspector = .init()
+        self.assistant = .init()
         self.navigator = .init()
         self.session = session
     }
 }
 
 @Observable @MainActor final class EditorModel: Model {
-    var content: EditorPanel
-    var inspector: InspectorPanel
+    var editor: EditorPanel
+    var outline: SettingsPanel
     var navigator: NavigatorPanel
     var session: Session
 
     init(_ session: Session) {
-        self.content = .init()
-        self.inspector = .init()
+        self.editor = .init()
+        self.outline = .init()
         self.navigator = .init()
         self.session = session
     }
@@ -58,7 +57,10 @@ import SwiftUI
     func panel(for key: PanelKey) -> any Panel { panels.panel(for: key) }
 
     func load() async {
-        models[.assistant] = AssistantModel(Self.read(.assistant))
+        let session = Self.read(.assistant)
+        models[.assistant] = AssistantModel(session)
+        models[.editor] = EditorModel(session)
+        models[.studio] = StudioModel(session)
 
         CallbackRouter.register(CallbackTrigger.action) { request in
             CallbackTrigger.handle(request)
@@ -69,8 +71,12 @@ import SwiftUI
             return ReferenceActions.open(ref, in: assistant)
         }
 
-        var seeded = await SampleData.load(assistant.session.workspace, for: .editor)
-        seeded = await SampleData.load(assistant.session.workspace, for: .assistant) || seeded
+        ObserveInterfaces.load()
+        IntentInterfaces.load()
+
+        var seeded = await SampleData.load(studio.session.space, for: .studio)
+        seeded = await SampleData.load(studio.session.space, for: .editor)
+        seeded = await SampleData.load(studio.session.space, for: .assistant)
         if seeded { await Runtime.shared.save() }
         await host.load()
     }
@@ -93,9 +99,9 @@ import SwiftUI
     static func read(_ key: ModelKey) -> Session {
         if let data = UserDefaults.standard.data(forKey: key.namespace),
            let session = try? JSONDecoder().decode(Session.self, from: data),
-           Space.with(session.workspace, { _ in true }) == true { return session }
-        let workspace = Space.new(key.namespace)
-        let session = Session(workspace)
+           Space.with(session.space, { $0.space == nil }) == true { return Session(session.space) }
+        let roots = Runtime.shared.spaces.sorted { $0.id.uuidString < $1.id.uuidString }
+        let session = Session(roots.first ?? Space.new(key.namespace))
         write(session, for: key)
         return session
     }

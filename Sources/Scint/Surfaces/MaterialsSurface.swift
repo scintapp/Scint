@@ -91,7 +91,11 @@ struct MaterialSurface: Surface {
     var panel: any Panel
     var model: any Model
 
-    var ref: Reference
+    var ref: Reference {
+        if let ref = model.session.opened.material { return ref }
+        else if let ref = model.session.selection.content, ref.type is Material.Type { return ref }
+        else { return model.session.space }
+    }
 
     var maximized: Bool { model.session.opened.material == ref }
 
@@ -148,11 +152,11 @@ struct MaterialsSurface: Surface {
     var body: some View {
         ScrollView {
             VStack(spacing: Style.Spacing.xxl) {
-                ForEach(materials) { material in
+                ForEach(materials, id: \.self) { material in
                     VStack {
                         MaterialHeader(model: model, ref: material, state: $state)
                         if !state.collapsed.contains(material) {
-                            MaterialSurface(panel: panel, model: model, ref: material)
+                            MaterialSurface(panel: panel, model: model)
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                     }

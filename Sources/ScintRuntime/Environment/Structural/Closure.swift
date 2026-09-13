@@ -6,7 +6,6 @@ struct Closure: Structural {
     var origin: Reference
     var content: [Reference] = []
     var interfaces: Set<Reference> = []
-    var closure: Reference
     var config: Config = [:]
     var input: Reference
 
@@ -14,9 +13,9 @@ struct Closure: Structural {
         self.ref = ref
         self.origin = ref
         self.input = ref
-        self.closure = ref
     }
 
+    var closure: Reference { self.ref }
     var artifacts: [Reference] { interfaces.filter { $0.type is Artifact.Type } }
     var commands: [Reference] { interfaces.filter { $0.type is Command.Type } }
     var harnesses: [Reference] { interfaces.filter { $0.type is Harness.Type } }

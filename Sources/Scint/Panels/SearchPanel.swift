@@ -88,6 +88,30 @@ struct SearchDetail: Query {
     }
 }
 
+@Observable final class ActionsPanel: Panel {
+    var mode: Modality = .fixed
+    var state: PanelState = .init()
+    var surface: PanelSurface = .composer
+
+    enum PanelSurface: String, CaseIterable, Identifiable {
+        case composer, editor
+
+        var id: String { rawValue }
+        var label: String { rawValue.capitalized }
+
+        var symbol: String {
+            switch self {
+                case .composer: "square.fill.text.grid.1x2"
+                case .editor: "square.and.pencil"
+            }
+        }
+    }
+
+    func surface(_ model: any Model) -> some View {
+        AnySurface(panel: self, model: model)
+    }
+}
+
 @Observable final class SearchPanel: Panel {
     var mode: Modality = .fixed
     var state: PanelState = .init()
@@ -98,7 +122,7 @@ struct SearchDetail: Query {
     }
 
     enum PanelSurface: String, CaseIterable {
-        case everything, content, interfaces, workspace
+        case everything, content, interfaces, space
 
         var label: String { self.rawValue.capitalized }
         var placeholder: String { label }
@@ -108,7 +132,7 @@ struct SearchDetail: Query {
                 case .everything: "magnifyingglass"
                 case .content: "command"
                 case .interfaces: "switch.2"
-                case .workspace: "cube.transparent"
+                case .space: "cube.transparent"
             }
         }
 
@@ -117,7 +141,7 @@ struct SearchDetail: Query {
                 case .everything: EverythingSearch.self
                 case .content: ContentSearch.self
                 case .interfaces: InterfaceSearch.self
-                case .workspace: WorkspaceSearch.self
+                case .space: WorkspaceSearch.self
             }
         }
     }

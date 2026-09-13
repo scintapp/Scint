@@ -21,12 +21,8 @@ enum Focus: Codable, Equatable, Sendable {
 
 struct Opened: Codable, Equatable, Sendable {
     var material: Reference?
+    var structure: Reference?
     var transcript: Reference?
-
-    var resolved: Value {
-        if let material { .collection([ "material": .reference(material)]) }
-        else { .collection([ "material": .bool(false)]) }
-    }
 
     mutating func open(_ ref: Reference) {
         switch ref.type {

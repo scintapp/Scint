@@ -2,10 +2,10 @@ import SwiftUI
 
 
 struct TranscriptHeader: View {
-    var transcript: Reference
+    var ref: Reference
 
     var body: some View {
-        if let value = Transcript.with(transcript, { $0 }) {
+        if let value = Transcript.with(ref, { $0 }) {
             let elapsed = if let started = value.started, let stopped = value.stopped {
                 Int(stopped.timeIntervalSince(started).rounded())
             } else {
@@ -13,7 +13,7 @@ struct TranscriptHeader: View {
             }
 
             HStack(spacing: Style.Spacing.md) {
-                Text(value.origin.type is Transcript.Type ? transcript.descriptor.name : "Overview Transcript")
+                Text(value.origin.type is Transcript.Type ? ref.descriptor.name : "Overview Transcript")
                     .font(Typography.row.weight(.semibold))
                     .foregroundStyle(Style.Foreground.muted)
                     .lineLimit(1)
@@ -37,11 +37,15 @@ struct TranscriptSurface: Surface {
     var panel: any Panel
     var model: any Model
 
+    var ref: Reference {
+        if let ref = model.session.opened.transcript { return ref }
+        else if let ref = model.session.selection.content, ref.type is Transcript.Type { return ref }
+        else { return model.session.space }
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let width = min(Style.Dimension.transcriptMaxWidth, max(0, geometry.size.width - Style.Spacing.lg * 2))
-            Color.clear.frame(height: 16)
-
             ScrollView {
                 LazyVStack(spacing: Style.Spacing.transcriptEntrySpacing) {
                     if let transcript = model.session.transcript {
@@ -61,13 +65,12 @@ struct TranscriptSurface: Surface {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.horizontal, Style.Spacing.xxl)
+                .padding(8)
             }
+            .safeAreaBar(edge: .bottom) { TranscriptPicker(model: model) }
             .defaultScrollAnchor(.bottom, for: .initialOffset)
             .scrollEdgeEffectStyle(.soft, for: .vertical)
-            .id(model.session.transcript)
-
-            Color.clear.frame(height: 8)
         }
     }
 }
+

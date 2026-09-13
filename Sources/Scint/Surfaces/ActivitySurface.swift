@@ -35,6 +35,7 @@ struct ActivitySurface: Surface {
 
                     TranscriptPicker(model: model)
                         .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(8)
 
                     HStack(spacing: Style.Spacing.lg) {
                         if active {

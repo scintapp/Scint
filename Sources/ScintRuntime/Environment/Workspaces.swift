@@ -6,7 +6,7 @@ final class Workspaces: @unchecked Sendable {
     private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Workspaces")
     static let shared = Workspaces()
     private let structures: Structures = .init()
-    var workspaces: [Reference] { structures.spaces.all(as: Space.self).filter { $0.1.space == nil }.map(\.0) }
+    var spaces: [Reference] { structures.spaces.all(as: Space.self).filter { $0.1.space == nil }.map(\.0) }
 
     func store(for ref: Reference) -> (any Bounding)? {
         structures.store(for: ref) != nil ? structures : nil
@@ -15,11 +15,11 @@ final class Workspaces: @unchecked Sendable {
     func add(_ ref: Reference, _ value: Resolvable) { structures.add(ref, value) }
 
     func load() async throws {
-        if !workspaces.isEmpty { return }
+        if !spaces.isEmpty { return }
         let settings = Runtime.shared.settings.persistence
         let urls = try await Persistence.shared.files(in: settings.spaces)
         for url in urls where url.pathExtension == "json" { await load(url) }
-        if workspaces.isEmpty { Space.new("Workspace") }
+        if spaces.isEmpty { Space.new("Workspace") }
     }
 
     func load(_ ref: Reference) async { await load(Runtime.shared.settings.persistence.spacePath(ref.storageId)) }
@@ -41,7 +41,7 @@ final class Workspaces: @unchecked Sendable {
     }
 
     func save() async throws {
-        for ref in workspaces.sorted(by: { $0.storageId.uuidString < $1.storageId.uuidString }) {
+        for ref in spaces.sorted(by: { $0.storageId.uuidString < $1.storageId.uuidString }) {
             guard let space = Space.with(ref, { $0 }) else { throw RuntimeError.spaces(.loadFailed) }
             let stored = try structures.encode(space)
             let url = Runtime.shared.settings.persistence.spacePath(space.ref.storageId)

@@ -71,7 +71,8 @@ struct BackButton: View {
     }
 }
 
-struct CreateButton: View {
+struct CreateSpaceButton: View {
+    var ref: Reference
     var model: any Model
 
     @State var text: String = ""
@@ -81,7 +82,59 @@ struct CreateButton: View {
         let name = text.trimmingCharacters(in: .whitespacesAndNewlines)
         presented = false
         Action.createSpace(
-            in: model.session.origin,
+            in: ref,
+            name: name.isEmpty ? "New Space" : name,
+            model: model
+        )
+    }
+
+    var body: some View {
+        Button {
+            text = ""
+            presented = true
+        } label: {
+            Image(systemName: "plus")
+        }
+        .menuIndicator(.hidden)
+        .sheet(isPresented: $presented) {
+            VStack(alignment: .trailing, spacing: Style.Spacing.xl) {
+                TextField("Name", text: $text)
+                    .onSubmit { create() }
+
+                HStack(spacing: Style.Spacing.md) {
+                    Button("Cancel", role: .cancel) { presented = false }
+                    Button("Create") { create() }
+                        .keyboardShortcut(.defaultAction)
+                }
+            }
+            .padding(Style.Spacing.xxl)
+            .frame(width: Style.Spacing.menuWidth)
+        }
+    }
+}
+
+struct CreateButton: View {
+    var ref: Reference
+    var model: any Model
+
+    @State var text: String = ""
+    @State var presented: Bool = false
+
+    private func material() {
+        let name = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        presented = false
+        Action.createMaterial(
+            in: ref,
+            name: name.isEmpty ? "New Material" : name,
+            model: model
+        )
+    }
+
+    private func space() {
+        let name = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        presented = false
+        Action.createSpace(
+            in: ref,
             name: name.isEmpty ? "New Space" : name,
             model: model
         )
@@ -90,40 +143,32 @@ struct CreateButton: View {
     var body: some View {
         var scoped: Bool { model.session.origin.type is Space.Type }
 
-        SwiftUI.Menu {
-            Button {
-                text = ""
-                presented = true
-            } label: {
-                Label("New Space", systemImage: "plus")
-            }
+            SwiftUI.Menu {
+                Button { text = ""; presented = true } label: { Label("New Space", systemImage: "plus") }
+                    .modifier(SpaceButtonStyle())
 
-            if scoped {
-                Button {
-                    Action.createMaterial(in: model.session.origin, model: model)
-                } label: {
-                    Label("New Material", systemImage: "plus")
+                if scoped {
+                    Button { text = ""; presented = true } label: { Label("New Material", systemImage: "plus") }
+                        .modifier(SpaceButtonStyle())
                 }
-            }
-        } label: { Image(systemName: "plus") }
-            .menuIndicator(.hidden)
-            .sheet(isPresented: $presented) {
-                VStack(alignment: .trailing, spacing: Style.Spacing.xl) {
-                    TextField("Name", text: $text)
-                        .onSubmit { create() }
+            } label: { Image(systemName: "plus") }
+                .menuIndicator(.hidden)
+                .sheet(isPresented: $presented) {
+                    VStack(alignment: .trailing, spacing: Style.Spacing.xl) {
+                        TextField("Name", text: $text)
+                            .onSubmit { space() }
 
-                    HStack(spacing: Style.Spacing.md) {
-                        Button("Cancel", role: .cancel) { presented = false }
-                        Button("Create") { create() }
-                            .keyboardShortcut(.defaultAction)
+                        HStack(spacing: Style.Spacing.md) {
+                            Button("Cancel", role: .cancel) { presented = false }
+                            Button("Create") { space() }
+                                .keyboardShortcut(.defaultAction)
+                        }
                     }
+                    .padding(Style.Spacing.xxl)
+                    .frame(width: Style.Spacing.menuWidth)
                 }
-                .padding(Style.Spacing.xxl)
-                .frame(width: Style.Spacing.menuWidth)
-            }
     }
 }
-
 
 struct RemoveButton: View {
     let action: () -> Void

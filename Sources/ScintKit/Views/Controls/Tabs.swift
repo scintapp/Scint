@@ -2,9 +2,9 @@ import SwiftUI
 
 
 struct InspectorTabs: View {
-    let panel: InspectorPanel
+    let panel: SettingsPanel
 
-    func tab(_ surface: InspectorPanel.PanelSurface) -> some View {
+    func tab(_ surface: SettingsPanel.PanelSurface) -> some View {
         Button { panel.surface = surface } label: {
             Image(systemName: surface.image)
                 .frame(maxWidth: .infinity, maxHeight: 28, alignment: .center)
@@ -23,7 +23,7 @@ struct InspectorTabs: View {
 
     var body: some View {
         HStack(alignment: .center) {
-            HStack { ForEach(InspectorPanel.PanelSurface.allCases, id: \.self) { tab($0) } }
+            HStack { ForEach(SettingsPanel.PanelSurface.allCases, id: \.self) { tab($0) } }
                 .frame(maxWidth: .infinity, maxHeight: 28)
                 .glassEffect(.regular, in: Style.Shape.panel)
                 .padding(.horizontal, 8)

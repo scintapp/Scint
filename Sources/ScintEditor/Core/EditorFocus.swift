@@ -31,9 +31,6 @@ import SwiftUI
     func focus(_ targetID: AnyHashable?) {
         self.targetID = targetID
 
-        // Only an explicitly nil target blanks the responder. Resigning every non-target view
-        // first left a window with no first responder whenever the target's view wasn't mounted
-        // yet — and `makeFirstResponder` already resigns whoever held it.
         guard let targetID else {
             for box in views.values {
                 guard let view = box.view, view.window?.firstResponder === view else { continue }

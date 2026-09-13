@@ -218,11 +218,11 @@ enum SampleInterfaces {
                     name: "sandbox",
                     type: .collection(["--sandbox": .sequence([
                         .string("read-only"),
-                        .string("workspace-write"),
+                        .string("space-write"),
                         .string("danger-full-access")
                     ])]),
                     required: false,
-                    default: .collection(["--sandbox": .string("workspace-write")])
+                    default: .collection(["--sandbox": .string("space-write")])
                 ),
                 .argument(
                     name: "input",
@@ -361,11 +361,11 @@ enum SampleInterfaces {
                     name: "sandbox",
                     type: .collection(["--sandbox": .range([
                         .string("read-only"),
-                        .string("workspace-write"),
+                        .string("space-write"),
                         .string("danger-full-access")
                     ])]),
                     required: false,
-                    default: .collection(["--sandbox": .string("workspace-write")])
+                    default: .collection(["--sandbox": .string("space-write")])
                 ),
                 .argument(name: "input", type: .string(""), required: true, default: nil)
             ],
@@ -437,20 +437,20 @@ enum SampleData {
     static let interfaces = SampleInterfaces.load()
 
     @discardableResult
-    static func load(_ workspace: Reference, for key: ModelKey) async -> Bool {
+    static func load(_ space: Reference, for key: ModelKey) async -> Bool {
         switch key {
-            case .editor: await editor(workspace); return false
-            case .studio: await studio(workspace); return false
-            case .assistant: return await assistant(workspace)
+            case .assistant: await assistant(space); return false
+            case .editor: await editor(space); return false
+            case .studio: await studio(space); return false
         }
     }
 
-    static func editor(_ workspace: Reference) async { }
-    static func studio(_ workspace: Reference) async { }
+    static func assistant(_ space: Reference) async { }
+    static func editor(_ space: Reference) async { }
 
     @discardableResult
-    static func assistant(_ workspace: Reference) async -> Bool {
-        guard Space.with(workspace, { $0.spaces.isEmpty }) ?? true else { return false }
+    static func studio(_ space: Reference) async -> Bool {
+        guard Space.with(space, { $0.spaces.isEmpty }) ?? true else { return false }
 
         let codexHarness = interfaces.codexHarness
         let assistantHarness = interfaces.assistantHarness
@@ -462,7 +462,7 @@ enum SampleData {
             interfaces.concatSwiftRepo
         ]
 
-        Space.update(workspace, { ws in
+        Space.update(space, { ws in
             let components = [
                 assistantHarness, mistralMessages, interfaces.codexHarness,
                 interfaces.composer, interfaces.dispatcher, interfaces.observer, interfaces.searcher
@@ -506,7 +506,7 @@ enum SampleData {
             }
         }
 
-        let contentStudio = Space.new("Content Studio", origin: workspace)
+        let contentStudio = Space.new("Content Studio", origin: space)
         let researchDesk = Space.new("Research Desk", origin: contentStudio)
         let contentProduction = Space.new("Content Production", origin: contentStudio)
         let editorialCalendar = Space.new("Editorial Calendar", origin: contentProduction)

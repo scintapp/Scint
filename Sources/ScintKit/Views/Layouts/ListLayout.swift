@@ -50,12 +50,13 @@ struct ListLink: View {
     let accessory: AnyView?
     let indent: CGFloat
     let selected: Bool
+    let focused: Bool
     let onSelect: () -> Void
 
     init(name: String, detail: String? = nil, ref: Reference? = nil, image: String, tint: Color? = nil,
          trailingImage: String? = nil, count: Int? = nil, leadingAccessory: AnyView? = nil,
          accessory: AnyView? = nil, indent: CGFloat = 0,
-         selected: Bool = false, onSelect: @escaping () -> Void) {
+         selected: Bool = false, focused: Bool = true, onSelect: @escaping () -> Void) {
 
         self.name = name
         self.detail = detail
@@ -68,6 +69,7 @@ struct ListLink: View {
         self.accessory = accessory
         self.indent = indent
         self.selected = selected
+        self.focused = focused
         self.onSelect = onSelect
     }
 
@@ -109,7 +111,7 @@ struct ListLink: View {
         Button(action: onSelect) {
             ListRow(
                 name: name, detail: detail, accessory: accessory, trailingImage: trailingImage, count: count,
-                selected: selected) {
+                selected: selected, focused: focused) {
                     HStack {
                         if indent > 0 { Color.clear.frame(width: indent - 8) }
                         leading
@@ -129,12 +131,13 @@ struct ListRow<Content: View>: View {
     let count: Int?
     let indent: CGFloat
     let selected: Bool
+    let focused: Bool
     let content: Content
 
     init(
         name: String, detail: String? = nil, accessory: AnyView? = nil,
         trailingImage: String? = nil, count: Int? = nil,
-        indent: CGFloat = 0, selected: Bool = false,
+        indent: CGFloat = 0, selected: Bool = false, focused: Bool = true,
         @ViewBuilder leading: () -> Content) {
             self.name = name
             self.detail = detail
@@ -142,6 +145,7 @@ struct ListRow<Content: View>: View {
             self.count = count
             self.indent = indent
             self.selected = selected
+            self.focused = focused
             self.trailingImage = trailingImage
             self.content = leading()
         }
@@ -149,6 +153,11 @@ struct ListRow<Content: View>: View {
     private var described: String? {
         guard let detail, !detail.isEmpty else { return nil }
         return detail
+    }
+
+    private var background: Color {
+        guard selected else { return .clear }
+        return focused ? Style.Tint.accent.opacity(0.3) : Style.Background.control.opacity(Style.Opacity.faint)
     }
 
     var body: some View {
@@ -176,7 +185,7 @@ struct ListRow<Content: View>: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: described == nil ? Style.Spacing.rowHeight : Style.Spacing.rowDetailHeight)
-        .background(RoundedRectangle(cornerRadius: 7).fill(selected ? Style.Tint.accent.opacity(0.3) : Color.clear))
+        .background(RoundedRectangle(cornerRadius: 7).fill(background))
         .foregroundStyle(.primary)
         .contentShape(RoundedRectangle(cornerRadius: 7))
     }
@@ -222,6 +231,7 @@ struct ListLayout<Content: View>: View {
     let indent: CGFloat
     let isExpanded: Bool
     let selected: Bool
+    let focused: Bool
     let onSelect: () -> Void
     let onToggleExpanded: () -> Void
     let rowWrapper: (AnyView) -> AnyView
@@ -239,6 +249,7 @@ struct ListLayout<Content: View>: View {
         indent: CGFloat = 0,
         isExpanded: Bool = false,
         selected: Bool = false,
+        focused: Bool = true,
         onSelect: @escaping () -> Void,
         onToggleExpanded: @escaping () -> Void,
         rowWrapper: @escaping (AnyView) -> AnyView = { $0 },
@@ -256,6 +267,7 @@ struct ListLayout<Content: View>: View {
         self.indent = indent
         self.isExpanded = isExpanded
         self.selected = selected
+        self.focused = focused
         self.onSelect = onSelect
         self.onToggleExpanded = onToggleExpanded
         self.rowWrapper = rowWrapper
@@ -307,7 +319,7 @@ struct ListLayout<Content: View>: View {
     var body: some View {
         let row = AnyView(
             Button(role: nil, action: onSelect) {
-                ListRow(name: name, detail: detail, accessory: accessory, trailingImage: trailingImage, count: count, indent: indent, selected: selected) {
+                ListRow(name: name, detail: detail, accessory: accessory, trailingImage: trailingImage, count: count, indent: indent, selected: selected, focused: focused) {
                     ZStack {
                         hoverLeading
                             .opacity(isHovered ? 1 : 0)

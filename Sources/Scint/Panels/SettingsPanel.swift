@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-@Observable final class InspectorPanel: Panel {
+@Observable final class SettingsPanel: Panel {
     var mode: Modality = .fixed
     var state: PanelState = .init()
     var surface: PanelSurface = .harness

@@ -2,7 +2,6 @@ import SwiftUI
 
 
 typealias Values = [AnyHashable: AnyHashable]
-private let anyRef = Reference(Space.self)
 
 enum PanelKey: String, Identifiable, CaseIterable {
     case actions, search
@@ -50,7 +49,7 @@ final class AnyPanel: Panel {
     init(state: PanelState = .init()) { self.state = state }
     func controls(_ model: any Model) -> Controls { .init() }
     func parameters(_ model: any Model) -> Params { .init() }
-    func surface(_ model: any Model) -> some View { EmptyView() }
+    func surface(_ model: any Model) -> any View { EmptyView() }
 }
 
 @Observable final class PanelState {

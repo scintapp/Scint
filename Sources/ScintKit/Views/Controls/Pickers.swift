@@ -120,41 +120,11 @@ struct ItemDatePicker: View {
     }
 }
 
-struct AssistantSurfacePicker: View {
+struct AssistantPicker: View {
     let panel: AssistantPanel
+    let model: any Model
 
     private func selection(for surface: AssistantPanel.PanelSurface) -> Binding<Bool> {
-        Binding(
-            get: { panel.surface == surface },
-            set: { selected in
-                if selected {
-                    panel.surface = surface
-                } else if panel.surface == surface {
-                    panel.surface = .space
-                }
-            }
-        )
-    }
-
-    var body: some View {
-        ControlGroup {
-            ForEach(AssistantPanel.PanelSurface.viewModes) { surface in
-                Toggle(isOn: selection(for: surface)) {
-                    Image(systemName: surface.symbol)
-                }
-                .toggleStyle(.button)
-            }
-        }
-        .controlGroupStyle(.navigation)
-        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.primary)
-        .tint(Style.Background.control)
-    }
-}
-
-struct ContentSurfacePicker: View {
-    let panel: StudioPanel
-
-    private func selection(for surface: StudioPanel.PanelSurface) -> Binding<Bool> {
         Binding(
             get: { panel.state.presented && panel.surface == surface },
             set: { selected in
@@ -170,48 +140,48 @@ struct ContentSurfacePicker: View {
 
     var body: some View {
         ControlGroup {
-            ForEach(StudioPanel.PanelSurface.allCases) { surface in
+            ForEach(AssistantPanel.PanelSurface.allCases) { surface in
                 Toggle(isOn: selection(for: surface)) {
                     Image(systemName: surface.symbol)
                 }
             }
         }
         .controlGroupStyle(.navigation)
-        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.primary)
-        .tint(Style.Background.group)
+        .foregroundStyle(Style.Foreground.primary, Style.Foreground.secondary, Style.Foreground.faint)
+        .tint(Style.Background.control)
     }
 }
 
-struct DetailPicker: View {
-    let panel: StudioPanel
-
-    private func selection(for detail: StudioPanel.PanelDetail) -> Binding<Bool> {
-        Binding(
-            get: { panel.state.presented && panel.detail == detail },
-            set: { selected in
-                if selected {
-                    panel.detail = detail
-                    panel.state.presented = true
-                } else if panel.detail == detail {
-                    panel.state.presented = false
-                }
-            }
-        )
-    }
-
-    var body: some View {
-        ControlGroup {
-            ForEach(StudioPanel.PanelDetail.allCases) { detail in
-                Toggle(isOn: selection(for: detail)) {
-                    Image(systemName: detail.symbol)
-                }
-            }
-        }
-        .controlGroupStyle(.navigation)
-        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.primary)
-        .tint(Style.Background.group)
-    }
-}
+//struct DetailPicker: View {
+//    let panel: ContentPanel
+//
+//    private func selection(for detail: ContentPanel.PanelDetail) -> Binding<Bool> {
+//        Binding(
+//            get: { panel.state.presented && panel.detail == detail },
+//            set: { selected in
+//                if selected {
+//                    panel.detail = detail
+//                    panel.state.presented = true
+//                } else if panel.detail == detail {
+//                    panel.state.presented = false
+//                }
+//            }
+//        )
+//    }
+//
+//    var body: some View {
+//        ControlGroup {
+//            ForEach(ContentPanel.PanelDetail.allCases) { detail in
+//                Toggle(isOn: selection(for: detail)) {
+//                    Image(systemName: detail.symbol)
+//                }
+//            }
+//        }
+//        .controlGroupStyle(.navigation)
+//        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.primary)
+//        .tint(Style.Background.group)
+//    }
+//}
 
 struct SettingsPicker: View {
     var panel: any Panel
@@ -237,12 +207,12 @@ struct PathPicker: View {
     var panel: any Panel
     var model: any Model
 
-    var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.workspace) }
+    var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.space) }
+    var spaces: [Reference] { path.filter { $0.type is Space.Type } }
     var selection: Selection { model.session.selection }
     var surface: AnySurface { .init(panel: panel, model: model) }
 
     @State private var presented = false
-    @State private var hovered = false
     @State private var text = ""
 
     private var query: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -261,31 +231,23 @@ struct PathPicker: View {
     }
 
     var body: some View {
-        if let ref = path.last {
+        if let ref = spaces.last {
             Button { presented.toggle() } label: {
-                HStack(alignment: .center) {
+                HStack(alignment: .center, spacing: Style.Spacing.lg) {
                     Iconography.icon(for: ref, size: 13.5)
-                    Text(ref.descriptor.name).font(.system(size: 13.5, weight: .medium))
 
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(Style.Foreground.faint)
-                        .frame(width: 9)
-                        .opacity(hovered || presented ? Style.Opacity.full : .zero)
+                    Text(ref.descriptor.name)
+                        .font(.system(size: 13.5, weight: .medium))
+                        .lineLimit(Style.Limit.singleLine)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.borderless)
-            .onHover { isHovered in
-                withAnimation(.smooth(duration: Style.Duration.interaction)) { hovered = isHovered }
+                .padding(.horizontal, 8)
             }
             .popover(isPresented: $presented) {
                 VStack(spacing: 8) {
                     Filter(text: $text)
 
                     if query.isEmpty {
-                        surface.render(surface, AssistantNavigator.parameters(model), AssistantNavigator.controls(model))
+                        surface.render(surface, SpacesList.parameters(model), SpacesList.controls(model))
                     } else if matches.isEmpty {
                         EmptyState(title: "No Matches")
                     } else {
@@ -297,7 +259,8 @@ struct PathPicker: View {
                                         detail: parent(of: match),
                                         ref: match,
                                         image: "",
-                                        selected: selection.selected(match)
+                                        selected: selection.selected(match),
+                                        focused: model.session.focus == .structure(match)
                                     ) {
                                         model.select(match)
                                         model.focus(match)

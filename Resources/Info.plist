@@ -38,11 +38,11 @@
 			<key>UTTypeDescription</key>
 			<string>Draggable Workspace</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.kaechle.scint.workspace</string>
+			<string>com.kaechle.scint.space</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.mime-type</key>
-				<string>application/vnd.kaechle.scint.workspace+json</string>
+				<string>application/vnd.kaechle.scint.space+json</string>
 			</dict>
 		</dict>
 		<dict>

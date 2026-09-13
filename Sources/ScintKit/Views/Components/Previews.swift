@@ -9,9 +9,8 @@ import LinkPresentation
         .appending(path: String(ProcessInfo.processInfo.processIdentifier))
     precondition(setenv("XDG_DATA_HOME", previewData.path, 1) == 0)
 
-    let workspace = Space.new("Research Desk")
-    Space.update(workspace) { $0.description = "Shared research, materials, and tools." }
-    let space = Space.new(workspace, name: "Client research")
+    let space = Space.new("Research Desk")
+    Space.update(space) { $0.description = "Shared research, materials, and tools." }
     Space.update(space) { $0.description = "Prepare the next discovery call." }
     let file = Artifact.register("Design notes.md", previewData.appending(path: "Design notes.md"))
     Artifact.update(file) { $0.description = "Notes and reference material for the interview." }
@@ -41,12 +40,12 @@ import LinkPresentation
         $0.description = "This card uses its descriptor because the heading and following text are absent."
         $0.delete(at: 0)
     }
-    let transcript = Transcript.new(workspace)
+    let transcript = Transcript.new(space)
     Transcript.update(transcript) {
         $0.name = "Observe Transcript"
         $0.description = "Watch the Research Desk for changes."
     }
-    let refs = [material, fallback, command, harness, transcript, file, link, space, workspace]
+    let refs = [material, fallback, command, harness, transcript, file, link, space, space]
 
     return ScrollView {
         VStack(alignment: .leading, spacing: Style.Spacing.xl) {
@@ -67,8 +66,8 @@ import LinkPresentation
         .appending(path: String(ProcessInfo.processInfo.processIdentifier))
     precondition(setenv("XDG_DATA_HOME", previewData.path, 1) == 0)
 
-    let workspace = Space.new("Research Desk")
-    let material = Material.new(workspace, name: "Research Brief Template")
+    let space = Space.new("Research Desk")
+    let material = Material.new(space, name: "Research Brief Template")
     let file = Artifact.register("Design notes.md", previewData.appending(path: "Design notes.md"))
     let executable = Artifact.register("curl", URL(filePath: "/usr/bin/curl"))
     let command = Command.register("Fetch Web Page", exec: executable)
@@ -77,7 +76,7 @@ import LinkPresentation
         Chip(ref: material)
         Chip(ref: command)
         Chip(ref: file)
-        Chip(ref: workspace)
+        Chip(ref: space)
         Chip(ref: material, label: "Selected reference", isSelected: true)
     }
     .padding(Style.Spacing.xxl)

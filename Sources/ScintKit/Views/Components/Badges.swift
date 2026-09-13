@@ -85,15 +85,42 @@ struct Badge: View {
     }
 }
 
+struct StateBadge: View {
+    let composition: Composition?
+
+    private var appearance: (label: String, symbol: String, tint: Color) {
+        switch composition?.state {
+            case .inactive: ("Inactive", "sleep", Style.Foreground.muted)
+            case .active: ("Active", "timer.square", Style.Tint.Intent.observe)
+            case .working: ("Working", "figure.walk.diamond", Style.Tint.material)
+            case .completed: ("Completed", "checkmark.seal", Style.Tint.Intent.search)
+            case .failed: ("Failed", "exclamationmark.octagon", Style.Tint.alert)
+            case nil: ("Unavailable", "minus", Style.Foreground.muted)
+        }
+    }
+
+    var body: some View {
+        let appearance = appearance
+        Image(systemName: appearance.symbol)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(appearance.tint)
+            .frame(width: 26, height: 26)
+            .background(appearance.tint.opacity(0.3), in: Circle())
+            .accessibilityLabel("Composition state: \(appearance.label)")
+            .help(appearance.label)
+    }
+}
+
 struct Badges: View {
     let model: any Model
+    var ref: Reference? = nil
 
-    var origin: Reference { model.session.origin }
+    var origin: Reference { ref ?? model.session.origin }
 
     var counts: ComponentCount {
         var counts = ComponentCount()
         var materials: [Reference] = []
-        let scoped = model.session.opened.material
+        let scoped = ref == nil ? model.session.opened.material : nil
 
         if let scoped {
             materials = [scoped]
@@ -121,24 +148,24 @@ struct Badges: View {
 
         HStack(alignment: .center) {
             Badge(
-                label: "\(counts.spaces)",
-                image: "app",
-                tint: Style.Tint.space,
-                active: counts.spaces > 0
-            )
-            Divider().padding(.vertical, 8)
-            Badge(
-                label: "\(counts.materials)",
-                image: "text.alignleft",
-                tint: Style.Tint.material,
-                active: counts.materials > 0
-            )
-            Divider().padding(.vertical, 8)
-            Badge(
                 label: "\(counts.completedTasks)/\(counts.totalTasks)",
                 image: "checkmark.app",
                 tint: Style.Tint.task,
                 active: counts.totalTasks > 0
+            )
+            Divider().padding(.vertical, 8)
+            Badge(
+                label: "\(counts.commands)",
+                image: "switch.2",
+                tint: Style.Tint.command,
+                active: counts.commands > 0
+            )
+            Divider().padding(.vertical, 8)
+            Badge(
+                label: "\(counts.artifacts)",
+                image: "archivebox",
+                tint: Style.Tint.artifact,
+                active: counts.artifacts > 0
             )
         }
         .frame(maxHeight: 30)
