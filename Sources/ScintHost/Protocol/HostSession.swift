@@ -40,75 +40,58 @@ enum MCPHandshake {
     }
 }
 
-struct MCPSession {
+/// Bound to the live runtime context, never to an identity supplied in tool arguments.
+struct ToolIdentity: Sendable {
     let context: ContextId
     let space: Reference
+    let transcript: Reference
+
+    @MainActor
+    static func resolve(_ token: ContextId) throws -> Self {
+        let matches = Runtime.shared.resolve().compactMap { composition -> ToolIdentity? in
+            guard let live = Composer.shared.context(composition.space), !live.handlers.isEmpty,
+                  (Space.with(composition.space, { $0.harness }) ?? nil) != nil else { return nil }
+            let identities = [composition.space.contextId, live.transcript.contextId]
+                + live.handlers.map { $0.transcript.contextId }
+            guard identities.contains(token) else { return nil }
+            return Self(context: token, space: composition.space, transcript: live.transcript)
+        }
+        guard matches.count == 1, let identity = matches.first else {
+            throw ToolFailure("The context does not identify a running composition. Start the space and use its current SCINT_CONTEXT bearer.")
+        }
+        return identity
+    }
+
+    @MainActor
+    func verify() throws {
+        let current = try Self.resolve(context)
+        guard current.space == space, current.transcript == transcript else {
+            throw ToolFailure("This context has been replaced. Reconnect with its current identity.")
+        }
+    }
+}
+
+struct MCPSession {
+    let identity: ToolIdentity
     let tools: [any Tool]
+    var context: ContextId { identity.context }
+    var space: Reference { identity.space }
 
     static func resolve(_ request: MCPRequest) async throws(MCPError) -> Self {
         guard let context = bearer(request.http) else {
             throw MCPError.invalidRequest("Scint context is required.", status: 401)
         }
-
-        let outcome = await MainActor.run { () -> Resolution in
-            guard let composition = Runtime.shared.resolve().first(where: { holds(context, $0) })
-                    else { return .refused(unmatched(context)) }
-
-            guard composition.state != .inactive else {
-                return .refused(
-                    "\(composition.space.descriptor.name) is composed but not running. Start it, or "
-                    + "dispatch through it, before calling its tools."
-                )
+        do {
+            return try await MainActor.run {
+                let identity = try ToolIdentity.resolve(context)
+                return Self(identity: identity, tools: Tools.all(in: identity))
             }
-
-            return .session(composition.space, Tools.all(in: composition.space))
-        }
-
-        switch outcome {
-            case .refused(let reason): throw MCPError.invalidRequest(reason, status: 403)
-            case .session(let space, let tools): return Self(context: context, space: space, tools: tools)
+        } catch {
+            throw MCPError.invalidRequest(String(describing: error), status: 403)
         }
     }
 
     func tool(named name: String) -> (any Tool)? { tools.first { $0.name == name } }
-
-    @MainActor
-    private static func holds(_ context: ContextId, _ composition: Composition) -> Bool {
-        if composition.space.contextId == context { return true }
-
-        let transcript = composition.transcript
-        if transcript.contextId == context { return true }
-
-        return Transcript.with(transcript, { $0.branches })?
-            .contains { $0.contextId == context } ?? false
-    }
-
-    private enum Resolution {
-        case session(Reference, [any Tool])
-        case refused(String)
-    }
-
-    @MainActor
-    private static func unmatched(_ context: ContextId) -> String {
-        let spaces = Runtime.shared.all(as: Space.self).map(\.0)
-
-        guard let space = spaces.first(where: { $0.contextId == context }) else {
-            let transcript = Runtime.shared.all(as: Transcript.self).map(\.0)
-                .first { $0.contextId == context }
-            if let transcript {
-                return "\(transcript.descriptor.name) is a transcript with this context, but its "
-                + "space has no running composition."
-            }
-            return "Nothing has this context. The token may name something that has been replaced — "
-            + "reseeding mints new references, and a token issued before it is stale."
-        }
-
-        let harness = Space.with(space, { $0.harness }) ?? nil
-        guard harness != nil else {
-            return "\(space.descriptor.name) has this context but no harness, so it has no composition."
-        }
-        return "\(space.descriptor.name) has this context but has not been composed. Start it first."
-    }
 
     private static func bearer(_ request: HTTPRequest) -> ContextId? {
         guard let authorization = request.header("Authorization") else { return nil }

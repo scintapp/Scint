@@ -2,9 +2,10 @@ import Foundation
 
 
 
-protocol ExpressibleThings: ExpressibleByStringLiteral, ExpressibleByBooleanLiteral, ExpressibleByNilLiteral {}
+protocol ExpressibleThings: ExpressibleByStringInterpolation, ExpressibleByBooleanLiteral, ExpressibleByNilLiteral {}
 protocol ExpressibleNumbers: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {}
-protocol Expressible: ExpressibleNumbers, ExpressibleThings {}
+protocol ExpressibleCollections: ExpressibleByArrayLiteral, ExpressibleByDictionaryLiteral {}
+protocol Expressible: ExpressibleNumbers, ExpressibleThings, ExpressibleCollections {}
 protocol Convertible: Sendable { var property: Property { get } }
 
 extension Int: Convertible { var property: Property { .integer(self) }}
@@ -72,6 +73,31 @@ extension Property {
     init(integerLiteral value: Int) { self = .integer(value) }
     init(floatLiteral value: Double) { self = .decimal(value) }
     init(booleanLiteral value: Bool) { self = .bool(value) }
+    init(arrayLiteral elements: Property...) { self = .array(elements) }
+
+    /// Without this, only string *literals* become properties — an interpolated string stays a
+    /// String and fails to convert inside an object literal.
+    init(stringInterpolation: DefaultStringInterpolation) {
+        self = .string(String(stringInterpolation: stringInterpolation))
+    }
+
+    init(dictionaryLiteral elements: (String, Property)...) {
+        self = .object(Dictionary(elements, uniquingKeysWith: { _, last in last }))
+    }
+}
+
+extension Property {
+    /// A JSON Schema object, which is the one shape written often enough to be worth a name.
+    /// Everything inside it is an ordinary literal.
+    static func schema(_ properties: [String: Property], required: [String] = []) -> Property {
+        var schema: Property = [
+            "type": "object",
+            "properties": .object(properties),
+            "additionalProperties": false
+        ]
+        if !required.isEmpty { schema["required"] = .array(required.map(Property.string)) }
+        return schema
+    }
 }
 
 extension Property {

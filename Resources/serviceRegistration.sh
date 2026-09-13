@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Verification builds should not restart the user's process service.
+if [ "${SCINT_SKIP_SERVICE_REGISTRATION:-NO}" = "YES" ]; then exit 0; fi
+
 LABEL="com.kaechle.scintd"
 SERVICE_NAME="scintd"
 PLIST_SRC="$SRCROOT/Resources/Service.plist"

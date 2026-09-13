@@ -22,28 +22,6 @@ struct TranscriptEntry: View {
         return text.isEmpty ? nil : text
     }
 
-    func sentence(_ call: ToolCall) -> String {
-        let (one, all) = switch call.namespace {
-            case .content: ("a document", "documents")
-            case .interfaces: ("an interface", "interfaces")
-            case .structures: ("a structure", "structures")
-        }
-
-        return switch call {
-            case .catalog(_, .list): "Listed \(all)"
-            case .catalog(_, .search): "Searched \(all)"
-            case .catalog(_, .describe): "Described \(one)"
-            case .catalog(_, .update): "Relabeled \(one)"
-            case .content(.read), .interface(.read), .structure(.read): "Read \(one)"
-            case .content(.write): "Edited \(one)"
-            case .content(.create), .structure(.create): "Created \(one)"
-            case .structure(.add): "Added to \(one)"
-            case .structure(.remove): "Removed from \(one)"
-            case .structure(.start): "Started \(one)"
-            case .structure(.stop): "Stopped \(one)"
-            case .interface(.call): "Ran \(one)"
-        }
-    }
 
     var body: some View {
         Group {
@@ -71,7 +49,7 @@ struct TranscriptEntry: View {
                         HStack(alignment: .firstTextBaseline, spacing: Style.Spacing.md) {
                             Iconography.icon(for: entry, size: Style.Dimension.icon)
 
-                            Text(field(chunk.value, "name").flatMap(ToolCall.named).map(sentence) ?? "Called a tool")
+                            Text(field(chunk.value, "name").flatMap(Op.named).map(\.sentence) ?? "Called a tool")
 
                             Spacer(minLength: 0)
 

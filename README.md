@@ -130,6 +130,10 @@ inspectable wake.
 
 ## Contextualized Model Context Protocol
 
+The host exposes two tools, **`scint.domain`** and **`scint.intent`**. Their enum
+cases select operations inside each tool. See [the tool contract](Docs/Tools.md)
+for argument examples, per-reference scopes, and verification commands.
+
 Scint includes a local MCP server at `http://127.0.0.1:7345/mcp`. A process launched for
 an active space receives its contextual identity in `SCINT_CONTEXT`; configured agent
 clients can present that value as the bearer for MCP requests.

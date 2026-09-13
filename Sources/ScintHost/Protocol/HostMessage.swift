@@ -6,7 +6,7 @@ enum MCPResponse {
     static let serverVersion = "0.1.0"
     static let protocolVersion = "2026-07-28"
 
-    static let supportedVersions = ["2024-11-05", "2025-03-26", "2025-06-18", protocolVersion]
+    static let supportedVersions = ["2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25", protocolVersion]
 
     static func negotiated(_ requested: String?) -> String {
         guard let requested, supportedVersions.contains(requested) else { return protocolVersion }

@@ -11,9 +11,13 @@ actor ContextServer {
     static let endpoint = "/mcp"
 
     static let instructions = """
-        Objects in this space are addressed as scint://<kind>/<id>. A tool named \
-        scint.<namespace>.<id> acts on the object with that id, so an address found in a document \
-        is also the tool that operates on it. Content tools take addresses as arguments.
+        Scint exposes two tools: scint.domain and scint.intent. Every call supplies a domain or \
+        intent selector, an action, and an arguments object. Use scint.intent with intent=search, \
+        action=search and arguments.method=list or describe to discover references, content, \
+        interface argument schemas, and each reference's scopes. Addresses are scint://<kind>/<id>. \
+        Domain manages interfaces, materials, and structures. Intent composes, dispatches, \
+        observes, and searches. Identity comes only from the SCINT_CONTEXT bearer and is verified \
+        against the live composition before entering the runtime. Scopes are recomputed on every call.
         """
 
     static var url: URL { URL(string: "http://\(host):\(port)\(endpoint)")! }
@@ -97,7 +101,7 @@ actor ContextServer {
             case MCPRequest.Method.discover:
                 return MCPResponse.result(request.id, [
                     "resultType": .string("complete"),
-                    "supportedVersions": .array([.string(MCPResponse.protocolVersion)]),
+                    "supportedVersions": .array(MCPResponse.supportedVersions.map(Property.string)),
                     "capabilities": .object(["tools": .object([:])]),
                     "instructions": .string(Self.instructions),
                     "ttlMs": .integer(0),
@@ -136,13 +140,13 @@ actor ContextServer {
         }
 
         guard let tool = session.tool(named: name) else {
-            let namespaces = Tools.populated.map(\.rawValue).joined(separator: ", ")
+            let available = session.tools.map(\.name).sorted().joined(separator: ", ")
             return MCPResponse.failure(
                 request.id,
                 .invalidParameters(
-                    ToolNamespace.of(name: name) == nil
-                        ? "Unknown tool: \(name). Tools are named \(ToolNamespace.prefix).<namespace>.<operation>, where namespace is one of: \(namespaces)."
-                        : "Unknown tool: \(name)."
+                    available.isEmpty
+                        ? "Unknown tool: \(name). This space exposes no tools."
+                        : "Unknown tool: \(name). Available: \(available)."
                 )
             )
         }

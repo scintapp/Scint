@@ -44,7 +44,7 @@ struct Renderer {
                 : "- \(ref.descriptor.name) — \(address)\n  \(description)"
             }
         guard !lines.isEmpty else { return nil }
-        let usage = "Read one with `scint.content.read`, or `scint.content.list` for everything here. "
+        let usage = "Use `scint.intent` with intent=search, action=search, and arguments.method=describe to read one, or method=list for everything here. "
             + "Every tool takes an address."
         return "## Documents\n\n\(usage)\n\n\(lines.joined(separator: "\n"))"
     }
@@ -62,7 +62,7 @@ struct Renderer {
                 : "- \(ref.descriptor.name) — \(address)\n  \(description)"
             }
         guard !lines.isEmpty else { return nil }
-        let usage = "Run one with `scint.interfaces.call`, after `scint.interfaces.describe` for what it takes."
+        let usage = "Describe one with `scint.intent` (intent=search, action=search, arguments.method=describe), then run it with `scint.domain` (domain=interface, action=run, arguments.ref=its address)."
         return "## Capabilities\n\n\(usage)\n\n\(lines.joined(separator: "\n"))"
     }
 

@@ -29,7 +29,7 @@ struct Space: Structural {
                 Closure.update(closure) { $0.interfaces.update(with: ref) }
             case is any Malleable.Type:
                 Closure.update(closure) {
-                    $0.content.append(ref)
+                    if !$0.content.contains(ref) { $0.content.append(ref) }
                     switch ref.type {
                         case is Material.Type: Material.update(ref) { mat in mat.origin = self.ref }
                         case is Transcript.Type: Transcript.update(ref) { mat in mat.origin = self.ref }

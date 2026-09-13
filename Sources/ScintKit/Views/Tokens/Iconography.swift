@@ -225,7 +225,7 @@ import SwiftUI
                     return icon(for: chunk.origin, size: size)
                 }
                 if case .collection(let fields) = chunk.value, case .string("tool")? = fields["type"] {
-                    if case .string(let name)? = fields["name"], let call = ToolCall.named(name) {
+                    if case .string(let name)? = fields["name"], let call = Op.named(name) {
                         return icon(for: call, size: size)
                     }
                     return Icon(symbol: "wrench.and.screwdriver", tint: Style.Foreground.muted, sizing: size)
@@ -234,22 +234,8 @@ import SwiftUI
         }
     }
 
-    static func icon(for call: ToolCall, size: CGFloat = 14) -> Icon {
-        let symbol = switch call {
-            case .catalog(_, .list): "list.bullet"
-            case .catalog(_, .search): "magnifyingglass"
-            case .catalog(_, .describe): "info.circle"
-            case .catalog(_, .update): "tag"
-            case .content(.read), .interface(.read), .structure(.read): "book"
-            case .content(.write): "pencil"
-            case .content(.create), .structure(.create): "plus.square"
-            case .structure(.add): "tray.and.arrow.down"
-            case .structure(.remove): "tray.and.arrow.up"
-            case .structure(.start): "play"
-            case .structure(.stop): "stop"
-            case .interface(.call): "switch.2"
-        }
-        return Icon(symbol: symbol, tint: Style.Foreground.muted, sizing: size)
+    static func icon(for op: Op, size: CGFloat = 14) -> Icon {
+        Icon(symbol: op.symbol, tint: Style.Foreground.muted, sizing: size)
     }
 
     static func icon(for handle: Artifact.Handler, size: CGFloat = 14) -> Icon {

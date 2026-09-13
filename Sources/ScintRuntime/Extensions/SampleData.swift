@@ -21,7 +21,6 @@ enum SampleInterfaces {
         let assistantHarness: Reference
         let composer: Reference
         let dispatcher: Reference
-        let observer: Reference
         let searcher: Reference
         let claudeCodeHarness: Reference
         let codexHarness: Reference
@@ -218,11 +217,11 @@ enum SampleInterfaces {
                     name: "sandbox",
                     type: .collection(["--sandbox": .sequence([
                         .string("read-only"),
-                        .string("space-write"),
+                        .string("workspace-write"),
                         .string("danger-full-access")
                     ])]),
                     required: false,
-                    default: .collection(["--sandbox": .string("space-write")])
+                    default: .collection(["--sandbox": .string("workspace-write")])
                 ),
                 .argument(
                     name: "input",
@@ -361,11 +360,11 @@ enum SampleInterfaces {
                     name: "sandbox",
                     type: .collection(["--sandbox": .range([
                         .string("read-only"),
-                        .string("space-write"),
+                        .string("workspace-write"),
                         .string("danger-full-access")
                     ])]),
                     required: false,
-                    default: .collection(["--sandbox": .string("space-write")])
+                    default: .collection(["--sandbox": .string("workspace-write")])
                 ),
                 .argument(name: "input", type: .string(""), required: true, default: nil)
             ],
@@ -383,22 +382,6 @@ enum SampleInterfaces {
         let dispatcher = harness(
             "Dispatcher", codexCommand, .dispatch, codexParameters,
             description: "Carry out a request by invoking this space's capabilities, and report their results."
-        )
-
-        let observer = harness(
-            "Observer", codexCommand, .observe,
-            [
-                .argument(name: "target", type: .sequence([])),
-                .argument(name: "command", type: .reference(Command.self)),
-                .argument(name: "schedule", type: .date(.distantPast)),
-                .argument(name: "repeat", type: .sequence([
-                    .string(Schedule.Recurrence.never.rawValue),
-                    .string(Schedule.Recurrence.hourly.rawValue),
-                    .string(Schedule.Recurrence.daily.rawValue),
-                    .string(Schedule.Recurrence.weekly.rawValue)
-                ]), required: false, default: nil)
-            ],
-            description: "Wait on something, and when it happens, go to work."
         )
 
         let searcher = harness(
@@ -425,7 +408,6 @@ enum SampleInterfaces {
             assistantHarness: assistantHarness,
             composer: composer,
             dispatcher: dispatcher,
-            observer: observer,
             searcher: searcher,
             claudeCodeHarness: claudeCodeHarness,
             codexHarness: codexHarness,
@@ -465,7 +447,7 @@ enum SampleData {
         Space.update(space, { ws in
             let components = [
                 assistantHarness, mistralMessages, interfaces.codexHarness,
-                interfaces.composer, interfaces.dispatcher, interfaces.observer, interfaces.searcher
+                interfaces.composer, interfaces.dispatcher,  interfaces.searcher
             ]
             for component in components { ws.add(component) }
             ws.name = "Scint"

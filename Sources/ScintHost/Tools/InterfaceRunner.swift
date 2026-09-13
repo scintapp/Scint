@@ -2,11 +2,13 @@ import Foundation
 import OSLog
 
 
+@MainActor
 struct InterfaceRunner {
     private static let logger = Logger(subsystem: "com.kaechle.scint", category: "MCPTool")
     static let defaultTimeout: TimeInterval = 55
     let interface: Reference
     let origin: Reference
+    var identity: ToolIdentity? = nil
 
     private enum Invocation: Sendable {
         case command(Command, [String: Value])
@@ -16,6 +18,10 @@ struct InterfaceRunner {
     func call(_ arguments: Properties) async -> ToolResult {
         let invocation: Invocation
         do {
+            guard let identity, identity.space == origin else {
+                throw ToolFailure("A verified caller identity is required to run an interface.")
+            }
+            try Scope.require(interface, .run, for: identity)
             let given = try supplied(arguments)
             if let command = Command.with(interface, { $0 }) {
                 invocation = .command(command, try command.parse(given))
@@ -30,14 +36,12 @@ struct InterfaceRunner {
 
         let (stream, continuation) = AsyncStream<String>.makeStream()
 
-        let started: (pid: Int32, error: String?)? = await withCheckedContinuation { resume in
-            DispatchQueue.global(qos: .userInitiated).async {
-                resume.resume(returning: dispatch(invocation, output: { line in
-                    continuation.yield(line)
-                    if Self.exit(of: line) != nil { continuation.finish() }
-                }))
-            }
-        }
+        // Identity, argument references, and dispatch are checked in one MainActor turn.
+        // No suspension permits a detached/revoked reference to run between these checks.
+        let started = dispatch(invocation, output: { line in
+            continuation.yield(line)
+            if Self.exit(of: line) != nil { continuation.finish() }
+        })
 
         guard let result = started else {
             Self.logger.error("Tool \(interface.id.uuidString, privacy: .public) dispatch timed out")
@@ -87,7 +91,7 @@ struct InterfaceRunner {
         return ToolResult(text: output.joined(separator: "\n"), isError: failed)
     }
 
-    static func exit(of line: String) -> Int? {
+    nonisolated static func exit(of line: String) -> Int? {
         func code(_ value: String) -> Int? {
             guard let properties = Properties.load(value),
                   (properties["type"]?.string ?? properties["event"]?.string)?.lowercased() == "terminated"
@@ -134,7 +138,7 @@ struct InterfaceRunner {
     }
 
     private var environment: [String: String] {
-        ["SCINT_CONTEXT": origin.contextId.uuidString.lowercased()]
+        ["SCINT_CONTEXT": (identity?.context ?? origin.contextId).uuidString.lowercased()]
     }
 
     private func dispatch(_ invocation: Invocation, output: @escaping (String) -> Void) -> (pid: Int32, error: String?)? {
@@ -144,7 +148,7 @@ struct InterfaceRunner {
         }
     }
 
-    private func supplied(_ values: Properties) throws -> [String: Value] {
+    func supplied(_ values: Properties) throws -> [String: Value] {
         let templates = arguments.reduce(into: [String: Value]()) { $0[$1.name] = $1.type }
         let supplied = values.mergedObject
         return try supplied.reduce(into: [String: Value]()) { result, entry in
@@ -154,14 +158,7 @@ struct InterfaceRunner {
     }
 
     private var references: Set<Reference> {
-        var refs: Set<Reference> = [origin]
-        guard let closure = Self.closure(for: origin) else { return refs }
-        refs.insert(closure)
-        let scoped = Closure.with(closure) {
-            Set([$0.origin, $0.input] + $0.content + Array($0.interfaces))
-        } ?? []
-        refs.formUnion(scoped)
-        return refs
+        Set(ToolNamespace.allCases.flatMap { Scope.members(of: $0, in: origin) })
     }
 
     private static func schema(_ value: Value) -> Property {
@@ -205,7 +202,7 @@ struct InterfaceRunner {
         }
     }
 
-    private static func value(_ supplied: Property, as template: Value, available: Set<Reference>, name: String) throws -> Value {
+    static func value(_ supplied: Property, as template: Value, available: Set<Reference>, name: String) throws -> Value {
         switch template {
             case .bool:
                 guard case .bool(let value) = supplied else { throw invalid(name) }
@@ -262,7 +259,7 @@ struct InterfaceRunner {
         }
     }
 
-    private static func untypedValue(_ value: Property, name: String) throws -> Value {
+    static func untypedValue(_ value: Property, name: String) throws -> Value {
         switch value {
             case .null: throw invalid(name)
             case .bool(let value): return .bool(value)

@@ -57,17 +57,6 @@ extension Runtime {
         else { return [] }
         return results.filter { $0.0.descriptor.published == true }
     }
-
-    func search(_ text: String = "", filters: [String] = [], limit: Int = 20) -> SearchResults {
-        let search = Search(text, filters: filters)
-        let results = Catalog.shared.values().compactMap { SearchResult(descriptor: $0, search: search) }
-
-        return SearchResults(
-            query: text,
-            filters: search.filters,
-            all: Search.Query.rank(results, limit: limit)
-        )
-    }
 }
 
 extension Runtime {
@@ -87,6 +76,16 @@ extension Runtime {
 }
 
 extension Runtime {
+    func search(_ text: String = "", filters: [String] = [], limit: Int = 20) -> SearchResults {
+        let search = Search(text, filters: filters)
+        let results = Catalog.shared.values().compactMap { SearchResult(descriptor: $0, search: search) }
+
+        return SearchResults(
+            query: text,
+            filters: search.filters,
+            all: Search.Query.rank(results, limit: limit)
+        )
+    }
     func walk(from root: Reference, path: [Reference] = [], _ visit: ([Reference], Reference, Space) -> Void) {
         func dfs(_ ref: Reference, _ path: [Reference]) {
             guard !seen.contains(ref) else { return }

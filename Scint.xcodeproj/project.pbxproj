@@ -12,6 +12,9 @@
 		7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C959129300D54FB007D9E73 /* OrderedCollections */; };
 		7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */; };
 		7CBB434B3020F78300B9D4D7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7CBB434A3020F78300B9D4D7 /* README.md */; };
+		7CD28FA53056510600B60553 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 7CD28FA43056510600B60553 /* MCP */; };
+		7CD28FA73056510600B60553 /* mcp-everything-client in Frameworks */ = {isa = PBXBuildFile; productRef = 7CD28FA63056510600B60553 /* mcp-everything-client */; };
+		7CD28FA93056510600B60553 /* mcp-everything-server in Frameworks */ = {isa = PBXBuildFile; productRef = 7CD28FA83056510600B60553 /* mcp-everything-server */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -159,8 +162,11 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */,
+				7CD28FA73056510600B60553 /* mcp-everything-client in Frameworks */,
 				7C443ABD2FF956D600FD0398 /* Collections in Frameworks */,
+				7CD28FA93056510600B60553 /* mcp-everything-server in Frameworks */,
 				7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */,
+				7CD28FA53056510600B60553 /* MCP in Frameworks */,
 			);
 		};
 		7C69AAEF2F8B45D90008D611 /* Frameworks */ = {
@@ -215,6 +221,9 @@
 				7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */,
 				7C443ABC2FF956D600FD0398 /* Collections */,
 				7C443ABE2FF956D600FD0398 /* OrderedCollections */,
+				7CD28FA43056510600B60553 /* MCP */,
+				7CD28FA63056510600B60553 /* mcp-everything-client */,
+				7CD28FA83056510600B60553 /* mcp-everything-server */,
 			);
 			productName = Agency;
 			productReference = 7CC6DF7F304243D800098CC1 /* Scint.app */;
@@ -269,6 +278,7 @@
 			packageReferences = (
 				7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */,
 				7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */,
+				7CD28FA33056510600B60553 /* XCRemoteSwiftPackageReference "swift-sdk" */,
 			);
 			preferredProjectObjectVersion = 110;
 			productRefGroup = 7C4C36DE2ED17D5A00D6F1CF;
@@ -668,6 +678,14 @@
 				minimumVersion = 2.4.0;
 			};
 		};
+		7CD28FA33056510600B60553 /* XCRemoteSwiftPackageReference "swift-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/modelcontextprotocol/swift-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.12.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -690,6 +708,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */;
 			productName = KeyboardShortcuts;
+		};
+		7CD28FA43056510600B60553 /* MCP */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CD28FA33056510600B60553 /* XCRemoteSwiftPackageReference "swift-sdk" */;
+			productName = MCP;
+		};
+		7CD28FA63056510600B60553 /* mcp-everything-client */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CD28FA33056510600B60553 /* XCRemoteSwiftPackageReference "swift-sdk" */;
+			productName = "mcp-everything-client";
+		};
+		7CD28FA83056510600B60553 /* mcp-everything-server */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CD28FA33056510600B60553 /* XCRemoteSwiftPackageReference "swift-sdk" */;
+			productName = "mcp-everything-server";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
