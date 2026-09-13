@@ -7,7 +7,7 @@ struct ItemPicker: View {
     let onChange: (ItemParams) -> Void
 
     var body: some View {
-        let selected = items.first { ($0.value ?? "") == value }!
+        let selected = items.first { ($0.value ?? "") == value }
 
         SwiftUI.Menu {
             ForEach(items) { item in
@@ -18,17 +18,19 @@ struct ItemPicker: View {
             }
         } label: {
             HStack(spacing: 8) {
-                Text(selected.name)
-                    .lineLimit(1)
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 24, height: 24)
-                    .background(.quaternary, in: Circle())
+                    .background {
+                        Circle()
+                            .size(width: 20, height: 20, anchor: .center)
+                            .fill(Style.Background.control)
+                    }
             }
             .font(.system(size: 12))
-            .frame(width: 132, alignment: .trailing)
+            .frame(width: 44, alignment: .trailing)
             .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
@@ -52,11 +54,6 @@ struct ItemRangePicker: View {
 
     var body: some View {
         HStack(spacing: Style.Spacing.md) {
-            Text(items.indices.contains(index) ? items[index].name : "")
-                .font(.system(size: 12))
-                .foregroundStyle(Style.Foreground.subtle)
-                .lineLimit(Style.Limit.singleLine)
-
             Spacer(minLength: 0)
 
             let step = step(for: Self.track)

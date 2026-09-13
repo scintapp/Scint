@@ -195,6 +195,7 @@ struct LoadMenu: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView { VStack(alignment: .leading, spacing: 2) { button } }
+                    .scrollIndicators(.hidden)
             }
         }
         .frame(width: 280, height: height, alignment: .topLeading)
@@ -203,7 +204,14 @@ struct LoadMenu: View {
     }
 
     var body: some View {
-        CountButton(count: count) { presented = true }
+        Button { presented = true } label: {
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28, alignment: .center)
+                .background(Style.Background.group, in: Circle())
+        }
+        .buttonStyle(.plain)
             .popover(isPresented: $presented) { menu }
             .onChange(of: presented) { _, presented in if !presented { query = "" } }
     }

@@ -119,7 +119,7 @@ struct Style {
         static var node: Color { Color(red: 0.13333, green: 0.13333, blue: 0.13725) }
         static var panel: Color { Color(red: 0.11313, green: 0.11333, blue: 0.11355) }
         static var surface: Color { Color(red: 0.13725, green: 0.13725, blue: 0.14118) }
-        static var group: Color { Color(red: 0.18821, green: 0.18821, blue: 0.19124).opacity(0.1) }
+        static var group: Color { Color(red: 0.18821, green: 0.18821, blue: 0.19124).opacity(0.6) }
         static var form: Color { Color(red: 0.12821, green: 0.12821, blue: 0.12124).opacity(0.5) }
         static var card: Color { Color(red: 0.11588, green: 0.11588, blue: 0.1198) }
         static var control: Color { Color(red: 0.72821, green: 0.72821, blue: 0.73124).opacity(0.2) }

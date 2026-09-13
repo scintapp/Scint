@@ -67,7 +67,7 @@ struct ItemParams: Hashable, Identifiable {
         if let path { return AnyHashable(path) }
         if let entryId { return AnyHashable(entryId) }
         if let ref { return AnyHashable(ref) }
-        if let key { return AnyHashable(key) }
+        if let key { return AnyHashable(value.map { "\(key)=\($0)" } ?? key) }
         return AnyHashable(name.lowercased().replacingOccurrences(of: " ", with: "-"))
     }
 }

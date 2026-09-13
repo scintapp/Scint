@@ -1,6 +1,16 @@
 import SwiftUI
 
 
+enum GroupMetrics {
+    static let row: CGFloat = 44
+    static let detailRow: CGFloat = 48
+    static let headerTop: CGFloat = 8
+
+    static func height(for description: String) -> CGFloat {
+        description.isEmpty ? row : detailRow
+    }
+}
+
 struct GroupDivider: View {
     var body: some View {
         Divider()
@@ -47,12 +57,12 @@ struct GroupRow<Leading: View, Trailing: View>: View {
     ) {
         self.init(
             title: Text(label)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.primary.opacity(0.88)),
             detail: description.isEmpty ? nil : Text(description)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.secondary.opacity(0.72)),
-            groupHeight: description.isEmpty ? 38 : 50,
+            groupHeight: description.isEmpty ? 44 : 48,
             leading: leading,
             trailing: trailing
         )
@@ -60,14 +70,13 @@ struct GroupRow<Leading: View, Trailing: View>: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: spacing) {
-            if let groupHeight {
-                leading
-                    .frame(width: 38, height: groupHeight)
-                    .foregroundStyle(.tertiary)
-                    .font(.system(size: 15, weight: .medium))
-            } else {
-                leading
-            }
+            leading
+                .frame(height: 44, alignment: .center)
+                .foregroundStyle(Style.Foreground.subtle)
+                .font(.system(size: 16, weight: .light))
+                .padding(.leading, 6)
+                .padding(.trailing, 4)
+
 
             VStack(alignment: .leading, spacing: Style.Spacing.xs) {
                 title.lineLimit(1)
@@ -77,53 +86,59 @@ struct GroupRow<Leading: View, Trailing: View>: View {
 
             Spacer(minLength: spacerMinLength)
 
-            if let groupHeight {
-                trailing
-                    .frame(height: groupHeight)
-                    .labelsHidden()
-                    .controlSize(.small)
-            } else {
-                trailing
-            }
+            trailing
+                .foregroundStyle(Style.Foreground.subtle)
+                .frame(height: groupHeight)
+                .labelsHidden()
+                .controlSize(.regular)
+                .padding(.trailing, 6)
         }
         .frame(height: groupHeight, alignment: .center)
-        .padding(.horizontal, groupHeight == nil ? 0 : 8)
+        .padding(.horizontal, 8)
     }
 }
 
 struct GroupHeader: View {
     let ref: Reference
 
+    private var harness: Reference? {
+        Space.with(ref, { $0.harness }).flatMap { $0 }
+    }
+
     var body: some View {
-        let name = ref.descriptor.name
-        let description = ref.descriptor.description
+        let harness = harness
+        let intent = harness.flatMap { Harness.with($0, { $0.intent }) }
+        let explanation = harness?.descriptor.description ?? ""
 
-        VStack(alignment: .leading) {
-            HStack(alignment: .center) {
-                Iconography
-                    .icon(for: ref, size: 16)
-                    .frame(alignment: .leading)
-                    .padding(.top, 10)
-                    .padding(.trailing, 4)
+        VStack(alignment: .leading, spacing: Style.Spacing.md) {
+            HStack(alignment: .center, spacing: Style.Spacing.md) {
+                Iconography.icon(for: harness ?? ref, size: 18)
 
-                Text(name)
-                    .frame(alignment: .leading)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Style.Foreground.primary)
-                    .padding(.top, 10)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(harness?.descriptor.name ?? "No harness")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Style.Foreground.primary)
+                        .lineLimit(Style.Limit.singleLine)
+
+                    Text(intent?.rawValue.capitalized ?? "Unassigned")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Style.Foreground.subtle)
+                        .lineLimit(Style.Limit.singleLine)
+                }
             }
 
-            VStack(alignment: .center) {
-                Text(description.isEmpty ? "Add a description..." : description)
-                    .frame(alignment: .leading)
-                    .foregroundStyle(
-                        description.isEmpty ? Style.Foreground.faint : Style.Foreground.subtle
-                    )
-                    .font(.system(size: 12))
-                    .padding(.vertical, 4)
-            }
+            GroupDivider()
+
+            Text(explanation.isEmpty
+                 ? "Add a harness to make this space runnable."
+                 : explanation)
+                .font(.system(size: 12))
+                .foregroundStyle(explanation.isEmpty ? Style.Foreground.faint : Style.Foreground.subtle)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(Style.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(Style.Shape.medium.fill(Style.Background.group))
     }
 }
 
@@ -147,17 +162,16 @@ struct GroupLayout<Content: View>: View {
                 .foregroundStyle(.secondary.opacity(0.75))
 
             VStack(spacing: 0) { content() }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .top)
                 .background(Style.Shape.medium.fill(Style.Background.group))
 
             if let footer {
                 Text(footer)
                     .padding(.leading, 4)
                     .font(.system(size: 11, weight: .light))
-                    .foregroundStyle(.secondary.opacity(0.6))
+                    .foregroundStyle(.secondary.opacity(0.75))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.vertical, 8)
     }
 }

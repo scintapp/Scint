@@ -32,15 +32,22 @@ import Foundation
                     GroupLayout(title: params.name, footer: params.footer) {
                         ForEach(Array(params.items.enumerated()), id: \.element.id) { index, item in
                             if index > 0 { GroupDivider() }
+                            let description = item.trailingKind == .value && item.value == nil ? "" : item.description
 
                             let row = AnyView(
-                                GroupRow(
-                                    label: item.name,
-                                    description: item.trailingKind == .value && item.value == nil ? "" : item.description
-                                ) {
+                                GroupRow(label: item.name, description: description) {
                                     build(item)
                                 } trailing: {
-                                    build(controls, params: item)
+                                    if item.trailingKind == .picker {
+                                        build(controls, params: item)
+                                            .background {
+                                                Circle()
+                                                    .size(width: 20, height: 20, anchor: .center)
+                                                    .fill(Style.Background.control)
+                                            }
+                                    } else {
+                                        build(controls, params: item)
+                                    }
                                 }
                             )
 
@@ -57,7 +64,6 @@ import Foundation
                                     }
                                 }
                             )
-
                             build(surface, controls, params: item, view: view)
                         }
                     }
@@ -206,9 +212,7 @@ import Foundation
                     .foregroundStyle(.secondary)
 
             case .picker:
-                ItemPicker(value: params.value ?? "", items: params.items) {
-                    controls.onChange?(params, $0)
-                }
+                ItemPicker(value: params.value ?? "", items: params.items) { controls.onChange?(params, $0) }
 
             case .range:
                 ItemRangePicker(value: params.value ?? "", items: params.items) {
@@ -246,7 +250,7 @@ import Foundation
                     if let ref = params.ref {
                         GroupHeader(ref: ref)
                             .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .padding(.bottom, 12)
+                            .padding(.top, GroupMetrics.headerTop)
                     }
 
                 case .list:
@@ -262,9 +266,13 @@ import Foundation
     }
 
     @ViewBuilder static func build(_ item: ItemParams) -> some View {
-        if let ref = item.ref, item.path == nil && item.entryId == nil { Iconography.icon(for: ref) }
-        else if let tint = item.tint { Iconography.Icon(symbol: item.image, tint: tint) }
-        else { Image(systemName: item.image) .foregroundStyle(.secondary) }
+        if let tint = item.tint, !item.image.isEmpty {
+            Iconography.Icon(symbol: item.image, tint: tint)
+        } else if let ref = item.ref, item.path == nil && item.entryId == nil {
+            Iconography.icon(for: ref)
+        } else {
+            Image(systemName: item.image).foregroundStyle(.secondary)
+        }
     }
 
     @ViewBuilder static func build(_ panel: any Panel, _ params: SectionParams, _ controls: Controls) -> some View {
@@ -453,7 +461,7 @@ extension Factory {
                         .padding(.horizontal, 8)
                         .padding(.bottom, 8)
                     }
-                    .scrollEdgeEffectStyle(.hard, for: .vertical)
+                    .scrollEdgeEffectStyle(.soft, for: .vertical)
                     .onChange(of: cursor) { _, id in
                         guard let id else { return }
                         proxy.scrollTo(id, anchor: .center)

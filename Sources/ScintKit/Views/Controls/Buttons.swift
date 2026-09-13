@@ -176,8 +176,8 @@ struct RemoveButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "minus.circle")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 14))
+                .foregroundStyle(Style.Foreground.subtle)
         }
         .buttonStyle(.plain)
     }

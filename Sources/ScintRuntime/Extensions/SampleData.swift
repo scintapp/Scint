@@ -358,7 +358,7 @@ enum SampleInterfaces {
                 ),
                 .argument(
                     name: "sandbox",
-                    type: .collection(["--sandbox": .range([
+                    type: .collection(["--sandbox": .sequence([
                         .string("read-only"),
                         .string("workspace-write"),
                         .string("danger-full-access")

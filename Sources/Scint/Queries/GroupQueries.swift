@@ -27,7 +27,7 @@ struct MaterialsGroup: Query {
                         origin: origin,
                         name: ref.descriptor.name,
                         image: icon.symbol,
-                        tint: icon.tint,
+                        tint: Style.Foreground.subtle,
                         description: ref.descriptor.description
                     )
                 case .text(let id, let text):
@@ -37,7 +37,7 @@ struct MaterialsGroup: Query {
                         entryId: id,
                         name: text,
                         image: icon.symbol,
-                        tint: icon.tint
+                        tint: Style.Foreground.primary
                     )
                 case .material(let ref):
                     let children = Material.with(ref, { material in
@@ -49,7 +49,7 @@ struct MaterialsGroup: Query {
                         origin: origin,
                         name: ref.descriptor.name,
                         image: icon.symbol,
-                        tint: icon.tint,
+                        tint: Style.Foreground.subtle,
                         description: ref.descriptor.description,
                         items: children
                     )
@@ -60,7 +60,7 @@ struct MaterialsGroup: Query {
                         entryId: id,
                         name: title,
                         image: icon.symbol,
-                        tint: icon.tint
+                        tint: Style.Foreground.subtle
                     )
             }
         }
@@ -101,6 +101,7 @@ struct ArtifactsGroup: Query {
 
         func remove(_ ref: Reference) {
             Space.with(space, { $0 })?.remove(ref)
+            
         }
 
         func configure(_ value: Value?, for key: String) {
@@ -171,7 +172,7 @@ struct ArtifactsGroup: Query {
                 ref: ref,
                 name: ref.descriptor.name,
                 image: icon.symbol,
-                tint: icon.tint,
+                tint: Style.Foreground.subtle,
                 trailingKind: trailingKind,
                 description: ref.descriptor.description,
                 active: active
@@ -194,7 +195,7 @@ struct ArtifactsGroup: Query {
                             key: "add-artifacts",
                             name: "Add Artifacts...",
                             image: "folder.badge.plus",
-                            tint: Style.Tint.artifact,
+                            tint: Style.Foreground.subtle,
                             trailingKind: .load,
                             items: library.map { item($0, active: loaded.contains($0)) }
                         )
@@ -208,7 +209,7 @@ struct ArtifactsGroup: Query {
                             key: "add-files",
                             name: "Add Files...",
                             image: "folder.badge.plus",
-                            tint: Style.Tint.artifact,
+                            tint: Style.Foreground.subtle,
                             trailingKind: .button
                         )
                     ] + sorted(loaded.filter(file)).map { item($0, trailingKind: .remove) }
@@ -299,7 +300,7 @@ struct CommandsGroup: Query {
                     ref: ref,
                     name: ref.descriptor.name,
                     image: icon.symbol,
-                    tint: icon.tint,
+                    tint: Style.Foreground.subtle,
                     description: ref.descriptor.description,
                     active: commands.contains(ref)
                 )
@@ -315,7 +316,7 @@ struct CommandsGroup: Query {
                     ref: ref,
                     name: ref.descriptor.name,
                     image: icon.symbol,
-                    tint: icon.tint,
+                    tint: Style.Foreground.subtle,
                     trailingKind: .remove,
                     description: ref.descriptor.description
                 )
@@ -335,7 +336,7 @@ struct CommandsGroup: Query {
                         .init(
                             name: "Add Command...",
                             image: "switch.2",
-                            tint: Style.Tint.command,
+                            tint: Style.Foreground.subtle,
                             trailingKind: .load,
                             items: commandLibrary
                         )
@@ -427,7 +428,7 @@ struct HarnessGroup: Query {
                         key: key,
                         name: ref.descriptor.name,
                         image: icon.symbol,
-                        tint: icon.tint,
+                        tint: Style.Foreground.subtle,
                         description: ref.descriptor.description,
                         active: ref == selectedRef
                     )
@@ -438,7 +439,7 @@ struct HarnessGroup: Query {
                     key: key,
                     name: label(key),
                     image: icon?.symbol ?? image,
-                    tint: icon?.tint ?? Style.Tint.command,
+                    tint: Style.Foreground.subtle,
                     trailingKind: .load,
                     description: selectedRef?.descriptor.name ?? "",
                     items: [
@@ -446,7 +447,7 @@ struct HarnessGroup: Query {
                             key: key,
                             name: "Default",
                             image: "circle.dashed",
-                            tint: Style.Tint.command,
+                            tint: Style.Foreground.subtle,
                             active: selectedRef == nil
                         )
                     ] + items
@@ -471,10 +472,11 @@ struct HarnessGroup: Query {
                 return .init(
                     key: key,
                     name: label(key),
-                    image: "slider.horizontal.3",
-                    tint: Style.Tint.command,
+                    image: symbol(key),
+                    tint: Style.Foreground.muted,
                     trailingKind: ordered == nil ? .picker : .range,
                     value: selectedValue,
+                    description: selectedValue.isEmpty ? "Default" : label(selectedValue),
                     items: ordered == nil ? [.init(name: "Default")] + items : items
                 )
             }
@@ -487,8 +489,8 @@ struct HarnessGroup: Query {
                     return .init(
                         key: key,
                         name: label(key),
-                        image: "switch.2",
-                        tint: Style.Tint.command,
+                        image: symbol(key),
+                        tint: Style.Foreground.muted,
                         trailingKind: .toggle,
                         active: active
                     )
@@ -496,8 +498,8 @@ struct HarnessGroup: Query {
                     return .init(
                         key: key,
                         name: label(key),
-                        image: "calendar",
-                        tint: Style.Tint.command,
+                        image: symbol(key),
+                        tint: Style.Foreground.muted,
                         trailingKind: .date,
                         value: selectedValue
                     )
@@ -505,8 +507,8 @@ struct HarnessGroup: Query {
                     return .init(
                         key: key,
                         name: label(key),
-                        image: "slider.horizontal.3",
-                        tint: Style.Tint.command,
+                        image: symbol(key),
+                        tint: Style.Foreground.muted,
                         trailingKind: .field,
                         value: selectedValue
                     )
@@ -523,6 +525,26 @@ struct HarnessGroup: Query {
                     label.append(character)
                 }
             }.capitalized
+        }
+
+        func symbol(_ key: String) -> String {
+            let key = key.lowercased()
+            return switch true {
+                case key.contains("model"): "cpu"
+                case key.contains("reason"), key.contains("effort"): "brain"
+                case key.contains("sandbox"), key.contains("permission"): "lock.shield"
+                case key.contains("dir"), key.contains("folder"), key.contains("path"): "folder"
+                case key.contains("command"): "switch.2"
+                case key.contains("target"), key.contains("space"): "square.stack"
+                case key.contains("schedule"), key.contains("date"), key == "at": "calendar"
+                case key.contains("repeat"), key.contains("every"): "repeat"
+                case key.contains("url"), key.contains("endpoint"): "link"
+                case key.contains("interval"), key.contains("latency"), key.contains("timeout"): "timer"
+                case key.contains("event"): "bolt"
+                case key.contains("label"), key.contains("name"): "tag"
+                case key.contains("check"), key.contains("query"): "magnifyingglass"
+                default: "slider.horizontal.3"
+            }
         }
 
         func scale(_ value: Value) -> [Value]? {
@@ -568,31 +590,43 @@ struct HarnessGroup: Query {
             }
         }
 
-        let loaderIcon = harness.map { Iconography.icon(for: $0) }
         let loader = ItemParams(
             ref: harness,
-            name: harness?.descriptor.name ?? "Load Harness...",
-            image: loaderIcon?.symbol ?? "gearshape",
-            tint: loaderIcon?.tint ?? Style.Tint.command,
+            name: harness == nil ? "Set Harness" : "Change Harness",
+            image: "arrow.triangle.2.circlepath",
+            tint: Style.Foreground.subtle,
             trailingKind: .load,
-            description: harness?.descriptor.description ?? "",
             items: Runtime.shared.all(as: Harness.self)
                 .map { $0.0 }
                 .sorted {
                     $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
                 }
                 .map { ref in
-                    let icon = Iconography.icon(for: ref)
                     return ItemParams(
                         ref: ref,
                         name: ref.descriptor.name,
-                        image: icon.symbol,
-                        tint: icon.tint,
+                        image: "arrow.triangle.2.circlepath",
+                        tint: Style.Foreground.subtle,
                         description: ref.descriptor.description,
                         active: ref == harness
                     )
                 }
         )
+
+        var sections: [SectionParams] = [
+            .init(
+                id: "harness",
+                header: false,
+                tint: Style.Foreground.subtle,
+                items: [loader]
+            )
+        ]
+
+        if !settingItems.isEmpty {
+            sections.append(
+                .init(id: "harness-settings", name: "Harness Settings", header: false, tint: Style.Foreground.subtle, items: settingItems)
+            )
+        }
 
         return .init(
             ref: space,
@@ -600,14 +634,8 @@ struct HarnessGroup: Query {
             description: space.descriptor.description,
             layout: .group,
             header: false,
-            sections: [
-                .init(
-                    id: "harness",
-                    name: "Harness",
-                    header: false,
-                    items: [loader] + settingItems
-                )
-            ]
+            sections: sections
+
         )
     }
 }
@@ -638,14 +666,16 @@ struct SpaceSettings: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        let harnessControls = HarnessGroup.parameters(model).sections
-        let commandsControls = CommandsGroup.parameters(model).sections
-        let artifactsControls = ArtifactsGroup.parameters(model).sections
+        var space: Reference {
+            if case .structure(let ref) = model.session.focus { return ref }
+            else { return model.session.origin }
+        }
 
         return .init(
+            ref: space,
             layout: .group,
             header: true,
-            sections: harnessControls + commandsControls + artifactsControls
+            sections: HarnessGroup.parameters(model).sections + CommandsGroup.parameters(model).sections
         )
     }
 }
