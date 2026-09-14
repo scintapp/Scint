@@ -16,7 +16,7 @@ struct ActivitySummary: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        guard let composition = model.compose(model.session.origin),
+        guard let composition = model.compose(model.session.space),
               let root = Transcript.with(composition.transcript, { $0 }),
               let request = root.entries.last(where: {
                   if case .record(let chunk, _) = $0 { return chunk.origin.type == Material.self }

@@ -44,7 +44,6 @@ enum IntentInterfaces {
 
         let codex = artifact("Codex CLI", URL(fileURLWithPath: "/opt/homebrew/bin/codex"))
 
-        /// The shape every codex invocation shares: stream JSON, no colour, no git assumptions.
         let base: [Command.Parameter] = [
             .fixed(.string("exec")),
             .fixed(.string("--json")),
@@ -53,16 +52,12 @@ enum IntentInterfaces {
             .fixed(.string("--skip-git-repo-check"))
         ]
 
-        /// Reaching back into the space that spawned it. The bearer token is the context id the
-        /// daemon expands from the environment, so a subprocess can only ever address its own space.
         let connected: [Command.Parameter] = [
             .fixed(.string("-c")),
             .fixed(.string("mcp_servers.scint.url=\(endpoint)")),
             .fixed(.string("-c")),
             .fixed(.string("mcp_servers.scint.bearer_token_env_var=SCINT_CONTEXT"))
         ]
-
-        // MARK: - Commands
 
         let orchestrate = command(
             "Codex Orchestrate",

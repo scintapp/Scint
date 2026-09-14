@@ -6,7 +6,7 @@ struct ComposeControl: View {
     var input: Reference
     var onSend: () -> Void
 
-    var origin: Reference { model.session.origin }
+    var origin: Reference { model.session.space }
 
     var composable: Bool {
         Space.with(origin, { $0.composable }) ?? false

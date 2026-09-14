@@ -1,22 +1,6 @@
 import SwiftUI
 
 
-enum SearchMenu {
-    static func search(for query: String, filters: [String] = [], limit: Int = 60, take: Int = 12, matching: (Reference) -> Bool = { _ in true }) -> [MenuItem] {
-        Runtime.shared.search(query, filters: filters, limit: limit).all.compactMap { result in
-            guard matching(result.ref) else { return nil }
-            return MenuItem.reference(
-                result.ref,
-                name: result.name,
-                description: result.description,
-                tags: result.tags.sorted()
-            )
-        }
-        .prefix(take)
-        .map { $0 }
-    }
-}
-
 struct Item: Identifiable {
     let id: String
     let label: String
@@ -35,12 +19,28 @@ struct Item: Identifiable {
     }
 }
 
-@MainActor enum Action {
+enum SearchMenu {
+    static func search(for query: String, filters: [String] = [], limit: Int = 60, take: Int = 12, matching: (Reference) -> Bool = { _ in true }) -> [MenuItem] {
+        Runtime.shared.search(query, filters: filters, limit: limit).all.compactMap { result in
+            guard matching(result.ref) else { return nil }
+            return MenuItem.reference(
+                result.ref,
+                name: result.name,
+                description: result.description,
+                tags: result.tags.sorted()
+            )
+        }
+        .prefix(take)
+        .map { $0 }
+    }
+}
+
+enum Action {
     static func create(_ ref: Reference, in model: any Model) {}
     static func open(_ ref: Reference, in model: any Model) {}
     static func start(_ ref: Reference, in model: any Model) {}
 
-    static func rename(_ ref: Reference, in model: any Model) {
+    @MainActor static func rename(_ ref: Reference, in model: any Model) {
         let field = NSTextField(string: ref.descriptor.name)
         field.frame = NSRect(x: 0, y: 0, width: 260, height: 24)
 
@@ -68,13 +68,13 @@ struct Item: Identifiable {
         Task { try? await ref.delete() }
     }
 
-    static func createMaterial(in origin: Reference, name: String = "New Material", model: any Model) {
+    @MainActor static func createMaterial(in origin: Reference, name: String = "New Material", model: any Model) {
         let ref = Material.new(origin, name: name)
         model.open(ref)
         Task { await Runtime.shared.save() }
     }
 
-    static func createSpace(in origin: Reference, name: String = "New Space", model: any Model) {
+    @MainActor static func createSpace(in origin: Reference, name: String = "New Space", model: any Model) {
         let ref = Space.new(origin, name: name)
         model.select(ref)
         Task { await Runtime.shared.save() }
@@ -214,5 +214,70 @@ struct LoadMenu: View {
         .buttonStyle(.plain)
             .popover(isPresented: $presented) { menu }
             .onChange(of: presented) { _, presented in if !presented { query = "" } }
+    }
+}
+
+struct TranscriptMenu: View {
+    var ref: Reference
+    var model: any Model
+
+    var materials: [Reference] { Space.with(ref, { $0.materials }) ?? [] }
+    var transcripts: [Reference] { Space.with(ref, { $0.transcripts }) ?? [] }
+    var selected: Bool { model.session.selection.selected(ref) }
+
+    @State private var selection: Reference?
+
+    var transcript: Reference? {
+        if let selection, transcripts.contains(selection) { return selection }
+        return transcripts.max { $0.descriptor.created < $1.descriptor.created }
+    }
+
+    var body: some View {
+        SwiftUI.Menu {
+            ForEach(transcripts) { transcript in
+                Button {
+                    selection = transcript
+                    if model.session.space != ref { model.select(ref) }
+                    model.select(transcript)
+                } label: {
+                    if transcript == self.transcript {
+                        Label(transcript.descriptor.name, systemImage: "checkmark")
+                    } else {
+                        Text(transcript.descriptor.name)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: Style.Spacing.md) {
+                Iconography.Icon(symbol: "text.bubble", tint: Style.Foreground.subtle, sizing: 16)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Style.Spacing.sm) {
+                        Text(transcript?.descriptor.name ?? "None")
+                        if let transcript = transcript {
+                            let count = Transcript.with(transcript, { $0.records.count }) ?? 0
+                            Text("· \(count) \(count == 1 ? "message" : "messages")")
+                                .foregroundStyle(Style.Foreground.muted)
+                        }
+                    }
+                    .fixedSize()
+                    Text(transcript?.descriptor.name ?? "None")
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .font(Typography.row)
+            .foregroundStyle(Style.Foreground.primary)
+            .padding(.horizontal, Style.Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: 32)
+            .background(Style.Shape.tiny.fill(Style.Background.field))
+            .overlay(Style.Shape.tiny.strokeBorder(Style.Border.node, lineWidth: 1))
+            .contentShape(Style.Shape.tiny)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .disabled(transcripts.isEmpty)
     }
 }

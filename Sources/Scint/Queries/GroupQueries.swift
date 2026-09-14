@@ -92,7 +92,7 @@ struct ArtifactsGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var space: Reference {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.origin }
+            else { return model.session.space }
         }
 
         func add(_ ref: Reference) {
@@ -154,7 +154,7 @@ struct ArtifactsGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var space: Reference {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.origin }
+            else { return model.session.space }
         }
 
         func file(_ ref: Reference) -> Bool {
@@ -223,7 +223,7 @@ struct CommandsGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var space: Reference {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.origin }
+            else { return model.session.space }
         }
 
         func add(_ ref: Reference) {
@@ -284,7 +284,7 @@ struct CommandsGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var space: Reference {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.origin }
+            else { return model.session.space }
         }
 
         let commands = Space.with(space, { $0.commands }) ?? []
@@ -351,7 +351,7 @@ struct HarnessGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var space: Reference {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.origin }
+            else { return model.session.space }
         }
 
         func load(_ ref: Reference) {
@@ -362,10 +362,39 @@ struct HarnessGroup: Query {
             Space.with(space, { $0 })?.configure(value, for: key)
         }
 
+        // A date is absent or set, not false or true, so its switch writes a first value rather
+        // than a flag — there is no date argument that is on but empty.
+        func gate(_ item: ItemParams, _ key: String) {
+            guard !item.active else { return configure(nil, for: key) }
+
+            let opening = item.trailingKind == .time
+                ? Calendar.current.date(bySetting: .minute, value: 0, of: .now.addingTimeInterval(3600)) ?? .now
+                : Date.now
+
+            configure(.string(Value.formatter.string(from: opening)), for: key)
+        }
+
+        func choose(_ item: ItemParams, _ key: String) {
+            let resting = item.value ?? ""
+            let panel = NSOpenPanel()
+            panel.title = "Choose Folder"
+            panel.prompt = "Choose"
+            panel.canChooseFiles = false
+            panel.canChooseDirectories = true
+            panel.canCreateDirectories = true
+            panel.allowsMultipleSelection = false
+            panel.directoryURL = resting.isEmpty ? nil : URL(fileURLWithPath: resting)
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            configure(.string(url.path(percentEncoded: false)), for: key)
+        }
+
         return .init(
             onToggle: { item in
                 guard let key = item.key else { return }
-                configure(.bool(!item.active), for: key)
+                switch item.trailingKind {
+                    case .date, .time: gate(item, key)
+                    default: configure(.bool(!item.active), for: key)
+                }
             },
             onChange: { item, selection in
                 guard let key = item.key else { return }
@@ -382,6 +411,10 @@ struct HarnessGroup: Query {
                 }
                 guard let ref = item.ref, ref.type is Harness.Type, !item.active else { return }
                 load(ref)
+            },
+            onAction: { item in
+                guard let key = item.key, item.trailingKind == .action else { return }
+                choose(item, key)
             }
         )
     }
@@ -389,7 +422,7 @@ struct HarnessGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var space: Reference {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.origin }
+            else { return model.session.space }
         }
 
         let selectedHarness = Space.with(space, { $0.harness }).flatMap { $0 }
@@ -417,9 +450,6 @@ struct HarnessGroup: Query {
             if let references = referenceOptions(type) {
                 let selectedRef = configured?.references.first
                 let icon = selectedRef.map { Iconography.icon(for: $0) }
-                let image: String
-                if case .reference = type { image = "switch.2" }
-                else { image = "target" }
 
                 let items = references.map { ref in
                     let icon = Iconography.icon(for: ref)
@@ -438,7 +468,7 @@ struct HarnessGroup: Query {
                     ref: selectedRef,
                     key: key,
                     name: label(key),
-                    image: icon?.symbol ?? image,
+                    image: icon?.symbol ?? symbol(key),
                     tint: Style.Foreground.subtle,
                     trailingKind: .load,
                     description: selectedRef?.descriptor.name ?? "",
@@ -500,8 +530,27 @@ struct HarnessGroup: Query {
                         name: label(key),
                         image: symbol(key),
                         tint: Style.Foreground.muted,
-                        trailingKind: .date,
-                        value: selectedValue
+                        trailingKind: clock(key) ? .time : .date,
+                        value: selectedValue,
+                        active: configured != nil
+                    )
+
+                // A folder is chosen, not typed. `.action` already renders a button wired to
+                // onAction, so the row needs no control of its own.
+                case .string where directory(key):
+                    let chosen = selectedValue.isEmpty
+                        ? (defaultValue.map(leaf)?.rendered.last ?? "")
+                        : selectedValue
+                    return .init(
+                        key: key,
+                        name: label(key),
+                        image: symbol(key),
+                        tint: Style.Foreground.muted,
+                        trailingKind: .action,
+                        value: "Choose",
+                        description: chosen.isEmpty
+                            ? "No folder"
+                            : URL(fileURLWithPath: chosen).lastPathComponent
                     )
                 case .string, .integer, .decimal:
                     return .init(
@@ -527,13 +576,22 @@ struct HarnessGroup: Query {
             }.capitalized
         }
 
+        func clock(_ key: String) -> Bool { key.lowercased().contains("time") }
+
+        func directory(_ key: String) -> Bool {
+            let key = key.lowercased()
+            return key.contains("dir") || key.contains("folder") || key.contains("path")
+        }
+
         func symbol(_ key: String) -> String {
+            if directory(key) { return "folder" }
+            if clock(key) { return "clock" }
+
             let key = key.lowercased()
             return switch true {
                 case key.contains("model"): "cpu"
                 case key.contains("reason"), key.contains("effort"): "brain"
                 case key.contains("sandbox"), key.contains("permission"): "lock.shield"
-                case key.contains("dir"), key.contains("folder"), key.contains("path"): "folder"
                 case key.contains("command"): "switch.2"
                 case key.contains("target"), key.contains("space"): "square.stack"
                 case key.contains("schedule"), key.contains("date"), key == "at": "calendar"
@@ -668,7 +726,7 @@ struct SpaceSettings: Query {
     static func parameters(_ model: any Model) -> Params {
         var space: Reference {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.origin }
+            else { return model.session.space }
         }
 
         return .init(

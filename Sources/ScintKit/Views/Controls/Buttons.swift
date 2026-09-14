@@ -141,7 +141,7 @@ struct CreateButton: View {
     }
 
     var body: some View {
-        var scoped: Bool { model.session.origin.type is Space.Type }
+        var scoped: Bool { model.session.space.type is Space.Type }
 
             SwiftUI.Menu {
                 Button { text = ""; presented = true } label: { Label("New Space", systemImage: "plus") }
@@ -203,3 +203,14 @@ struct CountButton: View {
     }
 }
 
+struct SpaceButtonStyle: ViewModifier {
+    func body(content: Self.Content) -> some View {
+        content
+            .font(.system(size: 24))
+            .foregroundStyle(Style.Foreground.primary)
+            .frame(width: 24, height: 24, alignment: .center)
+            .controlSize(.extraLarge)
+            .buttonBorderShape(.circle)
+            .buttonStyle(.glass)
+    }
+}

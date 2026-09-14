@@ -421,7 +421,6 @@ enum SampleData {
     @discardableResult
     static func load(_ space: Reference, for key: ModelKey) async -> Bool {
         switch key {
-            case .assistant: await assistant(space); return false
             case .editor: await editor(space); return false
             case .studio: await studio(space); return false
         }

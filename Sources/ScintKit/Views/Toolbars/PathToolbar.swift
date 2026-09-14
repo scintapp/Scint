@@ -40,6 +40,8 @@ struct PathBar: View {
     var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.space) }
 
     var body: some View {
+        BackButton(model: model)
+
         HStack(alignment: .center) {
             ForEach(path, id: \.self) { ref in
                 if ref != path.last { PathButton(ref: ref, label: hovered ? true : false, model: model) }

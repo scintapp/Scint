@@ -39,6 +39,7 @@ final class Catalog: Sendable {
     private let descriptors: Index = Index<Descriptor>()
     func get(_ ref: Reference) -> Descriptor? { descriptors.get(ref) }
     func get(_ id: DescriptorId) -> Reference? { descriptors.ref(for: id) }
+
     func set(_ ref: Reference, _ descriptor: Descriptor) {
         precondition(descriptor.origin.id == ref.id, "Descriptor origin does not match its reference.")
         precondition(descriptor.origin.typeId == ref.typeId, "Descriptor origin does not match its reference.")
@@ -47,9 +48,11 @@ final class Catalog: Sendable {
         precondition(descriptor.origin.storageId == ref.storageId, "Descriptor origin does not match its reference.")
         descriptors.set(ref, descriptor)
     }
+
     func keys() -> [Reference] { descriptors.keys() }
     func values() -> [Descriptor] { descriptors.values() }
     func with<R>(_ ref: Reference, _ body: (Descriptor) throws -> R) rethrows -> R? { try descriptors.with(ref, body) }
+
     func update<R>(_ ref: Reference, _ body: (inout Descriptor) throws -> R) rethrows -> R? {
         var updated = false
         let result = try descriptors.update(ref) { descriptor in
@@ -60,5 +63,7 @@ final class Catalog: Sendable {
         if updated { Task { await Coordinator.shared.schedule(ref) } }
         return result
     }
-    @discardableResult func delete(_ ref: Reference) -> Descriptor? { descriptors.delete(ref) }
+
+    @discardableResult
+    func delete(_ ref: Reference) -> Descriptor? { descriptors.delete(ref) }
 }

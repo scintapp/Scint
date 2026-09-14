@@ -68,7 +68,7 @@ struct FoldersList: Query {
                 .init(
                     id: "folders",
                     name: "Folders",
-                    items: sortFileItems(model.artifacts(model.session.origin).compactMap { folder(for: $0, in: model) })
+                    items: sortFileItems(model.artifacts(model.session.space).compactMap { folder(for: $0, in: model) })
                 )
             ]
         )

@@ -224,9 +224,17 @@ import Foundation
                     controls.onValueChange?(params, $0)
                 }
 
-            case .date:
-                ItemDatePicker(value: params.value ?? "") {
-                    controls.onValueChange?(params, $0)
+            // A date argument is absent or set, not false or true, so the switch is that
+            // distinction and the field beside it only appears once the switch is on.
+            case .date, .time:
+                HStack(spacing: Style.Spacing.md) {
+                    if params.active {
+                        ItemDatePicker(
+                            value: params.value ?? "",
+                            components: params.trailingKind == .time ? [.hourAndMinute] : [.date]
+                        ) { controls.onValueChange?(params, $0) }
+                    }
+                    ItemToggle(isOn: params.active) { controls.onToggle?(params) }
                 }
 
             case .remove:

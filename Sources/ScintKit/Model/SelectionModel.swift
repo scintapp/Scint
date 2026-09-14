@@ -21,7 +21,6 @@ enum Focus: Codable, Equatable, Sendable {
 
 struct Opened: Codable, Equatable, Sendable {
     var material: Reference?
-    var structure: Reference?
     var transcript: Reference?
 
     mutating func open(_ ref: Reference) {

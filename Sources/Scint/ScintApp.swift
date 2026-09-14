@@ -15,7 +15,9 @@ struct Scint: App {
             if let scint {
                 Studio()
                     .environment(scint)
+                    .environment(scint.studio)
                     .focusable(false)
+                    .onAppear { ShortcutManager.shared.register(model: scint) }
             } else {
                 ProgressView()
                     .task { await load() }
@@ -26,18 +28,7 @@ struct Scint: App {
             if let scint {
                 Editor()
                     .environment(scint)
-                    .focusable(false)
-            } else {
-                ProgressView()
-                    .task { await load() }
-            }
-        }
-
-        Window("Assistant", id: "assistant") {
-            if let scint {
-                Assistant()
-                    .environment(scint)
-                    .onAppear(perform: { ShortcutManager.shared.register(model: scint) } )
+                    .environment(scint.editor)
                     .focusable(false)
             } else {
                 ProgressView()
@@ -50,7 +41,6 @@ struct Scint: App {
                 Host()
                     .environment(scint)
                     .environment(scint.host)
-                    .onAppear(perform: { ShortcutManager.shared.register(model: scint) } )
                     .focusable(false)
             } else {
                 Text("Scint is loading…")

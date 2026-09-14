@@ -1,10 +1,8 @@
 import SwiftUI
 
 
-private let anyRef = Reference(Space.self)
-
 enum ModelKey: String, Identifiable, CaseIterable {
-    case studio, assistant, editor
+    case studio, editor
     var id: String { self.model }
     var app: String { self.rawValue }
     var model: String { "scint" }
@@ -12,6 +10,7 @@ enum ModelKey: String, Identifiable, CaseIterable {
 }
 
 @MainActor protocol Model: AnyObject {
+    var scint: ScintModel { get }
     var session: Session { get set }
     func focus(_ ref: Reference?)
     func select(_ ref: Reference, entry: UUID?, url: URL?)
@@ -84,11 +83,13 @@ extension Model {
 }
 
 final class AnyModel: Model {
+    var scint: ScintModel
     var content: any Panel
     var session: Session
 
-    init(_ space: Reference) {
+    init(_ scint: ScintModel, session: Reference) {
+        self.scint = scint
         self.content = AnyPanel()
-        self.session = .init(space)
+        self.session = .init(session)
     }
 }

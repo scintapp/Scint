@@ -6,12 +6,14 @@ struct Style {
         static let codeRadius: CGFloat = 5
         static let tinyRadius: CGFloat = 9
         static let smallRadius: CGFloat = 13
+        static let holeRadius: CGFloat = 14.5
         static let mediumRadius: CGFloat = 17
         static let largeRadius: CGFloat = 20
         static let panelRadius: CGFloat = 30
 
         static var tiny: RoundedRectangle { RoundedRectangle(cornerRadius: tinyRadius, style: .continuous) }
         static var small: RoundedRectangle { RoundedRectangle(cornerRadius: smallRadius, style: .continuous) }
+        static var hole: RoundedRectangle { RoundedRectangle(cornerRadius: holeRadius, style: .continuous) }
         static var medium: RoundedRectangle { RoundedRectangle(cornerRadius: mediumRadius, style: .continuous) }
         static var large: RoundedRectangle { RoundedRectangle(cornerRadius: largeRadius, style: .continuous) }
         static var panel: RoundedRectangle { RoundedRectangle(cornerRadius: panelRadius, style: .continuous) }
@@ -93,8 +95,10 @@ struct Style {
     enum Border {
         static var base: Color { Color(red: 0.18824, green: 0.18824, blue: 0.19216) }
         static var card: Color { Color(red: 0.27255, green: 0.27647, blue: 0.28039) }
+        static var handle: Color { Color(red: 0.32255, green: 0.32255, blue: 0.32255).opacity(0.75) }
+        static var divider: Color { Color(red: 0.20353, green: 0.20475, blue: 0.20745) }
         static var node: Color { Color(red: 0.23922, green: 0.24314, blue: 0.24706) }
-        static var group: Color { Color(red: 0.24008, green: 0.24033, blue: 0.24057).opacity(0.5) }
+        static var group: Color { Color(red: 0.26008, green: 0.26033, blue: 0.26057).opacity(0.5) }
         static var raised: Color { Color(red: 0.20008, green: 0.20033, blue: 0.20057) }
         static var field: Color { Color(red: 0.888, green: 0.888, blue: 0.888).opacity(0.25) }
     }
@@ -115,11 +119,13 @@ struct Style {
     }
 
     enum Background {
+        static var void: Color { Color(red: 0.082353, green: 0.082453, blue: 0.082653) }
         static var base: Color { Color(red: 0.10588, green: 0.10588, blue: 0.1098) }
+        static var glass: Color { Color(red: 0.11113, green: 0.11113, blue: 0.11113) }
         static var node: Color { Color(red: 0.13333, green: 0.13333, blue: 0.13725) }
         static var panel: Color { Color(red: 0.11313, green: 0.11333, blue: 0.11355) }
         static var surface: Color { Color(red: 0.13725, green: 0.13725, blue: 0.14118) }
-        static var group: Color { Color(red: 0.18821, green: 0.18821, blue: 0.19124).opacity(0.6) }
+        static var group: Color { Color(red: 0.19821, green: 0.19821, blue: 0.20124).opacity(0.6) }
         static var form: Color { Color(red: 0.12821, green: 0.12821, blue: 0.12124).opacity(0.5) }
         static var card: Color { Color(red: 0.11588, green: 0.11588, blue: 0.1198) }
         static var control: Color { Color(red: 0.72821, green: 0.72821, blue: 0.73124).opacity(0.2) }

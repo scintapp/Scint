@@ -68,15 +68,24 @@ struct GroupRow<Leading: View, Trailing: View>: View {
         )
     }
 
+    // `groupHeight` is what separates the two kinds of row that share this view. A group row states
+    // one, and takes the settings dressing: a tall leading box, inset edges, full-size controls. A
+    // list row, a menu row and a panel row state none, size themselves, and are left bare — they
+    // bring their own metrics and the dressing would swallow them.
+    private var dressed: Bool { groupHeight != nil }
+
     var body: some View {
         HStack(alignment: .center, spacing: spacing) {
-            leading
-                .frame(height: 44, alignment: .center)
-                .foregroundStyle(Style.Foreground.subtle)
-                .font(.system(size: 16, weight: .light))
-                .padding(.leading, 6)
-                .padding(.trailing, 4)
-
+            if dressed {
+                leading
+                    .frame(height: 44, alignment: .center)
+                    .foregroundStyle(Style.Foreground.subtle)
+                    .font(.system(size: 16, weight: .light))
+                    .padding(.leading, 6)
+                    .padding(.trailing, 4)
+            } else {
+                leading
+            }
 
             VStack(alignment: .leading, spacing: Style.Spacing.xs) {
                 title.lineLimit(1)
@@ -86,15 +95,19 @@ struct GroupRow<Leading: View, Trailing: View>: View {
 
             Spacer(minLength: spacerMinLength)
 
-            trailing
-                .foregroundStyle(Style.Foreground.subtle)
-                .frame(height: groupHeight)
-                .labelsHidden()
-                .controlSize(.regular)
-                .padding(.trailing, 6)
+            if dressed {
+                trailing
+                    .foregroundStyle(Style.Foreground.subtle)
+                    .frame(height: groupHeight)
+                    .labelsHidden()
+                    .controlSize(.regular)
+                    .padding(.trailing, 6)
+            } else {
+                trailing
+            }
         }
         .frame(height: groupHeight, alignment: .center)
-        .padding(.horizontal, 8)
+        .padding(.horizontal, dressed ? 8 : 0)
     }
 }
 

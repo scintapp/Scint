@@ -23,10 +23,10 @@ import SwiftUI
     func surface(_ model: any Model) -> some View {
         AnySurface(panel: self, model: model)
             .toolbar(removing: .sidebarToggle)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) { NavigatorToggle(presented: bindable.presented) }
-                ToolbarSpacer(.fixed, placement: .primaryAction)
-            }
             .scrollEdgeEffectStyle(.soft, for: .top)
+            .toolbar {
+                ToolbarItem(placement: .automatic) { NavigatorToggle(presented: bindable.presented) }
+                ToolbarSpacer(.flexible, placement: .automatic)
+            }
     }
 }

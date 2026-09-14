@@ -36,7 +36,7 @@ struct InspectorToggle: View {
             presented.toggle()
             NSApp.sendAction(#selector(NSSplitViewController.toggleInspector(_:)), to: nil, from: nil)
         } label: {
-            Image(systemName: "sidebar.squares.right")
+            Image(systemName: "gearshape")
                 .foregroundStyle(Style.Foreground.primary)
         }
         .padding(.horizontal, 1)

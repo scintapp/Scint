@@ -115,7 +115,7 @@ struct Badges: View {
     let model: any Model
     var ref: Reference? = nil
 
-    var origin: Reference { ref ?? model.session.origin }
+    var origin: Reference { ref ?? model.session.space }
 
     var counts: ComponentCount {
         var counts = ComponentCount()
@@ -167,6 +167,8 @@ struct Badges: View {
                 tint: Style.Tint.artifact,
                 active: counts.artifacts > 0
             )
+            Spacer()
+            if let ref { StateBadge(composition: model.compose(ref)) }
         }
         .frame(maxHeight: 30)
     }

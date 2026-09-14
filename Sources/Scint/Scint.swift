@@ -1,79 +1,49 @@
 import SwiftUI
 
 
-struct Assistant: View {
-    @Environment(ScintModel.self) var scint
-
-    var body: some View {
-        let model = scint.assistant
-        let content = model.content
-        let assistant = model.assistant
-        let navigator = model.navigator
-        NavigationSplitView {
-            navigator.surface(model)
-        } detail: {
-            ZStack(alignment: .top) {
-                content.surface(model)
-                    .background(Style.Background.base)
-                Rectangle()
-                    .fill(Style.Border.base)
-                    .frame(height: 0.75, alignment: .top)
-            }
-        }
-        .environment(scint)
-        .toolbar(removing: .title)
-        .inspector(isPresented: assistant.bindable.presented) {
-            assistant.surface(model)
-                .inspectorColumnWidth(ideal: 340)
-        }
-    }
-}
-
 struct Editor: View {
     @Environment(ScintModel.self) var scint
+    @Environment(EditorModel.self) var model
 
     var body: some View {
-        let model = scint.editor
-        let editor = model.editor
-        let outline = model.outline
-        let navigator = model.navigator
-        let presented = outline.bindable.presented
-
         NavigationSplitView {
-            navigator.surface(model)
+            model.navigator.surface(model)
         } detail: {
-            editor.surface(model)
+            model.editor.surface(model)
         }
         .environment(scint)
         .toolbar(removing: .title)
-        .inspector(isPresented: presented) {
-            outline.surface(model)
-                .inspectorColumnWidth(ideal: 340)
-        }
     }
 }
 
 struct Studio: View {
     @Environment(ScintModel.self) var scint
+    @Environment(StudioModel.self) var model
 
     var body: some View {
-        let studio = scint.studio
-        let navigator = studio.navigator
-        let canvas = studio.canvas
-        let assistant = studio.assistant
-        let presented = assistant.bindable.presented
+        let inspectorPresented = model.assistant.bindable.presented
 
         NavigationSplitView {
-            navigator.surface(studio)
+            ZStack(alignment: .trailing) {
+                model.navigator.surface(model)
+
+                Rectangle()
+                    .fill(Style.Border.divider)
+                    .ignoresSafeArea()
+                    .frame(maxWidth: 1, maxHeight: .infinity, alignment: .trailing)
+            }
         } detail: {
-            canvas.surface(studio)
+            model.canvas.surface(model)
+
+        }
+        .inspector(isPresented: inspectorPresented) {
+            model.assistant.surface(model)
+                .environment(scint)
+                .inspectorColumnWidth(min: 240, ideal: 320, max: 480)
+                .ignoresSafeArea(.all, edges: .top)
         }
         .environment(scint)
         .toolbar(removing: .title)
-        .inspector(isPresented: presented) {
-            assistant.surface(studio)
-                .inspectorColumnWidth(ideal: 480)
-                .environment(scint)
-        }
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
     }
 }

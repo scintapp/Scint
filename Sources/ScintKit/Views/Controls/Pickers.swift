@@ -38,6 +38,28 @@ struct ItemPicker: View {
     }
 }
 
+struct ItemDatePicker: View {
+    let value: String
+    var components: DatePickerComponents = [.date, .hourAndMinute]
+    let onChange: (String) -> Void
+
+    private var selection: Binding<Date> {
+        Binding(
+            get: { Value.formatter.date(from: value) ?? .now },
+            set: { onChange(Value.formatter.string(from: $0)) }
+        )
+    }
+
+    var body: some View {
+        DatePicker("", selection: selection, displayedComponents: components)
+            .datePickerStyle(.stepperField)
+            .labelsHidden()
+            .font(.system(size: 12))
+            .foregroundStyle(Style.Foreground.subtle)
+            .fixedSize()
+    }
+}
+
 struct ItemRangePicker: View {
     let value: String
     let items: [ItemParams]
@@ -99,24 +121,6 @@ struct ItemRangePicker: View {
     }
 }
 
-struct ItemDatePicker: View {
-    let value: String
-    let onChange: (String) -> Void
-
-    private var selection: Binding<Date> {
-        Binding(
-            get: { Value.formatter.date(from: value) ?? .now },
-            set: { onChange(Value.formatter.string(from: $0)) }
-        )
-    }
-
-    var body: some View {
-        DatePicker("", selection: selection, displayedComponents: [.date, .hourAndMinute])
-            .datePickerStyle(.compact)
-            .labelsHidden()
-    }
-}
-
 struct AssistantPicker: View {
     let panel: AssistantPanel
     let model: any Model
@@ -148,37 +152,6 @@ struct AssistantPicker: View {
         .tint(Style.Background.control)
     }
 }
-
-//struct DetailPicker: View {
-//    let panel: ContentPanel
-//
-//    private func selection(for detail: ContentPanel.PanelDetail) -> Binding<Bool> {
-//        Binding(
-//            get: { panel.state.presented && panel.detail == detail },
-//            set: { selected in
-//                if selected {
-//                    panel.detail = detail
-//                    panel.state.presented = true
-//                } else if panel.detail == detail {
-//                    panel.state.presented = false
-//                }
-//            }
-//        )
-//    }
-//
-//    var body: some View {
-//        ControlGroup {
-//            ForEach(ContentPanel.PanelDetail.allCases) { detail in
-//                Toggle(isOn: selection(for: detail)) {
-//                    Image(systemName: detail.symbol)
-//                }
-//            }
-//        }
-//        .controlGroupStyle(.navigation)
-//        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.primary)
-//        .tint(Style.Background.group)
-//    }
-//}
 
 struct SettingsPicker: View {
     var panel: any Panel
@@ -212,18 +185,17 @@ struct PathPicker: View {
     @State private var presented = false
     @State private var text = ""
 
-    private var query: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+    var query: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
-    private var matches: [Reference] {
+    var matches: [Reference] {
         guard !query.isEmpty else { return [] }
-
         return Runtime.shared.all(as: Space.self)
             .map { $0.0 }
             .filter { $0.descriptor.name.localizedCaseInsensitiveContains(query) }
             .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
     }
 
-    private func parent(of ref: Reference) -> String? {
+    func parent(of ref: Reference) -> String? {
         (Space.with(ref, { $0.space }) ?? nil)?.descriptor.name
     }
 
@@ -285,7 +257,7 @@ struct TranscriptPicker: View {
     var body: some View {
         if let context = model.session.transcripts.first,
            let selected = model.session.transcript,
-           let composition = Runtime.shared.resolve(model.session.origin) {
+           let composition = Runtime.shared.resolve(model.session.space) {
             let branches: [(ref: Reference, intent: Intent)] = Transcript.with(context, { record in
                 record.entries.compactMap { entry in
                     guard case .transcript(let ref, let intent, _) = entry else { return nil }

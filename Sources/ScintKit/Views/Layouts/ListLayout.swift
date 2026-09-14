@@ -163,7 +163,7 @@ struct ListRow<Content: View>: View {
     var body: some View {
         GroupRow(
             title: Text(name)
-                .font(.system(size: 13))
+                .font(.system(size: 14))
                 .foregroundColor(.primary),
             detail: described.map {
                 Text($0)
@@ -179,7 +179,7 @@ struct ListRow<Content: View>: View {
 
             if let count {
                 Text("\(count)")
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundStyle(.secondary)
                     .padding(.trailing, 3)
             }

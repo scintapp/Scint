@@ -82,33 +82,9 @@ struct SearchDetail: Query {
             case .open: model.open(ref)
             case .execute: _ = Runtime.shared.start(ref)
             case .insert:
-                let origin = model.session.origin
+                let origin = model.session.space
                 Space.with(origin, { $0 })?.add(ref)
         }
-    }
-}
-
-@Observable final class ActionsPanel: Panel {
-    var mode: Modality = .fixed
-    var state: PanelState = .init()
-    var surface: PanelSurface = .composer
-
-    enum PanelSurface: String, CaseIterable, Identifiable {
-        case composer, editor
-
-        var id: String { rawValue }
-        var label: String { rawValue.capitalized }
-
-        var symbol: String {
-            switch self {
-                case .composer: "square.fill.text.grid.1x2"
-                case .editor: "square.and.pencil"
-            }
-        }
-    }
-
-    func surface(_ model: any Model) -> some View {
-        AnySurface(panel: self, model: model)
     }
 }
 
@@ -173,4 +149,28 @@ struct SearchDetail: Query {
     }
 
     func surface(_ model: any Model) -> some View { AnySurface(panel: self, model: model) }
+}
+
+@Observable final class ActionsPanel: Panel {
+    var mode: Modality = .fixed
+    var state: PanelState = .init()
+    var surface: PanelSurface = .composer
+
+    enum PanelSurface: String, CaseIterable, Identifiable {
+        case composer, editor
+
+        var id: String { rawValue }
+        var label: String { rawValue.capitalized }
+
+        var symbol: String {
+            switch self {
+                case .composer: "square.fill.text.grid.1x2"
+                case .editor: "square.and.pencil"
+            }
+        }
+    }
+
+    func surface(_ model: any Model) -> some View {
+        AnySurface(panel: self, model: model)
+    }
 }

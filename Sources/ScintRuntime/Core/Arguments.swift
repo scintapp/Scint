@@ -46,6 +46,17 @@ enum Arguments {
             guard let path = Artifact.with(ref, { $0.rendered }), !path.isEmpty else { return [] }
             return [path]
         }
+
+        // A command is already an executable and an argv — the same pair `Command.run` hands to
+        // the service — so it flattens to those elements and nothing joins them. A tool that takes
+        // a command takes it positionally, the way `env` and `xargs` do.
+        if ref.type is Command.Type {
+            return Command.with(ref) { command -> [String] in
+                guard let executable = command.executable else { return [] }
+                return [executable] + command.arguments()
+            } ?? []
+        }
+
         guard let url = Reference.Link.url(for: ref) else { return [] }
         return [url.absoluteString]
     }

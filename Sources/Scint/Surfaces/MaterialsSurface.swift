@@ -133,19 +133,20 @@ struct MaterialSurface: Surface {
 }
 
 struct MaterialsSurface: Surface {
+    var ref: Reference
     var panel: any Panel
     var model: any Model
 
-    var origin: Reference { model.session.origin }
-    var material: Reference? { model.session.opened.material }
-    var materials: [Reference] { model.session.materials }
+    var material: Reference? { ref }
+    var materials: [Reference] { Space.with(ref, { $0.materials }) ?? [] }
 
     @State var state: PanelState
 
-    init(panel: any Panel, model: any Model, state: PanelState) {
+    init(ref: Reference, panel: any Panel, model: any Model) {
+        self.ref = ref
         self.panel = panel
         self.model = model
-        self.state = state
+        self.state = panel.state
         state.expanded = Set(materials)
     }
 

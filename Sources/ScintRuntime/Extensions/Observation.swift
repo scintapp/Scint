@@ -1,34 +1,16 @@
 import Foundation
 
 
-/// Observe-intent interfaces.
-///
-/// An observer is not a thing the runtime implements — it is an existing command-line tool that
-/// blocks and prints, wrapped in enough of the argument grammar to configure it. The waiting, the
-/// recurrence, and the predicate all live in the tool and its flags; nothing here needs a Swift
-/// vocabulary of its own.
-///
-/// Two shapes of argument reach the UI, and the difference is not cosmetic. A single-key
-/// `.collection` is flattened by `Renderer.value` into one `key=value` argv element, so it only
-/// suits tools that accept GNU-style `--flag=value` — `fswatch` does, `curl` does not. Anything
-/// that needs `--flag value` as two elements belongs in the command as `.fixed` pairs, with the
-/// variable part left bare and positional.
 enum ObserveInterfaces {
     struct References {
         let fswatch: Reference
         let scheduleScript: Reference
-        let endpointScript: Reference
         let watchPaths: Reference
         let waitUntil: Reference
-        let pollEndpoint: Reference
         let directoryObserver: Reference
         let scheduledObserver: Reference
-        let endpointObserver: Reference
     }
 
-    /// Where the shell observers live. They are ordinary files, registered as artifacts, and the
-    /// commands below pass them to `/bin/sh` the same way the sample data passes Concat.swift to
-    /// `swift`.
     static var scripts: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .standardizedFileURL
@@ -73,17 +55,10 @@ enum ObserveInterfaces {
             scripts.appendingPathComponent("observe-schedule.sh")
         )
 
-        let endpointScript = artifact(
-            "Endpoint Observer Script",
-            scripts.appendingPathComponent("observe-endpoint.sh")
-        )
-
-        // MARK: - Commands
-
         let watchPaths = command(
             "Watch Paths",
             fswatch,
-            [.fixed(.string("-r"))],
+            [.fixed(.string("-r")), .fixed(.string("--latency")), .fixed(.string("1"))],
             description: "Watch a path and print every file that changes beneath it, one per line, until stopped."
         )
 
@@ -93,15 +68,6 @@ enum ObserveInterfaces {
             [.fixed(.reference(scheduleScript))],
             description: "Wait for a wall-clock time, run something, and optionally keep doing it on a recurrence."
         )
-
-        let pollEndpoint = command(
-            "Poll Endpoint",
-            sh,
-            [.fixed(.reference(endpointScript))],
-            description: "Poll a URL on an interval and report only when a jq predicate holds."
-        )
-
-        // MARK: - Harnesses
 
         let directoryObserver = harness(
             "Directory Observer",
@@ -121,20 +87,7 @@ enum ObserveInterfaces {
                     default: nil
                 ),
                 .argument(
-                    name: "latency",
-                    type: .collection(["--latency": .range([
-                        .string("0.5"),
-                        .string("1"),
-                        .string("5"),
-                        .string("15"),
-                        .string("60")
-                    ])]),
-                    required: false,
-                    default: .collection(["--latency": .string("1")])
-                ),
-                // fswatch takes its path positionally, so this stays bare and is declared last.
-                .argument(
-                    name: "path",
+                    name: "directory",
                     type: .string(""),
                     required: false,
                     default: .string(
@@ -153,115 +106,45 @@ enum ObserveInterfaces {
             .observe,
             [
                 .argument(
-                    name: "at",
-                    type: .collection(["--at": .date(.distantPast)]),
+                    name: "date",
+                    type: .collection(["--date": .date(.distantPast)]),
                     required: false,
                     default: nil
                 ),
                 .argument(
-                    name: "every",
+                    name: "time",
+                    type: .collection(["--time": .date(.distantPast)]),
+                    required: false,
+                    default: nil
+                ),
+                .argument(
+                    name: "repeat",
                     type: .collection(["--every": .sequence([
-                        .string("once"),
+                        .string("never"),
                         .string("hourly"),
                         .string("daily"),
                         .string("weekly")
                     ])]),
                     required: false,
-                    default: .collection(["--every": .string("once")])
+                    default: .collection(["--every": .string("never")])
                 ),
                 .argument(
-                    name: "run",
-                    type: .collection(["--run": .string("")]),
+                    name: "command",
+                    type: .reference(Command.self),
                     required: false,
                     default: nil
-                ),
-                .argument(
-                    name: "label",
-                    type: .collection(["--label": .string("")]),
-                    required: false,
-                    default: .collection(["--label": .string("Scheduled")])
-                ),
-                .argument(
-                    name: "times",
-                    type: .collection(["--times": .range([
-                        .string("0"),
-                        .string("1"),
-                        .string("5"),
-                        .string("25")
-                    ])]),
-                    required: false,
-                    default: .collection(["--times": .string("0")])
                 )
             ],
             description: "Wait until a given time, then act — once, or on an hourly, daily, or weekly recurrence."
         )
 
-        let endpointObserver = harness(
-            "Endpoint Observer",
-            pollEndpoint,
-            .observe,
-            [
-                .argument(
-                    name: "url",
-                    type: .collection(["--url": .string("")]),
-                    required: false,
-                    default: nil
-                ),
-                .argument(
-                    name: "check",
-                    type: .collection(["--check": .string("")]),
-                    required: false,
-                    default: nil
-                ),
-                .argument(
-                    name: "report",
-                    type: .collection(["--report": .string("")]),
-                    required: false,
-                    default: nil
-                ),
-                .argument(
-                    name: "interval",
-                    type: .collection(["--interval": .range([
-                        .string("15"),
-                        .string("60"),
-                        .string("300"),
-                        .string("900"),
-                        .string("3600")
-                    ])]),
-                    required: false,
-                    default: .collection(["--interval": .string("60")])
-                ),
-                .argument(
-                    name: "label",
-                    type: .collection(["--label": .string("")]),
-                    required: false,
-                    default: .collection(["--label": .string("Endpoint")])
-                ),
-                .argument(
-                    name: "times",
-                    type: .collection(["--times": .range([
-                        .string("0"),
-                        .string("1"),
-                        .string("5"),
-                        .string("25")
-                    ])]),
-                    required: false,
-                    default: .collection(["--times": .string("0")])
-                )
-            ],
-            description: "Poll a URL and speak only when a condition holds, expressed as a jq filter over the response."
-        )
-
         return References(
             fswatch: fswatch,
             scheduleScript: scheduleScript,
-            endpointScript: endpointScript,
             watchPaths: watchPaths,
             waitUntil: waitUntil,
-            pollEndpoint: pollEndpoint,
             directoryObserver: directoryObserver,
-            scheduledObserver: scheduledObserver,
-            endpointObserver: endpointObserver
+            scheduledObserver: scheduledObserver
         )
     }
 }

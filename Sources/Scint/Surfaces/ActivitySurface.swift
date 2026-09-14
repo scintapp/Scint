@@ -6,7 +6,7 @@ struct ActivitySurface: Surface {
     var model: any Model
     var onOpen: () -> Void
 
-    var context: Composition? { model.compose(model.session.origin) }
+    var context: Composition? { model.compose(model.session.space) }
     var active: Bool { context?.state == .working }
 
     var state: String {
@@ -39,7 +39,7 @@ struct ActivitySurface: Surface {
 
                     HStack(spacing: Style.Spacing.lg) {
                         if active {
-                            Button("Stop") { controls.onAction?(.init(ref: model.session.origin, name: "Stop")) }
+                            Button("Stop") { controls.onAction?(.init(ref: model.session.space, name: "Stop")) }
                                 .buttonStyle(.plain)
                                 .font(.system(size: 13))
                                 .foregroundStyle(Style.Tint.accent.opacity(0.4))
