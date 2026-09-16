@@ -53,8 +53,8 @@ import AppKit
         switch outcome.choice {
         case .item(let item):
             if let ref = item.ref {
-                if outcome.isInserting { editor.commitReference(ref, name: item.label) }
-                else if let replacement = block(for: ref) { editor.replaceCard(outcome.target, with: replacement) }
+                if outcome.isInserting, let link = Reference.Link.markdown(for: ref, name: item.label) { editor.replace(outcome.replacementRange, with: link) }
+                else if !outcome.isInserting, let replacement = block(for: ref) { editor.replaceCard(outcome.target, with: replacement) }
             } else if let blocks = build(for: item) {
                 let links = blocks.compactMap { block -> String? in
                     switch block {
@@ -62,20 +62,20 @@ import AppKit
                     default: nil
                     }
                 }
-                if !links.isEmpty { editor.commitText(links.joined(separator: " ")) }
+                if !links.isEmpty { editor.replace(outcome.replacementRange, with: links.joined(separator: " ")) }
             }
         case .form(.task, let values):
             let value = values.primary.trimmingCharacters(in: .whitespacesAndNewlines)
             let text = value.isEmpty ? "Task" : value
-            if outcome.isInserting { editor.commitTask(text, completed: values.completed) }
-            else if case .task(let id, _, _)? = editor.block(outcome.target) {
+            if outcome.isInserting { editor.insert(.task(UUID(), text, values.completed), replacing: outcome.replacementRange) }
+            else if case .task(let id, _, _)? = editor.card(outcome.target)?.block {
                 editor.replaceCard(outcome.target, with: .task(id, text, values.completed))
             }
         case .form(.link, let values):
             guard let url = normalizedURL(from: values.primary.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
             let ref = Artifact.register(url.host(percentEncoded: false) ?? url.absoluteString, url)
-            if outcome.isInserting { editor.commitReference(ref) }
-            else { editor.replaceCard(outcome.target, with: .artifact(ref)) }
+            if outcome.isInserting, let link = Reference.Link.markdown(for: ref) { editor.replace(outcome.replacementRange, with: link) }
+            else if !outcome.isInserting { editor.replaceCard(outcome.target, with: .artifact(ref)) }
         case .form(.artifact, _), .form(.command, _), .form(.material, _): break
         }
     }

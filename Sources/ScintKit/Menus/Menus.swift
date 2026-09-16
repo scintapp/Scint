@@ -1,4 +1,5 @@
 import SwiftUI
+import OSLog
 
 
 struct Item: Identifiable {
@@ -64,8 +65,14 @@ enum Action {
         }
     }
 
-    static func delete(_ ref: Reference, from origin: Reference?, in model: any Model) {
-        Task { try? await ref.delete() }
+    static func delete(_ ref: Reference) {
+        Task {
+            do { try await ref.delete() }
+            catch {
+                Logger(subsystem: "com.kaechle.scint", category: "Actions")
+                    .error("Delete failed for \(ref.id.uuidString, privacy: .public): \(String(describing: error), privacy: .public)")
+            }
+        }
     }
 
     @MainActor static func createMaterial(in origin: Reference, name: String = "New Material", model: any Model) {
@@ -89,12 +96,11 @@ enum Action {
 
     static func itemItems(for item: ItemParams) -> [Item] {
         guard let ref = item.ref else { return [] }
-        let origin = item.origin
         var items: [Item] = [
             .init(id: "rename", label: "Rename", image: "pencil") { Action.rename(ref, in: $0) }
         ]
 
-        items.append(.init(id: "delete", label: "Delete", image: "trash", role: .destructive) { Action.delete(ref, from: origin, in: $0) })
+        items.append(.init(id: "delete", label: "Delete", image: "trash", role: .destructive) { _ in Action.delete(ref) })
         return items
     }
 
@@ -199,21 +205,27 @@ struct LoadMenu: View {
             }
         }
         .frame(width: 280, height: height, alignment: .topLeading)
-        .glassEffect(.regular, in: Style.Shape.large)
         .clipShape(Style.Shape.large)
     }
 
     var body: some View {
         Button { presented = true } label: {
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 14))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 28, alignment: .center)
-                .background(Style.Background.group, in: Circle())
+            HStack {
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Style.Foreground.primary)
+                    .frame(width: 24, height: 24)
+                    .background {
+                        Circle()
+                            .size(width: 20, height: 20, anchor: .center)
+                            .fill(Style.Background.control)
+                    }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .buttonStyle(.plain)
-            .popover(isPresented: $presented) { menu }
-            .onChange(of: presented) { _, presented in if !presented { query = "" } }
+        .buttonStyle(.borderless)
+        .popover(isPresented: $presented) { menu }
+        .onChange(of: presented) { _, presented in if !presented { query = "" } }
     }
 }
 

@@ -52,32 +52,31 @@ struct MaterialHeader: Surface {
                 HStack(alignment: .center, spacing: Style.Spacing.lg) {
                     Image(systemName: "chevron.down")
                         .foregroundStyle(Style.Foreground.faint)
-                        .font(.system(size: Style.Dimension.icon, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .rotationEffect(.degrees(collapsed ? -90 : .zero))
                         .frame(width: Style.Dimension.control, height: Style.Dimension.control)
 
                     if collapsed { Text(title).font(Typography.display) }
                 }
-                .contentShape(Style.Shape.medium)
             }
             .buttonStyle(.plain)
 
-            if !collapsed { Text(title).font(Typography.display) }
+            if !collapsed { Text(title).font(Typography.cardTitle) }
 
             Spacer()
 
             Button { model.session.open(ref) } label: {
-                Image(systemName: "arrow.down.left.and.arrow.up.right")
+                Image(systemName: "rectangle.righthalf.inset.fill.arrow.right")
                     .foregroundStyle(Style.Foreground.faint)
-                    .font(.system(size: Style.Dimension.icon, weight: .medium))
+                    .font(.system(size: 12, weight: .semibold))
                     .frame(width: Style.Dimension.control, height: Style.Dimension.control)
                     .contentShape(Style.Shape.medium)
             }
             .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, maxHeight: Style.Spacing.cardHeight)
-        .padding(.horizontal, Style.Spacing.lg)
-        .padding(.vertical, Style.Spacing.md)
+        .padding(.horizontal, Style.Spacing.md)
+        .padding(.vertical, Style.Spacing.sm)
     }
 }
 
@@ -112,42 +111,32 @@ struct MaterialFooter: Surface {
 }
 
 struct MaterialSurface: Surface {
+    var ref: Reference
     var panel: any Panel
     var model: any Model
 
-    var ref: Reference? {
-        if let ref = model.session.opened.material { return ref }
-        else if let ref = model.session.selection.content, ref.type is Material.Type { return ref }
-        else { return nil }
-    }
-
-    var maximized: Bool { model.session.opened.material == ref }
-
-    func content(_ ref: Reference, _ minHeight: CGFloat) -> some View {
+    var body: some View {
         ScrollView {
-            EditorView(ref, sizing: .fitsContent, autofocus: false, onFocus: { model.select(ref) }, onOpenLink: { link in
+            EditorView(
+                ref,
+                sizing: .fitsContent,
+                autofocus: false,
+                onFocus: { model.select(ref) },
+                onOpenLink: { link in
                 switch link {
                 case .reference(let reference): model.open(reference)
                 case .url(let url): NSWorkspace.shared.open(url)
                 }
             })
             .id(ref)
-            .frame(maxWidth: Style.Spacing.contentMaxWidth, maxHeight: .infinity, alignment: .center)
+            .frame(maxWidth: Style.Spacing.contentMaxWidth, alignment: .center)
             .padding(.horizontal, Style.Spacing.xxl)
             .padding(.top, Style.Spacing.xxl)
             .padding(.bottom, Style.Spacing.xxxl)
         }
         .scrollEdgeEffectStyle(.soft, for: .top)
         .scrollIndicators(.hidden)
-        .scrollDisabled(!maximized)
         .simultaneousGesture(TapGesture().onEnded { model.open(ref) })
-    }
-
-    var body: some View {
-        if let ref {
-            if maximized { GeometryReader { proxy in content(ref, proxy.size.height) } }
-            else { content(ref, 0) }
-        }
     }
 }
 
@@ -155,46 +144,20 @@ struct MaterialsSurface: Surface {
     var panel: any Panel
     var model: any Model
 
-    @State var state: PanelState
-
-    var space: Reference? { model.session.space }
-    var material: Reference? { model.session.material }
     var materials: [Reference] {
-        guard let space, let materials = Space.with(space, { $0.materials })
+        guard let ref = model.session.space, let materials = Space.with(ref, { $0 })?.materials
         else { return [] }
         return materials
     }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: Style.Spacing.xxl) {
-                ForEach(materials, id: \.self) { material in
-                    VStack {
-                        MaterialHeader(
-                            ref: material,
-                            panel: panel,
-                            model: model,
-                            state: $state
-                        )
-                        if !state.collapsed.contains(material) {
-                            MaterialSurface(panel: panel, model: model)
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-                    }
-                    .frame(maxWidth: Style.Spacing.contentMaxWidth, alignment: .top)
-                    .frame(maxWidth: Style.Spacing.contentMaxWidth)
-                    .background {
-                        Style.Shape.large
-                            .fill(Style.Background.panel)
-                            .strokeBorder(Style.Border.base, lineWidth: 0.5, antialiased: true)
-                    }
-                    .clipShape(Style.Shape.large)
+            LazyVStack(spacing: Style.Spacing.xs) {
+                ForEach(materials) { ref in
+                    MaterialSurface(ref: ref, panel: panel, model: model)
                 }
             }
-            .padding(.vertical, Style.Spacing.xxxl)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .scrollIndicators(.hidden)
     }

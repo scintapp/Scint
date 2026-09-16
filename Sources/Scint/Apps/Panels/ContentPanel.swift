@@ -4,11 +4,11 @@ import SwiftUI
 
 struct ContentPicker: View {
     @Environment(ScintModel.self) var scint
-    var panel: ContentPanel { scint.app.studio.content }
-    let model: any Model
+    var content: ContentPanel { scint.app.studio.content }
+    var navigator: NavigatorPanel { scint.app.studio.navigator }
 
     private var selection: Binding<ContentPanel.PanelSurface> {
-        Binding(get: { panel.surface }, set: { panel.surface = $0 })
+        Binding(get: { content.surface }, set: { content.surface = $0 })
     }
 
     var body: some View {
@@ -53,9 +53,9 @@ struct ContentPicker: View {
         .toolbar {
             ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
             ToolbarSpacer(.flexible, placement: .automatic)
-            ToolbarItem(placement: .principal) { ContentPicker(model: model)  }
+            ToolbarItem(placement: .principal) { ContentPicker() }
             ToolbarSpacer(.flexible, placement: .primaryAction)
-            ToolbarItem(placement: .primaryAction) { InspectorPicker(model: model) }
+            ToolbarItem(placement: .primaryAction) { InspectorPicker() }
         }
     }
 }

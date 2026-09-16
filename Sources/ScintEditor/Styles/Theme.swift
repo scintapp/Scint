@@ -11,12 +11,10 @@ struct Theme: @unchecked Sendable {
     var h3Font: NSFont
     var codeFont: NSFont
     var codeBgColor: NSColor
-    var codeFenceColor: NSColor
     var bulletColor: NSColor
     var checkboxCheckedColor: NSColor
     var checkboxUncheckedColor: NSColor
     var linkLabelColor: NSColor
-    var linkURLColor: NSColor
     var completedColor: NSColor
     var syntaxHiddenColor: NSColor
 
@@ -30,12 +28,10 @@ struct Theme: @unchecked Sendable {
         h3Font: Typography.Prose.appKitHeading(3),
         codeFont: Typography.Prose.appKitCode,
         codeBgColor: NSColor(Style.Background.overlay),
-        codeFenceColor: NSColor.white.withAlphaComponent(Style.Opacity.washed),
         bulletColor: NSColor.white.withAlphaComponent(Style.Opacity.faint),
         checkboxCheckedColor: NSColor.white.withAlphaComponent(Style.Opacity.muted),
         checkboxUncheckedColor: NSColor.white.withAlphaComponent(Style.Opacity.faint),
         linkLabelColor: NSColor(Style.Foreground.primary).withAlphaComponent(Style.Opacity.strong),
-        linkURLColor: NSColor(Style.Foreground.primary).withAlphaComponent(Style.Opacity.faint),
         completedColor: NSColor(Style.Foreground.primary).withAlphaComponent(Style.Opacity.faint),
         syntaxHiddenColor: .clear
     )

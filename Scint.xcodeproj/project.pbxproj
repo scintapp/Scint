@@ -99,6 +99,7 @@
 				ScintRuntime/Environment/Functional/Command.swift,
 				ScintRuntime/Environment/Functional/Harness.swift,
 				ScintRuntime/Environment/Library.swift,
+				ScintRuntime/Environment/Malleable/Content.swift,
 				ScintRuntime/Environment/Malleable/Material.swift,
 				ScintRuntime/Environment/Malleable/Transcript.swift,
 				ScintRuntime/Environment/Services.swift,

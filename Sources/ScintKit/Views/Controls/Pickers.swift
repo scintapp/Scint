@@ -17,23 +17,18 @@ struct ItemPicker: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 24, height: 24)
-                    .background {
-                        Circle()
-                            .size(width: 20, height: 20, anchor: .center)
-                            .fill(Style.Background.control)
-                    }
+            HStack(alignment: .center) {
+                Spacer()
             }
-            .font(.system(size: 12))
-            .frame(width: 44, alignment: .trailing)
-            .contentShape(Rectangle())
+            .frame(maxWidth: 24, maxHeight: 24, alignment: .center)
+            .overlay {
+                Image(systemName: "chevron.up.chevron.down")
+                    .frame(maxWidth: 24, maxHeight: 24, alignment: .center)
+            }
         }
-        .menuStyle(.borderlessButton)
+        .frame(maxWidth: 24, maxHeight: 24, alignment: .center)
+        .menuStyle(.button)
+        .buttonStyle(.borderless)
         .menuIndicator(.hidden)
     }
 }

@@ -47,6 +47,50 @@ import SwiftUI
         }
     }
 
+    /// A space's state, as a dot. Dulled when idle; when it is working, a duplicate
+    /// expands and fades out behind the static one.
+    struct Dot: View {
+        let ref: Reference?
+        let tint: Color
+        let size: CGFloat
+        @State private var pinging = false
+
+        init(ref: Reference? = nil, tint: Color, sizing: CGFloat = 14) {
+            self.ref = ref
+            self.tint = tint
+            self.size = sizing
+        }
+
+        private var active: Bool {
+            switch ref?.context?.state {
+                case .active, .working: true
+                default: false
+            }
+        }
+
+        private var dot: some View {
+            Image(systemName: Iconography.dot)
+                .font(.system(size: size))
+                .symbolRenderingMode(.monochrome)
+        }
+
+        var body: some View {
+            ZStack {
+                if active {
+                    dot
+                        .foregroundStyle(tint)
+                        .scaleEffect(pinging ? 2.4 : 1)
+                        .opacity(pinging ? 0 : 0.5)
+                        .animation(.easeOut(duration: 1.8).repeatForever(autoreverses: false), value: pinging)
+                }
+
+                dot.foregroundStyle(tint.opacity(active ? 1 : 0.45))
+            }
+            .onAppear { pinging = active }
+            .onChange(of: active) { _, value in pinging = value }
+        }
+    }
+
     struct Glyph: View {
         var active = false
         let size: CGFloat
@@ -186,15 +230,24 @@ import SwiftUI
 
     static func accent(for ref: Reference) -> Color {
         switch ref.type {
-            case is Artifact.Type: Style.Tint.artifact
-            case is Command.Type: Style.Tint.command
-            case is Bridge.Type: Style.Tint.bridge
-            case is Harness.Type: Style.Tint.harness
-            case is Material.Type: Style.Tint.material
-            case is Transcript.Type: Style.Tint.transcript
-            case is Space.Type: Style.Tint.space
-            case is Closure.Type: Style.Tint.closure
-            default: Iconography.icon(for: ref).tint
+            case is Artifact.Type: return Style.Tint.artifact
+            case is Command.Type: return Style.Tint.command
+            case is Bridge.Type: return Style.Tint.bridge
+            case is Harness.Type:
+                guard let intent = Harness.with(ref, { $0 })?.intent
+                else { return Style.Tint.harness }
+                switch intent {
+                    case .compose: return Style.Tint.Intent.compose
+                    case .dispatch: return Style.Tint.Intent.dispatch
+                    case .observe: return Style.Tint.Intent.observe
+                    case .evaluate: return Style.Tint.Intent.evaluate
+                    case .search: return Style.Tint.Intent.search
+                }
+            case is Material.Type: return Style.Tint.material
+            case is Transcript.Type: return Style.Tint.transcript
+            case is Space.Type: return Style.Tint.space
+            case is Closure.Type: return Style.Tint.closure
+            default: return Iconography.icon(for: ref).tint
         }
     }
 
@@ -251,6 +304,21 @@ import SwiftUI
         }
     }
 
+    static let dot = "circlebadge.fill"
+
+    /// A space as a dot, tinted by the harness running it. Muted when it has none.
+    static func dot(for ref: Reference, size: CGFloat = 14) -> Icon {
+        guard let harness = Space.with(ref, { $0 })?.harness
+        else { return Icon(symbol: dot, tint: Style.Foreground.muted, sizing: size) }
+        return Icon(symbol: dot, tint: accent(for: harness), sizing: size)
+    }
+
+    /// An icon a caller spelled out. A dot carries state, so it builds the live one.
+    @ViewBuilder static func icon(symbol: String, tint: Color, ref: Reference? = nil, size: CGFloat = 14, selected: Bool = true) -> some View {
+        if symbol == dot { Dot(ref: ref, tint: tint, sizing: size) }
+        else { Icon(symbol: symbol, tint: tint, sizing: size, selected: selected) }
+    }
+
     static func icon(for ref: Reference, size: CGFloat = 14) -> Icon {
         switch ref.type {
             case is Artifact.Type:
@@ -263,16 +331,16 @@ import SwiftUI
                 else { return Icon(symbol: "space.custom", tint: Style.Tint.space, sizing: size) }
                 return Icon(symbol: "space.custom", tint: accent(for: harness), sizing: size)
 
+            case is Harness.Type:
+                guard let intent = Harness.with(ref, { $0 })?.intent
+                else { return Icon(symbol: "gearshape", tint: Style.Tint.harness, sizing: size) }
+                return Iconography.icon(for: intent, size: size)
+
             case is Command.Type:
                 return Icon(symbol: "switch.2", tint: Style.Tint.command, sizing: size)
 
             case is Bridge.Type:
                 return Icon(symbol: "app.connected.to.app.below.fill", tint: Style.Tint.bridge, sizing: size)
-
-            case is Harness.Type:
-                guard let harness = Harness.with(ref, { $0 })
-                else { return Icon(symbol: "gearshape", tint: Style.Tint.harness, sizing: size) }
-                return Icon(symbol: "gearshape", tint: Iconography.accent(for: harness.ref), sizing: size)
 
             case is Material.Type:
                 return Icon(symbol: "text.alignleft", tint: Style.Tint.material, sizing: size)

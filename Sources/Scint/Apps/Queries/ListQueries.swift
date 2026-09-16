@@ -421,16 +421,15 @@ struct FlatSpacesList: Query {
             sorted(Space.with(ref, { Array($0.spaces) }) ?? [])
         }
 
-        // Every space beneath a root, in tree order, rendered as one level.
         func descendants(of ref: Reference) -> [Reference] {
             children(of: ref).flatMap { [$0] + descendants(of: $0) }
         }
 
         func item(_ ref: Reference, origin: Reference) -> ItemParams {
-            .init(ref: ref, origin: origin, name: ref.descriptor.name, image: "app")
+            let dot = Iconography.dot(for: ref)
+            return .init(ref: ref, origin: origin, name: ref.descriptor.name, image: dot.symbol, tint: dot.tint)
         }
 
-        // Spaces below this one that are doing something right now.
         func working(_ refs: [Reference]) -> Int {
             refs.count { ref in
                 switch ref.context?.state {

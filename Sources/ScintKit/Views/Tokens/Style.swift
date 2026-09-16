@@ -7,7 +7,7 @@ struct Style {
         static let tinyRadius: CGFloat = 9
         static let smallRadius: CGFloat = 13
         static let holeRadius: CGFloat = 14.5
-        static let mediumRadius: CGFloat = 17
+        static let mediumRadius: CGFloat = 16.5
         static let largeRadius: CGFloat = 20
         static let panelRadius: CGFloat = 30
 
@@ -129,6 +129,7 @@ struct Style {
         static var form: Color { Color(red: 0.12821, green: 0.12821, blue: 0.12124).opacity(0.5) }
         static var card: Color { Color(red: 0.11588, green: 0.11588, blue: 0.1198) }
         static var control: Color { Color(red: 0.72821, green: 0.72821, blue: 0.73124).opacity(0.2) }
+        static var selected: Color { Color(red: 0.72821, green: 0.72821, blue: 0.73124).opacity(0.2) }
         static var raised: Color { Color(red: 0.12821, green: 0.12821, blue: 0.13124) }
         static var overlay: Color { Color(red: 0.162, green: 0.165, blue: 0.169) }
         static var field: Color { Color(red: 0.888, green: 0.888, blue: 0.888).opacity(0.1) }
@@ -158,11 +159,11 @@ struct Style {
         static var alert: Color { Color(red: 0.812, green: 0.545, blue: 0.545) }
 
         enum Intent {
-            static var compose: Color { Color(red: 0.892, green: 0.829, blue: 0.892) }
-            static var dispatch: Color { Color(red: 0.878, green: 0.639, blue: 0.435) }
-            static var evaluate: Color { Color(red: 0.867, green: 0.541, blue: 0.639) }
-            static var observe: Color { Color(red: 0.612, green: 0.678, blue: 0.816) }
-            static var search: Color { Color(red: 0.545, green: 0.788, blue: 0.596) }
+            static var compose: Color { Color(red: 0.782, green: 0.638, blue: 0.906) }
+            static var dispatch: Color { Color(red: 0.978, green: 0.709, blue: 0.535) }
+            static var evaluate: Color { Color(red: 0.947, green: 0.641, blue: 0.669) }
+            static var observe: Color { Color(red: 0.672, green: 0.889, blue: 0.952) }
+            static var search: Color { Color(red: 0.775, green: 0.988, blue: 0.796) }
         }
     }
 }

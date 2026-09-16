@@ -5,8 +5,8 @@ import CryptoKit
 protocol Resolvable: Codable, Sendable { var ref: Reference { get } }
 protocol Keyed: Resolvable { var key: Key { get } }
 
-protocol Composable: Resolvable { init(_ ref: Reference) }
-protocol Functional: Composable { }
+protocol Composable: Resolvable {}
+protocol Functional: Composable {}
 protocol Malleable: Composable { var origin: Reference { get set } }
 protocol Structural: Composable { var closure: Reference { get } }
 protocol Contextual: Keyed { var origin: Reference { get }; var transcript: Reference { get set } }

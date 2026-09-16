@@ -29,6 +29,7 @@ import SwiftUI
         }
 
         Harnesses.load()
+        ObserveHarnesses.load()
 
         var seeded = false
         for space in Runtime.shared.spaces { seeded = await SampleData.load(space) || seeded }

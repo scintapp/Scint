@@ -60,9 +60,8 @@ final class Workspaces: @unchecked Sendable {
         let closure = Space.with(ref, { $0.closure })
         let input = closure.flatMap { Closure.with($0, { $0.input }) }
         if ref.type is Space.Type { Space.update(ref) { $0.restructure() } }
-        Runtime.shared.store(for: ref)?.remove(ref)
         Catalog.shared.delete(ref)
-        store(for: ref)?.remove(ref)
+        Runtime.shared.store(for: ref)?.remove(ref)
         if let closure {
             Catalog.shared.delete(closure)
             store(for: closure)?.remove(closure)

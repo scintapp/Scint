@@ -1,5 +1,6 @@
 import Foundation
 
+
 struct Markdown {
     struct Document: Equatable {
         let blocks: [Block]
@@ -99,18 +100,11 @@ struct Markdown {
             1
         ),
         (
-            try! NSRegularExpression(pattern: #"`([^`\n]+)`"#),
-            .inlineCode,
-            1
-        ),
-        (
             try! NSRegularExpression(pattern: #"~~(?!\s)(.+?)(?<!\s)~~"#),
             .strikethrough,
             2
         ),
     ]
-
-    private static let linkPattern = try! NSRegularExpression(pattern: #"\[([^\]\n]+)\]\(([^)\n]+)\)"#)
 
     private static let numberedPattern = try! NSRegularExpression(pattern: #"^\d+\.[ \t]"#)
 
@@ -283,7 +277,7 @@ struct Markdown {
             append(NSRange(location: offset + full.location, length: content.location - full.location), as: .syntax, to: &spans)
             append(NSRange(location: offset + NSMaxRange(content), length: NSMaxRange(full) - NSMaxRange(content)), as: .syntax, to: &spans)
         }
-        for pattern in inlinePatterns where pattern.kind != .inlineCode {
+        for pattern in inlinePatterns {
             for match in pattern.regex.matches(in: text, range: range) {
                 let delimiterLength = pattern.delimiterLength
                 guard match.range.length > delimiterLength * 2 else { continue }

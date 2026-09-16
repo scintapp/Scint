@@ -167,7 +167,15 @@ struct MenuFilter: View {
     let onCancel: () -> Void
 
     func handle(_ selector: Selector) -> Bool {
-        Keymap.handleMenu(selector, empty: text.isEmpty, move: onMoveSelection, commit: onCommit, cancel: onCancel)
+        switch NSStringFromSelector(selector) {
+        case "moveDown:", "insertTab:": onMoveSelection(1)
+        case "moveUp:", "insertBacktab:": onMoveSelection(-1)
+        case "insertNewline:": onCommit()
+        case "cancelOperation:": onCancel()
+        case "deleteBackward:" where text.isEmpty: onCancel()
+        default: return false
+        }
+        return true
     }
 
     var body: some View {

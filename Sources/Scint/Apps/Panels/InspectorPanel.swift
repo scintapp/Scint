@@ -5,7 +5,6 @@ import SwiftUI
 struct InspectorPicker: View {
     @Environment(ScintModel.self) var scint
     var panel: InspectorPanel { scint.app.studio.inspector }
-    let model: any Model
 
     private func selection(for surface: InspectorPanel.PanelSurface) -> Binding<Bool> {
         Binding(
@@ -36,21 +35,20 @@ struct InspectorPicker: View {
 }
 
 @Observable final class InspectorPanel: Panel {
-    var mode: Modality = .fixed
     var state: PanelState = .init()
-    var surface: PanelSurface = .harness
+    var surface: PanelSurface = .materials
 
     enum PanelSurface: String, CaseIterable, Identifiable {
-        case harness, transcript, material
+        case materials, transcripts, settings
 
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
 
         var symbol: String {
             switch self {
-                case .harness: "gearshape"
-                case .transcript: "text.bubble"
-                case .material: "text.alignleft"
+                case .materials: "text.alignleft"
+                case .transcripts: "text.bubble"
+                case .settings: "switch.2"
             }
         }
     }
@@ -60,9 +58,9 @@ struct InspectorPicker: View {
 
         return VStack {
             switch surface {
-                case .harness: HarnessSurface(panel: self, model: model)
-                case .transcript: TranscriptSurface(panel: self, model: model)
-                case .material: MaterialsSurface(panel: self, model: model, state: state)
+                case .materials: MaterialsSurface(panel: self, model: model)
+                case .transcripts: TranscriptSurface(panel: self, model: model)
+                case .settings: HarnessSurface(panel: self, model: model)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

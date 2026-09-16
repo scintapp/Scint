@@ -1,15 +1,6 @@
 import SwiftUI
 
 
-private struct ListDepthKey: EnvironmentKey { static let defaultValue: Int = 0 }
-
-extension EnvironmentValues {
-    var listDepth: Int {
-        get { self[ListDepthKey.self] }
-        set { self[ListDepthKey.self] = newValue }
-    }
-}
-
 struct ListLabel: View {
     let name: String
     let image: String
@@ -83,15 +74,15 @@ struct ListLink: View {
     }
 
     @ViewBuilder private var icon: some View {
-        if let ref {
+        if let tint, !image.isEmpty {
+            Iconography.icon(symbol: image, tint: tint, ref: ref, size: iconSize, selected: selected)
+        } else if let ref {
             Iconography.Icon(
                 symbol: Iconography.symbol(for: ref),
                 tint: Iconography.accent(for: ref),
                 sizing: iconSize,
                 selected: selected
             )
-        } else if let tint {
-            Iconography.Icon(symbol: image, tint: tint, sizing: iconSize, selected: selected)
         }
         else {
             Image(systemName: image)
@@ -166,7 +157,7 @@ struct ListRow<Content: View>: View {
 
     private var background: Color {
         guard selected else { return .clear }
-        return focused ? Style.Tint.accent.opacity(0.3) : Style.Background.control.opacity(Style.Opacity.faint)
+        return focused ? Style.Background.selected : Style.Background.control.opacity(Style.Opacity.faint)
     }
 
     var body: some View {
@@ -284,15 +275,15 @@ struct ListLayout<Content: View>: View {
     }
 
     @ViewBuilder private var icon: some View {
-        if let ref {
+        if let tint, !image.isEmpty {
+            Iconography.icon(symbol: image, tint: tint, ref: ref, size: iconSize, selected: selected)
+        } else if let ref {
             Iconography.Icon(
                 symbol: Iconography.symbol(for: ref),
                 tint: Iconography.accent(for: ref),
                 sizing: iconSize,
                 selected: selected
             )
-        } else if let tint {
-            Iconography.Icon(symbol: image, tint: tint, sizing: iconSize, selected: selected)
         }
         else {
             Image(systemName: image)

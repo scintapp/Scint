@@ -12,12 +12,6 @@ struct Command: Functional {
         case requirement(name: String, type: Value, value: Value)
     }
 
-    init(_ ref: Reference = .init(Self.self)) {
-        self.ref = ref
-        self.artifact = ref
-        self.parameters = []
-    }
-
     init(_ ref: Reference, artifact: Reference, parameters: [Parameter]) {
         self.ref = ref
         self.artifact = artifact

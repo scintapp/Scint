@@ -13,7 +13,7 @@ enum Typography {
 
         static func heading(_ level: Int) -> CGFloat {
             switch level {
-                case 1: 24
+                case 1: 21
                 case 2: 18
                 default: 16
             }
@@ -22,8 +22,8 @@ enum Typography {
         static func headingWeight(_ level: Int) -> Weight {
             switch level {
                 case 1: .bold
-                case 2: .semibold
-                default: .medium
+                case 2: .bold
+                default: .semibold
             }
         }
 

@@ -1,11 +1,16 @@
-import Foundation
-import Observation
+import AppKit
+import SwiftUI
+
+// Compiles the production editor against stand-ins for the runtime store, design tokens and SwiftUI components,
+// then drives a real TextKit 2 text view in an offscreen window.
+
+// MARK: Stand-ins
 
 struct Artifact {}
 struct Command {}
 struct Reference: Hashable, Codable, Sendable {
     let id: UUID
-    var kind: String = "material"
+    var kind: String
     init(_ id: UUID = UUID(), kind: String = "material") { self.id = id; self.kind = kind }
     var type: Any.Type { kind == "artifact" ? Artifact.self : kind == "command" ? Command.self : Material.self }
     enum Link {
@@ -16,285 +21,350 @@ struct Reference: Hashable, Codable, Sendable {
         static func markdown(for ref: Reference, name: String? = nil) -> String? { "[\(name ?? "Reference")](scint://material/\(ref.id))" }
     }
 }
-@MainActor @Observable final class EditorTestStore {
-    static let shared = EditorTestStore()
-    var values: [Reference: Material] = [:]
-}
+
+@MainActor enum Store { static var materials: [Reference: Material] = [:]; static var writes = 0 }
 extension Material {
-    @MainActor static var store: [Reference: Material] {
-        get { EditorTestStore.shared.values }
-        set { EditorTestStore.shared.values = newValue }
-    }
-    @MainActor static var writes = 0
-    @MainActor static func with<T>(_ ref: Reference, _ body: (Material) -> T) -> T? { store[ref].map(body) }
-    @MainActor static func update<T>(_ ref: Reference, _ body: (inout Material) -> T) -> T? {
-        guard var value = store[ref] else { return nil }
-        let result = body(&value)
-        if value.blocks != store[ref]!.blocks { writes += 1 }
-        store[ref] = value; return result
+    @MainActor static func with<R>(_ ref: Reference, _ body: (Material) -> R) -> R? { Store.materials[ref].map(body) }
+    @MainActor @discardableResult static func update<R>(_ ref: Reference, _ body: (inout Material) -> R) -> R? {
+        guard var value = Store.materials[ref] else { return nil }
+        let result = body(&value); Store.materials[ref] = value; Store.writes += 1; return result
     }
 }
-@MainActor final class RecordingRenderer: TextRendering {
-    var storage: String
-    var replacements: [(Range<Int>, String)] = []
-    var selection: (Int, Int)?
-    init(_ text: String) { storage = text }
-    func replace(_ range: Range<Int>, with text: String) {
-        replacements.append((range, text)); storage = (storage as NSString).replacingCharacters(in: NSRange(range), with: text)
+
+enum Typography {
+    enum Scale { static let hiddenSyntax: CGFloat = 0.1 }
+    enum Prose {
+        static var appKitText: NSFont { .systemFont(ofSize: 14) }
+        static var appKitCode: NSFont { .monospacedSystemFont(ofSize: 13, weight: .regular) }
+        static var appKitSyntaxHidden: NSFont { .systemFont(ofSize: Scale.hiddenSyntax) }
+        static func appKitHeading(_ level: Int) -> NSFont { .systemFont(ofSize: CGFloat(26 - level * 3), weight: .semibold) }
+        static var paragraphStyle: NSParagraphStyle { let p = NSMutableParagraphStyle(); p.paragraphSpacing = 6; return p }
+        static func headingParagraphStyle(_ level: Int) -> NSParagraphStyle { paragraphStyle }
+        static func listParagraphStyle(indent: CGFloat, hanging: CGFloat) -> NSParagraphStyle { NSMutableParagraphStyle() }
+        static var quoteParagraphStyle: NSParagraphStyle { NSMutableParagraphStyle() }
     }
-    func select(anchor: Int, head: Int) { selection = (anchor, head) }
-    func clearSelection() { selection = nil }
 }
+enum Style {
+    enum Foreground { static let primary = Color.white }
+    enum Tint { static let accent = Color.blue }
+    enum Background { static let overlay = Color.gray }
+    enum Opacity { static let washed = 0.1, faint = 0.3, muted = 0.6, strong = 0.9 }
+    enum Spacing {
+        static let sm: CGFloat = 4, xs: CGFloat = 2, lg: CGFloat = 12, markdownListInset: CGFloat = 16, listIndent: CGFloat = 16
+        static let menuWidth: CGFloat = 300, menuListHeight: CGFloat = 300, menuFormHeight: CGFloat = 200
+    }
+    enum Dimension { static let markdownQuoteBar: CGFloat = 3, markdownBullet: CGFloat = 4 }
+}
+enum MarkdownDecoration { static func code(_ rect: CGRect) {} }
+enum CardStyle { case group }
+struct Card: View { let ref: Reference; let style: CardStyle; var isSelected = false; var body: some View { Text("card").frame(height: 40) } }
+struct TextBlock: View { let content: String; var body: some View { Text(content) } }
+struct MaterialBlock: View {
+    let block: Material.Block
+    var isSelected = false
+    var body: some View {
+        if case .task(_, let text, _) = block, text.count > 40 {
+            Text(text).fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        } else {
+            Text("block").frame(maxWidth: .infinity, minHeight: 44)
+        }
+    }
+}
+@MainActor @Observable final class ReferenceSelection { static let shared = ReferenceSelection(); var selected: Reference? }
+struct MenuPanelContent {
+    init(controller: MenuController, onSelect: @escaping (MenuItem) -> Void, onCancel: @escaping () -> Void, onCommit: @escaping () -> Void) {}
+}
+@MainActor final class MenuPanelPresenter {
+    var onResignKey: (() -> Void)?
+    var onEscape: (() -> Void)?
+    var presented = 0, dismissed = 0
+    func present(_ content: MenuPanelContent, size: CGSize, anchor: CGRect, in host: NSWindow) { presented += 1 }
+    func dismiss() { dismissed += 1 }
+}
+@MainActor enum ScintEditorMenu {
+    static let menu: [MenuItem] = [.command(id: "new-task", label: "Task", icon: nil, keywords: ["task"], opens: .task)]
+    static func search(_ query: String, kind: MenuKind) -> [MenuItem] { [] }
+    static func form(for block: Material.Block) -> (MenuFormKind, MenuFormValues)? {
+        if case .task(_, let text, let done) = block { return (.task, MenuFormValues(primary: text, completed: done)) }
+        return nil
+    }
+    static func commit(_ outcome: MenuOutcome, editor: ScintEditor) {
+        if case .form(.task, let values) = outcome.choice, outcome.isInserting {
+            editor.insert(.task(UUID(), values.primary, values.completed), replacing: outcome.replacementRange)
+        }
+    }
+}
+
+// MARK: Tests
+
+@MainActor var failures = 0
+@MainActor func check(_ condition: Bool, _ message: String, line: Int = #line) {
+    if !condition { failures += 1 }
+    print(condition ? "PASS" : "FAIL", "[\(line)]", message)
+}
+@MainActor func spin() { RunLoop.current.run(until: Date().addingTimeInterval(0.02)) }
+
 @main struct EditorRegression {
-    @MainActor static var assertions = 0
-    @MainActor static func expect(_ value: @autoclosure () -> Bool, _ message: String, line: Int = #line) {
-        assertions += 1; precondition(value(), "EditorRegression:\(line): \(message)")
-    }
-    @MainActor static func make(_ blocks: [Material.Block]) -> Editor {
-        let ref = Reference(); Material.store[ref] = Material(blocks: blocks); return Editor(material: ref)
-    }
-    @MainActor static func invariant(_ editor: Editor) {
-        if case .empty = editor.position { expect(editor.blocks.isEmpty, "empty position has no phantom block") }
-        else { expect(!editor.blocks.isEmpty, "nonempty position targets real blocks") }
-        for pair in zip(editor.blocks, editor.blocks.dropFirst()) {
-            if case .text = pair.0, case .text = pair.1 { fatalError("Adjacent text blocks") }
-        }
-    }
-    @MainActor static func roundTrip(_ editor: Editor, _ action: () -> Void) {
-        let before = editor.blocks, position = editor.position, count = editor.undoStack.count
-        action(); invariant(editor)
-        let after = editor.blocks, end = editor.position
-        if editor.undoStack.count > count {
-            editor.reconcileBlocks(); editor.undo()
-            expect(editor.blocks == before && editor.position == position, "undo restores material and position")
-            editor.redo(); expect(editor.blocks == after && editor.position == end, "redo restores material and position")
-        }
-    }
     @MainActor static func main() {
-        if CommandLine.arguments.contains("--invalid-undo") {
-            let id = UUID(), e = make([.text(id, "a")]); e.type("b")
-            Material.update(e.material) { $0.update(.text(id, "aX"), at: 0) }
-            e.reconcileText(id: id, prefix: 1, removed: 1, inserted: 1)
-            e.undo(); fatalError("Invalid undo returned successfully")
-        }
-        primitives(); positions(); boundaries(); boundaryMatrix(); emptyMaterials(); history(); reconcile(); menusAndLinks(); referenceHistory(); randomSequences()
-        print("Editor regression passed: \(assertions) assertions, 500 random command sequences")
-    }
-    @MainActor static func primitives() {
-        let a = UUID(), b = UUID(), task = Material.Block.task(UUID(), "Task", false)
-        let e = make([.text(a, "abc"), task, .text(b, "untouched")]), before = Material.writes
-        let r = RecordingRenderer("abc"); e.attach(r, to: a)
-        let position = e.position
-        expect(e.insert("\r\nx\ry", in: a, at: 1), "insert")
-        expect(e.string(a) == "a\nx\nybc" && r.storage == e.string(a), "normalization, synchronous renderer")
-        expect(r.replacements.last!.0 == 1..<1 && r.replacements.last!.1 == "\nx\ny", "exact renderer patch")
-        expect(e.delete(in: a, range: 1..<5), "delete")
-        expect(e.string(a) == "abc" && e.blocks[1] == task && e.string(b) == "untouched", "isolated text edits")
-        expect(e.position == position, "primitives preserve position")
-        let writes = Material.writes
-        expect(!e.insert("", in: a, at: 0) && !e.insert("x", in: a, at: 99), "bad insertion")
-        expect(!e.insert("x", in: task.id, at: 0) && !e.insert("x", in: UUID(), at: 0), "bad targets")
-        expect(!e.delete(in: a, range: 0..<99) && !e.delete(in: a, range: 0..<0), "bad deletion")
-        expect(!e.insert(task, after: nil) && !e.insert(.text(UUID(), ""), after: UUID()), "duplicate and missing predecessor")
-        expect(Material.writes == writes && writes == before + 2, "invalid primitives write nothing")
-    }
-    @MainActor static func positions() {
-        for grapheme in ["e\u{301}", "👨‍👩‍👧", "🇧🇷"] {
-            let id = UUID(), e = make([.text(id, grapheme)])
-            e.moveLeft(extending: false); expect(e.position == .text(id: id, anchor: 0, head: 0), "one grapheme left")
-            e.moveRight(extending: true); expect(e.position == .text(id: id, anchor: 0, head: grapheme.utf16.count), "one grapheme extended")
-            e.moveLeft(extending: false); expect(e.position == .text(id: id, anchor: 0, head: 0), "collapse left")
-            e.place(.text(id: id, anchor: 1, head: 1)); expect(e.position == .text(id: id, anchor: 0, head: 0), "snap grapheme")
-        }
-        let id = UUID(), card = Material.Block.task(UUID(), "t", false), writes = Material.writes
-        let e = make([.text(id, "abc"), card]); expect(e.position == .blocks(anchor: card.id, head: card.id), "initial card")
-        e.place(.text(id: card.id, anchor: 0, head: 0)); e.place(.blocks(anchor: UUID(), head: id))
-        expect(e.position == .blocks(anchor: card.id, head: card.id) && Material.writes == writes, "invalid place and initialization do not write")
-        switch e.position { case .empty: break; case .text: break; case .blocks: break }
-    }
-    @MainActor static func boundaries() {
-        for text in ["", "abc"] {
-            for forward in [false, true] {
-                let id = UUID(), card = Material.Block.task(UUID(), "t", false)
-                let e = make(forward ? [.text(id, text), card] : [card, .text(id, text)])
-                let offset = forward ? text.utf16.count : 0
-                e.place(.text(id: id, anchor: offset, head: offset))
-                roundTrip(e) { if forward { e.deleteForward() } else { e.deleteBackward() } }
-                expect(e.position == .blocks(anchor: card.id, head: card.id), "boundary selects card")
-                expect(e.blocks.count == (text.isEmpty ? 1 : 2), "only empty boundary text removed")
+        _ = NSApplication.shared
+        let card = UUID(), first = UUID(), second = UUID()
+        let ref = Reference()
+        var material = Material()
+        material.insert([.text(first, "Hello"), .task(card, "Do it", false), .text(second, "World")], at: 0)
+        Store.materials[ref] = material
+        func blocks() -> [Material.Block] { Store.materials[ref]?.blocks ?? [] }
+        func content(_ blocks: [Material.Block]) -> [String] {
+            blocks.map { block in
+                switch block { case .text(_, let text): text; case .task(_, let text, _): "task:" + text; default: "ref" }
             }
         }
-        for pair in [("a", "b"), ("a\n", "b"), ("", "b"), ("a", "")] {
-            let a = UUID(), b = UUID(), card = Material.Block.task(UUID(), "t", false)
-            let e = make([.text(a, pair.0), card, .text(b, pair.1)])
-            e.place(.blocks(anchor: card.id, head: card.id))
-            roundTrip(e) { e.removeSelectedBlocks() }
-            let separator = pair.0.isEmpty || pair.0.hasSuffix("\n") || pair.1.isEmpty ? "" : "\n"
-            expect(e.string(a) == pair.0 + separator + pair.1, "merge separator")
-            expect(e.position == .text(id: a, anchor: pair.0.utf16.count + separator.utf16.count, head: pair.0.utf16.count + separator.utf16.count), "join caret")
+
+        let editor = ScintEditor(ref, autofocus: true)
+        let scroll = EditorScrollView(editor, sizing: .fitsContent)
+        let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 480, height: 600), styleMask: [.titled], backing: .buffered, defer: false)
+        scroll.frame = CGRect(x: 0, y: 0, width: 480, height: 600)
+        window.contentView = scroll
+        window.makeFirstResponder(editor)
+        spin()
+
+        // Rendering
+        check(editor.string == "Hello\n\u{FFFC}\nWorld", "renders blocks with card separators: \(editor.string.debugDescription)")
+        check(editor.textLayoutManager != nil, "uses TextKit 2")
+        let initialHeight = editor.height(for: 480)
+        check(initialHeight > 0, "height \(initialHeight)")
+        editor.textLayout.textViewportLayoutController.layoutViewport()
+        window.displayIfNeeded()
+        let cardView = editor.card(card)?.view
+        check(cardView != nil, "card attachment view loaded")
+        check((cardView?.frame.height ?? 0) >= 44, "card view height \(cardView?.frame.height ?? 0)")
+        check(cardView?.superview != nil, "card view installed in view hierarchy")
+
+        // Typing writes the material, keeping ids
+        editor.setSelectedRange(NSRange(location: (editor.string as NSString).length, length: 0))
+        editor.insertText("!", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(blocks() == [.text(first, "Hello"), .task(card, "Do it", false), .text(second, "World!")], "typing saves: \(blocks())")
+        spin()
+
+        // Undo restores
+        editor.undoManager?.undo()
+        spin()
+        check(blocks() == [.text(first, "Hello"), .task(card, "Do it", false), .text(second, "World")], "undo typing: \(blocks())")
+        check(editor.string == "Hello\n\u{FFFC}\nWorld", "undo text: \(editor.string.debugDescription)")
+
+        // Deleting the card rejoins lines; undo brings the card back
+        editor.setSelectedRange(NSRange(location: 6, length: 1))
+        editor.deleteBackward(nil)
+        spin()
+        check(editor.string == "Hello\nWorld", "card delete rejoins: \(editor.string.debugDescription)")
+        check(blocks() == [.text(first, "Hello\nWorld")], "card delete saves: \(blocks())")
+        editor.undoManager?.undo()
+        spin()
+        check(editor.string == "Hello\n\u{FFFC}\nWorld", "undo card delete text: \(editor.string.debugDescription)")
+        check(content(blocks()) == ["Hello", "task:Do it", "World"] && blocks()[0].id == AnyHashable(first) && blocks()[1].id == AnyHashable(card), "undo card delete saves: \(blocks())")
+        editor.undoManager?.redo()
+        spin()
+        check(editor.string == "Hello\nWorld", "redo card delete: \(editor.string.debugDescription)")
+        editor.undoManager?.undo()
+        spin()
+
+        // Typing right after a card starts a new line
+        editor.setSelectedRange(NSRange(location: 7, length: 0))
+        editor.insertText("x", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(editor.string == "Hello\n\u{FFFC}\nx\nWorld", "typing after card: \(editor.string.debugDescription)")
+        check(content(blocks()) == ["Hello", "task:Do it", "x\nWorld"], "typing after card saves: \(blocks())")
+        spin()
+        editor.undoManager?.undo(); spin()
+
+        // Slash menu inserts a task card in the middle of text
+        editor.setSelectedRange(NSRange(location: 3, length: 0))
+        editor.insertText("\n", replacementRange: NSRange(location: NSNotFound, length: 0))
+        editor.insertText("/", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(editor.menuController.isOpen && editor.presenter.presented > 0, "slash opens menu")
+        editor.insertText("ta", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(editor.menuController.query == "ta", "query tracks typing: \(editor.menuController.query)")
+        editor.doCommand(by: #selector(NSResponder.insertNewline(_:)))
+        check(editor.menuController.isOpen && editor.menuController.kind == .create(.task), "return opens task form: \(editor.menuController.kind)")
+        editor.menuController.formPrimary = "New task"
+        let outcome = editor.menuController.commit()
+        check(outcome != nil, "form commits")
+        if let outcome { ScintEditorMenu.commit(outcome, editor: editor) }
+        check(editor.string == "Hel\n\u{FFFC}\nlo\n\u{FFFC}\nWorld", "task inserted on its own line: \(editor.string.debugDescription)")
+        let saved = blocks()
+        check(saved.count == 5, "task saved: \(saved)")
+        if saved.count == 5, case .task(_, let text, _) = saved[1] { check(text == "New task", "task text") }
+        spin()
+
+        // Tab and Shift-Tab indent list items
+        editor.setSelectedRange(NSRange(location: 0, length: (editor.string as NSString).length))
+        editor.insertText("- item", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(blocks() == [.text(first, "- item")], "select all + type replaces everything, cards included: \(blocks())")
+        editor.doCommand(by: #selector(NSResponder.insertTab(_:)))
+        check(editor.string == "  - item", "tab indents: \(editor.string.debugDescription)")
+        editor.doCommand(by: #selector(NSResponder.insertTab(_:)))
+        check(editor.string == "    - item" && editor.selectedRange().location == 10, "tab indents again: \(editor.string.debugDescription) \(editor.selectedRange())")
+        editor.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
+        editor.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
+        editor.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
+        check(editor.string == "- item" && editor.selectedRange().location == 6, "backtab outdents to the margin: \(editor.string.debugDescription) \(editor.selectedRange())")
+        editor.doCommand(by: #selector(NSResponder.insertTab(_:)))
+        spin()
+
+        // Styling: headings get the heading font
+        editor.setSelectedRange(NSRange(location: 0, length: (editor.string as NSString).length))
+        editor.insertText("# Title\nbody", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(editor.selectedRange().location == 12, "caret after typing stays put: \(editor.selectedRange())")
+        spin()
+        check(editor.selectedRange().location == 12, "caret after styling stays put: \(editor.selectedRange())")
+        let font = editor.textStorage?.attribute(.font, at: 3, effectiveRange: nil) as? NSFont
+        check(font?.pointSize == Typography.Prose.appKitHeading(1).pointSize, "heading styled: \(String(describing: font?.pointSize))")
+        let bodyFont = editor.textStorage?.attribute(.font, at: 9, effectiveRange: nil) as? NSFont
+        check(bodyFont?.pointSize == 14, "body styled: \(String(describing: bodyFont?.pointSize))")
+
+        // External change reloads and clears undo
+        Material.update(ref) { material in material.delete(at: 0); material.insert(.text(first, "From elsewhere"), at: 0) }
+        editor.load(blocks())
+        check(editor.string == "From elsewhere", "external load: \(editor.string.debugDescription)")
+        check(editor.undoManager?.canUndo == false, "external load clears undo")
+        let writes = Store.writes
+        editor.load(blocks())
+        check(Store.writes == writes, "loading own state does not write")
+
+        // Empty material
+        let emptyRef = Reference()
+        Store.materials[emptyRef] = Material()
+        let empty = ScintEditor(emptyRef, autofocus: false)
+        empty.insertText("a", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(Store.materials[emptyRef]?.blocks.count == 1, "typing into empty material creates a text block")
+        empty.deleteBackward(nil)
+        check(Store.materials[emptyRef]?.blocks.isEmpty == true, "deleting everything leaves no blocks")
+
+        // Round trips
+        let cardA = Material.Block.task(UUID(), "A", false), cardB = Material.Block.task(UUID(), "B", true)
+        for sample: [Material.Block] in [
+            [], [cardA], [cardA, cardB], [.text(UUID(), "x"), cardA], [cardA, .text(UUID(), "\nx\n")],
+            [.text(UUID(), "a\n"), cardA, .text(UUID(), "\nb"), cardB, .text(UUID(), "c")],
+        ] {
+            let rendered = ScintEditor.render(sample)
+            check(ScintEditor.blocks(in: rendered, reusing: sample) == sample, "round trip \(sample.count) blocks: \(rendered.string.debugDescription)")
         }
-        let id = UUID(), e = make([.text(id, "head\n\ntail")])
-        e.place(.text(id: id, anchor: 5, head: 5)); roundTrip(e) { e.insertCard(.task(UUID(), "t", false)) }
-        expect(e.blocks.count == 3 && e.string(id) == "head", "split trims head newline")
-        if case .text(_, let tail) = e.blocks.last! { expect(tail == "tail", "split trims tail newline") }
-        e.selectAll(); roundTrip(e) { e.removeSelectedBlocks() }; expect(e.blocks.count == 1, "remove all repairs empty document")
-        let card = Material.Block.task(UUID(), "t", false), c = make([card])
-        roundTrip(c) { c.newline() }; expect(c.blocks.count == 2 && c.isTextPosition, "newline creates text after card")
-    }
-    @MainActor static func emptyMaterials() {
-        let e = make([]), writes = Material.writes
-        expect(e.position == .empty, "empty input has explicit position")
-        e.reconcileBlocks(); e.selectAll(); e.escape(); e.moveLeft(extending: false); e.deleteBackward()
-        expect(e.position == .empty && Material.writes == writes, "empty navigation and reconciliation never write")
-        roundTrip(e) { e.type("first") }
-        e.undo(); expect(e.blocks.isEmpty && e.position == .empty, "undo first typing restores empty document")
-        roundTrip(e) { e.newline() }
-        e.undo(); roundTrip(e) { e.insertCard(.task(UUID(), "first", false)) }
-        Material.update(e.material) { $0.blocks = [] }; e.reconcileBlocks()
-        expect(e.position == .empty, "external clear reconciles without inventing content")
-    }
-    @MainActor static func boundaryMatrix() {
-        let a = UUID(), b = UUID(), card = Material.Block.task(UUID(), "t", false)
-        let e = make([.text(a, "alpha beta"), card, .text(b, "tail")])
-        for (id, at, direction, expected) in [(a, 0, Editor.Direction.up, a as AnyHashable), (a, 10, .down, card.id), (b, 0, .up, card.id), (b, 4, .down, b as AnyHashable)] {
-            e.place(.text(id: id, anchor: at, head: at)); let before = e.position, writes = Material.writes
-            if direction == .up { e.moveLeft(extending: true) } else { e.moveRight(extending: true) }
-            expect(e.position == before, "extending never crosses boundary")
-            if direction == .up { e.moveLeft(extending: false) } else { e.moveRight(extending: false) }
-            expect(e.position.id == expected && Material.writes == writes, "boundary movement selects neighbor without writes")
+
+        // Second document: interactions
+        let other = Reference(), noted = Reference(), task = UUID()
+        var second2 = Material()
+        second2.insert([.material(noted), .text(UUID(), "a/b"), .task(task, "Ship", false)], at: 0)
+        Store.materials[other] = second2
+        let doc = ScintEditor(other, autofocus: true)
+        let docScroll = EditorScrollView(doc, sizing: .fitsContent)
+        docScroll.frame = CGRect(x: 0, y: 0, width: 480, height: 400)
+        window.contentView = docScroll
+        window.makeFirstResponder(doc)
+        spin()
+        func blocks2() -> [Material.Block] { Store.materials[other]?.blocks ?? [] }
+        check(doc.string == "\u{FFFC}\na/b\n\u{FFFC}", "second doc renders: \(doc.string.debugDescription)")
+
+        // Clicking a card selects it and publishes its reference
+        let click = NSEvent.mouseEvent(with: .leftMouseDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
+        if let noteCard = doc.card(noted) { doc.click(noteCard, with: click) }
+        check(doc.selectedRange() == NSRange(location: 0, length: 1), "click selects card: \(doc.selectedRange())")
+        check(doc.card(noted)?.isSelected == true, "card shows selected")
+        check(ReferenceSelection.shared.selected == noted, "card reference published")
+
+        // Return on a selected card moves past it instead of replacing it
+        doc.doCommand(by: #selector(NSResponder.insertNewline(_:)))
+        check(doc.string == "\u{FFFC}\na/b\n\u{FFFC}" && doc.selectedRange() == NSRange(location: 1, length: 0), "return on card keeps it: \(doc.selectedRange())")
+        check(doc.card(noted)?.isSelected == false && ReferenceSelection.shared.selected == nil, "deselecting clears card selection")
+
+        // Space on a selected task card opens its edit form
+        doc.setSelectedRange(NSRange(location: 6, length: 1))
+        doc.insertText(" ", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(doc.string == "\u{FFFC}\na/b\n\u{FFFC}" && doc.menuController.kind == .update(.task) && doc.menuController.formPrimary == "Ship", "space edits task card: \(doc.menuController.kind)")
+        doc.menuController.formPrimary = "Shipped"; doc.menuController.formCompleted = true
+        if let outcome = doc.menuController.commit() {
+            doc.replaceCard(outcome.target, with: .task(task, doc.menuController.formPrimary, doc.menuController.formCompleted))
         }
-        for direction in [Editor.Direction.up, .down] {
-            e.place(.blocks(anchor: card.id, head: card.id)); e.stepBlock(direction, extending: false)
-            expect(e.position == (direction == .up ? .text(id: a, anchor: 10, head: 10) : .text(id: b, anchor: 0, head: 0)), "block movement enters neighboring text")
-            e.place(.blocks(anchor: card.id, head: card.id)); e.stepBlock(direction, extending: true)
-            expect(e.position == .blocks(anchor: card.id, head: direction == .up ? a : b), "block extension preserves anchor")
-            e.newline(); expect(e.position == .blocks(anchor: direction == .up ? a : b, head: direction == .up ? a : b), "multi-block newline collapses to head")
-        }
-        e.place(.blocks(anchor: a, head: a)); e.newline()
-        expect(e.position == .text(id: a, anchor: 10, head: 10), "newline enters selected text at end")
-        e.place(.blocks(anchor: card.id, head: card.id)); let writes = Material.writes; e.newline()
-        expect(e.position == .text(id: b, anchor: 0, head: 0) && Material.writes == writes, "newline reuses next text")
-        e.selectAll(); expect(e.position == .text(id: b, anchor: 0, head: 4), "first select all selects text")
-        e.selectAll(); expect(e.position == .blocks(anchor: a, head: b), "second select all selects document")
-        e.escape(); expect(e.position == .blocks(anchor: b, head: b), "escape collapses block selection")
-        e.type("ignored"); expect(e.string(b) == "tail", "typing on blocks is no-op")
-        e.place(.text(id: a, anchor: 0, head: 0)); e.moveWordRight(extending: true)
-        expect(e.position == .text(id: a, anchor: 0, head: 5), "word movement")
-        e.moveRight(extending: false); expect(e.position == .text(id: a, anchor: 5, head: 5), "right collapses selection")
-        roundTrip(e) { e.deleteWordBackward() }
-        let list = UUID(), l = make([.text(list, "- item")]); roundTrip(l) { l.indent(by: 1) }
-        expect(l.string(list) == "  - item", "indent edits prefix only")
-        roundTrip(l) { l.indent(by: -1) }
-        for offset in [0, 3] {
-            let id = UUID(), editor = make([.text(id, "abc")]); editor.place(.text(id: id, anchor: offset, head: offset))
-            roundTrip(editor) { editor.insertCard(.task(UUID(), "t", false)) }
-            expect(editor.blocks.count == 2 && editor.string(id) == "abc", "edge card insertion does not split")
-        }
-        let c = make([card]); roundTrip(c) { c.replaceCard(card.id, with: .task(card.id.base as! UUID, "edited", true)) }
-        let reference = Reference(), r = make([.text(UUID(), " ")]); r.type("@"); r.type("q")
-        roundTrip(r) { r.commitReference(reference, name: "Name") }
-        expect(r.selectedLink == nil, "menu reference commit ends at caret")
-        let close = make([.text(UUID(), " ")]); close.type("/"); let w = Material.writes
-        close.escape(); expect(close.trigger == nil && Material.writes == w, "escape closes trigger without write")
-    }
-    @MainActor static func history() {
-        let id = UUID(), e = make([.text(id, "")]); var time = 0.0; e.clock = { time }
-        for c in "hello world" { e.type(String(c)) }; expect(e.undoStack.count == 2, "word coalescing")
-        e.moveLeft(extending: false); e.type("x"); expect(e.undoStack.count == 3, "movement breaks group")
-        time += 1.1; e.type("y"); expect(e.undoStack.count == 4, "time breaks group")
-        e.undo(); e.type("z"); expect(e.redoStack.isEmpty && !e.undoManager.canRedo, "new edit clears redo")
-        let a = Material.Block.task(UUID(), "a", false), b = Material.Block.task(UUID(), "b", false), c = make([a,b])
-        c.removeSelectedBlocks(); let external = Material.Block.task(UUID(), "external", false)
-        Material.update(c.material) { $0.insert(external, at: 0) }; c.reconcileBlocks(); c.undo()
-        expect(c.blocks == [external,a,b], "undo uses predecessor and survives reconciliation")
-    }
-    @MainActor static func reconcile() {
-        let id = UUID(), e = make([.text(id, "abc")]); e.type("d")
-        Material.update(e.material) { $0.update(.text(id, "Xabcd"), at: 0) }
-        e.reconcileText(id: id, prefix: 0, removed: 0, inserted: 1)
-        expect(e.position == .text(id: id, anchor: 5, head: 5), "external insertion shifts caret")
-        e.undo(); expect(e.string(id) == "Xabc", "undo rebased text")
-        let before = e.position; e.reconcileBlocks(); e.reconcileText(id: id, prefix: 0, removed: 0, inserted: 0)
-        expect(e.position == before, "no change reconcile is no-op")
-    }
-    @MainActor static func menusAndLinks() {
-        let id = UUID(), e = make([.text(id, "a ")]); e.type("/"); e.type("t")
-        expect(e.trigger != nil && e.query == "t", "trigger query")
-        roundTrip(e) { e.commitTask("Task", completed: false) }
-        let ref = Reference(), markdown = Reference.Link.markdown(for: ref)!, linkID = UUID()
-        let links = make([.text(linkID, markdown + " [Web](https://example.com)")])
-        links.place(.text(id: linkID, anchor: markdown.utf16.count, head: 0))
-        expect(links.selectedReference == ref, "reverse link selection")
-        var opens = 0; links.onOpenLink = { _ in opens += 1 }; let pos = links.position, before = links.blocks
-        links.open(.reference(ref)); expect(opens == 1 && links.position == pos && links.blocks == before, "open is pure callback")
-        links.moveLeft(extending: false); expect(links.selectedLink == nil, "caret is not link selection")
-        expect(links.linkRange(in: linkID, containing: markdown.utf16.count) == nil, "exclusive link end")
-        let t = make([.text(UUID(), "word")]); t.type("/"); expect(t.trigger == nil, "no trigger inside word")
-    }
-    @MainActor static func referenceHistory() {
-        let a = Reference(), b = Reference(), e = make([.material(a)])
-        roundTrip(e) { e.replaceCard(a, with: .material(b)) }
-        expect(e.selectedReference == b, "replacement keeps the entire new reference")
-        expect(e.undoStack.last?.steps.count == 2, "reference replacement records removal and insertion")
-        e.undo(); expect(e.selectedReference == a && e.blocks == [.material(a)], "undo restores original reference intact")
-        let uuid = UUID(), artifact = Reference(uuid, kind: "artifact"), command = Reference(uuid, kind: "command")
-        let distinct = make([.artifact(artifact)])
-        expect(distinct.insert(.command(command), after: artifact), "distinct References are not collapsed to UUID")
-        let id = UUID(), inserted = make([.text(id, "")]); inserted.type("abc")
-        Material.update(inserted.material) { $0.update(.text(id, "Xabc"), at: 0) }
-        inserted.reconcileText(id: id, prefix: 0, removed: 0, inserted: 1)
-        inserted.undo(); expect(inserted.string(id) == "X", "external insertion at undo span start survives undo")
-        let left = Material.Block.task(UUID(), "left", false), middle = Material.Block.task(UUID(), "middle", false), right = Material.Block.task(UUID(), "right", false)
-        let removed = make([left, middle, right]); removed.place(.blocks(anchor: middle.id, head: middle.id))
-        Material.update(removed.material) { $0.delete(at: 1) }; removed.reconcileBlocks()
-        expect(removed.position == .blocks(anchor: right.id, head: right.id), "external removal uses former index")
-        removed.place(.blocks(anchor: left.id, head: right.id))
-        Material.update(removed.material) { $0.delete(at: 0) }; removed.reconcileBlocks()
-        expect(removed.position == .blocks(anchor: right.id, head: right.id), "external removal preserves surviving endpoint")
-        let wordID = UUID(), words = make([.text(wordID, "one two")]); words.place(.text(id: wordID, anchor: 0, head: 0))
-        roundTrip(words) { words.deleteWordForward() }
-        expect(words.string(wordID) == " two", "word forward deletion")
-        let batch = make([.text(UUID(), "abc abc")]), batchID = batch.blocks[0].id
-        roundTrip(batch) {
-            batch.beginGroup()
-            batch.replace(in: batchID, range: 4..<7, with: "xyz")
-            batch.replace(in: batchID, range: 0..<3, with: "xyz")
-            batch.endGroup()
-        }
-        expect(batch.undoStack.count == 1, "replace all is one group")
-    }
-    @MainActor static func randomSequences() {
-        var seed: UInt64 = 0x5C17
-        func random(_ count: Int) -> Int { seed = seed &* 6364136223846793005 &+ 1; return Int((seed >> 32) % UInt64(count)) }
-        for _ in 0..<500 {
-            let fixture: [Material.Block] = (0..<random(6)).map { index in
-                index % 2 == 0 ? .text(UUID(), ["seed", "", "e\u{301}🇧🇷"][random(3)]) : .task(UUID(), "seed task", false)
-            }
-            let e = make(fixture), original = e.blocks, start = e.position
-            if case .blocks = e.position { e.newline() } else { e.type("x") }
-            for _ in 0..<40 {
-                switch random(10) {
-                case 0: e.type(["a", "🇧🇷", "e\u{301}"][random(3)])
-                case 1: e.deleteBackward()
-                case 2: e.deleteForward()
-                case 3: e.newline()
-                case 4: e.moveLeft(extending: random(2) == 0)
-                case 5: e.moveRight(extending: random(2) == 0)
-                case 6: e.insertCard(.task(UUID(), "t", false))
-                case 7: e.selectAll()
-                case 8:
-                    if !e.blocks.isEmpty { e.moveBlock(e.blocks[random(e.blocks.count)].id, after: random(2) == 0 ? nil : e.blocks.last?.id) }
-                default: e.escape()
-                }
-                invariant(e); e.reconcileBlocks()
-            }
-            let final = e.blocks, end = e.undoStack.last?.after
-            while e.undoManager.canUndo { e.undo(); invariant(e) }
-            expect(e.blocks == original, "random undo restores original material")
-            if !e.redoStack.isEmpty { expect(e.position == start, "random undo restores initial position") }
-            while e.undoManager.canRedo { e.redo(); invariant(e) }
-            expect(e.blocks == final, "random redo restores final material")
-            if let end { expect(e.position == end, "random redo restores final command position") }
-        }
+        check(blocks2().last == .task(task, "Shipped", true), "task card replaced in place: \(blocks2())")
+        doc.menuController.close()
+
+        // Slash in the middle of a word does not open the menu; after a space it does; backspace closes it
+        doc.setSelectedRange(NSRange(location: 3, length: 0))
+        doc.insertText("/", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(!doc.menuController.isOpen, "mid-word slash stays text")
+        doc.insertText(" ", replacementRange: NSRange(location: NSNotFound, length: 0))
+        doc.insertText("@", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(doc.menuController.isOpen && doc.menuController.kind == .dynamic, "@ after space opens dynamic menu")
+        doc.deleteBackward(nil)
+        check(!doc.menuController.isOpen, "deleting the trigger closes the menu")
+        doc.insertText("@", replacementRange: NSRange(location: NSNotFound, length: 0))
+        doc.doCommand(by: #selector(NSResponder.cancelOperation(_:)))
+        check(!doc.menuController.isOpen && doc.string.contains("@"), "escape closes menu, keeps text")
+        spin()
+
+        // Deleting cards at the edges takes their separator
+        doc.setSelectedRange(NSRange(location: 0, length: 1))
+        doc.deleteBackward(nil)
+        check(!doc.string.hasPrefix("\n") && blocks2().first.map { if case .text = $0 { true } else { false } } == true, "deleting first card: \(doc.string.debugDescription)")
+        let end = (doc.string as NSString).length
+        doc.setSelectedRange(NSRange(location: end - 1, length: 1))
+        doc.deleteBackward(nil)
+        check(!doc.string.hasSuffix("\n") && blocks2().count == 1, "deleting last card: \(doc.string.debugDescription) \(blocks2())")
+        spin()
+
+        // Code fences restyle the lines after them
+        doc.setSelectedRange(NSRange(location: 0, length: (doc.string as NSString).length))
+        doc.insertText("one\ntwo", replacementRange: NSRange(location: NSNotFound, length: 0))
+        spin()
+        doc.setSelectedRange(NSRange(location: 0, length: 0))
+        doc.insertText("```\n", replacementRange: NSRange(location: NSNotFound, length: 0))
+        spin()
+        let codeFont = doc.textStorage?.attribute(.font, at: (doc.string as NSString).length - 1, effectiveRange: nil) as? NSFont
+        check(codeFont?.isFixedPitch == true, "fence restyles later lines: \(String(describing: codeFont))")
+        check(doc.selectedRange() == NSRange(location: 4, length: 0), "caret after fence: \(doc.selectedRange())")
+
+        // Typing mid-paragraph keeps the caret where it is through styling
+        doc.setSelectedRange(NSRange(location: 0, length: (doc.string as NSString).length))
+        doc.insertText("- first item\n- second", replacementRange: NSRange(location: NSNotFound, length: 0))
+        spin()
+        doc.setSelectedRange(NSRange(location: 4, length: 0))
+        doc.insertText("x", replacementRange: NSRange(location: NSNotFound, length: 0))
+        spin()
+        check(doc.selectedRange() == NSRange(location: 5, length: 0) && doc.string == "- fixrst item\n- second", "mid-paragraph caret: \(doc.selectedRange()) \(doc.string.debugDescription)")
+        doc.undoManager?.undo(); spin()
+        check(doc.string == "- first item\n- second", "undo after styling: \(doc.string.debugDescription)")
+
+        // SwiftUI sizing follows content
+        let sized = Reference()
+        var sizedMaterial = Material(); sizedMaterial.insert(.text(UUID(), "line"), at: 0)
+        Store.materials[sized] = sizedMaterial
+        let host = NSHostingView(rootView: VStack(spacing: 0) { EditorView(sized, sizing: .fitsContent, autofocus: true); Spacer(minLength: 0) }.frame(width: 400, height: 800, alignment: .top))
+        host.frame = CGRect(x: 0, y: 0, width: 400, height: 800)
+        window.contentView = host
+        host.layoutSubtreeIfNeeded(); spin(); host.layoutSubtreeIfNeeded()
+        let hosted = host.subviews.first { $0 is EditorScrollView } as? EditorScrollView ?? { () -> EditorScrollView? in
+            var stack: [NSView] = [host]; while let view = stack.popLast() { if let found = view as? EditorScrollView { return found }; stack += view.subviews }; return nil }()
+        let before = hosted?.frame.height ?? 0
+        hosted?.editor.setSelectedRange(NSRange(location: 4, length: 0))
+        for _ in 0..<5 { hosted?.editor.insertText("\nmore", replacementRange: NSRange(location: NSNotFound, length: 0)) }
+        spin(); host.layoutSubtreeIfNeeded(); spin(); host.layoutSubtreeIfNeeded()
+        let after = hosted?.frame.height ?? 0
+        check(hosted != nil && before > 0 && after > before * 3, "hosted editor grows with content: \(before) -> \(after)")
+        check(window.firstResponder === hosted?.editor, "autofocus makes editor first responder")
+
+        // A task that wraps gets a card as tall as its wrapped text
+        let wrapping = Reference(), long = UUID()
+        let longTask = Material.Block.task(long, String(repeating: "wrapping task text ", count: 20), false)
+        var wrappingMaterial = Material()
+        wrappingMaterial.insert([.text(UUID(), "Intro"), longTask], at: 0)
+        Store.materials[wrapping] = wrappingMaterial
+        let wrapped = ScintEditor(wrapping, autofocus: false)
+        let wrappedScroll = EditorScrollView(wrapped, sizing: .fitsContent)
+        window.contentView = wrappedScroll
+        wrappedScroll.frame = CGRect(x: 0, y: 0, width: 480, height: 600)
+        spin(); wrapped.textLayout.textViewportLayoutController.layoutViewport(); window.displayIfNeeded(); spin()
+        let taskFrame = wrapped.card(long)?.view?.frame.height ?? 0
+        let needed = NSHostingController(rootView: MaterialBlock(block: longTask)).sizeThatFits(in: CGSize(width: wrapped.container.size.width, height: .greatestFiniteMagnitude)).height
+        check(needed > 60 && abs(taskFrame - needed) < 1, "wrapped task card is as tall as its text: \(taskFrame) for \(needed) at \(wrapped.container.size.width)")
+
+        print(failures == 0 ? "ALL PASSED" : "\(failures) FAILED")
+        exit(failures == 0 ? 0 : 1)
     }
 }

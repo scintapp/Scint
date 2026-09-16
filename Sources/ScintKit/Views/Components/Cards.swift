@@ -9,14 +9,14 @@ struct Card: View {
     let style: CardStyle
     var onSelect: (() -> Void)? = nil
 
-    @State var isSelected: Bool = false
+    var isSelected: Bool = false
     @State var isHovered: Bool = false
     @State var linkMetadata: (url: URL, value: LPLinkMetadata)?
 
     var url: URL? { Self.link(for: ref) }
     var metadata: LPLinkMetadata? { linkMetadata.flatMap { $0.url == url ? $0.value : nil } }
     var selected: Bool { isSelected }
-    var icon: Iconography.Icon { Iconography.icon(for: ref, size: style == .list ? 18 : 14) }
+    var icon: Iconography.Icon { Iconography.icon(for: ref, size: style == .list ? 18 : 16) }
 
     static func link(for ref: Reference) -> URL? {
         Artifact.with(ref) { artifact in
@@ -113,6 +113,8 @@ struct Card: View {
             HStack(alignment: .center, spacing: 8) {
                 icon
                     .frame(maxHeight: .infinity, alignment: .center)
+                    .padding(.leading, 4)
+                    .padding(.trailing, 6)
 
                 VStack(alignment: .leading) {
                     Text(text.name)
@@ -149,7 +151,7 @@ struct Card: View {
     }
 
     var body: some View {
-        let shape = Style.Shape.large
+        let shape = Style.Shape.medium
 
         Button {
             if let onSelect { onSelect() }
@@ -162,16 +164,16 @@ struct Card: View {
                     VStack {
                         content
                             .multilineTextAlignment(.leading)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 14)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 16)
                             .frame(maxWidth: .infinity, maxHeight: 80, alignment: .leading)
                     }
-                    .background { selected ? shape.fill(icon.tint.opacity(0.03)) : shape.fill(Style.Background.card) }
+                    .background { selected ? shape.fill(icon.tint.opacity(0.03)) : shape.fill(Style.Background.group) }
                     .overlay {
                         shape.strokeBorder(
                             selected || isHovered
                             ? icon.tint.opacity(selected ? Style.Opacity.strong : Style.Opacity.muted)
-                            : Style.Border.card,
+                            : Style.Border.group,
                             lineWidth: selected ? 1 : 0.5
                         )
                     }

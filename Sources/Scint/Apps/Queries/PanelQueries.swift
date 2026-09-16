@@ -1,7 +1,7 @@
 import SwiftUI
 
 
-struct NavigatorQuery: Query {
+struct NavigatorExecuteQuery: Query {
     static func controls(_ model: any Model) -> Controls {
         .init(
             focused: { item in
@@ -43,16 +43,87 @@ struct NavigatorQuery: Query {
                     header: false,
                     items: [
                         .init(
-                            name: "Drafts",
+                            name: "Inbox",
                             image: "tray"
                         ),
                         .init(
-                            name: "Scheduled",
-                            image: "calendar"
+                            name: "Drafts",
+                            image: "text.rectangle"
                         ),
                         .init(
                             name: "Tasks",
-                            image: "figure.walk.diamond"
+                            image: "checkmark.app"
+                        )
+                    ]
+                ),
+                .init(
+                    id: "spaces",
+                    name: "Spaces",
+                    header: true,
+                    items: FlatSpacesList
+                        .parameters(model)
+                        .sections
+                        .flatMap { $0.items }
+                )
+            ]
+        )
+    }
+}
+
+
+struct NavigatorComposeQuery: Query {
+    static func controls(_ model: any Model) -> Controls {
+        .init(
+            focused: { item in
+                guard let ref = item.ref else { return false }
+                return model.session.focus == .structure(ref)
+            },
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
+            },
+            onSelect: { item in
+                guard let ref = item.ref else { return }
+                model.select(ref, entry: item.entryId, url: item.path)
+                model.focus(ref)
+            },
+            surfaceDropTarget: {
+                .init(name: "Spaces")
+            },
+            wrapLink: { view, item, _ in
+                guard let ref = item.ref else { return view }
+                return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
+            },
+            dropTypes: { item in
+                item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
+            },
+            onDrop: { providers, target in
+                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target)
+            }
+        )
+    }
+
+
+    static func parameters(_ model: any Model) -> Params {
+        .init(
+            header: true,
+            sections: [
+                .init(
+                    id: "base",
+                    header: false,
+                    items: [
+                        .init(
+                            name: "Inbox",
+                            image: "tray"
+                        ),
+                        .init(
+                            name: "Drafts",
+                            image: "text.rectangle"
+                        ),
+                        .init(
+                            name: "Tasks",
+                            image: "checkmark.app"
                         )
                     ]
                 ),
@@ -69,6 +140,7 @@ struct NavigatorQuery: Query {
         )
     }
 }
+
 
 struct PathQuery: Query {
     static func controls(_ model: any Model) -> Controls {

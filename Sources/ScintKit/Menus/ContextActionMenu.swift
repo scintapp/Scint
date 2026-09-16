@@ -46,7 +46,7 @@ struct ContextActionMenu: View {
         }
 
         Divider()
-        Button("Delete", role: .destructive) { Task { try? await ref.delete() } }
+        Button("Delete", role: .destructive) { Action.delete(ref) }
     }
 
     private func prompt(_ title: String, _ initial: String = "", _ apply: @escaping (String) -> Void) {
