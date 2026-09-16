@@ -6,9 +6,9 @@ import SwiftUI
     var editor: EditorModel
     var studio: StudioModel
 
-    init(_ spaces: [Reference]) {
-        self.editor = .init(.init(spaces))
-        self.studio = .init(.init(spaces))
+    init() {
+        self.editor = .init(.init())
+        self.studio = .init(.init())
     }
 
     func app(for key: ModelKey) -> any Model {

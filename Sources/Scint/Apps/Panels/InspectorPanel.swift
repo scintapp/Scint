@@ -62,7 +62,7 @@ struct InspectorPicker: View {
             switch surface {
                 case .harness: HarnessSurface(panel: self, model: model)
                 case .transcript: TranscriptSurface(panel: self, model: model)
-                case .material: MaterialSurface(panel: self, model: model)
+                case .material: MaterialsSurface(panel: self, model: model, state: state)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

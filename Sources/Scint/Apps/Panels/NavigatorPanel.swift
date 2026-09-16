@@ -4,20 +4,32 @@ import SwiftUI
 @Observable final class NavigatorPanel: Panel {
     var mode: Modality = .fixed
     var state: PanelState = .init(presented: true)
-    var surface: PanelSurface = .spaces
+    var surface: PanelSurface = .execute
 
     enum PanelSurface: String, CaseIterable {
-        case spaces
+        case compose, execute
         var label: String { rawValue.capitalized }
-        var image: String { "cube.transparent" }
+
+        var image: String {
+            switch self {
+                case .compose: ""
+                case .execute: ""
+            }
+        }
     }
 
     func controls(_ model: any Model) -> Controls {
-        NavigatorQuery.controls(model)
+        switch surface {
+            case .compose: NavigatorQuery.controls(model)
+            case .execute: FlatSpacesList.controls(model)
+        }
     }
 
     func parameters(_ model: any Model) -> Params {
-        NavigatorQuery.parameters(model)
+        switch surface {
+            case .compose: NavigatorQuery.parameters(model)
+            case .execute: FlatSpacesList.parameters(model)
+        }
     }
 
     func surface(_ model: any Model) -> some View {

@@ -18,7 +18,7 @@ struct NodeHeader: View {
 
     var intent: Intent? {
         guard let harness = Space.with(ref, { $0 })?.harness, let intent = Harness.with(harness, { $0 })?.intent
-        else { return nil }
+                else { return nil }
         return intent
     }
 
@@ -67,19 +67,11 @@ struct NodeSection: View {
                 NodeDivider()
 
                 ForEach(materials) { material in
-                    Button { if model.session.space != ref { model.open(material) } } label: {
-                        HStack(spacing: Style.Spacing.md) {
-                            Iconography.icon(for: material).frame(width: 18)
-                            Text(Card.text(for: material).name).lineLimit(1)
-                            Spacer(minLength: 0)
-                        }
+                    MaterialRow(ref: material, panel: panel, model: model)
                         .font(Typography.row)
                         .foregroundStyle(Style.Foreground.primary)
                         .frame(minHeight: 28)
                         .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(Card.text(for: material).name)
                 }
 
                 NodeDivider()
@@ -105,7 +97,7 @@ struct NodeSurface: Surface {
 
     var intent: Color {
         guard let harness = Space.with(ref, { $0 })?.harness, let intent = Harness.with(harness, { $0 })?.intent
-        else { return Iconography.accent(for: ref) }
+                else { return Iconography.accent(for: ref) }
         return Iconography.icon(for: intent).tint
     }
 

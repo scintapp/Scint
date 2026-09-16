@@ -3,7 +3,8 @@ import SwiftUI
 
 enum Modality: CaseIterable { case fixed, floating }
 enum Layout: CaseIterable { case grid, group, list, table }
-enum Nesting: String, CaseIterable { case recursive, single, flat }
+
+enum SurfaceParams { case section(SectionParams), item(ItemParams) }
 
 struct ItemParams: Hashable, Identifiable {
     let ref: Reference?
@@ -20,7 +21,6 @@ struct ItemParams: Hashable, Identifiable {
     let count: Int?
     let value: String?
     let active: Bool
-    var layout: Layout?
     let items: [ItemParams]
     private let _isParent: Bool?
     var isParent: Bool { _isParent ?? !items.isEmpty }
@@ -43,7 +43,6 @@ struct ItemParams: Hashable, Identifiable {
         value: String? = nil,
         description: String = "",
         active: Bool = true,
-        layout: Layout? = nil,
         items: [ItemParams] = [],
         isParent: Bool? = nil
     ) {
@@ -61,15 +60,8 @@ struct ItemParams: Hashable, Identifiable {
         self.value = value
         self.description = description
         self.active = active
-        self.layout = layout
         self.items = items
         self._isParent = isParent
-    }
-
-    /// Temporary: until call sites declare an item's layout, the section it is built in lends its own.
-    init(_ params: ItemParams, layout: Layout?) {
-        self = params
-        self.layout = layout
     }
 
     var id: AnyHashable {
@@ -88,8 +80,7 @@ struct SectionParams: Hashable, Identifiable {
     let footer: String?
     let tint: Color?
     let image: String
-    var layout: Layout?
-    let nesting: Nesting?
+    let layout: Layout?
     let items: [ItemParams]
     private let _isParent: Bool?
     var isParent: Bool { _isParent ?? !items.isEmpty }
@@ -101,7 +92,6 @@ struct SectionParams: Hashable, Identifiable {
          image: String? = nil,
          tint: Color? = nil,
          layout: Layout? = nil,
-         nesting: Nesting? = nil,
          items: [ItemParams] = [],
          isParent: Bool? = nil
     ) {
@@ -112,16 +102,10 @@ struct SectionParams: Hashable, Identifiable {
         self.tint = tint ?? nil
         self.footer = footer
         self.layout = layout
-        self.nesting = nesting
         self.items = items
         self._isParent = isParent
     }
 
-    /// Temporary: until call sites declare a section's layout, the base lends it the one it resolved.
-    init(_ params: SectionParams, layout: Layout?) {
-        self = params
-        self.layout = layout
-    }
 }
 
 struct PanelParams: Hashable, Identifiable {
@@ -183,7 +167,6 @@ struct Params: Hashable, Identifiable {
     let panel: PanelParams?
     let sections: [SectionParams]
     let layout: Layout?
-    let nesting: Nesting?
 
     init(
         id: AnyHashable? = nil,
@@ -191,7 +174,6 @@ struct Params: Hashable, Identifiable {
         name: String = "",
         description: String = "",
         layout: Layout? = nil,
-        nesting: Nesting? = .flat,
         header: Bool? = false,
         panel: PanelParams? = nil,
         sections: [SectionParams] = []
@@ -201,7 +183,6 @@ struct Params: Hashable, Identifiable {
         self.name = name
         self.description = description
         self.layout = layout
-        self.nesting = nesting
         self.header = header ?? false
         self.panel = panel
         self.sections = sections

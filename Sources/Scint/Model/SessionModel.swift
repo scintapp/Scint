@@ -6,10 +6,9 @@ import Foundation
     private(set) var selection: Selection = .init()
     private(set) var opened: Opened = .init()
     private(set) var navigation: Navigation = .init()
-    private(set) var spaces: [Reference]
+    var spaces: [Reference] { Runtime.shared.spaces }
 
-    init(_ spaces: [Reference]) {
-        self.spaces = spaces
+    init() {
         opened = .init()
         focus = .nothing
         let initial = Selection()

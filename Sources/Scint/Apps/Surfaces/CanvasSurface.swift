@@ -3,13 +3,13 @@ import SwiftUI
 
 
 struct CanvasZoom: View {
-    var viewport: CanvasViewport
+    @Binding var viewport: CanvasViewport
 
     var body: some View {
         Group {
             Button { viewport.zoom(-1) } label: { Image(systemName: "minus") }
             Button { viewport.actual() } label: { Text(viewport.percentage) }
-            Button { viewport.zoom(-1) } label: { Image(systemName: "plus") }
+            Button { viewport.zoom(+1) } label: { Image(systemName: "plus") }
         }
         .buttonStyle(.automatic)
         .font(.system(size: 11, weight: .medium))
@@ -17,29 +17,14 @@ struct CanvasZoom: View {
 }
 
 struct CanvasPresentation: View {
-    var panel: ContentPanel
+    @Binding var axis: CanvasAxis
 
     var body: some View {
         ForEach(CanvasAxis.allCases) { option in
-            Toggle(isOn: .init(get: { panel.axis == option }, set: { if $0 { panel.axis = option } })) {
+            Toggle(isOn: .init(get: { axis == option }, set: { if $0 { axis = option } })) {
                 Image(systemName: option.symbol)
             }
         }
-    }
-}
-
-struct CanvasControl<Content: View>: View {
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        ControlGroup {
-            content
-        }
-        .controlSize(.extraLarge)
-        .controlGroupStyle(.navigation)
-        .glassEffect(.regular.tint(Style.Background.glass.opacity(0.75)), in: Capsule())
-        .foregroundStyle(Style.Foreground.primary, Style.Foreground.faint, Style.Foreground.muted)
-        .tint(Style.Background.control)
     }
 }
 
@@ -105,6 +90,21 @@ struct CanvasMap: Surface {
     }
 }
 
+struct CanvasControl<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ControlGroup {
+            content
+        }
+        .controlSize(.extraLarge)
+        .controlGroupStyle(.navigation)
+        .glassEffect(.regular.tint(Style.Background.glass.opacity(0.75)), in: Capsule())
+        .foregroundStyle(Style.Foreground.primary, Style.Foreground.faint, Style.Foreground.muted)
+        .tint(Style.Background.control)
+    }
+}
+
 struct CanvasSurface: Surface {
     var panel: any Panel
     var model: any Model
@@ -120,5 +120,16 @@ struct CanvasSurface: Surface {
         .ignoresSafeArea(.container, edges: .trailing)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Style.Background.void)
+        .safeAreaInset(edge: .bottom) {
+            HStack(alignment: .bottom) {
+                CanvasMap(panel: panel, model: model)
+                Spacer()
+                CanvasControl { CanvasPresentation(axis: $axis) }
+                CanvasControl { CanvasZoom(viewport: $viewport) }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
+        }
     }
 }

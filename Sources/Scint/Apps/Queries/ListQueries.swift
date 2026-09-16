@@ -63,7 +63,6 @@ struct FoldersList: Query {
         }
 
         return .init(
-            nesting: .recursive,
             sections: [
                 .init(
                     id: "folders",
@@ -126,7 +125,6 @@ struct HarnessesList: Query {
         .init(
             id: "harnesses",
             name: "Harnesses",
-            nesting: .recursive,
             header: true,
             sections: []
         )
@@ -142,7 +140,6 @@ struct CommandsList: Query {
         .init(
             id: "commands",
             name: "Commands",
-            nesting: .recursive,
             header: true,
             sections: []
         )
@@ -211,7 +208,6 @@ struct MaterialsList: Query {
 
         return .init(
             layout: .table,
-            nesting: .flat,
             sections: [
                 .init(
                     id: "materials",
@@ -280,7 +276,6 @@ struct SpacesList: Query {
 
         return .init(
             id: "spaces",
-            nesting: .recursive,
             header: false,
             sections: [
                 .init(
@@ -349,7 +344,6 @@ struct MapList: Query {
 
         return .init(
             id: "spaces",
-            nesting: .recursive,
             header: false,
             sections: [
                 .init(
@@ -402,7 +396,6 @@ struct TranscriptsList: Query {
 
         return .init(
             layout: .table,
-            nesting: .single,
             header: false,
             sections: [
                 .init(
@@ -410,6 +403,65 @@ struct TranscriptsList: Query {
                     name: "Transcripts",
                     header: false,
                     items: items
+                )
+            ]
+        )
+    }
+}
+
+struct FlatSpacesList: Query {
+    static func controls(_ model: any Model) -> Controls { SpacesList.controls(model) }
+
+    static func parameters(_ model: any Model) -> Params {
+        func sorted(_ refs: [Reference]) -> [Reference] {
+            refs.sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
+        }
+
+        func children(of ref: Reference) -> [Reference] {
+            sorted(Space.with(ref, { Array($0.spaces) }) ?? [])
+        }
+
+        // Every space beneath a root, in tree order, rendered as one level.
+        func descendants(of ref: Reference) -> [Reference] {
+            children(of: ref).flatMap { [$0] + descendants(of: $0) }
+        }
+
+        func item(_ ref: Reference, origin: Reference) -> ItemParams {
+            .init(ref: ref, origin: origin, name: ref.descriptor.name, image: "app")
+        }
+
+        // Spaces below this one that are doing something right now.
+        func working(_ refs: [Reference]) -> Int {
+            refs.count { ref in
+                switch ref.context?.state {
+                    case .active, .working: true
+                    default: false
+                }
+            }
+        }
+
+        func root(_ ref: Reference) -> ItemParams {
+            let below = descendants(of: ref)
+            let active = working(below)
+
+            return .init(
+                ref: ref,
+                origin: ref,
+                name: ref.descriptor.name,
+                image: "app",
+                count: active > 0 ? active : nil,
+                items: below.map { item($0, origin: ref) }
+            )
+        }
+
+        return .init(
+            id: "flat-spaces",
+            header: false,
+            sections: [
+                .init(
+                    id: "spaces",
+                    name: "Spaces",
+                    items: sorted(model.session.spaces).map(root)
                 )
             ]
         )

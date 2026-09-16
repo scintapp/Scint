@@ -131,7 +131,6 @@ struct SearchDetail: Query {
         return .init(
             id: PanelKey.search.id,
             layout: content.layout,
-            nesting: content.nesting,
             header: content.header,
             panel: .init(
                 key: .search,

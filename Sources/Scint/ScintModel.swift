@@ -8,7 +8,7 @@ import SwiftUI
     var host: HostModel
 
     init() {
-        self.app = .init(.init(Runtime.shared.spaces))
+        self.app = .init()
         self.panels = .init()
         self.host = .init()
     }

@@ -74,7 +74,6 @@ struct MaterialsGroup: Query {
             name: material.descriptor.name,
             description: material.descriptor.description,
             layout: .group,
-            nesting: .recursive,
             header: false,
             sections: [
                 .init(

@@ -25,6 +25,7 @@ extension Model {
 
     func open(_ ref: Reference) {
         session.focus(ref)
+        session.select(ref)
         session.open(ref)
     }
 

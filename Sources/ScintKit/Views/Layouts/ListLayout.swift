@@ -1,6 +1,15 @@
 import SwiftUI
 
 
+private struct ListDepthKey: EnvironmentKey { static let defaultValue: Int = 0 }
+
+extension EnvironmentValues {
+    var listDepth: Int {
+        get { self[ListDepthKey.self] }
+        set { self[ListDepthKey.self] = newValue }
+    }
+}
+
 struct ListLabel: View {
     let name: String
     let image: String

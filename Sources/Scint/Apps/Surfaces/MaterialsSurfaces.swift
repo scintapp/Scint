@@ -125,31 +125,22 @@ struct MaterialSurface: Surface {
 
     func content(_ ref: Reference, _ minHeight: CGFloat) -> some View {
         ScrollView {
-            VStack {
-                EditorView(ref, sizing: .fitsContent, autofocus: false, onFocus: { model.select(ref) }, onOpenLink: { link in
-                    switch link {
-                    case .reference(let reference): model.open(reference)
-                    case .url(let url): NSWorkspace.shared.open(url)
-                    }
-                })
-                .id(ref)
-                .frame(maxWidth: Style.Spacing.contentMaxWidth, maxHeight: .infinity, alignment: .center)
-                .padding(.horizontal, Style.Spacing.xxl)
-                .padding(.top, Style.Spacing.xxl)
-                .padding(.bottom, Style.Spacing.xxxl)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EditorView(ref, sizing: .fitsContent, autofocus: false, onFocus: { model.select(ref) }, onOpenLink: { link in
+                switch link {
+                case .reference(let reference): model.open(reference)
+                case .url(let url): NSWorkspace.shared.open(url)
+                }
+            })
+            .id(ref)
+            .frame(maxWidth: Style.Spacing.contentMaxWidth, maxHeight: .infinity, alignment: .center)
+            .padding(.horizontal, Style.Spacing.xxl)
+            .padding(.top, Style.Spacing.xxl)
+            .padding(.bottom, Style.Spacing.xxxl)
         }
-        .frame(minHeight: 240, idealHeight: 320, maxHeight: 370)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .scrollIndicators(.hidden)
         .scrollDisabled(!maximized)
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                model.select(ref)
-                model.open(ref)
-            }
-        )
+        .simultaneousGesture(TapGesture().onEnded { model.open(ref) })
     }
 
     var body: some View {
@@ -161,14 +152,18 @@ struct MaterialSurface: Surface {
 }
 
 struct MaterialsSurface: Surface {
-    var ref: Reference
     var panel: any Panel
     var model: any Model
 
-    var material: Reference? { ref }
-    var materials: [Reference] { Space.with(ref, { $0.materials }) ?? [] }
-
     @State var state: PanelState
+
+    var space: Reference? { model.session.space }
+    var material: Reference? { model.session.material }
+    var materials: [Reference] {
+        guard let space, let materials = Space.with(space, { $0.materials })
+        else { return [] }
+        return materials
+    }
 
     var body: some View {
         ScrollView {

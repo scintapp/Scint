@@ -259,9 +259,9 @@ import SwiftUI
                 return Iconography.icon(for: artifact.handler, size: size)
 
             case is Space.Type:
-                guard (Space.with(ref, { $0.space }) ?? nil) != nil
-                else { return Icon(symbol: "cube.transparent", tint: Style.Tint.space, sizing: size) }
-                return Icon(symbol: "space.custom", tint: Style.Tint.space, sizing: size)
+                guard let harness = Space.with(ref, { $0 })?.harness
+                else { return Icon(symbol: "space.custom", tint: Style.Tint.space, sizing: size) }
+                return Icon(symbol: "space.custom", tint: accent(for: harness), sizing: size)
 
             case is Command.Type:
                 return Icon(symbol: "switch.2", tint: Style.Tint.command, sizing: size)

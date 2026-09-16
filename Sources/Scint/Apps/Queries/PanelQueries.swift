@@ -36,7 +36,6 @@ struct NavigatorQuery: Query {
 
     static func parameters(_ model: any Model) -> Params {
         .init(
-            nesting: .recursive,
             header: true,
             sections: [
                 .init(
@@ -112,7 +111,6 @@ struct PathQuery: Query {
 
 
         return .init(
-            nesting: .recursive,
             header: true,
             sections: [
                 .init(

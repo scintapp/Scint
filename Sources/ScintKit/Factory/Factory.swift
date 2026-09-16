@@ -18,25 +18,25 @@ import Foundation
                     }
 
                     ForEach(params.sections) { section in
-                        build(
-                            surface,
-                            params: SectionParams(section, layout: params.layout ?? .list),
-                            controls: controls
-                        )
-                        .padding(.bottom, 16)
+                        build(surface, params: section, controls: controls, layout: section.layout ?? params.layout ?? .list)
+                            .padding(.bottom, 16)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 8)
             }
             .contentShape(Rectangle())
-            .onDrop(of: target.map { controls.dropTypes?($0) ?? ReferenceTransfer.dropTypes(for: $0) } ?? [], isTargeted: nil) { providers in
-                guard let target else { return false }
-                return controls.onDrop?(providers, target) ?? ReferenceTransfer.handle(providers, target: target)
-            }
 
-            if palette.isEmpty { content }
-            else { content.contextMenu { ActionMenu(model: surface.model, items: palette) } }
+            let dropped = target.map { target in
+                AnyView(
+                    content.onDrop(of: controls.dropTypes?(target) ?? ReferenceTransfer.dropTypes(for: target), isTargeted: nil) { providers in
+                        controls.onDrop?(providers, target) ?? ReferenceTransfer.handle(providers, target: target)
+                    }
+                )
+            } ?? AnyView(content)
+
+            if palette.isEmpty { dropped }
+            else { dropped.contextMenu { ActionMenu(model: surface.model, items: palette) } }
         }
     }
 
@@ -136,16 +136,18 @@ import Foundation
     }
 
     // Section. Stamps each item with the layout, nesting and depth it was resolved with.
-    @ViewBuilder static func build(_ surface: some Surface, params: SectionParams, controls: Controls) -> some View {
+    @ViewBuilder static func build(_ surface: some Surface, params: SectionParams, controls: Controls, layout: Layout? = nil) -> some View {
         let target = controls.sectionDropTarget?(params)
+        let types = target.map { controls.dropTypes?($0) ?? ReferenceTransfer.dropTypes(for: $0) } ?? []
 
-        VStack(spacing: 0) {
-            switch params.layout {
+        let layout = params.layout ?? layout
+        let content = VStack(spacing: 0) {
+            switch layout {
                 case .group:
                     GroupLayout(title: params.name, footer: params.footer) {
                         ForEach(Array(params.items.enumerated()), id: \.element.id) { index, item in
                             if index > 0 { GroupDivider() }
-                            build(surface, params: ItemParams(item, layout: .group), controls: controls)
+                            build(surface, params: item, controls: controls, layout: .group)
                         }
                     }
 
@@ -161,7 +163,7 @@ import Foundation
                     }
 
                     ForEach(params.items) {
-                        build(surface, params: ItemParams($0, layout: .list), controls: controls)
+                        build(surface, params: $0, controls: controls, layout: .list)
                     }
 
                 // No layout is panel chrome: the panel stamps nothing onto its results.
@@ -175,17 +177,21 @@ import Foundation
                     EmptyView()
             }
         }
-        .onDrop(of: target.map { controls.dropTypes?($0) ?? ReferenceTransfer.dropTypes(for: $0) } ?? [], isTargeted: nil) { providers in
-            guard let target else { return false }
-            return controls.onDrop?(providers, target) ?? ReferenceTransfer.handle(providers, target: target)
+
+        if let target, !types.isEmpty {
+            content.onDrop(of: types, isTargeted: nil) { providers in
+                controls.onDrop?(providers, target) ?? ReferenceTransfer.handle(providers, target: target)
+            }
+        } else {
+            content
         }
     }
 
     // Item. A parent's children are a section, which is where this recurses.
-    @ViewBuilder static func build(_ surface: some Surface, params: ItemParams, controls: Controls) -> some View {
+    @ViewBuilder static func build(_ surface: some Surface, params: ItemParams, controls: Controls, layout: Layout? = nil, indent: CGFloat = 0) -> some View {
         let ref = params.path == nil && params.entryId == nil ? params.ref : nil
 
-        switch params.layout {
+        switch layout {
             case .group:
                 let row = AnyView(
                     GroupRow(label: params.name, description: params.trailingKind == .value && params.value == nil ? "" : params.description) {
@@ -258,17 +264,17 @@ import Foundation
                     count: params.count,
                     leadingAccessory: controls.sectionLeadingAccessory?(params, 0),
                     accessory: controls.sectionAccessory?(params, 0),
+                    indent: indent,
                     isExpanded: surface.isExpanded(params.id),
                     selected: controls.selected?(params) ?? false,
                     focused: controls.focused?(params) ?? true,
                     onSelect: { controls.onSelect?(params) },
                     onToggleExpanded: { surface.setExpanded(params.id) },
-                    rowWrapper: { AnyView(build(surface, controls.wrapSection?($0, params, 0) ?? $0, params: params, controls: controls)) }
+                    rowWrapper: { AnyView(build(surface, controls.wrapSection?($0, params, 0) ?? controls.wrapLink?($0, params, 0) ?? $0, params: params, controls: controls)) }
                 ) {
                     ForEach(params.items) { child in
-                        AnyView(build(surface, params: ItemParams(child, layout: .list), controls: controls))
+                        AnyView(build(surface, params: child, controls: controls, layout: .list, indent: indent + 16))
                     }
-                    .padding(.leading, 16)
                 }
 
             case .list:
@@ -283,6 +289,7 @@ import Foundation
                         count: params.count,
                         leadingAccessory: controls.itemLeadingAccessory?(params, 0),
                         accessory: controls.itemAccessory?(params, 0),
+                        indent: indent,
                         selected: controls.selected?(params) ?? false,
                         focused: controls.focused?(params) ?? true,
                         onSelect: { controls.onSelect?(params) }
@@ -311,13 +318,15 @@ import Foundation
         let editable = controls.isEditable && controls.canEdit(params)
         let draggable = controls.canDrag?(params) ?? ReferenceTransfer.canDrag(params)
 
-        let row = view
-            .contentShape(Rectangle())
-            .onDrop(of: types, isTargeted: nil) { providers in
+        let row = AnyView(view.contentShape(Rectangle()))
+
+        let dropped = types.isEmpty ? row : AnyView(
+            row.onDrop(of: types, isTargeted: nil) { providers in
                 controls.onDrop?(providers, params) ?? ReferenceTransfer.handle(providers, target: params)
             }
+        )
 
-        let dragged = draggable ? AnyView(row.onDrag { ReferenceTransfer.provider(for: params) ?? NSItemProvider() }) : AnyView(row)
+        let dragged = draggable ? AnyView(dropped.onDrag { ReferenceTransfer.provider(for: params) ?? NSItemProvider() }) : dropped
 
         if editable {
             dragged.contextMenu {

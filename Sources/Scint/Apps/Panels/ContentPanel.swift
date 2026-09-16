@@ -26,19 +26,17 @@ struct ContentPicker: View {
 
 @Observable final class ContentPanel: Panel {
     var state: PanelState = .init()
-    var surface: PanelSurface = .canvas
-    var viewport: CanvasViewport = .init()
-    var axis: CanvasAxis = .vertical
+    var surface: PanelSurface = .compose
 
     enum PanelSurface: String, CaseIterable, Identifiable {
-        case activity, canvas
+        case compose, execute
 
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
         var symbol: String {
             switch self {
-                case .activity: "rectangle.stack"
-                case .canvas: "checkmark.app"
+                case .compose: "checkmark.app"
+                case .execute: "rectangle.stack"
             }
         }
     }
@@ -46,22 +44,10 @@ struct ContentPicker: View {
     func surface(_ model: any Model) -> some View {
         ZStack(alignment: .top) {
             switch surface {
-                case .activity:
-                    EmptyView()
-
-                case .canvas:
+                case .compose:
                     CanvasSurface(panel: self, model: model)
-                        .safeAreaInset(edge: .bottom) {
-                            HStack(alignment: .bottom) {
-                                CanvasMap(panel: self, model: model)
-                                Spacer()
-                                CanvasControl { CanvasPresentation(panel: self) }
-                                CanvasControl { CanvasZoom(viewport: viewport) }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 8)
-                            .padding(.bottom, 8)
-                        }
+                case .execute:
+                    ActivitySurface(panel: self, model: model, onOpen: {})
             }
         }
         .toolbar {

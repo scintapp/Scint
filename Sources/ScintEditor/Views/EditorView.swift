@@ -3,7 +3,6 @@ import SwiftUI
 
 
 struct EditorView: View {
-    enum Sizing { case fitsContent, grows(min: CGFloat, max: CGFloat), fills }
     @State private var editor: ScintEditor
     let sizing: Sizing
     let autofocus: Bool
@@ -11,6 +10,9 @@ struct EditorView: View {
     let onReturn: (() -> Bool)?
     let onEditCard: (AnyHashable, CGRect) -> Void
     let onOpenLink: (ScintEditor.Link) -> Void
+
+    enum Sizing { case fitsContent, grows(min: CGFloat, max: CGFloat), fills }
+
     init(_ material: Reference, sizing: Sizing = .fitsContent, autofocus: Bool = true,
          onFocus: @escaping () -> Void = {}, onReturn: (() -> Bool)? = nil,
          onEditCard: @escaping (AnyHashable, CGRect) -> Void = { _, _ in },
@@ -19,6 +21,7 @@ struct EditorView: View {
         self.sizing = sizing; self.autofocus = autofocus; self.onFocus = onFocus
         self.onReturn = onReturn; self.onEditCard = onEditCard; self.onOpenLink = onOpenLink
     }
+
     var body: some View {
         EditorViewport(editor: editor, sizing: sizing, autofocus: autofocus, onFocus: onFocus, onReturn: onReturn, onEditCard: onEditCard)
             .onAppear { editor.onOpenLink = onOpenLink }
@@ -33,13 +36,16 @@ private struct EditorViewport: NSViewRepresentable {
     let onFocus: () -> Void
     let onReturn: (() -> Bool)?
     let onEditCard: (AnyHashable, CGRect) -> Void
+
     func makeNSView(context: Self.Context) -> EditorDocumentView {
         EditorDocumentView(editor: editor, sizing: sizing, autofocus: autofocus, onFocus: onFocus, onReturn: onReturn, onEditCard: onEditCard)
     }
+
     func updateNSView(_ view: EditorDocumentView, context: Self.Context) {
         _ = editor.position; _ = editor.blocks; _ = editor.trigger
         view.refresh()
     }
+
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: EditorDocumentView, context: Self.Context) -> CGSize? {
         let width = proposal.width ?? 500
         nsView.setFrameSize(CGSize(width: width, height: nsView.bounds.height))

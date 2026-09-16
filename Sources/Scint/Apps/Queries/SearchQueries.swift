@@ -30,7 +30,7 @@ struct ContentSearch: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        .init(nesting: .recursive, header: false)
+        .init(header: false)
     }
 }
 
@@ -55,7 +55,7 @@ struct InterfaceSearch: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        .init(nesting: .flat)
+        .init()
     }
 }
 
@@ -82,7 +82,6 @@ struct WorkspaceSearch: Query {
 
     static func parameters(_ model: any Model) -> Params {
         .init(
-            nesting: .flat
         )
     }
 }
@@ -114,6 +113,6 @@ struct EverythingSearch: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        .init(nesting: .flat)
+        .init()
     }
 }
