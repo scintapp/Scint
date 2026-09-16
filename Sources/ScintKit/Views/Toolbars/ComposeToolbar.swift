@@ -6,10 +6,11 @@ struct ComposeControl: View {
     var input: Reference
     var onSend: () -> Void
 
-    var origin: Reference { model.session.space }
+    var space: Reference? { model.session.selection.structure }
 
     var composable: Bool {
-        Space.with(origin, { $0.composable }) ?? false
+        guard let space else { return false }
+        return Space.with(space, { $0.composable }) ?? false
     }
 
     var empty: Bool {
@@ -19,18 +20,19 @@ struct ComposeControl: View {
     }
 
     func send() {
-        guard composable, !empty else { return }
+        guard let space, composable, !empty else { return }
         Material.update(input) { $0.clear() }
-        model.start(origin)
+        model.start(space)
         onSend()
     }
 
     func stop() {
-        model.stop(origin)
+        guard let space else { return }
+        model.stop(space)
     }
 
     var working: Bool {
-        guard let composition = model.compose(origin) else { return false }
+        guard let space, let composition = model.compose(space) else { return false }
         if case .working = composition.state { return true }
         return false
     }
@@ -53,13 +55,17 @@ struct ComposeBar: View {
     var body: some View {
         if let input {
             VStack(alignment: .leading) {
-                EditorComponent(
+                EditorView(
                     input,
+                    sizing: .grows(min: Style.Spacing.inputMinHeight, max: Style.Spacing.inputMaxHeight),
                     autofocus: false,
-                    active: model.session.selection.content == input,
-                    minHeight: Style.Spacing.inputMinHeight,
-                    maxHeight: Style.Spacing.inputMaxHeight,
-                    onFocus: { _ in model.select(input) }
+                    onFocus: { model.select(input) },
+                    onOpenLink: { link in
+                        switch link {
+                        case .reference(let ref): model.open(ref)
+                        case .url(let url): NSWorkspace.shared.open(url)
+                        }
+                    }
                 )
                 .id(input)
                 .padding(.horizontal, Style.Spacing.lg)

@@ -3,8 +3,8 @@ import OSLog
 
 
 final class Library: Sendable {
-    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Library")
     static let shared = Library()
+    private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Library")
     private let content: Content = .init()
     private let interfaces: Interfaces = .init()
 

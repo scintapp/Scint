@@ -11,10 +11,9 @@ struct Chip: View {
 
     var body: some View {
         let icon = Iconography.icon(for: ref, size: Typography.Scale.inline)
-        let selected = isSelected || ReferenceSelection.shared.selected == ref
+        let selected = isSelected
 
         Button {
-            ReferenceSelection.shared.selected = ref
             CallbackRouter.open(ref)
         } label: {
             HStack(spacing: Style.Spacing.sm) {

@@ -4,18 +4,7 @@ import SwiftUI
 // The harness compiles the production Markdown parser and renderer in isolation.
 // Only application routing and the asset-catalog accent are substituted; no window is opened.
 extension Color { static var accent: Color { .accentColor } }
-struct Reference: Hashable {
-    enum Link { static func reference(in value: String) -> Reference? { nil } }
-}
-enum ReferenceRouter { static func open(_ ref: Reference) {} }
-// These stand-ins satisfy MaterialBlock's unrelated runtime dependencies. The tested
-// TextBlock, typography, parser, and native paragraph layout are production code.
-enum Material {
-    enum Block {
-        case artifact(Reference), command(Reference), material(Reference)
-        case text(UUID, String), task(UUID, String, Bool)
-    }
-}
+enum CallbackRouter { static func open(_ ref: Reference) {} }
 struct Card: View {
     enum Style { case group }
     var ref: Reference
@@ -28,7 +17,6 @@ struct Chip: View {
     var label: String? = nil
     var body: some View { EmptyView() }
 }
-final class EntryResponderView: NSView {}
 enum Iconography {
     struct Icon: View {
         var symbol: String
@@ -40,6 +28,7 @@ enum Iconography {
 
 @main enum MarkdownRegression {
     @MainActor static func main() throws {
+        if ProcessInfo.processInfo.environment["SCINT_EDITOR_PERF"] == "1" { EditorPerformance.run(); return }
         var checks = 0
         func check(_ condition: @autoclosure () -> Bool, _ message: String) {
             precondition(condition(), message)
@@ -84,14 +73,14 @@ enum Iconography {
         let unicode = Attribute.markdown("👩🏽‍💻 **café** [日本語](https://example.com)", font: Typography.Prose.appKitText, reasoning: false, alignment: .left)
         check(unicode.string == "👩🏽‍💻 café 日本語", "UTF-16 ranges preserve Unicode")
         let editorSource = "- bullet\n> quote\n```swift\nlet x = 1\n```\n[Link](https://example.com) and `code`"
-        let themed = EditorThemer().attributedString(for: editorSource)
+        let themed = NSMutableAttributedString(string: editorSource)
+        Styler().apply(to: themed, document: Markdown.scan(editorSource), scope: [NSRange(location: 0, length: themed.length)])
         check(themed.string == editorSource, "Editor styling preserves source characters and offsets")
         let codeBody = (editorSource as NSString).range(of: "let x").location
         check(themed.attribute(.foregroundColor, at: codeBody, effectiveRange: nil) as? NSColor == NSColor(Style.Foreground.primary), "Editor code remains readable")
         let fenceLocation = (editorSource as NSString).range(of: "```").location
         check((themed.attribute(.font, at: fenceLocation, effectiveRange: nil) as? NSFont)?.pointSize == Typography.Scale.hiddenSyntax, "Editor fences use hidden syntax font")
-        let editorLink = (editorSource as NSString).range(of: "Link").location
-        check(themed.attribute(.link, at: editorLink, effectiveRange: nil) as? URL == URL(string: "https://example.com"), "Editor links carry destinations")
+        check(Markdown.scan(editorSource).links.count == 1, "Editor resolves links from source ranges")
         let editorInline = (editorSource as NSString).range(of: "`code`").location
         check(themed.attribute(.kern, at: editorInline, effectiveRange: nil) as? CGFloat == Style.Spacing.sm, "Editor code delimiters reserve padding")
         let titled = Attribute.markdown("[site](<https://example.com/a_(b)> \"Title\")", font: Typography.Prose.appKitText, reasoning: false, alignment: .left)
@@ -107,55 +96,118 @@ enum Iconography {
         check(!mixed.string.contains("**"), "Bold delimiters enclosing inline code are removed")
         let mixedFont = mixed.attribute(.font, at: 0, effectiveRange: nil) as! NSFont
         check(NSFontManager.shared.traits(of: mixedFont).contains(.boldFontMask), "Text enclosing inline code stays bold")
-        let editorMixed = EditorThemer().attributedString(for: mixedBold)
+        let editorMixed = NSMutableAttributedString(string: mixedBold)
+        Styler().apply(to: editorMixed, document: Markdown.scan(mixedBold), scope: [NSRange(location: 0, length: editorMixed.length)])
         check((editorMixed.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)?.pointSize == Typography.Scale.hiddenSyntax, "Editor hides enclosing bold delimiters too")
         view.frame = CGRect(origin: .zero, size: wide)
         _ = view.measure(18)
         check(abs((view.textContainer?.containerSize.width ?? 0) - wide.width) < 1, "Speculative measurement cannot change the live container width")
 
         let editorTableSource = "Before 👩🏽‍💻\n\n" + table + "\n\nAfter"
-        let editorThemer = EditorThemer()
-        let editor = EditorInputView(frame: CGRect(x: 0, y: 0, width: 640, height: 1000))
-        editor.configure(with: editorThemer, revision: 0)
-        editor.render(text: editorTableSource, selectedRange: NSRange(location: 0, length: 0))
-        check(editor.plainText == editorTableSource, "Actual editor table attachment preserves the source")
-        var tableRange: NSRange?
-        var tableAttachment: MarkdownTableAttachment?
-        editor.textStorage!.enumerateAttribute(.attachment, in: NSRange(location: 0, length: editor.textStorage!.length)) { value, range, _ in
-            if let table = value as? MarkdownTableAttachment { tableRange = range; tableAttachment = table }
+        let blockID = UUID(), ref = Reference()
+        Material.store[ref] = Material(blocks: [.text(blockID, editorTableSource)])
+        let model = Editor(material: ref)
+        let container = EditorDocumentView(editor: model, sizing: .fitsContent, autofocus: false, onFocus: {}, onReturn: nil, onEditCard: { _, _ in })
+        let editor = EditorTextView(editor: model, id: blockID, host: container)
+        container.addSubview(editor)
+        editor.frame = CGRect(x: 0, y: 0, width: 640, height: 1000)
+        model.attach(editor, to: blockID)
+        check(editor.storage.string == editorTableSource, "Table presentation preserves every source character")
+        check(editor.textLayoutManager != nil, "Editor uses TextKit 2")
+        var hasAttachment = false
+        editor.storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: editor.storage.length)) { value, _, _ in
+            if value != nil { hasAttachment = true }
         }
-        check(tableRange != nil && tableAttachment?.source == table, "Editor renders a real table attachment")
-        check(tableAttachment?.onEdit != nil, "Editor table source-edit action is connected")
-        editor.setSelectedRange(tableRange!)
-        check(editor.editSelectedTable(), "Selected table expands for source editing")
-        check(editor.plainText == editorTableSource && editor.textStorage!.string.contains("| Method |"), "Expanding a table leaves the document source unchanged")
-        editor.restoreTablePresentation()
-        check(editor.plainText == editorTableSource, "Restoring table presentation preserves all Unicode offsets")
-        check(editor.textLayoutManager != nil, "Editor keeps TextKit 2 for view attachments")
-        let undo = UndoManager()
-        undo.groupsByEvent = false
-        editor.documentUndoManager = undo
-        editor.textStorage!.enumerateAttribute(.attachment, in: NSRange(location: 0, length: editor.textStorage!.length)) { value, range, _ in
-            if value is MarkdownTableAttachment { tableRange = range }
+        check(!hasAttachment, "No text attachments")
+        let identity = ObjectIdentifier(editor)
+        model.type("\n")
+        check(ObjectIdentifier(editor) == identity && editor.storage.string == model.string(blockID), "Newline preserves view identity and source equality")
+        model.undo(); check(editor.storage.string == editorTableSource, "Undo patches storage synchronously")
+        model.place(.text(id: blockID, anchor: 0, head: 0))
+        let accepted = editor.textView(editor, shouldChangeTextIn: NSRange(location: 0, length: 0), replacementString: "Pasted\r\n")
+        check(!accepted && editor.storage.string == model.string(blockID), "Paste routes through editor and normalizes newlines")
+        model.undo()
+        editor.setMarkedText("仮", selectedRange: NSRange(location: 1, length: 0), replacementRange: NSRange(location: 0, length: 0))
+        check(model.string(blockID) == editorTableSource, "IME composition is transient")
+        editor.insertText("日本語", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(editor.storage.string == model.string(blockID) && editor.storage.string.hasPrefix("日本語"), "IME commit synchronizes material and storage")
+        model.undo(); check(editor.storage.string == editorTableSource, "IME undo restores original source")
+        let finder = FindClient(editor: model, host: container)
+        check(finder.shouldReplaceCharacters(inRanges: [NSValue(range: NSRange(location: 0, length: 6))], with: ["Changed"]), "Find opens a replacement group")
+        finder.replaceCharacters(in: NSRange(location: 0, length: 6), with: "Changed")
+        finder.didReplaceCharacters()
+        check(editor.storage.string == model.string(blockID), "Find replacement patches storage synchronously")
+        model.undo(); check(editor.storage.string == editorTableSource, "Find undo restores original source")
+        let hostedRef = Reference(), hostedID = UUID()
+        Material.store[hostedRef] = Material(blocks: [.text(hostedID, "Hosted")])
+        let hostedEditor = Editor(material: hostedRef)
+        let documentHost = EditorDocumentView(editor: hostedEditor, sizing: .fitsContent, autofocus: true, onFocus: {}, onReturn: nil, onEditCard: { _, _ in })
+        let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 640, height: 500), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = documentHost
+        documentHost.layoutSubtreeIfNeeded()
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+        documentHost.layoutSubtreeIfNeeded()
+        guard let hostedText = documentHost.textView(hostedID) else { fatalError("SwiftUI did not mount its text block") }
+        check(window.firstResponder === hostedText, "Autofocus follows initial position without retries")
+        let undoItem = NSMenuItem(title: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        let redoItem = NSMenuItem(title: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        let findItem = NSMenuItem(title: "Find", action: #selector(NSResponder.performTextFinderAction(_:)), keyEquivalent: "f")
+        findItem.tag = NSTextFinder.Action.showFindInterface.rawValue
+        check(!hostedText.validateMenuItem(undoItem), "Undo menu is disabled before an edit")
+        hostedEditor.type("X")
+        let editedHostedSource = hostedText.storage.string
+        check(hostedText.validateMenuItem(undoItem), "Undo menu enables for editor-owned history despite allowsUndo=false")
+        check(NSApp.sendAction(undoItem.action!, to: hostedText, from: undoItem), "Undo selector reaches the text responder")
+        check(hostedText.storage.string == "Hosted", "Menu Undo restores source")
+        check(hostedText.validateMenuItem(redoItem), "Redo menu enables after Undo")
+        check(NSApp.sendAction(redoItem.action!, to: hostedText, from: redoItem), "Redo selector reaches the text responder")
+        check(hostedText.storage.string == editedHostedSource, "Menu Redo restores the edit")
+        func shortcut(_ key: String, shift: Bool = false) -> NSEvent {
+            NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: shift ? [.command, .shift] : .command,
+                             timestamp: 0, windowNumber: window.windowNumber, context: nil, characters: key,
+                             charactersIgnoringModifiers: key, isARepeat: false, keyCode: 0)!
         }
-        editor.setSelectedRange(tableRange!)
-        undo.beginUndoGrouping()
-        _ = editor.editSelectedTable()
-        undo.endUndoGrouping()
-        undo.beginUndoGrouping()
-        editor.insertText("Edited ", replacementRange: NSRange(location: (editor.string as NSString).range(of: "Method").location, length: 0))
-        undo.endUndoGrouping()
-        let editedSource = editor.plainText
-        undo.beginUndoGrouping()
-        editor.restoreTablePresentation()
-        undo.endUndoGrouping()
-        check(editor.plainText == editedSource, "Collapsing an edited table preserves the edited source")
-        while undo.canUndo { undo.undo() }
-        check(editor.plainText == editorTableSource, "Undo across table expansion, text edits, and collapse preserves source offsets")
-        while undo.canRedo { undo.redo() }
-        check(editor.plainText == editedSource, "Redo across table presentation changes restores edited source")
-        editor.documentUndoManager = nil
-        editor.render(text: editorTableSource, selectedRange: NSRange(location: 0, length: 0))
+        check(hostedText.performKeyEquivalent(with: shortcut("z")), "Command-Z is handled")
+        check(hostedText.storage.string == "Hosted", "Command-Z undoes the edit")
+        check(hostedText.performKeyEquivalent(with: shortcut("z", shift: true)), "Shift-Command-Z is handled")
+        check(hostedText.storage.string == editedHostedSource, "Shift-Command-Z redoes the edit")
+        check(hostedText.validateMenuItem(findItem), "Find menu validates against the shared finder")
+        window.makeKeyAndOrderFront(nil)
+        fputs("FIND BEFORE focus=\(String(describing: window.firstResponder)) owns=\(documentHost.ownsFocus) container=\(String(describing: documentHost.finder.findBarContainer))\n", stderr)
+        check(hostedText.performKeyEquivalent(with: shortcut("f")), "Command-F is handled")
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
+        documentHost.layoutSubtreeIfNeeded()
+        fputs("FIND AFTER visible=\(documentHost.isFindBarVisible) bar=\(String(describing: documentHost.findBarView)) focus=\(String(describing: window.firstResponder))\n", stderr)
+        check(documentHost.isFindBarVisible && documentHost.findBarView != nil, "Command-F opens the actual find bar")
+        guard let searchField = documentHost.descendants(NSSearchField.self).first else { fatalError("Find bar has no search field") }
+        window.makeFirstResponder(searchField)
+        let searchResponder = window.firstResponder
+        documentHost.refresh()
+        check(window.firstResponder === searchResponder, "Refreshing does not steal focus from Find")
+        documentHost.findClient.selectedRanges = [NSValue(range: NSRange(location: 1, length: 4))]
+        check(window.firstResponder === searchResponder, "Selecting a find result retains search-field focus")
+        check(!Keymap.performKeyEquivalent(shortcut("z"), host: documentHost), "Document shortcuts do not intercept the find field's Undo")
+        documentHost.performFindAction(.hideFindInterface)
+        window.makeFirstResponder(hostedText)
+        hostedEditor.undo()
+        let hostedIdentity = ObjectIdentifier(hostedText)
+        documentHost.focusPosition()
+        hostedEditor.type("\n")
+        documentHost.refresh()
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+        documentHost.layoutSubtreeIfNeeded()
+        check(documentHost.textView(hostedID).map(ObjectIdentifier.init) == hostedIdentity, "SwiftUI ForEach preserves NSTextView identity across newline")
+        check(hostedText.storage.string == hostedEditor.string(hostedID), "Hosted text stays synchronized")
+        let hostedCard = Material.Block.task(UUID(), "Task", false)
+        hostedEditor.insertCard(hostedCard)
+        documentHost.refresh()
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+        documentHost.layoutSubtreeIfNeeded()
+        check((window.firstResponder as? EditorCardView)?.block.id == hostedCard.id, "Focus follows insertion into a new card")
+        if let cardView = documentHost.descendants(EditorCardView.self).first {
+            check(cardView.hitTest(CGPoint(x: cardView.frame.midX, y: cardView.frame.midY)) === cardView, "Card hit testing uses its placed coordinates")
+        }
+        window.contentView = nil
         let fixture = """
         # Markdown rendering
 
@@ -226,7 +278,7 @@ enum Iconography {
             }
 
             editor.textLayoutManager?.textViewportLayoutController.layoutViewport()
-            editor.frame.size = editor.measuredSize(for: 640)
+            editor.frame.size = CGSize(width: 640, height: editor.contentHeight)
             try save(editor, to: ".editor.png")
             let longTable = "| Method | Description | Arguments |\n| --- | --- | --- |\n" + (0..<8).map { row in
                 "| `method_\(row)` | A longer description of the method that wraps across several lines in a narrow table column. | `name`; optional `description`, `tags` |"
@@ -244,5 +296,6 @@ enum Iconography {
             }
         }
         print("Passed \(checks) Markdown parsing, attributed-text, and layout checks")
+        EditorPerformance.run()
     }
 }

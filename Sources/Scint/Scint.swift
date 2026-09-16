@@ -1,49 +1,66 @@
 import SwiftUI
+import OSLog
 
 
-struct Editor: View {
-    @Environment(ScintModel.self) var scint
-    @Environment(EditorModel.self) var model
+@main
+struct Scint: App {
+    @Environment(\.openWindow) private var openWindow
+    @State private var scint: ScintModel?
+    @State private var loading = false
+    @State private var pending: URL?
+    static let logger = Logger(subsystem: "com.kaechle.model", category: "App")
 
-    var body: some View {
-        NavigationSplitView {
-            model.navigator.surface(model)
-        } detail: {
-            model.editor.surface(model)
-        }
-        .environment(scint)
-        .toolbar(removing: .title)
-    }
-}
-
-struct Studio: View {
-    @Environment(ScintModel.self) var scint
-    @Environment(StudioModel.self) var model
-
-    var body: some View {
-        let inspectorPresented = model.assistant.bindable.presented
-
-        NavigationSplitView {
-            ZStack(alignment: .trailing) {
-                model.navigator.surface(model)
-
-                Rectangle()
-                    .fill(Style.Border.divider)
-                    .ignoresSafeArea()
-                    .frame(maxWidth: 1, maxHeight: .infinity, alignment: .trailing)
+    var body: some Scene {
+        Window("Studio", id: "studio") {
+            if let scint {
+                Studio()
+                    .environment(scint)
+                    .environment(scint.app.studio)
+                    .focusable(false)
+                    .onAppear { ShortcutManager.shared.register(model: scint) }
+            } else {
+                ProgressView()
+                    .task { await load() }
             }
-        } detail: {
-            model.canvas.surface(model)
+        }
 
+        Window("Editor", id: "editor") {
+            if let scint {
+                EditorWindow()
+                    .environment(scint)
+                    .environment(scint.app.editor)
+                    .focusable(false)
+            } else {
+                ProgressView()
+                    .task { await load() }
+            }
         }
-        .inspector(isPresented: inspectorPresented) {
-            model.assistant.surface(model)
-                .environment(scint)
-                .inspectorColumnWidth(min: 240, ideal: 320, max: 480)
-                .ignoresSafeArea(.all, edges: .top)
+
+        MenuBarExtra(content: {
+            if let scint {
+                Host()
+                    .environment(scint)
+                    .environment(scint.host)
+                    .focusable(false)
+            } else {
+                Text("Scint is loading…")
+            }
+        }, label: { Iconography.Glyph() })
+    }
+
+    func load() async {
+        guard scint == nil, !loading else { return }
+        loading = true
+        defer { loading = false }
+        do {
+            try await Runtime.shared.load()
+            let model = ScintModel()
+            await model.load()
+            scint = model
+            if let pending { CallbackRouter.handle(pending) }
+            pending = nil
+        } catch {
+            Self.logger.error("Runtime load failed: \(String(describing: error), privacy: .public)")
         }
-        .environment(scint)
-        .toolbar(removing: .title)
-        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
     }
 }

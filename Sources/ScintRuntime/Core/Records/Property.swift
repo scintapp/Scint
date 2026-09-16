@@ -1,7 +1,6 @@
 import Foundation
 
 
-
 protocol ExpressibleThings: ExpressibleByStringInterpolation, ExpressibleByBooleanLiteral, ExpressibleByNilLiteral {}
 protocol ExpressibleNumbers: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {}
 protocol ExpressibleCollections: ExpressibleByArrayLiteral, ExpressibleByDictionaryLiteral {}

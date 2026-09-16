@@ -1,13 +1,24 @@
 import Foundation
 
 
-struct Renderer {
-    let origin: Reference
-    var transcript: Reference
+enum Intent: CaseIterable, Codable, Sendable {
+    case compose, dispatch, observe, evaluate, search
 
-    private var closure: Reference? { Space.with(origin, { $0.closure }) }
+    var rawValue: String { String(describing: self) }
 
-    private var preamble: String? {
+    var forms: (label: String, running: String, completed: String) {
+        switch self {
+            case .compose: ("Compose", "Composing", "Composed")
+            case .dispatch: ("Dispatch", "Dispatching", "Dispatched")
+            case .observe: ("Observe", "Observing", "Observed")
+            case .evaluate: ("Evaluate", "Evaluating", "Evaluated")
+            case .search: ("Research", "Researching", "Researched")
+        }
+    }
+}
+
+struct Instructions: Codable, Sendable {
+    static var preamble: String {
         """
         You are working in a space: an environment holding documents you can read and \
         capabilities you can invoke. Everything below is a summary — use your tools to \
@@ -17,10 +28,42 @@ struct Renderer {
         """
     }
 
+    static var composer: String {
+        """
+        dispatch
+        """
+    }
+
+
+    static var evaluator: String {
+        """
+        evaluate
+        """
+    }
+
+    static var observer: String {
+        """
+        observe
+        """
+    }
+
+    static var searchr: String {
+        """
+        search
+        """
+    }
+}
+
+struct Renderer {
+    let origin: Reference
+    var transcript: Reference
+
+    private var closure: Reference? { Space.with(origin, { $0.closure }) }
+
     static func evaluation(_ origin: Reference, transcript: Reference, input: String) -> String {
         let map = Renderer(origin: origin, transcript: transcript)
         return map.assemble([
-            map.preamble,
+            Instructions.preamble,
             map.content(),
             map.interfaces(),
             map.thread(limit: 12),
@@ -96,25 +139,6 @@ struct Renderer {
 }
 
 extension Renderer {
-    static func value(_ value: Value) -> [String] {
-        switch value {
-        case .bool(let value): return [String(value)]
-        case .date(let value): return [Value.formatter.string(from: value)]
-        case .integer(let value): return [String(value)]
-        case .decimal(let value): return [String(describing: value)]
-        case .string(let value): return [value]
-            case .sequence(let values), .range(let values): return values.flatMap { Renderer.value($0) }
-        case .collection(let values):
-                return values.keys.sorted().flatMap { key -> [String] in
-                    guard let value = values[key] else { return [] }
-                    return Renderer.value(value).map { "\(key)=\($0)" }
-                }
-            case .reference(let ref):
-                let rendered = Renderer.reference(ref)
-                return rendered.isEmpty ? [] : [rendered]
-        }
-    }
-
     static func reference(_ ref: Reference) -> String {
         switch ref.type {
             case is Artifact.Type: return Artifact.with(ref, { $0.rendered }) ?? ""
@@ -128,4 +152,24 @@ extension Renderer {
             default: return ""
         }
     }
+    
+    static func value(_ value: Value) -> [String] {
+        switch value {
+            case .bool(let value): return [String(value)]
+            case .date(let value): return [Value.formatter.string(from: value)]
+            case .integer(let value): return [String(value)]
+            case .decimal(let value): return [String(describing: value)]
+            case .string(let value): return [value]
+            case .sequence(let values), .range(let values): return values.flatMap { Renderer.value($0) }
+            case .collection(let values):
+                return values.keys.sorted().flatMap { key -> [String] in
+                    guard let value = values[key] else { return [] }
+                    return Renderer.value(value).map { "\(key)=\($0)" }
+                }
+            case .reference(let ref):
+                let rendered = Renderer.reference(ref)
+                return rendered.isEmpty ? [] : [rendered]
+        }
+    }
+
 }

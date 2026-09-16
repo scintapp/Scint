@@ -66,9 +66,11 @@ extension Markdown {
         return result
     }
 
-    static func tableRanges(_ text: String) -> [NSRange] {
+    static func tableRanges(_ text: String) -> [NSRange] { tableRanges(text, document: scan(text)) }
+
+    static func tableRanges(_ text: String, document: Document) -> [NSRange] {
         let source = text as NSString
-        let blocks = scan(text).blocks
+        let blocks = document.blocks
         var ranges: [NSRange] = []
         var index = 0
         while index < blocks.count {

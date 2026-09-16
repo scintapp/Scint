@@ -7,7 +7,7 @@ import LinkPresentation
     let previewData = FileManager.default.temporaryDirectory
         .appending(path: "ScintCardPreviews")
         .appending(path: String(ProcessInfo.processInfo.processIdentifier))
-    precondition(setenv("XDG_DATA_HOME", previewData.path, 1) == 0)
+    setenv("XDG_DATA_HOME", previewData.path, 1)
 
     let space = Space.new("Research Desk")
     Space.update(space) { $0.description = "Shared research, materials, and tools." }
@@ -64,7 +64,7 @@ import LinkPresentation
     let previewData = FileManager.default.temporaryDirectory
         .appending(path: "ScintCardPreviews")
         .appending(path: String(ProcessInfo.processInfo.processIdentifier))
-    precondition(setenv("XDG_DATA_HOME", previewData.path, 1) == 0)
+    setenv("XDG_DATA_HOME", previewData.path, 1)
 
     let space = Space.new("Research Desk")
     let material = Material.new(space, name: "Research Brief Template")

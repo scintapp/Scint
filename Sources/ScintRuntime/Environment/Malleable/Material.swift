@@ -51,6 +51,7 @@ struct Material: Malleable {
     }
 
     mutating func insert(_ block: Block, at index: Int?) {
+        guard !blocks.contains(where: { $0.id == block.id }) else { return }
         let insertion = index ?? blocks.endIndex
         guard insertion >= blocks.startIndex, insertion <= blocks.endIndex else { return }
         switch block {

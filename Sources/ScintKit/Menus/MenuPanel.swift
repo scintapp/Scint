@@ -11,20 +11,26 @@ struct MenuPanelContent: View {
     @FocusState private var focus: MenuFocus?
 
     var body: some View {
-        Menu(
-            query: Binding(get: { controller.query }, set: { controller.query = $0 }),
-            formPrimary: Binding(get: { controller.formPrimary }, set: { controller.formPrimary = $0 }),
-            kind: controller.kind,
-            items: controller.items,
-            selectedID: controller.selectedID,
-            size: controller.size,
-            position: .zero,
-            focus: $focus,
-            onMoveSelection: controller.moveSelection,
-            onSelect: onSelect,
-            onCancel: onCancel,
-            onCommit: onCommit
-        )
+        switch controller.kind {
+        case .fixed, .dynamic:
+            VStack(alignment: .leading, spacing: Style.Spacing.sm) {
+                Text(controller.query.isEmpty ? "Type to filter" : controller.query)
+                    .font(Typography.row).foregroundStyle(Style.Foreground.muted)
+                    .padding(.horizontal, Style.Spacing.md)
+                MenuList(items: controller.items, selectedID: controller.selectedID, onSelect: onSelect)
+            }
+            .padding(Style.Spacing.md)
+            .frame(width: controller.size.width, height: controller.size.height)
+            .glassEffect(.regular.tint(Style.Background.group), in: Style.Shape.tiny)
+        case .create, .update:
+            Menu(
+                query: Binding(get: { controller.query }, set: { controller.query = $0 }),
+                formPrimary: Binding(get: { controller.formPrimary }, set: { controller.formPrimary = $0 }),
+                kind: controller.kind, items: controller.items, selectedID: controller.selectedID,
+                size: controller.size, position: .zero, focus: $focus,
+                onMoveSelection: controller.moveSelection, onSelect: onSelect, onCancel: onCancel, onCommit: onCommit
+            )
+        }
     }
 }
 
@@ -39,18 +45,19 @@ struct MenuPanelHost: NSViewRepresentable {
 
     func makeCoordinator() -> MenuPanelPresenter { MenuPanelPresenter() }
 
-    func makeNSView(context: Self.Context) -> NSView {
-        let view = NSView(frame: .zero)
+    func makeNSView(context: Self.Context) -> MenuPanelAnchorView {
+        let view = MenuPanelAnchorView(frame: .zero)
         view.isHidden = true
         return view
     }
 
-    func updateNSView(_ view: NSView, context: Self.Context) {
+    func updateNSView(_ view: MenuPanelAnchorView, context: Self.Context) {
         let presenter = context.coordinator
         presenter.onResignKey = onCancel
         presenter.onEscape = onCancel
 
         guard isOpen else {
+            view.onAttach = nil
             presenter.dismiss()
             return
         }
@@ -62,20 +69,21 @@ struct MenuPanelHost: NSViewRepresentable {
             onCommit: onCommit
         )
 
-        guard let window = view.window else {
-            DispatchQueue.main.async { [weak view] in
-                guard let window = view?.window, isOpen else { return }
-                presenter.present(content, size: size, anchor: anchor, in: window)
-            }
-            return
+        view.onAttach = { [weak view] in
+            guard let window = view?.window else { return }
+            presenter.present(content, size: size, anchor: anchor, in: window)
         }
-
-        presenter.present(content, size: size, anchor: anchor, in: window)
+        view.onAttach?()
     }
 
-    static func dismantleNSView(_ view: NSView, coordinator: MenuPanelPresenter) {
+    static func dismantleNSView(_ view: MenuPanelAnchorView, coordinator: MenuPanelPresenter) {
         coordinator.dismiss()
     }
+}
+
+final class MenuPanelAnchorView: NSView {
+    var onAttach: (() -> Void)?
+    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); onAttach?() }
 }
 
 final class MenuPanelWindow: NSPanel {
@@ -119,10 +127,12 @@ final class MenuPanelWindow: NSPanel {
             self.host = host
         }
 
-        guard !isPresented else { return }
-        isPresented = true
-        panel.makeKeyAndOrderFront(nil)
-        observeResignKey(of: panel)
+        switch content.controller.kind {
+        case .fixed, .dynamic: panel.orderFront(nil)
+        case .create, .update:
+            if !panel.isKeyWindow { panel.makeKeyAndOrderFront(nil) }
+        }
+        if !isPresented { isPresented = true; observeResignKey(of: panel) }
     }
 
     func dismiss() {

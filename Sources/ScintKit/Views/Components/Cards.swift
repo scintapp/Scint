@@ -15,7 +15,7 @@ struct Card: View {
 
     var url: URL? { Self.link(for: ref) }
     var metadata: LPLinkMetadata? { linkMetadata.flatMap { $0.url == url ? $0.value : nil } }
-    var selected: Bool { isSelected || ReferenceSelection.shared.selected == ref }
+    var selected: Bool { isSelected }
     var icon: Iconography.Icon { Iconography.icon(for: ref, size: style == .list ? 18 : 14) }
 
     static func link(for ref: Reference) -> URL? {
@@ -154,7 +154,6 @@ struct Card: View {
         Button {
             if let onSelect { onSelect() }
             else {
-                ReferenceSelection.shared.selected = ref
                 CallbackRouter.open(ref)
             }
         } label: {

@@ -36,8 +36,6 @@ struct InterfaceRunner {
 
         let (stream, continuation) = AsyncStream<String>.makeStream()
 
-        // Identity, argument references, and dispatch are checked in one MainActor turn.
-        // No suspension permits a detached/revoked reference to run between these checks.
         let started = dispatch(invocation, output: { line in
             continuation.yield(line)
             if Self.exit(of: line) != nil { continuation.finish() }

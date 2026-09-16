@@ -115,8 +115,6 @@ struct Badges: View {
     let model: any Model
     var ref: Reference? = nil
 
-    var origin: Reference { ref ?? model.session.space }
-
     var counts: ComponentCount {
         var counts = ComponentCount()
         var materials: [Reference] = []
@@ -124,7 +122,7 @@ struct Badges: View {
 
         if let scoped {
             materials = [scoped]
-        } else if let space = Space.with(origin, { $0 }) {
+        } else if let structure = ref ?? model.session.selection.structure, let space = Space.with(structure, { $0 }) {
             counts.spaces = space.spaces.count
             counts.artifacts = space.artifacts.count
             counts.commands = space.commands.count

@@ -40,7 +40,6 @@ enum MCPHandshake {
     }
 }
 
-/// Bound to the live runtime context, never to an identity supplied in tool arguments.
 struct ToolIdentity: Sendable {
     let context: ContextId
     let space: Reference

@@ -37,6 +37,7 @@ final class Catalog: Sendable {
     static let shared = Catalog()
     private let registry: Registry = Registry()
     private let descriptors: Index = Index<Descriptor>()
+    
     func get(_ ref: Reference) -> Descriptor? { descriptors.get(ref) }
     func get(_ id: DescriptorId) -> Reference? { descriptors.ref(for: id) }
 

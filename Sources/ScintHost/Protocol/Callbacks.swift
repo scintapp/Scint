@@ -17,16 +17,10 @@ import AppKit
     }
 
     static func start(_ ref: Reference, with parameters: [String: String]) throws {
-        guard ref.type == Space.self,
-              let harness = Space.with(ref, { $0.harness }) ?? nil
-                else { throw CallbackError.invalidTrigger(ref) }
-
+        guard ref.type == Space.self, let harness = Space.with(ref, { $0.harness }) ?? nil
+        else { throw CallbackError.invalidTrigger(ref) }
         let declared = Harness.with(harness, { $0.parameters }) ?? []
-
-        for (name, value) in try bind(parameters, against: declared) {
-            Space.with(ref, { $0.configure(value, for: name) })
-        }
-
+        for (name, value) in try bind(parameters, against: declared) { Space.with(ref, { $0.configure(value, for: name) }) }
         guard Runtime.shared.start(ref) != nil else { throw CallbackError.dispatchFailed(ref) }
     }
 

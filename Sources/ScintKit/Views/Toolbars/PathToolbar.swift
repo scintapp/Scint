@@ -37,7 +37,7 @@ struct PathBar: View {
     @State private var hovered = false
     let model: any Model
     var selection: Selection { model.session.selection }
-    var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.space) }
+    var path: [Reference] { model.session.navigation.path(for: selection) }
 
     var body: some View {
         BackButton(model: model)
@@ -57,7 +57,7 @@ struct PathMenu: View {
     @State private var hovered = false
     let model: any Model
     var selection: Selection { model.session.selection }
-    var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.space) }
+    var path: [Reference] { model.session.navigation.path(for: selection) }
 
     var body: some View {
         if let ref = path.last {

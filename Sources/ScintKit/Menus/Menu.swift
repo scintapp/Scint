@@ -111,6 +111,10 @@ struct MenuForm: View {
     }
 }
 
+final class MenuFilterTextField: NSTextField {
+    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); window?.makeFirstResponder(self) }
+}
+
 struct MenuFilterField: NSViewRepresentable {
     @Binding var text: String
     let onCommand: (Selector) -> Bool
@@ -118,7 +122,7 @@ struct MenuFilterField: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeNSView(context: Self.Context) -> NSTextField {
-        let field = NSTextField(string: text)
+        let field = MenuFilterTextField(string: text)
         field.delegate = context.coordinator
         field.placeholderString = "Filter"
         field.isBezeled = false
@@ -141,17 +145,9 @@ struct MenuFilterField: NSViewRepresentable {
 
         init(_ parent: MenuFilterField) { self.parent = parent }
 
-        func focus(_ field: NSTextField, attempts: Int = 3) {
-            guard field.currentEditor() == nil else { return }
-            guard let window = field.window, window.makeFirstResponder(field) else { retry(field, attempts: attempts); return }
-        }
-
-        func retry(_ field: NSTextField, attempts: Int) {
-            guard attempts > 0 else { return }
-            DispatchQueue.main.async { [weak self, weak field] in
-                guard let self, let field else { return }
-                self.focus(field, attempts: attempts - 1)
-            }
+        func focus(_ field: NSTextField) {
+            guard field.currentEditor() == nil, let window = field.window else { return }
+            window.makeFirstResponder(field)
         }
 
         func controlTextDidChange(_ notification: Notification) {
@@ -171,21 +167,7 @@ struct MenuFilter: View {
     let onCancel: () -> Void
 
     func handle(_ selector: Selector) -> Bool {
-        switch selector {
-            case #selector(NSResponder.moveDown(_:)):
-                onMoveSelection(1)
-            case #selector(NSResponder.moveUp(_:)):
-                onMoveSelection(-1)
-            case #selector(NSResponder.insertNewline(_:)):
-                onCommit()
-            case #selector(NSResponder.cancelOperation(_:)):
-                onCancel()
-            case #selector(NSResponder.deleteBackward(_:)) where text.isEmpty:
-                onCancel()
-            default:
-                return false
-        }
-        return true
+        Keymap.handleMenu(selector, empty: text.isEmpty, move: onMoveSelection, commit: onCommit, cancel: onCancel)
     }
 
     var body: some View {
@@ -312,7 +294,7 @@ struct Menu: View {
 
             Group {
                 if items.isEmpty {
-                    EmptyState(title: emptyTitle, width: size.width, height: size.height)
+                    NoSpace(title: emptyTitle)
                 } else {
                     MenuList(items: items, selectedID: selectedID, onSelect: onSelect)
                 }
@@ -355,10 +337,7 @@ struct Menu: View {
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
         .offset(x: position.x, y: position.y)
-        .task(id: kind) {
-            await Task.yield()
-            guard !Task.isCancelled else { return }
-            focus.wrappedValue = initialFocus
-        }
+        .onAppear { focus.wrappedValue = initialFocus }
+        .onChange(of: kind) { _, _ in focus.wrappedValue = initialFocus }
     }
 }

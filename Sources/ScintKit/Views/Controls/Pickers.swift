@@ -121,134 +121,6 @@ struct ItemRangePicker: View {
     }
 }
 
-struct AssistantPicker: View {
-    let panel: AssistantPanel
-    let model: any Model
-
-    private func selection(for surface: AssistantPanel.PanelSurface) -> Binding<Bool> {
-        Binding(
-            get: { panel.state.presented && panel.surface == surface },
-            set: { selected in
-                if selected {
-                    panel.surface = surface
-                    panel.state.presented = true
-                } else if panel.surface == surface {
-                    panel.state.presented = false
-                }
-            }
-        )
-    }
-
-    var body: some View {
-        ControlGroup {
-            ForEach(AssistantPanel.PanelSurface.allCases) { surface in
-                Toggle(isOn: selection(for: surface)) {
-                    Image(systemName: surface.symbol)
-                }
-            }
-        }
-        .controlGroupStyle(.navigation)
-        .foregroundStyle(Style.Foreground.primary, Style.Foreground.secondary, Style.Foreground.faint)
-        .tint(Style.Background.control)
-    }
-}
-
-struct SettingsPicker: View {
-    var panel: any Panel
-    var model: any Model
-
-    var surface: AnySurface { .init(panel: panel, model: model) }
-
-    @State private var presented = false
-
-    var body: some View {
-        Button { presented.toggle() } label: {
-            Image(systemName: "gearshape")
-        }
-        .popover(isPresented: $presented) {
-            surface.render(surface, SpaceSettings.parameters(model), SpaceSettings.controls(model))
-                .frame(maxWidth: 340, maxHeight: .infinity)
-                .scrollEdgeEffectStyle(.soft, for: .top)
-        }
-    }
-}
-
-struct PathPicker: View {
-    var panel: any Panel
-    var model: any Model
-
-    var path: [Reference] { model.session.navigation.path(for: selection, in: model.session.space) }
-    var spaces: [Reference] { path.filter { $0.type is Space.Type } }
-    var selection: Selection { model.session.selection }
-    var surface: AnySurface { .init(panel: panel, model: model) }
-
-    @State private var presented = false
-    @State private var text = ""
-
-    var query: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-    var matches: [Reference] {
-        guard !query.isEmpty else { return [] }
-        return Runtime.shared.all(as: Space.self)
-            .map { $0.0 }
-            .filter { $0.descriptor.name.localizedCaseInsensitiveContains(query) }
-            .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
-    }
-
-    func parent(of ref: Reference) -> String? {
-        (Space.with(ref, { $0.space }) ?? nil)?.descriptor.name
-    }
-
-    var body: some View {
-        if let ref = spaces.last {
-            Button { presented.toggle() } label: {
-                HStack(alignment: .center, spacing: Style.Spacing.lg) {
-                    Iconography.icon(for: ref, size: 13.5)
-
-                    Text(ref.descriptor.name)
-                        .font(.system(size: 13.5, weight: .medium))
-                        .lineLimit(Style.Limit.singleLine)
-                }
-                .padding(.horizontal, 8)
-            }
-            .popover(isPresented: $presented) {
-                VStack(spacing: 8) {
-                    Filter(text: $text)
-
-                    if query.isEmpty {
-                        surface.render(surface, SpacesList.parameters(model), SpacesList.controls(model))
-                    } else if matches.isEmpty {
-                        EmptyState(title: "No Matches")
-                    } else {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 0) {
-                                ForEach(matches, id: \.self) { match in
-                                    ListLink(
-                                        name: match.descriptor.name,
-                                        detail: parent(of: match),
-                                        ref: match,
-                                        image: "",
-                                        selected: selection.selected(match),
-                                        focused: model.session.focus == .structure(match)
-                                    ) {
-                                        model.select(match)
-                                        model.focus(match)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 8)
-                        }
-                    }
-                }
-                .frame(width: 260, height: 280)
-                .padding(.top, 8)
-            }
-            .onChange(of: presented) { _, shown in if !shown { text = "" } }
-            .onChange(of: model.session.selection) { presented = false }
-        }
-    }
-}
-
 struct TranscriptPicker: View {
     var model: any Model
 
@@ -257,7 +129,8 @@ struct TranscriptPicker: View {
     var body: some View {
         if let context = model.session.transcripts.first,
            let selected = model.session.transcript,
-           let composition = Runtime.shared.resolve(model.session.space) {
+           let space = model.session.selection.structure,
+           let composition = Runtime.shared.resolve(space) {
             let branches: [(ref: Reference, intent: Intent)] = Transcript.with(context, { record in
                 record.entries.compactMap { entry in
                     guard case .transcript(let ref, let intent, _) = entry else { return nil }

@@ -1,12 +1,6 @@
 import Foundation
 
 
-/// Every tool Scint exposes.
-///
-/// One enum, layered by what it acts on, terminating in a runtime call. No dispatcher, no schema
-/// validator, no second vocabulary to keep in step: the case is the name, the case is the schema,
-/// and the case body is the call. Adding a tool means adding a case and handling it in `run`, which
-/// the compiler insists on.
 enum Op: Sendable {
     case space(SpaceAction)
     case material(MaterialAction)
@@ -44,16 +38,12 @@ enum Op: Sendable {
 
     var name: String { Tools.name(group, action) }
 
-    /// Reads a recorded tool name back into the operation it names. Codex writes
-    /// `scint.space.read`; Claude prefixes the server and flattens the dots, as
-    /// `mcp__scint__scint_space_read`.
     static func named(_ recorded: String) -> Op? {
         let canonical = (recorded.components(separatedBy: "__").last ?? recorded)
             .replacingOccurrences(of: "_", with: ".")
         return all.first { $0.name == canonical }
     }
 
-    /// Past tense, because a transcript is a record of what already happened.
     var sentence: String {
         let verb = switch action {
             case "read": "Read"
@@ -172,8 +162,6 @@ enum Op: Sendable {
         }
     }
 
-    // MARK: - The runtime calls
-
     @MainActor
     func run(_ arguments: Supplied) async throws -> ToolResult {
         switch self {
@@ -265,11 +253,6 @@ struct ToolFailure: Error, CustomStringConvertible {
     init(_ description: String) { self.description = description }
 }
 
-// MARK: - Arguments
-
-/// Typed reads over what the caller supplied, so each runtime call states what it needs and fails
-/// in one place when it isn't there. Named apart from the runtime's `Arguments`, which marshals
-/// declared values into argv — a different direction entirely.
 struct Supplied: Sendable {
     let properties: Properties
     let space: Reference
@@ -301,7 +284,6 @@ struct Supplied: Sendable {
         properties[key] == nil ? fallback : try reference(key)
     }
 
-    /// The whole access rule: anything this space holds, and anything in the cluster beneath it.
     @MainActor
     func holds(_ ref: Reference) -> Bool {
         if ref == space { return true }
@@ -315,8 +297,6 @@ struct Supplied: Sendable {
         }
     }
 }
-
-// MARK: - Rendering
 
 @MainActor
 enum Render {
@@ -377,9 +357,6 @@ enum Render {
     }
 }
 
-// MARK: - MCP binding
-
-/// One `Op`, bound to the space that will run it, presented as an MCP tool.
 private struct Binding: Tool {
     let op: Op
     let identity: ToolIdentity

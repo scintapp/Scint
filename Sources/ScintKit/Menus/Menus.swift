@@ -237,7 +237,7 @@ struct TranscriptMenu: View {
             ForEach(transcripts) { transcript in
                 Button {
                     selection = transcript
-                    if model.session.space != ref { model.select(ref) }
+                    if !model.session.selection.selected(ref) { model.select(ref) }
                     model.select(transcript)
                 } label: {
                     if transcript == self.transcript {

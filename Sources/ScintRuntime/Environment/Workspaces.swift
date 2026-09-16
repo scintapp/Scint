@@ -26,7 +26,7 @@ final class Workspaces: @unchecked Sendable {
 
     func load(_ url: URL) async {
         do {
-            let stored = try await Persistence.shared.read(StorableCollection.self, at: url)
+            let stored = try await Persistence.shared.read(StorableStructure.self, at: url)
             load(structures.decode(stored))
         } catch {
             Self.logger.error("Workspace load failed (\(url.lastPathComponent, privacy: .public)): \(String(describing: error), privacy: .public)")

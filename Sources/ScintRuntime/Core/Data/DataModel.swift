@@ -188,10 +188,22 @@ struct StorableObject: Storable {
     }
 }
 
-struct StorableCollection: Storable {
+struct StorableStructure: Storable {
     var bridges: [StorableObject]
     var closures: [StorableObject]
     var spaces: [StorableObject]
+}
+
+struct StorableHarness: Storable {
+    var harness: StorableObject
+    var commands: [StorableObject]
+    var artifacts: [StorableObject]
+}
+
+struct StorableBundle: Storable {
+    var structure: StorableStructure
+    var harnesses: [StorableHarness]
+    var materials: [StorableObject]
 }
 
 struct PersistedObject<Value: Storable>: Sendable {

@@ -95,25 +95,6 @@ import SwiftUI
         self.selectedID = selectable[(index + delta + selectable.count) % selectable.count].id
     }
 
-    func handleInput(_ selector: Selector) -> (handled: Bool, outcome: MenuOutcome?) {
-        guard isOpen else { return (false, nil) }
-        switch selector {
-            case #selector(NSResponder.insertNewline(_:)):
-                return (true, commit())
-            case #selector(NSResponder.insertTab(_:)), #selector(NSResponder.moveDown(_:)):
-                moveSelection(1)
-                return (true, nil)
-            case #selector(NSResponder.moveUp(_:)):
-                moveSelection(-1)
-                return (true, nil)
-            case #selector(NSResponder.cancelOperation(_:)):
-                close()
-                return (true, nil)
-            default:
-                return (false, nil)
-        }
-    }
-
     func commit() -> MenuOutcome? {
         switch kind {
             case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.material):

@@ -64,7 +64,7 @@ struct CanvasBranch<Content: View>: View {
 }
 
 struct CanvasLinks: View {
-    let ref: Reference
+    let refs: [Reference]
     let axis: CanvasAxis
     let frames: [AnyHashable: CGRect]
 
@@ -72,7 +72,7 @@ struct CanvasLinks: View {
         let stroke = StrokeStyle(lineWidth: Style.Dimension.border, lineCap: .round, lineJoin: .round)
         var edges = Path()
         var bridges = Path()
-        tree(ref, &edges, &bridges)
+        for ref in refs { tree(ref, &edges, &bridges) }
 
         return ZStack {
             edges.stroke(Style.Foreground.faint, style: stroke)
@@ -134,7 +134,7 @@ struct CanvasLinks: View {
 }
 
 struct CanvasScroll<Content: View>: NSViewRepresentable {
-    let ref: Reference
+    let refs: [Reference]
     var axis: CanvasAxis
     var viewport: CanvasViewport
     let insets: EdgeInsets
@@ -152,7 +152,7 @@ struct CanvasScroll<Content: View>: NSViewRepresentable {
         let document = CanvasDocument()
         let clip = CanvasClip()
         let hosting = NSHostingView(
-            rootView: CanvasTree(ref: ref, axis: axis, content: content, onBackground: onBackground)
+            rootView: CanvasTree(refs: refs, axis: axis, content: content, onBackground: onBackground)
         )
 
         hosting.sizingOptions = [.intrinsicContentSize]
@@ -192,33 +192,43 @@ struct CanvasScroll<Content: View>: NSViewRepresentable {
         document?.onBackground = onBackground
         viewport.bind(scroll, document)
         context.coordinator.hosting?.rootView = CanvasTree(
-            ref: ref, axis: axis, content: content, onBackground: onBackground
+            refs: refs, axis: axis, content: content, onBackground: onBackground
         )
         scroll.documentView?.needsLayout = true
     }
 }
 
 struct CanvasTree<Content: View>: View {
-    let ref: Reference
+    let refs: [Reference]
     var axis: CanvasAxis
     let content: (Reference) -> Content
     let onBackground: () -> Void
 
+    private var siblings: AnyLayout {
+        axis == .vertical
+        ? AnyLayout(HStackLayout(alignment: .top, spacing: Style.Dimension.canvasSiblingGap))
+        : AnyLayout(VStackLayout(alignment: .leading, spacing: Style.Dimension.canvasSiblingGap))
+    }
+
     var body: some View {
-        CanvasBranch(ref: ref, axis: axis, content: content)
-            .backgroundPreferenceValue(CanvasAnchors.self) { anchors in
-                GeometryReader { proxy in
-                    CanvasLinks(ref: ref, axis: axis, frames: anchors.mapValues { proxy[$0] })
-                        .contentShape(Rectangle())
-                        .onTapGesture(perform: onBackground)
-                }
+        siblings {
+            ForEach(refs, id: \.self) { ref in
+                CanvasBranch(ref: ref, axis: axis, content: content)
             }
-            .fixedSize()
+        }
+        .backgroundPreferenceValue(CanvasAnchors.self) { anchors in
+            GeometryReader { proxy in
+                CanvasLinks(refs: refs, axis: axis, frames: anchors.mapValues { proxy[$0] })
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onBackground)
+            }
+        }
+        .fixedSize()
     }
 }
 
-struct CanvasLayout<Content: View>: View {
-    let ref: Reference
+struct Canvas<Content: View>: View {
+    let refs: [Reference]
     var axis: CanvasAxis
     var viewport: CanvasViewport
     let onBackground: () -> Void
@@ -228,7 +238,7 @@ struct CanvasLayout<Content: View>: View {
     var body: some View {
         GeometryReader { proxy in
             CanvasScroll(
-                ref: ref,
+                refs: refs,
                 axis: axis,
                 viewport: viewport,
                 insets: proxy.safeAreaInsets,

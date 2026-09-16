@@ -56,7 +56,7 @@ final class Structures: Bounding {
         }
     }
 
-    func encode(_ space: Space) throws -> StorableCollection {
+    func encode(_ space: Space) throws -> StorableStructure {
         guard space.space == nil else { throw RuntimeError.persistence(.encodingFailed(space.ref)) }
 
         func records(_ refs: Set<Reference>) throws -> [StorableObject] {
@@ -80,14 +80,14 @@ final class Structures: Bounding {
             pending.append(contentsOf: space.spaces)
         }
 
-        return StorableCollection(
+        return StorableStructure(
             bridges: try records(bridges),
             closures: try records(closures),
             spaces: try records(spaceRefs)
         )
     }
 
-    func decode(_ stored: StorableCollection) -> [(any Resolvable, Descriptor)] {
+    func decode(_ stored: StorableStructure) -> [(any Resolvable, Descriptor)] {
         stored.bridges.map { ($0.value, $0.descriptor) } +
             stored.closures.map { ($0.value, $0.descriptor) } +
             stored.spaces.map { ($0.value, $0.descriptor) }

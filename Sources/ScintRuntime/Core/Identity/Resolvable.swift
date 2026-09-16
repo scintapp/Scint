@@ -30,6 +30,11 @@ extension Resolvable {
     var rendered: String { "" }
 
     @discardableResult
+    static func exists<R: Resolvable>(_ name: String, as type: R.Type) -> Bool {
+        Catalog.shared.values().map { $0.name }.filter { $0 == name }.first != nil
+    }
+
+    @discardableResult
     static func with<R>(_ ref: Reference,_ body: (Self) throws -> R) rethrows -> R? {
         if ref.type is any Structural.Type { try Workspaces.shared.store(for: ref)?.with(ref, as: Self.self, body) }
         else { try Library.shared.store(for: ref)?.with(ref, as: Self.self, body) }

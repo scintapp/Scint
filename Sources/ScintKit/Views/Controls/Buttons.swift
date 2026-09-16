@@ -141,16 +141,12 @@ struct CreateButton: View {
     }
 
     var body: some View {
-        var scoped: Bool { model.session.space.type is Space.Type }
-
             SwiftUI.Menu {
                 Button { text = ""; presented = true } label: { Label("New Space", systemImage: "plus") }
                     .modifier(SpaceButtonStyle())
 
-                if scoped {
-                    Button { text = ""; presented = true } label: { Label("New Material", systemImage: "plus") }
-                        .modifier(SpaceButtonStyle())
-                }
+                Button { text = ""; presented = true } label: { Label("New Material", systemImage: "plus") }
+                    .modifier(SpaceButtonStyle())
             } label: { Image(systemName: "plus") }
                 .menuIndicator(.hidden)
                 .sheet(isPresented: $presented) {
