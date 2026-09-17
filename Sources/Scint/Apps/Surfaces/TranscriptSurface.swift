@@ -44,33 +44,29 @@ struct TranscriptSurface: Surface {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            let width = min(Style.Dimension.transcriptMaxWidth, max(0, geometry.size.width - Style.Spacing.lg * 2))
-            ScrollView {
-                LazyVStack(spacing: Style.Spacing.transcriptEntrySpacing) {
-                    if let transcript = model.session.transcript {
-                        let records = (Transcript.with(transcript, { $0.entries }) ?? []).filter { entry in
-                            if case .record = entry { true } else { false }
-                        }
+        Color.clear.frame(height: 9)
+            TranscriptPicker(model: model)
+                .frame(alignment: .center)
+            GeometryReader { geometry in
+                ScrollView {
+                    LazyVStack(spacing: Style.Spacing.transcriptEntrySpacing) {
+                        if let transcript = model.session.transcript {
+                            let records = (Transcript.with(transcript, { $0.entries }) ?? []).filter { entry in
+                                if case .record = entry { true } else { false }
+                            }
 
-                        ForEach(records) { entry in
-                            TranscriptEntry(
-                                transcript: transcript,
-                                entry: entry,
-                                model: model,
-                                inputMaxWidth: width * Style.Scale.transcriptInputWidth
-                            )
-                            .frame(maxWidth: Style.Dimension.transcriptMaxWidth)
+                            ForEach(records) { entry in
+                                TranscriptEntry(transcript: transcript, entry: entry, model: model)
+                                .frame(maxWidth: Style.Dimension.transcriptMaxWidth)
+                            }
                         }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .padding(8)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(8)
+                .defaultScrollAnchor(.bottom, for: .initialOffset)
+                .scrollEdgeEffectStyle(.soft, for: .vertical)
             }
-            .safeAreaBar(edge: .bottom) { TranscriptPicker(model: model) }
-            .defaultScrollAnchor(.bottom, for: .initialOffset)
-            .scrollEdgeEffectStyle(.soft, for: .vertical)
-        }
     }
 }
 

@@ -10,6 +10,8 @@ struct MarkdownText: NSViewRepresentable {
     var reasoning = false
     var completed = false
     var alignment: NSTextAlignment = .left
+    /// Report the width the text uses instead of the width offered.
+    var hugs = false
     @Environment(\.lineLimit) private var lineLimit
 
     func makeNSView(context: Self.Context) -> MarkdownTextView {
@@ -22,7 +24,7 @@ struct MarkdownText: NSViewRepresentable {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: MarkdownTextView, context: Self.Context) -> CGSize? {
-        nsView.measure(proposal.width ?? Style.Spacing.contentMaxWidth)
+        nsView.measure(proposal.width ?? Style.Spacing.contentMaxWidth, hugs: hugs)
     }
 }
 
@@ -79,13 +81,13 @@ final class MarkdownTextView: NSTextView {
         }
     }
 
-    func measure(_ width: CGFloat) -> CGSize {
+    func measure(_ width: CGFloat, hugs: Bool = false) -> CGSize {
         // SwiftUI can probe several widths before placement. Measuring must never
         // leave the live text container at the last speculative width.
         measurementContainer.containerSize = CGSize(width: max(Style.Dimension.border, width), height: .greatestFiniteMagnitude)
         measurementLayout.ensureLayout(for: measurementContainer)
         let used = measurementLayout.usedRect(for: measurementContainer)
-        return CGSize(width: width, height: ceil(used.height) + textContainerInset.height * 2)
+        return CGSize(width: hugs ? min(width, ceil(used.width)) : width, height: ceil(used.height) + textContainerInset.height * 2)
     }
 
     override func setFrameSize(_ newSize: NSSize) {

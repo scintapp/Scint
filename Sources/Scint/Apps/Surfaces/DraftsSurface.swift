@@ -7,15 +7,16 @@ struct NewDraftButton: View {
     var model: any Model
 
     var drafts: Reference { model.session.drafts }
+    @State var presented: Bool = false
 
     var body: some View {
         Button {
             model.open(Material.new(drafts, name: "New Draft"))
-            panel.state.presented.toggle()
+            presented.toggle()
         } label: {
             Image(systemName: "square.and.pencil")
         }
-        .sheet(isPresented: panel.bindable.presented) {
+        .sheet(isPresented: $presented) {
             if let material = model.session.opened.material {
                 DraftSurface(model: model, material: material)
                     .scrollEdgeEffectStyle(.soft, for: .top)

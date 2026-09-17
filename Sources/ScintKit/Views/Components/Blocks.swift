@@ -43,6 +43,7 @@ struct TaskBlock: View {
 struct TextBlock: View {
     let content: String
     var reasoning = false
+    var hugs = false
     @Environment(\.lineLimit) private var lineLimit
 
     var body: some View {
@@ -67,11 +68,10 @@ struct TextBlock: View {
                     .padding(.top, index == 0 ? .zero : spacing(between: elements[index - 1], and: element))
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: hugs ? nil : .infinity, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// Every list line is its own element, so a run of them is spaced as one list rather than as separate blocks.
     private func spacing(between above: Markdown.Element, and below: Markdown.Element) -> CGFloat {
         guard case .text(let upper, _, _, _) = above, case .text(let lower, _, _, _) = below,
               upper.isList, lower.isList else { return Style.Spacing.markdownBlockSpacing }
@@ -87,7 +87,6 @@ struct TextBlock: View {
                             Circle()
                                 .fill(Style.Foreground.subtle)
                                 .frame(width: Style.Dimension.markdownBullet, height: Style.Dimension.markdownBullet)
-                                // Centred on the first line, which starts `markdownTextInset` down in the text beside it.
                                 .frame(width: Style.Spacing.lg, height: Typography.Prose.appKitLineHeight + Style.Spacing.markdownTextInset * 2)
                         case .numbered:
                             Text(marker.trimmingCharacters(in: .whitespaces))
@@ -97,7 +96,7 @@ struct TextBlock: View {
                             TaskCompletionIndicator(completed: checked)
                         default: EmptyView()
                     }
-                    MarkdownText(content: text, font: font(kind), reasoning: reasoning, completed: kind == .checklist(checked: true))
+                    MarkdownText(content: text, font: font(kind), reasoning: reasoning, completed: kind == .checklist(checked: true), hugs: hugs)
                 }
                 .padding(.leading, kind.isList ? Style.Spacing.markdownListInset + CGFloat(depth) * Style.Spacing.listIndent : .zero)
 
@@ -106,7 +105,7 @@ struct TextBlock: View {
                     Rectangle()
                         .fill(Style.Foreground.faint)
                         .frame(width: Style.Dimension.markdownQuoteBar)
-                    MarkdownText(content: text, reasoning: true)
+                    MarkdownText(content: text, reasoning: true, hugs: hugs)
                         .padding(.vertical, Style.Spacing.sm)
                 }
                 .fixedSize(horizontal: false, vertical: true)
@@ -127,7 +126,6 @@ struct TextBlock: View {
                     }
                     .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(Style.Spacing.lg)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Style.Shape.small.fill(Style.Background.overlay))
                 .overlay(Style.Shape.small.strokeBorder(Style.Border.raised, lineWidth: Style.Dimension.hairline))

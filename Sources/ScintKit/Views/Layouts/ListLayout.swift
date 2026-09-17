@@ -144,7 +144,7 @@ struct ListRow<Content: View>: View {
 
     private var background: Color {
         guard selected else { return .clear }
-        return focused ? Style.Background.selected : Style.Background.control.opacity(Style.Opacity.faint)
+        return focused ? Style.Tint.accent.opacity(0.5) : Style.Background.control.opacity(Style.Opacity.faint)
     }
 
     var body: some View {

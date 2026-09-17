@@ -6,7 +6,6 @@ enum Harnesses {
         let compose: Reference
         let dispatch: Reference
         let evaluate: Reference
-        let observe: Reference
         let search: Reference
     }
 
@@ -19,17 +18,17 @@ enum Harnesses {
         }
 
         func artifact(_ name: String, _ url: URL) -> Reference {
-            exists(name, as: Artifact.self) ?? Artifact.register(name, url)
+            Artifact.register(name, url)
         }
 
         func command(name: String, description: String, artifact: Reference, parameters: [Command.Parameter]) -> Reference {
-            let reference = exists(name, as: Command.self) ?? Command.register(name, exec: artifact, params: parameters)
-            Catalog.shared.update(reference) { descriptor in descriptor.description = description }
-            return reference
+            let ref = Command.register(name, exec: artifact, params: parameters)
+            Catalog.shared.update(ref) { descriptor in descriptor.description = description }
+            return ref
         }
 
         func harness(name: String, description: String, command: Reference, intent: Intent, parameters: [Harness.Parameter]) -> Reference {
-            let ref = exists(name, as: Harness.self) ?? Harness.register(name, command: command, intent: intent, parameters: parameters)
+            let ref = Harness.register(name, command: command, intent: intent, parameters: parameters)
             Catalog.shared.update(ref) { descriptor in descriptor.description = description }
             return ref
         }
@@ -86,7 +85,6 @@ enum Harnesses {
             compose: compose,
             dispatch: dispatch,
             evaluate: evaluate,
-            observe: evaluate,
             search: search
         )
     }

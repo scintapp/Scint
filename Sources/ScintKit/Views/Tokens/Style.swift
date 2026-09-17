@@ -95,6 +95,7 @@ struct Style {
     enum Border {
         static var base: Color { Color(red: 0.18824, green: 0.18824, blue: 0.19216) }
         static var card: Color { Color(red: 0.27255, green: 0.27647, blue: 0.28039) }
+        static var bubble: Color { Color(red: 0.19608, green: 0.21569, blue: 0.27451) }
         static var handle: Color { Color(red: 0.32255, green: 0.32255, blue: 0.32255).opacity(0.75) }
         static var divider: Color { Color(red: 0.20353, green: 0.20475, blue: 0.20745) }
         static var node: Color { Color(red: 0.23922, green: 0.24314, blue: 0.24706) }
@@ -123,6 +124,7 @@ struct Style {
         static var base: Color { Color(red: 0.10588, green: 0.10588, blue: 0.1098) }
         static var glass: Color { Color(red: 0.11113, green: 0.11113, blue: 0.11113) }
         static var node: Color { Color(red: 0.13333, green: 0.13333, blue: 0.13725) }
+        static var bubble: Color { Color(red: 0.14902, green: 0.16078, blue: 0.20784) }
         static var panel: Color { Color(red: 0.11313, green: 0.11333, blue: 0.11355) }
         static var surface: Color { Color(red: 0.13725, green: 0.13725, blue: 0.14118) }
         static var group: Color { Color(red: 0.19821, green: 0.19821, blue: 0.20124).opacity(0.6) }
@@ -130,7 +132,7 @@ struct Style {
         static var card: Color { Color(red: 0.11588, green: 0.11588, blue: 0.1198) }
         static var control: Color { Color(red: 0.72821, green: 0.72821, blue: 0.73124).opacity(0.2) }
         static var selected: Color { Color(red: 0.72821, green: 0.72821, blue: 0.73124).opacity(0.2) }
-        static var raised: Color { Color(red: 0.12821, green: 0.12821, blue: 0.13124) }
+        static var raised: Color { Color(red: 0.12821, green: 0.12821, blue: 0.13474) }
         static var overlay: Color { Color(red: 0.162, green: 0.165, blue: 0.169) }
         static var field: Color { Color(red: 0.888, green: 0.888, blue: 0.888).opacity(0.1) }
     }

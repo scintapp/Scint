@@ -5,7 +5,6 @@ struct TranscriptEntry: View {
     var transcript: Reference
     var entry: Transcript.Entry
     var model: any Model
-    var inputMaxWidth: CGFloat? = nil
 
     var input: String? {
         switch entry {
@@ -26,20 +25,19 @@ struct TranscriptEntry: View {
     var body: some View {
         Group {
             if let input, !input.isEmpty {
-                HStack {
-                    Spacer()
-
-                    TextBlock(content: input)
-                        .foregroundStyle(Style.Foreground.subtle)
-                        .padding(.horizontal, Style.Spacing.lg)
-                        .padding(.vertical, Style.Spacing.lg)
-                        .background(Style.Shape.medium.fill(Style.Background.overlay))
-                        .overlay(
-                            Style.Shape.medium
-                                .strokeBorder(Style.Border.group, lineWidth: 0.5)
-                        )
-                        .frame(maxWidth: inputMaxWidth, alignment: .trailing)
-                }
+                TextBlock(content: input, hugs: true)
+                    .foregroundStyle(Style.Foreground.secondary)
+                    .padding(.horizontal, Style.Spacing.lg)
+                    .padding(.vertical, Style.Spacing.md)
+                    .background(Style.Shape.medium.fill(Style.Background.card))
+                    .overlay(
+                        Style.Shape.medium
+                            .strokeBorder(
+                                Style.Border.base,
+                                lineWidth: 0.5
+                            )
+                    )
+                    .frame(maxWidth: 400, alignment: .trailing)
             } else {
                 switch entry {
                     case .record(let chunk, _) where field(chunk.value, "type") == "reasoning":
@@ -53,7 +51,6 @@ struct TranscriptEntry: View {
 
                             Spacer(minLength: 0)
 
-                            // Completing is what a call is expected to do; only a call that didn't earns a badge.
                             if let status = field(chunk.value, "status"), status != "completed" {
                                 Badge(label: status.capitalized, tint: Style.Foreground.muted)
                                     .fixedSize()
@@ -86,7 +83,7 @@ struct TranscriptEntry: View {
         .lineSpacing(Style.Spacing.markdownLineSpacing)
         .textSelection(.enabled)
         .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .trailing)
         .contentShape(Rectangle())
         .onTapGesture {
             if case .transcript = entry { return }

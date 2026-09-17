@@ -2,6 +2,21 @@ import SwiftUI
 import Foundation
 
 
+struct SpaceActivitySurface: View {
+    var ref: Reference
+    var model: any Model
+
+    var body: some View {
+        VStack(spacing: .zero) {
+            Rectangle()
+                .fill(Style.Border.divider)
+                .frame(height: Style.Dimension.hairline)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Style.Background.base)
+    }
+}
+
 struct SpaceMenu: View {
     @State private var hovered = false
     let model: any Model
@@ -27,25 +42,67 @@ struct SpaceHeader: Surface {
     var panel: any Panel
     var model: any Model
 
+    var composition: Composition? { ref.context }
+
+    var state: (label: String, tint: Color) {
+        switch composition?.state {
+            case .active: ("Active", Style.Tint.Intent.observe)
+            case .working: ("Working", Style.Tint.Intent.observe)
+            case .completed: ("Complete", Style.Tint.space)
+            case .failed: ("Needs attention", Style.Tint.alert)
+            case .inactive, .none: ("Ready", Style.Foreground.faint)
+        }
+    }
+
+    var intent: String? {
+        guard let harness = Space.with(ref, { $0.harness }) ?? nil else { return nil }
+        return Harness.with(harness, { $0.intent.rawValue.capitalized }) ?? nil
+    }
+
     var body: some View {
-        HStack {
-            Iconography.icon(for: ref, size: 18)
-            VStack {
-                Text(ref.descriptor.name)
-                Text("")
-            }
-            HStack {
-                Button { } label: {
-                    HStack {
-                        Image(systemName: "pause")
-                        Text("Pause")
-                    }
+        HStack(alignment: .center) {
+            HStack(alignment: .center, spacing: 16) {
+                Group {
+                    if let harness = Space.with(ref, { $0 })?.harness { Iconography.icon(for: harness, size: 23) }
+                    else { Iconography.icon(for: ref, size: 23) }
                 }
+                .frame(maxHeight: 52)
+
+                VStack(alignment: .leading) {
+                    Text(ref.descriptor.name)
+                        .frame(alignment: .leading)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Style.Foreground.primary)
+                        .lineLimit(Style.Limit.singleLine)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(intent ?? "")
+                        .frame(alignment: .leading)
+                        .foregroundStyle(Style.Foreground.muted)
+                }
+                .font(Typography.badge)
+                .lineLimit(Style.Limit.singleLine)
+            }
+            .frame(maxHeight: 52)
+
+            HStack(alignment: .center) {
+                TranscriptPicker(model: model)
+                Button { } label: {
+                    Image(systemName: "pause.fill")
+                        .frame(width: 23, height: 23)
+                }
+                .buttonStyle(.accessoryBarAction)
+                .buttonBorderShape(.circle)
+
                 Button { } label: {
                     Image(systemName: "ellipsis")
+                        .frame(width: 23, height: 23)
                 }
+                .buttonStyle(.accessoryBarAction)
+                .buttonBorderShape(.circle)
             }
+            .frame(maxHeight: 52)
         }
+        .padding(.horizontal, 10)
     }
 }
 
@@ -55,21 +112,22 @@ struct SpaceSurface: Surface {
 
     var ref: Reference? {
         guard let ref = model.session.selection.structure, Space.with(ref, { $0 }) != nil
-        else { return nil }
+                else { return nil }
         return ref
     }
 
     var body: some View {
-        ZStack {
-            if let ref { TranscriptMenu(ref: ref, model: model) }
-            TranscriptPicker(model: model)
-            TranscriptSurface(panel: panel, model: model)
+        ZStack(alignment: .center) {
             InputBar(model: model, onSend: {})
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .padding(.horizontal, Style.Spacing.lg)
+                .padding(.bottom, Style.Spacing.lg)
         }
-        .safeAreaBar(edge: .top) { if let ref { SpaceHeader(ref: ref, panel: panel, model: model) } }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Style.Background.base)
         .scrollEdgeEffectStyle(.hard, for: .top)
+        .safeAreaBar(edge: .top) {
+            if let ref { SpaceHeader(ref: ref, panel: panel, model: model) }
+        }
     }
 }
-
-
-

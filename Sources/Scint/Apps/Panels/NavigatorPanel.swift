@@ -62,7 +62,8 @@ struct NavigatorPicker: View {
             .toolbar {
                 ToolbarItem(placement: .automatic) { NavigatorToggle(presented: bindable.presented) }
                 ToolbarSpacer(.flexible, placement: .automatic)
-                ToolbarItem(placement: .automatic) { NavigatorPicker() }
+                ToolbarItem(placement: .automatic) { NewDraftButton(panel: self, model: model) }
+                
             }
     }
 }

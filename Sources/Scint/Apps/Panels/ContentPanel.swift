@@ -44,29 +44,20 @@ struct ContentPicker: View {
     }
 
     func surface(_ model: any Model) -> some View {
-        var ref: Reference? {
-            guard let ref = model.session.selection.structure, Space.with(ref, { $0 }) != nil
-            else { return nil }
-            return ref
-        }
-
-        return ZStack(alignment: .top) {
-            Group {
-                switch surface {
-                    case .activity: SpaceSurface(panel: self, model: model)
-                    case .canvas: CanvasSurface(panel: self, model: model)
-                    case .drafts: DraftsSurface(panel: self, model: model)
-                    case .outlines: DraftsSurface(panel: self, model: model)
-
-                }
+        Group {
+            switch surface {
+                case .activity: SpaceSurface(panel: self, model: model)
+                case .canvas: CanvasSurface(panel: self, model: model)
+                case .drafts: DraftsSurface(panel: self, model: model)
+                case .outlines: DraftsSurface(panel: self, model: model)
             }
-                .toolbar {
-                    ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
-                    ToolbarSpacer(.flexible, placement: .automatic)
-                    ToolbarItem(placement: .principal) { ContentPicker() }
-                    ToolbarSpacer(.flexible, placement: .primaryAction)
-                    ToolbarItem(placement: .primaryAction) { InspectorPicker() }
-                }
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
+            ToolbarSpacer(.flexible, placement: .automatic)
+            ToolbarItem(placement: .principal) { ContentPicker() }
+            ToolbarSpacer(.flexible, placement: .primaryAction)
+            ToolbarItem(placement: .primaryAction) { InspectorPicker() }
         }
     }
 }
