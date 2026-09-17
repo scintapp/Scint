@@ -2,7 +2,7 @@ import Foundation
 
 
 enum Intent: CaseIterable, Codable, Sendable {
-    case compose, dispatch, evaluate, observe, search
+    case compose, dispatch, evaluate, search
 
     var rawValue: String { String(describing: self) }
 
@@ -10,7 +10,6 @@ enum Intent: CaseIterable, Codable, Sendable {
         switch self {
             case .compose: ("Compose", "Composing", "Composed")
             case .dispatch: ("Dispatch", "Dispatching", "Dispatched")
-            case .observe: ("Observe", "Observing", "Observed")
             case .evaluate: ("Evaluate", "Evaluating", "Evaluated")
             case .search: ("Research", "Researching", "Researched")
         }
@@ -45,20 +44,21 @@ enum Arguments {
                 }
 
             case .reference(let ref):
-                if ref.type is Artifact.Type {
-                    guard let path = Artifact.with(ref, { $0.rendered }), !path.isEmpty else { return [] }
-                    return [path]
-                }
+                switch ref.type {
+                    case is Artifact.Type:
+                        guard let path = Artifact.with(ref, { $0.rendered }), !path.isEmpty else { return [] }
+                        return [path]
 
-                if ref.type is Command.Type {
-                    Command.with(ref) { command -> [String] in
-                        guard let executable = command.executable else { return [] }
-                        return [executable] + command.arguments()
-                    }
-                }
+                    case is Command.Type:
+                        return Command.with(ref) { command -> [String] in
+                            guard let executable = command.executable else { return [] }
+                            return [executable] + command.arguments()
+                        } ?? []
 
-                guard let url = Reference.Link.url(for: ref) else { return [] }
-                return [url.absoluteString]
+                    default:
+                        guard let url = Reference.Link.url(for: ref) else { return [] }
+                        return [url.absoluteString]
+                }
         }
     }
 
@@ -204,12 +204,6 @@ struct Instructions: Codable, Sendable {
     static var evaluate: String {
         """
         evaluate
-        """
-    }
-
-    static var observe: String {
-        """
-        observe
         """
     }
 

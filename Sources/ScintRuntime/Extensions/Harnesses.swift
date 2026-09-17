@@ -7,6 +7,9 @@ enum Harnesses {
         let dispatch: Reference
         let evaluate: Reference
         let search: Reference
+        let schedule: Reference
+        let unschedule: Reference
+        let exec: Reference
     }
 
     private static let endpoint = "http://127.0.0.1:7345/mcp"
@@ -73,6 +76,43 @@ enum Harnesses {
             parameters: [.argument(name: "input", type: .string(""), required: true, default: nil)]
         )
 
+        let env = artifact("env", URL(fileURLWithPath: "/usr/bin/env"))
+
+        let exec = command(
+            name: "Exec",
+            description: "Run another command as this one, so a harness can take whichever command is dropped in.",
+            artifact: env,
+            parameters: [.argument(name: "command", type: .reference(Command.self), required: true)]
+        )
+
+        let dew = artifact("dew", URL(fileURLWithPath: "/usr/local/bin/dew"))
+
+        let schedule = command(
+            name: Automation.schedule,
+            description: "Schedule a command with launchd, once at a time or on a cron recurrence.",
+            artifact: dew,
+            parameters: [
+                .fixed(.string("add")),
+                .argument(name: "name", type: .string(""), required: true),
+                .argument(name: "cron", type: .collection(["--cron": .string("")])),
+                .argument(name: "at", type: .collection(["--at": .string("")])),
+                .argument(name: "command", type: .collection(["--command": .string("")]), required: true),
+                .fixed(.string("--json"))
+            ]
+        )
+
+        let unschedule = command(
+            name: Automation.unschedule,
+            description: "Remove a scheduled job from launchd.",
+            artifact: dew,
+            parameters: [
+                .fixed(.string("remove")),
+                .argument(name: "name", type: .string(""), required: true),
+                .fixed(.string("--force")),
+                .fixed(.string("--json"))
+            ]
+        )
+
         let search = harness(
             name: "Web Searcher",
             description: "Find what is relevant to a request, out on the web rather than in this space, and report the findings without the searching.",
@@ -85,155 +125,11 @@ enum Harnesses {
             compose: compose,
             dispatch: dispatch,
             evaluate: evaluate,
-            search: search
+            search: search,
+            schedule: schedule,
+            unschedule: unschedule,
+            exec: exec
         )
     }
 }
 
-enum ObserveHarnesses {
-    struct References {
-        let fswatch: Reference
-        let scheduleScript: Reference
-        let watchPaths: Reference
-        let waitUntil: Reference
-        let directoryObserver: Reference
-        let scheduledObserver: Reference
-    }
-
-    static var scripts: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .standardizedFileURL
-            .resolvingSymlinksInPath()
-            .appendingPathComponent("Developer/Scint/script", isDirectory: true)
-    }
-
-    @discardableResult
-    static func load() -> References {
-        func existing<T: Resolvable>(_ name: String, as type: T.Type) -> Reference? {
-            Runtime.shared.all(as: type).first { $0.0.descriptor.name == name }?.0
-        }
-
-        func artifact(_ name: String, _ url: URL) -> Reference {
-            existing(name, as: Artifact.self) ?? Artifact.register(name, url)
-        }
-
-        func command(_ name: String, _ artifact: Reference, _ parameters: [Command.Parameter], description: String? = nil) -> Reference {
-            let reference = existing(name, as: Command.self) ?? Command.register(name, exec: artifact, params: parameters)
-            if let description {
-                Catalog.shared.update(reference) { descriptor in descriptor.description = description }
-            }
-            return reference
-        }
-
-        func harness(_ name: String, _ command: Reference, _ intent: Intent, _ parameters: [Harness.Parameter], description: String? = nil) -> Reference {
-            let reference = existing(name, as: Harness.self) ?? Harness.register(name, command: command, intent: intent, parameters: parameters)
-            if Harness.with(reference, { $0.command != command || $0.intent != intent || $0.parameters != parameters }) == true {
-                Harness.update(reference) { $0 = Harness(reference, command: command, intent: intent, params: parameters) }
-            }
-            if let description {
-                Catalog.shared.update(reference) { descriptor in descriptor.description = description }
-            }
-            return reference
-        }
-
-        let sh = artifact("sh", URL(fileURLWithPath: "/bin/sh"))
-        let fswatch = artifact("fswatch", URL(fileURLWithPath: "/opt/homebrew/bin/fswatch"))
-
-        let scheduleScript = artifact(
-            "Schedule Observer Script",
-            scripts.appendingPathComponent("observe-schedule.sh")
-        )
-
-        let watchPaths = command(
-            "Watch Paths",
-            fswatch,
-            [.fixed(.string("-r")), .fixed(.string("--latency")), .fixed(.string("1"))],
-            description: "Watch a path and print every file that changes beneath it, one per line, until stopped."
-        )
-
-        let waitUntil = command(
-            "Wait Until",
-            sh,
-            [.fixed(.reference(scheduleScript))],
-            description: "Wait for a wall-clock time, run something, and optionally keep doing it on a recurrence."
-        )
-
-        let directoryObserver = harness(
-            "Directory Observer",
-            watchPaths,
-            .observe,
-            [
-                .argument(
-                    name: "event",
-                    type: .collection(["--event": .sequence([
-                        .string("Created"),
-                        .string("Updated"),
-                        .string("Removed"),
-                        .string("Renamed"),
-                        .string("MovedTo")
-                    ])]),
-                    required: false,
-                    default: nil
-                ),
-                .argument(
-                    name: "directory",
-                    type: .string(""),
-                    required: false,
-                    default: .string(
-                        FileManager.default.homeDirectoryForCurrentUser
-                            .appendingPathComponent("Desktop", isDirectory: true)
-                            .path(percentEncoded: false)
-                    )
-                )
-            ],
-            description: "Watch a folder and report every change beneath it as it happens."
-        )
-
-        let scheduledObserver = harness(
-            "Scheduled Observer",
-            waitUntil,
-            .observe,
-            [
-                .argument(
-                    name: "date",
-                    type: .collection(["--date": .date(.distantPast)]),
-                    required: false,
-                    default: nil
-                ),
-                .argument(
-                    name: "time",
-                    type: .collection(["--time": .date(.distantPast)]),
-                    required: false,
-                    default: nil
-                ),
-                .argument(
-                    name: "repeat",
-                    type: .collection(["--every": .sequence([
-                        .string("never"),
-                        .string("hourly"),
-                        .string("daily"),
-                        .string("weekly")
-                    ])]),
-                    required: false,
-                    default: .collection(["--every": .string("never")])
-                ),
-                .argument(
-                    name: "command",
-                    type: .reference(Command.self),
-                    required: false,
-                    default: nil
-                )
-            ],
-            description: "Wait until a given time, then act — once, or on an hourly, daily, or weekly recurrence."
-        )
-
-        return References(
-            fswatch: fswatch,
-            scheduleScript: scheduleScript,
-            watchPaths: watchPaths,
-            waitUntil: waitUntil,
-            directoryObserver: directoryObserver,
-            scheduledObserver: scheduledObserver
-        )
-    }
-}

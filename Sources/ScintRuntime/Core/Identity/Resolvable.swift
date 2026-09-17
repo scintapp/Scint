@@ -6,7 +6,7 @@ protocol Resolvable: Codable, Sendable { var ref: Reference { get } }
 protocol Keyed: Resolvable { var key: Key { get } }
 
 protocol Composable: Resolvable {}
-protocol Functional: Composable {}
+protocol Functional: Composable { func matches(_ other: Self) -> Bool }
 protocol Malleable: Composable { var origin: Reference { get set } }
 protocol Structural: Composable { var closure: Reference { get } }
 protocol Contextual: Keyed { var origin: Reference { get }; var transcript: Reference { get set } }
@@ -82,7 +82,37 @@ extension Structural {
     }
 }
 
-extension Functional { var id: AnyHashable { ref } }
+extension Functional {
+    var id: AnyHashable { ref }
+
+    /// Returns the interface already registered under this name when it's the same one. A
+    /// different interface under a taken name registers with a number appended.
+    static func register(_ name: String, _ instance: Self, tags: Set<String>) -> Reference {
+        let registered = Runtime.shared.store(for: Reference(Self.self))?.all(as: Self.self) ?? []
+
+        func variant(_ candidate: String) -> Bool {
+            guard candidate != name else { return true }
+            let prefix = "\(name) "
+            return candidate.hasPrefix(prefix) && Int(candidate.dropFirst(prefix.count)) != nil
+        }
+
+        if let (ref, _) = registered.first(where: { variant($0.0.descriptor.name) && $0.1.matches(instance) }) {
+            return ref
+        }
+
+        let taken = Set(registered.map { $0.0.descriptor.name })
+        var unique = name
+        var suffix = 2
+        while taken.contains(unique) {
+            unique = "\(name) \(suffix)"
+            suffix += 1
+        }
+
+        Descriptor.new(instance.ref, name: unique, tags: tags)
+        Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
+        return instance.ref
+    }
+}
 
 extension Contextual { var origin: Reference { key.ref } }
 

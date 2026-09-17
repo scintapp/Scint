@@ -437,13 +437,13 @@ struct HarnessGroup: Query {
         let harness = declaration?.ref
         let config = Space.with(space, { $0.config }) ?? [:]
         let parameters: [Harness.Parameter]
-        if let declaration, declaration.intent == .evaluate || declaration.intent == .observe {
+        if let declaration, declaration.intent == .evaluate {
             parameters = declaration.parameters
         } else {
             parameters = []
         }
 
-        let settingItems = parameters.compactMap { parameter -> ItemParams? in
+        func setting(_ parameter: Harness.Parameter) -> ItemParams? {
             guard case .argument(let key, let type, let required, let defaultValue) = parameter,
                   !required
                     else { return nil }
@@ -569,6 +569,9 @@ struct HarnessGroup: Query {
             }
         }
 
+        let settingItems = parameters.compactMap(setting)
+        let automationItems = harness == nil ? [] : Automation.parameters.compactMap(setting)
+
         func label(_ value: String) -> String {
             value.reduce(into: "") { label, character in
                 if character == "-" || character == "_" { label.append(" ") }
@@ -686,6 +689,12 @@ struct HarnessGroup: Query {
         if !settingItems.isEmpty {
             sections.append(
                 .init(id: "harness-settings", name: "Harness Settings", header: false, tint: Style.Foreground.subtle, items: settingItems)
+            )
+        }
+
+        if !automationItems.isEmpty {
+            sections.append(
+                .init(id: "automation", name: "Automation", header: false, tint: Style.Foreground.subtle, items: automationItems)
             )
         }
 

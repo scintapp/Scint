@@ -11,7 +11,6 @@ final class AppData: Codable, @unchecked Sendable {
 
     init() async {
         Harnesses.load()
-        ObserveHarnesses.load()
         SampleInterfaces.load()
         
         if sort() { return }

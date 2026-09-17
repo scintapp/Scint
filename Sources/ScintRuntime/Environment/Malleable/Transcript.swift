@@ -76,7 +76,7 @@ struct Transcript: Malleable {
     func output(_ type: String) -> Map? {
         records.last { chunk in
             guard case .collection(let fields) = chunk.value, case .string(let kind)? = fields["type"]
-                    else { return false }
+            else { return false }
             return kind == type
         }
     }

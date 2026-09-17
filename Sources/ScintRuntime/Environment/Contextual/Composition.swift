@@ -18,7 +18,6 @@ struct Composition: Sendable {
         }
 
         if intents.isEmpty { return .inactive }
-        if intents.allSatisfy({ $0 == .observe }) { return .active }
         return .working
     }
 

@@ -47,8 +47,6 @@ import SwiftUI
         }
     }
 
-    /// A space's state, as a dot. Dulled when idle; when it is working, a duplicate
-    /// expands and fades out behind the static one.
     struct Dot: View {
         let ref: Reference?
         let tint: Color
@@ -153,7 +151,6 @@ import SwiftUI
             case composer
             case dispatcher
             case executor
-            case observer
             case searcher
         }
 
@@ -185,7 +182,6 @@ import SwiftUI
         case failed = "space.badge.xmark"
         case compose = "space.badge.ellipsis"
         case dispatch = "space.badge.arrow.up"
-        case observe = "space.badge.eye"
         case evaluate = "space.badge.sparkles"
         case search = "space.badge.magnifyingglass"
     }
@@ -230,24 +226,22 @@ import SwiftUI
 
     static func accent(for ref: Reference) -> Color {
         switch ref.type {
-            case is Artifact.Type: return Style.Tint.artifact
-            case is Command.Type: return Style.Tint.command
-            case is Bridge.Type: return Style.Tint.bridge
+            case is Artifact.Type: Style.Tint.artifact
+            case is Command.Type: Style.Tint.command
+            case is Bridge.Type: Style.Tint.bridge
             case is Harness.Type:
-                guard let intent = Harness.with(ref, { $0 })?.intent
-                else { return Style.Tint.harness }
-                switch intent {
-                    case .compose: return Style.Tint.Intent.compose
-                    case .dispatch: return Style.Tint.Intent.dispatch
-                    case .observe: return Style.Tint.Intent.observe
-                    case .evaluate: return Style.Tint.Intent.evaluate
-                    case .search: return Style.Tint.Intent.search
+                switch Harness.with(ref, { $0 })?.intent {
+                    case .compose: Style.Tint.Intent.compose
+                    case .dispatch: Style.Tint.Intent.dispatch
+                    case .evaluate: Style.Tint.Intent.evaluate
+                    case .search: Style.Tint.Intent.search
+                    default: Color.clear
                 }
-            case is Material.Type: return Style.Tint.material
-            case is Transcript.Type: return Style.Tint.transcript
-            case is Space.Type: return Style.Tint.space
-            case is Closure.Type: return Style.Tint.closure
-            default: return Iconography.icon(for: ref).tint
+            case is Material.Type: Style.Tint.material
+            case is Transcript.Type: Style.Tint.transcript
+            case is Space.Type: Style.Tint.space
+            case is Closure.Type: Style.Tint.closure
+            default: Iconography.icon(for: ref).tint
         }
     }
 
@@ -263,7 +257,6 @@ import SwiftUI
         switch intent {
             case .compose: Icon(symbol: Custom.compose.rawValue, tint: Style.Tint.Intent.compose, sizing: size)
             case .dispatch: Icon(symbol: Custom.dispatch.rawValue, tint: Style.Tint.Intent.dispatch, sizing: size)
-            case .observe: Icon(symbol: Custom.observe.rawValue, tint: Style.Tint.Intent.observe, sizing: size)
             case .evaluate: Icon(symbol: Custom.evaluate.rawValue, tint: Style.Tint.Intent.evaluate, sizing: size)
             case .search: Icon(symbol: Custom.search.rawValue, tint: Style.Tint.Intent.search, sizing: size)
         }
@@ -306,14 +299,12 @@ import SwiftUI
 
     static let dot = "circlebadge.fill"
 
-    /// A space as a dot, tinted by the harness running it. Muted when it has none.
     static func dot(for ref: Reference, size: CGFloat = 14) -> Icon {
         guard let harness = Space.with(ref, { $0 })?.harness
         else { return Icon(symbol: dot, tint: Style.Foreground.muted, sizing: size) }
         return Icon(symbol: dot, tint: accent(for: harness), sizing: size)
     }
 
-    /// An icon a caller spelled out. A dot carries state, so it builds the live one.
     @ViewBuilder static func icon(symbol: String, tint: Color, ref: Reference? = nil, size: CGFloat = 14, selected: Bool = true) -> some View {
         if symbol == dot { Dot(ref: ref, tint: tint, sizing: size) }
         else { Icon(symbol: symbol, tint: tint, sizing: size, selected: selected) }
@@ -322,20 +313,21 @@ import SwiftUI
     static func icon(for ref: Reference, size: CGFloat = 14) -> Icon {
         switch ref.type {
             case is Artifact.Type:
-                guard let artifact = Artifact.with(ref, { $0 })
-                else { return Icon(symbol: "archivebox", tint: Style.Tint.artifact, sizing: size) }
-                return Iconography.icon(for: artifact.handler, size: size)
-
+                Artifact.with(ref, { artifact in
+                    return Icon(symbol: "archivebox", tint: Style.Tint.artifact, sizing: size)
+                })
             case is Space.Type:
-                guard let harness = Space.with(ref, { $0 })?.harness
-                else { return Icon(symbol: "space.custom", tint: Style.Tint.space, sizing: size) }
-                return Icon(symbol: "space.custom", tint: accent(for: harness), sizing: size)
-
+                Space.with(ref, { space in
+                    guard let harness = space.harness
+                    else { return Icon(symbol: "space.custom", tint: Style.Tint.space, sizing: size) }
+                    return Icon(symbol: "space.custom", tint: accent(for: harness), sizing: size)
+                })
             case is Harness.Type:
-                guard let intent = Harness.with(ref, { $0 })?.intent
-                else { return Icon(symbol: "gearshape", tint: Style.Tint.harness, sizing: size) }
-                return Iconography.icon(for: intent, size: size)
-
+                Harness.with(ref, { harness in
+                    guard let intent = Harness.with(ref, { $0 })?.intent
+                    else { return Icon(symbol: "gearshape", tint: Style.Tint.harness, sizing: size) }
+                    return Iconography.icon(for: intent, size: size)
+                })
             case is Command.Type:
                 return Icon(symbol: "switch.2", tint: Style.Tint.command, sizing: size)
 
@@ -376,7 +368,6 @@ import SwiftUI
                     case .composer: Iconography.model(.harness(.composer))
                     case .dispatcher: Iconography.model(.harness(.dispatcher))
                     case .executor: Iconography.model(.harness(.executor))
-                    case .observer: Iconography.model(.harness(.observer))
                     case .searcher: Iconography.model(.harness(.searcher))
                 }
 
@@ -396,7 +387,6 @@ import SwiftUI
                     case .composer: Icon(symbol: "space.badge.ellipsis", tint: Style.Tint.harness)
                     case .dispatcher: Icon(symbol: "space.badge.play", tint: Style.Tint.harness)
                     case .executor: Icon(symbol: "space.badge.sparkles", tint: Style.Tint.harness)
-                    case .observer: Icon(symbol: "space.badge.eye", tint: Style.Tint.harness)
                     case .searcher: Icon(symbol: "space.badge.magnifyingglass", tint: Style.Tint.harness)
                 }
 
@@ -421,9 +411,6 @@ import SwiftUI
                     case .material: Icon(symbol: "text.alignleft", tint: Style.Tint.material)
                     case .transcript: Icon(symbol: "rectangle.stack", tint: Style.Tint.transcript)
                 }
-
-            case .space:
-                Icon(symbol: "cube.transparent", tint: Style.Tint.space)
         }
     }
 

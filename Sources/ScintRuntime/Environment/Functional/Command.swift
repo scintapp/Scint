@@ -61,11 +61,9 @@ struct Command: Functional {
         return result
     }
 
+    func matches(_ other: Command) -> Bool { artifact == other.artifact && parameters == other.parameters }
+
     static func register(_ name: String, exec: Reference, params: [Parameter] = []) -> Reference {
-        let ref = Reference(Self.self)
-        let instance = Self(ref, artifact: exec, parameters: params)
-        Descriptor.new(instance.ref, name: name, tags: ["command"])
-        Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
-        return instance.ref
+        register(name, Self(Reference(Self.self), artifact: exec, parameters: params), tags: ["command"])
     }
 }

@@ -26,7 +26,7 @@ extension Bounding {
 
     func all<T: Resolvable>(as type: T.Type) -> [(Reference, T)] { store(for: Reference(T.self))?.all(as: type) ?? [] }
 
-    func changed(_ ref: Reference) { Task { await Coordinator.shared.schedule(ref) } }
+    func changed(_ ref: Reference) { Task { await Coordinator.shared.updated(ref) } }
 
     func with<T: Resolvable, R>(_ ref: Reference, as type: T.Type = T.self, _ body: (T) throws -> R) rethrows -> R? {
         try store(for: ref)?.with(ref, as: type, body)

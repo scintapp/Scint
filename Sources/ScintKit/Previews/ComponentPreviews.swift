@@ -23,7 +23,7 @@ import LinkPresentation
         .argument(name: "URL", type: .string(""), required: true)
     ])
     Command.update(command) { $0.description = "Fetch the contents of a web page with curl." }
-    let harness = Harness.register("Research Harness", command: command, intent: .observe)
+    let harness = Harness.register("Research Harness", command: command, intent: .evaluate)
     Harness.update(harness) { $0.description = "Observe changes while collecting research." }
 
     let material = Material.new(space, name: "Descriptor fallback title")

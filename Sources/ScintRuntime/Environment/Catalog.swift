@@ -52,17 +52,28 @@ final class Catalog: Sendable {
 
     func keys() -> [Reference] { descriptors.keys() }
     func values() -> [Descriptor] { descriptors.values() }
-    func with<R>(_ ref: Reference, _ body: (Descriptor) throws -> R) rethrows -> R? { try descriptors.with(ref, body) }
+
+    func with<R>(_ ref: Reference, _ body: (Descriptor) throws -> R) rethrows -> R? {
+        try descriptors.with(ref, body)
+    }
 
     func update<R>(_ ref: Reference, _ body: (inout Descriptor) throws -> R) rethrows -> R? {
         var updated = false
         let result = try descriptors.update(ref) { descriptor in
             let result = try body(&descriptor)
+            descriptor.updated = .now
             updated = true
             return result
         }
-        if updated { Task { await Coordinator.shared.schedule(ref) } }
+        if updated { Task { await Coordinator.shared.updated(ref) } }
         return result
+    }
+
+    /// Stamps the descriptors of referenced objects with when they were last updated.
+    func stamp(_ updates: [Reference: Date]) {
+        for (ref, date) in updates {
+            descriptors.update(ref) { $0.updated = max($0.updated, date) }
+        }
     }
 
     @discardableResult

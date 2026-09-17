@@ -16,7 +16,7 @@ actor ContextServer {
         action=search and arguments.method=list or describe to discover references, content, \
         interface argument schemas, and each reference's scopes. Addresses are scint://<kind>/<id>. \
         Domain manages interfaces, materials, and structures. Intent composes, dispatches, \
-        observes, and searches. Identity comes only from the SCINT_CONTEXT bearer and is verified \
+        and searches. Identity comes only from the SCINT_CONTEXT bearer and is verified \
         against the live composition before entering the runtime. Scopes are recomputed on every call.
         """
 

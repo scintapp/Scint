@@ -139,10 +139,10 @@ struct Artifact: Functional {
         return url.isFileURL ? url.path(percentEncoded: false) : url.absoluteString
     }
 
+    func matches(_ other: Artifact) -> Bool { handler == other.handler }
+
     static func register(_ name: String, _ url: URL) -> Reference {
         let instance = Artifact(.init(Self.self), handler: Artifact.Handler.classify(url))
-        Descriptor.new(instance.ref, name: name, tags: [instance.handler.type])
-        Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
-        return instance.ref
+        return register(name, instance, tags: [instance.handler.type])
     }
 }

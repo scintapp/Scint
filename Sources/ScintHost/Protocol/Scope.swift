@@ -57,7 +57,7 @@ enum Scope {
 
 extension Scope {
     enum Permission: String, CaseIterable, Sendable {
-        case read, create, insert, update, delete, run, compose, dispatch, observe, evaluate, `import`
+        case read, create, insert, update, delete, run, compose, dispatch, evaluate, `import`
     }
 
     static func spaces(in origin: Reference) -> Set<Reference> {
@@ -74,7 +74,7 @@ extension Scope {
         guard let descriptor = Catalog.shared.get(ref), Runtime.shared.store(for: ref)?.keys().contains(ref) == true else { return [] }
         let owned = spaces(in: origin)
         if ref.type == Space.self, owned.contains(ref) {
-            var permissions: Set<Permission> = [.read, .create, .update, .compose, .dispatch, .observe, .evaluate]
+            var permissions: Set<Permission> = [.read, .create, .update, .compose, .dispatch, .evaluate]
             if ref != origin, Composer.shared.context(ref) == nil { permissions.insert(.delete) }
             return permissions
         }

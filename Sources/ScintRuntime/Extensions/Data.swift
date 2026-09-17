@@ -204,16 +204,16 @@ enum SampleInterfaces {
         let fileManager = FileManager.default
         let home = fileManager.homeDirectoryForCurrentUser.standardizedFileURL.resolvingSymlinksInPath()
 
-        func existing<T: Resolvable>(_ name: String, as type: T.Type) -> Reference? {
+        func exists<T: Resolvable>(_ name: String, as type: T.Type) -> Reference? {
             Runtime.shared.all(as: type).first { $0.0.descriptor.name == name }?.0
         }
 
         func artifact(_ name: String, _ url: URL) -> Reference {
-            existing(name, as: Artifact.self) ?? Artifact.register(name, url)
+            exists(name, as: Artifact.self) ?? Artifact.register(name, url)
         }
 
         func command(_ name: String, _ artifact: Reference, _ parameters: [Command.Parameter], description: String? = nil) -> Reference {
-            let reference = existing(name, as: Command.self) ?? Command.register(name, exec: artifact, params: parameters)
+            let reference = exists(name, as: Command.self) ?? Command.register(name, exec: artifact, params: parameters)
             if let description {
                 Catalog.shared.update(reference) { descriptor in descriptor.description = description }
             }
@@ -221,7 +221,7 @@ enum SampleInterfaces {
         }
 
         func harness(_ name: String, _ command: Reference, _ intent: Intent, _ parameters: [Harness.Parameter], description: String? = nil) -> Reference {
-            let reference = existing(name, as: Harness.self) ?? Harness.register(name, command: command, intent: intent, parameters: parameters)
+            let reference = exists(name, as: Harness.self) ?? Harness.register(name, command: command, intent: intent, parameters: parameters)
             if Harness.with(reference, { $0.command != command || $0.intent != intent || $0.parameters != parameters }) == true {
                 Harness.update(reference) { $0 = Harness(reference, command: command, intent: intent, params: parameters) }
             }

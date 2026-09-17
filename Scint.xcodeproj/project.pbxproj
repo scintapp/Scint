@@ -105,6 +105,7 @@
 				ScintRuntime/Environment/Structural/Closure.swift,
 				ScintRuntime/Environment/Structural/Space.swift,
 				ScintRuntime/Environment/Workspaces.swift,
+				ScintRuntime/Extensions/Automation.swift,
 				ScintRuntime/Extensions/Harnesses.swift,
 				ScintRuntime/Runtime.swift,
 				ScintServices/Service.swift,

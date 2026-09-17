@@ -7,21 +7,31 @@ actor Coordinator {
     private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Persistence")
     private var spaceDirty: Set<Reference> = []
     private var libraryDirty: Set<Reference> = []
+    private var updates: [Reference: Date] = [:]
     private var task: Task<Void, Never>?
 
-    func schedule(_ ref: Reference) {
+    func updated(_ ref: Reference) {
+        updates[ref] = .now
+        mark(ref)
+        debounce()
+    }
+
+    private func mark(_ ref: Reference) {
         switch ref.type {
             case is any Structural.Type: spaceDirty.insert(ref)
             case is any Malleable.Type, is any Functional.Type: libraryDirty.insert(ref)
             default: return
         }
-
-        debounce()
     }
 
     func flush() async {
         task?.cancel()
         task = nil
+
+        let updates = self.updates
+        self.updates.removeAll()
+        await MainActor.run { Catalog.shared.stamp(updates) }
+
         let spaceRefs = spaceDirty
         let libraryRefs = libraryDirty
         spaceDirty.removeAll()

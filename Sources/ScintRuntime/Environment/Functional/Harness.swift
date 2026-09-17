@@ -14,13 +14,6 @@ struct Harness: Functional {
         case target(name: String, type: Value, default: Value? = nil)
     }
 
-    init(_ ref: Reference = .init(Self.self)) {
-        self.ref = ref
-        self.command = ref
-        self.intent = .compose
-        self.parameters = []
-    }
-
     init(_ ref: Reference, command: Reference, intent: Intent, params: [Parameter]) {
         self.ref = ref
         self.command = command
@@ -50,7 +43,10 @@ struct Harness: Functional {
         var arguments = arguments
         var parsed: [String: Value] = [:]
         var command: [String: Value] = [:]
-        var expected: Set<String> = []
+        var expected: Set<String> = Set(Automation.parameters.compactMap { parameter in
+            guard case .argument(let name, _, _, _) = parameter else { return nil }
+            return name
+        })
 
         if let input, parameters.contains(where: { param in
             guard case .argument(let name, _, _, _) = param else { return false }
@@ -100,9 +96,10 @@ struct Harness: Functional {
     }
 
     static func register(_ name: String, command: Reference, intent: Intent, parameters: [Parameter] = []) -> Reference {
-        let instance = Self(.init(Self.self), command: command, intent: intent, params: parameters)
-        Descriptor.new(instance.ref, name: name, tags: ["harness"])
-        Library.shared.store(for: instance.ref)?.add(instance.ref, instance)
-        return instance.ref
+        register(name, Self(.init(Self.self), command: command, intent: intent, params: parameters), tags: ["harness"])
+    }
+
+    func matches(_ other: Harness) -> Bool {
+        command == other.command && intent == other.intent && parameters == other.parameters
     }
 }
