@@ -73,9 +73,6 @@ extension Property {
     init(floatLiteral value: Double) { self = .decimal(value) }
     init(booleanLiteral value: Bool) { self = .bool(value) }
     init(arrayLiteral elements: Property...) { self = .array(elements) }
-
-    /// Without this, only string *literals* become properties — an interpolated string stays a
-    /// String and fails to convert inside an object literal.
     init(stringInterpolation: DefaultStringInterpolation) {
         self = .string(String(stringInterpolation: stringInterpolation))
     }
@@ -86,8 +83,6 @@ extension Property {
 }
 
 extension Property {
-    /// A JSON Schema object, which is the one shape written often enough to be worth a name.
-    /// Everything inside it is an ordinary literal.
     static func schema(_ properties: [String: Property], required: [String] = []) -> Property {
         var schema: Property = [
             "type": "object",

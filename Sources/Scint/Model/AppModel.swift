@@ -6,9 +6,9 @@ import SwiftUI
     var editor: EditorModel
     var studio: StudioModel
 
-    init() {
-        self.editor = .init(.init())
-        self.studio = .init(.init())
+    init(_ data: AppData) {
+        self.editor = .init(Session(data))
+        self.studio = .init(Session(data))
     }
 
     func app(for key: ModelKey) -> any Model {

@@ -54,7 +54,8 @@ struct Scint: App {
         defer { loading = false }
         do {
             try await Runtime.shared.load()
-            let model = ScintModel()
+            let data = await AppData()
+            let model = ScintModel(data)
             await model.load()
             scint = model
             if let pending { CallbackRouter.handle(pending) }

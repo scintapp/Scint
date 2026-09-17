@@ -63,7 +63,18 @@ extension ScintEditor {
                 for rect in frames(for: range, type: .selection) { rect.fill() }
             }
         }
+        if let origin = placeholderOrigin {
+            ("Press ‘/’ for commands" as NSString).draw(at: origin, withAttributes: [.font: styler.theme.baseFont, .foregroundColor: NSColor.placeholderTextColor])
+        }
         super.draw(dirtyRect)
+    }
+
+    /// An empty line holding the caret shows a hint where its text would start.
+    private var placeholderOrigin: CGPoint? {
+        let selection = selectedRange(), source = string as NSString
+        guard window?.firstResponder === self, selection.length == 0, !hasMarkedText(), !menuController.isOpen else { return nil }
+        guard source.substring(with: source.lineRange(for: selection)).trimmingCharacters(in: .newlines).isEmpty else { return nil }
+        return frames(for: selection, type: .selection).first?.origin
     }
 
     /// Consecutive lines of one kind, each run as a single rect over all of its laid-out lines.

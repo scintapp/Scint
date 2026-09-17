@@ -68,14 +68,14 @@ struct Handler: Contextual {
                 Transcript.update(transcript) { record in
                     if signal.terminal { record.insert(signal) }
                     for reading in readings where !message(reading) {
-                        record.insert(Chunk(transcript, harness, reading))
+                        record.insert(Map(transcript, harness, reading))
                     }
                 }
 
                 if let root, root.type == Transcript.self {
                     Transcript.update(root) { record in
                         for reading in readings where message(reading) {
-                            record.insert(Chunk(transcript, harness, reading))
+                            record.insert(Map(transcript, harness, reading))
                         }
                     }
                 }

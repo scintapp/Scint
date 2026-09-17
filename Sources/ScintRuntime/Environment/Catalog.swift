@@ -6,11 +6,11 @@ struct Descriptor: Keyed {
     var origin: Reference
     var name: String
     var description: String
-    var tags: Set<String>
     var created: Date
     var updated: Date
     var accessed: Date
     var published: Bool
+    var tags: Set<String>
 
     init(_ ref: Reference, _ name: String) {
         self.origin = ref

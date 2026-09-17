@@ -13,21 +13,8 @@ struct Bridge: Structural {
         self.target = ref
         self.closure = ref
     }
-
-    var artifacts: [Reference] { Closure.with(closure, { $0 })?.artifacts ?? [] }
-    var commands: [Reference] { Closure.with(closure, { $0 })?.commands ?? [] }
-    var harnesses: [Reference] { Closure.with(closure, { $0 })?.harnesses ?? [] }
-    var materials: [Reference] { Closure.with(closure, { $0 })?.materials ?? [] }
-    var transcripts: [Reference] { Closure.with(closure, { $0 })?.transcripts ?? [] }
-    var directories: [Reference] { Closure.with(closure, { $0 })?.directories ?? [] }
-    var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
-    var sections: [Reference] { artifacts + commands + harnesses + materials + transcripts }
-
-    var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
-
-    func configure(_ value: Value?, for key: String) { Closure.update(closure) { $0.config[key] = value } }
-
-    mutating func bridge(space origin: Reference, to target: Reference) {
+    
+    mutating func bridge(_ origin: Reference, to target: Reference) {
         Space.update(self.origin, { $0.bridges.remove(self.ref) })
         Space.update(self.target, { $0.bridges.remove(self.ref) })
         self.origin = origin
@@ -38,10 +25,8 @@ struct Bridge: Structural {
 
     func add(_ ref: Reference) {
         switch ref.type {
-            case is any Functional.Type:
-                Closure.update(closure) { $0.interfaces.update(with: ref) }
-            case is any Malleable.Type:
-                Closure.update(closure) { if !$0.content.contains(ref) { $0.content.append(ref) } }
+            case is any Functional.Type: Closure.update(closure) { $0.interfaces.update(with: ref) }
+            case is any Malleable.Type: Closure.update(closure) { if !$0.content.contains(ref) { $0.content.append(ref) } }
             default: break
         }
     }
@@ -54,4 +39,13 @@ struct Bridge: Structural {
         }
     }
 
+    @discardableResult
+    static func new(_ name: String, origin: Reference, to target: Reference) -> Reference {
+        guard origin.type is Space.Type, target.type is Space.Type else { RuntimeError.fatal("Invalid spaces.") }
+        var instance = Bridge(.init(Self.self))
+        instance.bridge(origin, to: target)
+        Descriptor.new(instance.ref, name: name, tags: ["branch"], published: true)
+        Workspaces.shared.add(instance.ref, instance)
+        return instance.ref
+    }
 }

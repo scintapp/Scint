@@ -2,13 +2,20 @@ import Foundation
 
 
 @MainActor struct Session: Codable, Sendable {
+    private var data: AppData
     private(set) var focus: Focus = .nothing
     private(set) var selection: Selection = .init()
     private(set) var opened: Opened = .init()
     private(set) var navigation: Navigation = .init()
-    var spaces: [Reference] { Runtime.shared.spaces }
 
-    init() {
+    var root: Reference { data.space }
+    var spaces: [Reference] { data.spaces }
+    var inbox: Reference { data.inbox }
+    var drafts: Reference { data.drafts }
+    var outlines: Reference { data.outlines }
+
+    init(_ data: AppData) {
+        self.data = data
         opened = .init()
         focus = .nothing
         let initial = Selection()
@@ -27,11 +34,13 @@ import Foundation
     }
 
     mutating func select(_ ref: Reference, entry: UUID? = nil, url: URL? = nil) {
+        focus(ref)
         if opened.material != nil  && opened.material != ref { close(opened.material!) }
         apply(selection.selecting(ref, entry,  url))
     }
 
     mutating func open(_ ref: Reference) {
+        focus(ref)
         select(ref)
         opened.open(ref)
     }
@@ -69,13 +78,8 @@ import Foundation
 }
 
 extension Session {
-    var space: Reference? {
-        guard let ref = selection.structure, Space.with(ref, { $0 }) != nil else { return nil }
-        return ref
-    }
-
     var scope: Reference? {
-        guard space != nil, let ref = navigation.path(for: selection).first else { return nil }
+        guard let ref = navigation.path(for: selection).first else { return nil }
         return ref
     }
 

@@ -145,7 +145,7 @@ struct TasksSurface: Surface {
     var panel: any Panel
     var model: any Model
 
-    var origin: Reference? { model.session.opened.material ?? model.session.space }
+    var origin: Reference? { model.session.opened.material ?? model.session.root }
 
     var refs: [Reference] {
         if let material = model.session.opened.material { return [material] }

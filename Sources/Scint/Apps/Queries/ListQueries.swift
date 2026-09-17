@@ -1,78 +1,92 @@
 import SwiftUI
 
 
-struct FoldersList: Query {
-    static func controls(_ model: any Model) -> Controls {
-        .init(
-            selected: { item in
-                guard let ref = item.ref else { return false }
-                if let url = item.path { return model.session.selection.selected(ref, url) }
-                return model.session.selection.selected(ref)
-            },
-            onSelect: { item in
-                guard let ref = item.ref else { return }
-                model.select(ref, entry: item.entryId, url: item.path)
-            }
-        )
-    }
-
-    static func parameters(_ model: any Model) -> Params {
-        let expanded: Set<AnyHashable> = []
-
-        func sortFileItems(_ items: [ItemParams]) -> [ItemParams] {
-            items.sorted {
-                let lhsDirectory = $0.isParent
-                let rhsDirectory = $1.isParent
-                if lhsDirectory != rhsDirectory { return lhsDirectory && !rhsDirectory }
-                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-            }
-        }
-
-        func file(for entry: Artifact.Handler, root: Reference, in model: some Model) -> ItemParams? {
-            guard let url = entry.url else { return nil }
-            let children: [ItemParams] = entry.directory && expanded.contains(AnyHashable(url))
-            ? sortFileItems(entry.children.compactMap { file(for: $0, root: root, in: model) })
-            : []
-
-            return .init(
-                ref: root,
-                path: url,
-                name: entry.name,
-                image: entry.directory ? "folder" : "doc",
-                items: children,
-                isParent: entry.directory
-            )
-        }
-
-        func folder(for ref: Reference, in model: some Model) -> ItemParams? {
-            guard let entry = Artifact.with(ref, { $0.handler }), let url = entry.url else { return nil }
-            let isDirectory = entry.directory
-            let isExpanded = expanded.contains(AnyHashable(url))
-            let children: [ItemParams] = isDirectory && isExpanded
-            ? sortFileItems(entry.children.compactMap { file(for: $0, root: ref, in: model) })
-            : []
-
-            return .init(
-                ref: ref,
-                path: url,
-                name: Runtime.shared.get(ref).name,
-                image: isDirectory ? "folder" : "doc",
-                items: children,
-                isParent: isDirectory
-            )
-        }
-
-        return .init(
-            sections: [
-                .init(
-                    id: "folders",
-                    name: "Folders",
-                    items: sortFileItems((model.session.space.map { model.artifacts($0) } ?? []).compactMap { folder(for: $0, in: model) })
-                )
-            ]
-        )
-    }
-}
+//struct FoldersList: Query {
+//    static func controls(_ model: any Model) -> Controls {
+//        .init(
+//            selected: { item in
+//                guard let ref = item.ref else { return false }
+//                if let url = item.path { return model.session.selection.selected(ref, url) }
+//                return model.session.selection.selected(ref)
+//            },
+//            onSelect: { item in
+//                guard let ref = item.ref else { return }
+//                model.select(ref, entry: item.entryId, url: item.path)
+//            }
+//        )
+//    }
+//
+//    static func parameters(_ model: any Model) -> Params {
+//        let expanded: Set<AnyHashable> = []
+//
+//        func sortFileItems(_ items: [ItemParams]) -> [ItemParams] {
+//            items.sorted {
+//                let lhsDirectory = $0.isParent
+//                let rhsDirectory = $1.isParent
+//                if lhsDirectory != rhsDirectory { return lhsDirectory && !rhsDirectory }
+//                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+//            }
+//        }
+//
+//        func file(for entry: Artifact.Handler, root: Reference, in model: some Model) -> ItemParams? {
+//            guard let url = entry.url else { return nil }
+//            let children: [ItemParams] = entry.directory && expanded.contains(AnyHashable(url))
+//            ? sortFileItems(entry.children.compactMap { file(for: $0, root: root, in: model) })
+//            : []
+//
+//            return .init(
+//                ref: root,
+//                path: url,
+//                name: entry.name,
+//                image: entry.directory ? "folder" : "doc",
+//                items: children,
+//                isParent: entry.directory
+//            )
+//        }
+//
+//        func folder(for ref: Reference, in model: some Model) -> ItemParams? {
+//            guard let entry = Artifact.with(ref, { $0.handler }), let url = entry.url else { return nil }
+//            let isDirectory = entry.directory
+//            let isExpanded = expanded.contains(AnyHashable(url))
+//            let children: [ItemParams] = isDirectory && isExpanded
+//            ? sortFileItems(entry.children.compactMap { file(for: $0, root: ref, in: model) })
+//            : []
+//
+//            return .init(
+//                ref: ref,
+//                path: url,
+//                name: Runtime.shared.get(ref).name,
+//                image: isDirectory ? "folder" : "doc",
+//                items: children,
+//                isParent: isDirectory
+//            )
+//        }
+//
+//        func artifacts(_ space: Reference) -> [Reference] {
+//            Space.with(space) { space in
+//                space.artifacts.filter { ref in
+//                    Artifact.with(ref) {
+//                        switch $0.handler {
+//                            case .directory, .file: true
+//                            default: false
+//                        }
+//                    } == true
+//                }
+//            } ?? []
+//        }
+//
+//        return .init(
+//            sections: [
+//                .init(
+//                    id: "folders",
+//                    name: "Folders",
+//                    items: sortFileItems((model.session.roots.map {
+//                        artifacts($0) } ?? []).compactMap { folder(for: $0, in: model) })
+//                )
+//            ]
+//        )
+//    }
+//}
 
 struct ArtifactsList: Query {
     static func controls(_ model: any Model) -> Controls {

@@ -50,7 +50,6 @@ extension Resolvable {
 extension Keyed { var ref: Reference { key.ref }; var id: Reference { ref } }
 
 extension Structural {
-    var composition: Composition? { Composer.shared.compose(ref) }
     var artifacts: [Reference] { Closure.with(closure, { $0 })?.artifacts ?? [] }
     var commands: [Reference] { Closure.with(closure, { $0 })?.commands ?? [] }
     var harnesses: [Reference] { Closure.with(closure, { $0 })?.harnesses ?? [] }
@@ -60,10 +59,7 @@ extension Structural {
     var sections: [Reference] { artifacts + commands + harnesses + materials + transcripts }
     var rendered: String { Closure.with(closure, { $0.rendered }) ?? "" }
     var config: Config { Closure.with(closure, { $0.config }) ?? [:] }
-
-    func configure(_ value: Value?, for key: String) {
-        Closure.update(closure) { $0.config[key] = value }
-    }
+    var composition: Composition? { Composer.shared.compose(ref) }
 
     var input: Reference {
         guard let closure = Closure.with(closure, { $0 })
@@ -71,6 +67,11 @@ extension Structural {
         return closure.input
     }
 
+    func configure(_ value: Value?, for key: String) {
+        Closure.update(closure) { $0.config[key] = value }
+    }
+
+    @discardableResult
     static func new(_ name: String, origin: Reference? = nil) -> Reference {
         var instance = Space(.init(Self.self))
         Descriptor.new(instance.ref, name: name, tags: [])

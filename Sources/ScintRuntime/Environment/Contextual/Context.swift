@@ -91,7 +91,7 @@ struct Context: Contextual {
     }
 
     private func update(_ request: String, from source: Reference) {
-        Transcript.update(transcript) { $0.insert(Chunk(transcript, source, .string(request))) }
+        Transcript.update(transcript) { $0.insert(Map(transcript, source, .string(request))) }
     }
 
     private func update(_ branch: Reference) {

@@ -29,7 +29,7 @@ struct ContentPicker: View {
     var surface: PanelSurface = .compose
 
     enum PanelSurface: String, CaseIterable, Identifiable {
-        case compose, execute
+        case compose, execute, inbox
 
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
@@ -37,6 +37,7 @@ struct ContentPicker: View {
             switch self {
                 case .compose: "checkmark.app"
                 case .execute: "rectangle.stack"
+                case .inbox: "tray"
             }
         }
     }
@@ -47,10 +48,14 @@ struct ContentPicker: View {
                 case .compose:
                     CanvasSurface(panel: self, model: model)
                 case .execute:
-                    ActivitySurface(panel: self, model: model, onOpen: {})
+                    OutlinesSurface(panel: self, model: model)
+                case .inbox:
+                    DraftsSurface(panel: self, model: model)
             }
         }
         .toolbar {
+            ToolbarItem(placement: .navigation) { NewDraftButton(panel: self, model: model) }
+            ToolbarSpacer(.flexible, placement: .automatic)
             ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
             ToolbarSpacer(.flexible, placement: .automatic)
             ToolbarItem(placement: .principal) { ContentPicker() }

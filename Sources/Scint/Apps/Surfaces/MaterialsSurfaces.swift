@@ -145,9 +145,7 @@ struct MaterialsSurface: Surface {
     var model: any Model
 
     var materials: [Reference] {
-        guard let ref = model.session.space, let materials = Space.with(ref, { $0 })?.materials
-        else { return [] }
-        return materials
+        Space.with(model.session.root, { $0 })?.materials ?? []
     }
 
     var body: some View {

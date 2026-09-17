@@ -20,10 +20,7 @@ struct ListLabel: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(tint.opacity(0.82))
                 .frame(width: 25, height: 25)
-                .background(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(tint.opacity(0.12))
-                )
+                .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(tint.opacity(0.12)))
             Text(name)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
@@ -43,7 +40,7 @@ struct ListLink: View {
     let name: String
     let detail: String?
     let image: String
-    let tint: Color?
+    let tint: Color
     let trailingImage: String?
     let count: Int?
     let leadingAccessory: AnyView?
@@ -62,7 +59,7 @@ struct ListLink: View {
         self.detail = detail
         self.ref = ref
         self.image = image
-        self.tint = tint
+        self.tint = tint ?? Style.Foreground.subtle
         self.trailingImage = trailingImage
         self.count = count
         self.leadingAccessory = leadingAccessory
@@ -74,22 +71,10 @@ struct ListLink: View {
     }
 
     @ViewBuilder private var icon: some View {
-        if let tint, !image.isEmpty {
-            Iconography.icon(symbol: image, tint: tint, ref: ref, size: iconSize, selected: selected)
-        } else if let ref {
-            Iconography.Icon(
-                symbol: Iconography.symbol(for: ref),
-                tint: Iconography.accent(for: ref),
-                sizing: iconSize,
-                selected: selected
-            )
-        }
-        else {
-            Image(systemName: image)
-                .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(selected ? Style.Tint.space : Style.Foreground.faint)
-                .frame(width: iconSize, height: iconSize)
-        }
+        Image(systemName: image)
+            .font(.system(size: iconSize, weight: .semibold))
+            .foregroundStyle(selected ? Style.Foreground.primary : self.tint)
+            .frame(width: iconSize, height: iconSize)
     }
 
     @ViewBuilder private var leading: some View {
@@ -105,6 +90,7 @@ struct ListLink: View {
         }
         .frame(width: iconSize, height: iconSize, alignment: .center)
         .padding(.trailing, 4)
+        .padding(.leading, 2)
     }
 
     var body: some View {
@@ -120,6 +106,7 @@ struct ListLink: View {
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
+
     }
 }
 
@@ -223,7 +210,7 @@ struct ListLayout<Content: View>: View {
     let name: String
     let detail: String?
     let image: String
-    let tint: Color?
+    let tint: Color
     let trailingImage: String?
     let count: Int?
     let leadingAccessory: AnyView?
@@ -259,7 +246,7 @@ struct ListLayout<Content: View>: View {
         self.detail = detail
         self.ref = ref
         self.image = image
-        self.tint = tint
+        self.tint = tint ?? Style.Foreground.subtle
         self.trailingImage = trailingImage
         self.count = count
         self.leadingAccessory = leadingAccessory
@@ -275,22 +262,10 @@ struct ListLayout<Content: View>: View {
     }
 
     @ViewBuilder private var icon: some View {
-        if let tint, !image.isEmpty {
-            Iconography.icon(symbol: image, tint: tint, ref: ref, size: iconSize, selected: selected)
-        } else if let ref {
-            Iconography.Icon(
-                symbol: Iconography.symbol(for: ref),
-                tint: Iconography.accent(for: ref),
-                sizing: iconSize,
-                selected: selected
-            )
-        }
-        else {
-            Image(systemName: image)
-                .font(.system(size: iconSize))
-                .foregroundStyle(selected ? Style.Tint.space : Style.Foreground.faint)
-                .frame(width: iconSize, height: iconSize)
-        }
+        Image(systemName: image)
+            .font(.system(size: iconSize))
+            .foregroundStyle(selected ? Style.Foreground.primary : self.tint)
+            .frame(width: iconSize, height: iconSize)
     }
 
     @ViewBuilder private var hoverLeading: some View {
@@ -311,6 +286,7 @@ struct ListLayout<Content: View>: View {
                 }
                 .frame(width: size, height: size, alignment: .center)
                 .padding(.trailing, 4)
+                .padding(.leading, 2)
             }
             .buttonStyle(.plain)
         }
@@ -330,6 +306,7 @@ struct ListLayout<Content: View>: View {
                     }
                     .frame(width: iconSize, height: iconSize, alignment: .center)
                     .padding(.trailing, 4)
+                    .padding(.leading, 2)
                 }
             }
                 .buttonStyle(.plain)

@@ -8,7 +8,7 @@ struct Transcript: Malleable {
 
     enum Entry: Codable, Sendable, Identifiable {
         case event(Signal, Date)
-        case record(Chunk, Date)
+        case record(Map, Date)
         case transcript(Reference, Intent, Date)
 
         var id: AnyHashable {
@@ -66,14 +66,14 @@ struct Transcript: Malleable {
         }
     }
 
-    var records: [Chunk] {
+    var records: [Map] {
         entries.compactMap { entry in
             guard case .record(let chunk, _) = entry else { return nil }
             return chunk
         }
     }
 
-    func output(_ type: String) -> Chunk? {
+    func output(_ type: String) -> Map? {
         records.last { chunk in
             guard case .collection(let fields) = chunk.value, case .string(let kind)? = fields["type"]
                     else { return false }
@@ -85,7 +85,7 @@ struct Transcript: Malleable {
         entries.append(.event(signal, .now))
     }
 
-    mutating func insert(_ chunk: Chunk) {
+    mutating func insert(_ chunk: Map) {
         entries.append(.record(chunk, .now))
     }
 

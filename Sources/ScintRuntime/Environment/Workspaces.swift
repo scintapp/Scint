@@ -19,7 +19,7 @@ final class Workspaces: @unchecked Sendable {
         let settings = Runtime.shared.settings.persistence
         let urls = try await Persistence.shared.files(in: settings.spaces)
         for url in urls where url.pathExtension == "json" { await load(url) }
-        if spaces.isEmpty { Space.new("Workspace") }
+//        if spaces.isEmpty { Space.new("Workspace") }
     }
 
     func load(_ ref: Reference) async { await load(Runtime.shared.settings.persistence.spacePath(ref.storageId)) }
@@ -29,7 +29,7 @@ final class Workspaces: @unchecked Sendable {
             let stored = try await Persistence.shared.read(StorableStructure.self, at: url)
             load(structures.decode(stored))
         } catch {
-            Self.logger.error("Workspace load failed (\(url.lastPathComponent, privacy: .public)): \(String(describing: error), privacy: .public)")
+            Self.logger.error("Space load failed (\(url.lastPathComponent, privacy: .public)): \(String(describing: error), privacy: .public)")
         }
     }
 

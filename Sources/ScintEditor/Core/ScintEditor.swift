@@ -221,7 +221,7 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         case #selector(insertBacktab(_:)): _ = indent(by: -1); return true
         case #selector(insertNewline(_:)) where selectedCard != nil:
             setSelectedRange(NSRange(location: NSMaxRange(selectedRange()), length: 0)); return true
-        case #selector(cancelOperation(_:)): return true
+        case #selector(cancelOperation(_:)): window?.makeFirstResponder(nil); return true
         default: return false
         }
     }
@@ -318,7 +318,11 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
     }
 
     override func becomeFirstResponder() -> Bool {
-        let result = super.becomeFirstResponder(); if result { onFocus() }; return result
+        let result = super.becomeFirstResponder(); if result { needsDisplay = true; onFocus() }; return result
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let result = super.resignFirstResponder(); if result { needsDisplay = true }; return result
     }
 
     override func viewDidMoveToWindow() {

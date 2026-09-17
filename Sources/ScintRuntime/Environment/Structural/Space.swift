@@ -7,8 +7,8 @@ struct Space: Structural {
     var space: Reference?
     var spaces: Set<Reference> = []
     var bridges: Set<Reference> = []
-    var closure: Reference
     var harness: Reference?
+    var closure: Reference
 
     init(_ ref: Reference = .init(Self.self)) {
         self.ref = ref
@@ -96,6 +96,7 @@ struct Space: Structural {
         return instance.ref
     }
 
+    @discardableResult
     static func new(_ origin: Reference, name: String = "New Space") -> Reference {
         guard origin.type == Space.self else { RuntimeError.fatal("Not a valid space.") }
         var instance = Space(.init(Self.self))

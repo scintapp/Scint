@@ -98,6 +98,7 @@ struct Material: Malleable {
         return value
     }
 
+    @discardableResult
     static func new(_ origin: Reference, name: String = "New Material") -> Reference {
         guard origin.type == Space.self
         else { RuntimeError.fatal("Not a valid material origin.") }
@@ -110,6 +111,7 @@ struct Material: Malleable {
         return instance.ref
     }
 
+    @discardableResult
     static func new(_ origin: Reference, input: Bool = true) -> Reference {
         guard origin.type == Space.self
         else { RuntimeError.fatal("Not a valid transcript origin.") }

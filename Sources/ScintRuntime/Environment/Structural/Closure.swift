@@ -6,8 +6,8 @@ struct Closure: Structural {
     var origin: Reference
     var content: [Reference] = []
     var interfaces: Set<Reference> = []
-    var config: Config = [:]
     var input: Reference
+    var config: Config = [:]
 
     init(_ ref: Reference = .init(Self.self)) {
         self.ref = ref
@@ -53,13 +53,12 @@ struct Closure: Structural {
     }
 
     static func new(_ name: String, origin: Reference) -> Reference {
+        guard origin.type == Space.self else { RuntimeError.fatal("Not a valid space.") }
         var instance = Closure(.init(Self.self))
         instance.origin = origin
         instance.input = Material.new(origin, input: true)
         Descriptor.new(instance.ref, name: name, tags: ["closure"], published: false)
         Workspaces.shared.add(instance.ref, instance)
-        if origin.type == Space.self { Space.update(origin, { $0.closure = instance.ref}) }
-        else { Bridge.update(origin, { $0.closure = instance.ref}) }
         return instance.ref
     }
 }

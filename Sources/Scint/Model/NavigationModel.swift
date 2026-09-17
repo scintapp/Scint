@@ -12,7 +12,7 @@ struct Navigation: Codable, Equatable, Sendable {
 
     func path(for selection: Selection) -> [Reference] {
         guard let structure = selection.structure else { return [] }
-        var refs = spaces(to: structure)
+        var refs = spaces(to: structure).filter { $0.descriptor.name != "Spaces" }
         if let content = selection.content, pathable(content) { refs.append(content) }
         else if let interface = selection.interface { refs.append(interface) }
         return refs

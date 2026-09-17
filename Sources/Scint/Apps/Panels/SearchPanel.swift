@@ -82,8 +82,7 @@ struct SearchDetail: Query {
             case .open: model.open(ref)
             case .execute: _ = Runtime.shared.start(ref)
             case .insert:
-                guard let space = model.session.space else { return }
-                Space.with(space, { $0 })?.add(ref)
+                Space.with(model.session.root, { $0 })?.add(ref)
         }
     }
 }

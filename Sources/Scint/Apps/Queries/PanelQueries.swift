@@ -19,11 +19,16 @@ struct NavigatorExecuteQuery: Query {
                 model.focus(ref)
             },
             surfaceDropTarget: {
-                .init(name: "Spaces")
+                let space = model.session.root
+                return .init(ref: space, name: space.descriptor.name)
             },
             wrapLink: { view, item, _ in
                 guard let ref = item.ref else { return view }
                 return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
+            },
+            wrapHeader: { view, section in
+                guard section.id == AnyHashable("spaces") else { return view }
+                return AnyView(view.contextMenu { ContextActionMenu(ref: model.session.root) })
             },
             dropTypes: { item in
                 item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
@@ -43,16 +48,22 @@ struct NavigatorExecuteQuery: Query {
                     header: false,
                     items: [
                         .init(
+                            ref: model.session.inbox,
                             name: "Inbox",
-                            image: "tray"
+                            image: "tray",
+                            tint: Style.Foreground.subtle
                         ),
                         .init(
+                            ref: model.session.drafts,
                             name: "Drafts",
-                            image: "text.rectangle"
+                            image: "text.rectangle",
+                            tint: Style.Foreground.subtle
                         ),
                         .init(
-                            name: "Tasks",
-                            image: "checkmark.app"
+                            ref: model.session.outlines,
+                            name: "Outlines",
+                            image: "app.grid.2x2.topleft.dashed",
+                            tint: Style.Foreground.subtle
                         )
                     ]
                 ),
@@ -89,11 +100,16 @@ struct NavigatorComposeQuery: Query {
                 model.focus(ref)
             },
             surfaceDropTarget: {
-                .init(name: "Spaces")
+                let space = model.session.root
+                return .init(ref: space, name: space.descriptor.name)
             },
             wrapLink: { view, item, _ in
                 guard let ref = item.ref else { return view }
                 return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
+            },
+            wrapHeader: { view, section in
+                guard section.id == AnyHashable("spaces") else { return view }
+                return AnyView(view.contextMenu { ContextActionMenu(ref: model.session.root) })
             },
             dropTypes: { item in
                 item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
@@ -104,7 +120,6 @@ struct NavigatorComposeQuery: Query {
         )
     }
 
-
     static func parameters(_ model: any Model) -> Params {
         .init(
             header: true,
@@ -114,16 +129,22 @@ struct NavigatorComposeQuery: Query {
                     header: false,
                     items: [
                         .init(
+                            ref: model.session.inbox,
                             name: "Inbox",
-                            image: "tray"
+                            image: "tray",
+                            tint: Style.Foreground.subtle
                         ),
                         .init(
+                            ref: model.session.drafts,
                             name: "Drafts",
-                            image: "text.rectangle"
+                            image: "text.rectangle",
+                            tint: Style.Foreground.subtle
                         ),
                         .init(
-                            name: "Tasks",
-                            image: "checkmark.app"
+                            ref: model.session.outlines,
+                            name: "Outlines",
+                            image: "app.grid.2x2.topleft.dashed",
+                            tint: Style.Foreground.subtle
                         )
                     ]
                 ),
@@ -156,7 +177,7 @@ struct PathQuery: Query {
                 model.select(ref)
             },
             sectionDropTarget: { section in
-                guard section.id == AnyHashable("spaces"), let space = model.session.space else { return nil }
+                let space = model.session.root
                 return .init(ref: space, name: space.descriptor.name)
             },
             itemPalette: { item in

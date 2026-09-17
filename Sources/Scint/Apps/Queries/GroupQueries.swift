@@ -91,7 +91,7 @@ struct ArtifactsGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.root }
         }
         guard let space = focused else { return .init() }
 
@@ -154,7 +154,7 @@ struct ArtifactsGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.root }
         }
         guard let space = focused else { return .init() }
 
@@ -224,7 +224,7 @@ struct CommandsGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.root }
         }
         guard let space = focused else { return .init() }
 
@@ -286,7 +286,7 @@ struct CommandsGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.root }
         }
         guard let space = focused else { return .init() }
 
@@ -354,7 +354,7 @@ struct HarnessGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.root }
         }
         guard let space = focused else { return .init() }
 
@@ -424,7 +424,7 @@ struct HarnessGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.root }
         }
         guard let space = focused else { return .init() }
 
@@ -729,7 +729,7 @@ struct SpaceSettings: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.root }
         }
         guard let space = focused else { return .init() }
 

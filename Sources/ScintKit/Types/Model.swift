@@ -19,14 +19,15 @@ extension Model {
     }
 
     func select(_ ref: Reference, entry: UUID? = nil, url: URL? = nil) {
-        session.focus(ref)
         session.select(ref, entry: entry, url: url)
     }
 
     func open(_ ref: Reference) {
-        session.focus(ref)
-        session.select(ref)
         session.open(ref)
+    }
+
+    func search(_ query: String, filters: [String] = [], limit: Int) -> SearchResults {
+        Runtime.shared.search(query, filters: filters, limit: limit)
     }
 
     func compose(_ ref: Reference) -> Composition? { Runtime.shared.compose(ref) }
@@ -36,21 +37,4 @@ extension Model {
 
     @discardableResult
     func stop(_ ref: Reference) -> Composition? { Runtime.shared.stop(ref) }
-
-    func search(_ query: String, filters: [String] = [], limit: Int) -> SearchResults {
-        Runtime.shared.search(query, filters: filters, limit: limit)
-    }
-
-    func artifacts(_ space: Reference) -> [Reference] {
-        Space.with(space) { space in
-            space.artifacts.filter { ref in
-                Artifact.with(ref) {
-                    switch $0.handler {
-                        case .directory, .file: true
-                        default: false
-                    }
-                } == true
-            }
-        } ?? []
-    }
 }
