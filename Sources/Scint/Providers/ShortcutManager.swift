@@ -24,8 +24,9 @@ import SwiftUI
     }
 
     private static let bindings: [Binding] = [
-        .init(.actions, .studio, .k, [.command]),
-        .init(.search, .studio, .p, [.command, .shift])
+        .init(.actions, .studio, .p, [.command, .shift]),
+        .init(.input, .studio, .k, [.command, .shift]),
+        .init(.search, .studio, .k, [.command])
     ]
 
     private var model: ScintModel?

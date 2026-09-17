@@ -32,4 +32,13 @@ final class AppData: Codable, @unchecked Sendable {
         self.space = space
         return true
     }
+
+#if DEBUG
+    init(previewSpace: Reference, inbox: Reference, drafts: Reference, outlines: Reference) {
+        self.inbox = inbox
+        self.drafts = drafts
+        self.outlines = outlines
+        self.space = previewSpace
+    }
+#endif
 }

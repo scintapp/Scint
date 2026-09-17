@@ -4,7 +4,7 @@ import SwiftUI
 typealias Values = [AnyHashable: AnyHashable]
 
 enum PanelKey: String, Identifiable, CaseIterable {
-    case actions, search
+    case actions, input, search
     var id: String { self.rawValue }
 }
 

@@ -58,9 +58,9 @@ struct MenuForm: View {
                     .padding(.horizontal, Style.Spacing.md)
                     .frame(height: Style.Spacing.xxl)
                     .background(Color.primary.opacity(Style.Opacity.hairline))
-                    .clipShape(Style.Shape.capsule)
+                    .clipShape(Style.Shape.small)
                     .overlay {
-                        Style.Shape.capsule
+                        Style.Shape.small
                             .strokeBorder(
                                 Color.primary.opacity(Style.Opacity.hairline),
                                 lineWidth: 1

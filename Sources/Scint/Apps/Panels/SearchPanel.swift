@@ -150,7 +150,6 @@ struct SearchDetail: Query {
 }
 
 @Observable final class ActionsPanel: Panel {
-    var mode: Modality = .fixed
     var state: PanelState = .init()
     var surface: PanelSurface = .composer
 
@@ -166,6 +165,38 @@ struct SearchDetail: Query {
                 case .editor: "square.and.pencil"
             }
         }
+    }
+
+    func surface(_ model: any Model) -> some View {
+        AnySurface(panel: self, model: model)
+    }
+}
+
+@Observable final class InputPanel: Panel {
+    var state: PanelState = .init()
+    var surface: PanelSurface = .input
+
+    enum PanelSurface: String, CaseIterable, Identifiable {
+        case input
+
+        var id: String { rawValue }
+        var label: String { rawValue.capitalized }
+
+        var symbol: String { "square.fill.text.grid.1x2" }
+    }
+
+    func parameters(_ model: Model) -> Params {
+        return .init(
+            id: PanelKey.search.id,
+            panel: .init(
+                key: .input,
+                sizing: .init(size: .init(width: 640, height: 90)),
+                dismissal: [.escape, .outsideClick],
+                movable: true,
+                resizable: false,
+                pinnable: false
+            ),
+        )
     }
 
     func surface(_ model: any Model) -> some View {

@@ -46,7 +46,7 @@ struct ComposeControl: View {
     }
 }
 
-struct ComposeBar: View {
+struct InputBar: View {
     var model: any Model
     var onSend: () -> Void
 

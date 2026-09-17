@@ -35,7 +35,7 @@ struct ListLabel: View {
 
 struct ListLink: View {
     @State private var isHovered = false
-    private let iconSize: CGFloat = 14
+    private let iconSize: CGFloat = 15
     let ref: Reference?
     let name: String
     let detail: String?

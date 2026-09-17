@@ -51,24 +51,3 @@ struct PathBar: View {
         .frame(maxWidth: .infinity, maxHeight: 30, alignment: .leading)
     }
 }
-
-
-struct PathMenu: View {
-    @State private var hovered = false
-    let model: any Model
-    var selection: Selection { model.session.selection }
-    var path: [Reference] { model.session.navigation.path(for: selection) }
-
-    var body: some View {
-        if let ref = path.last {
-            Button { model.select(ref) } label: {
-                HStack(alignment: .center) {
-                    Iconography.icon(for: ref, size: 13.5)
-                    Text(ref.descriptor.name).font(.system(size: 13.5, weight: .medium))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.borderless)
-        }
-    }
-}

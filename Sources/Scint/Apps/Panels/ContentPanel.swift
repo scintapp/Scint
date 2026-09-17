@@ -26,41 +26,47 @@ struct ContentPicker: View {
 
 @Observable final class ContentPanel: Panel {
     var state: PanelState = .init()
-    var surface: PanelSurface = .compose
+    var surface: PanelSurface = .canvas
 
     enum PanelSurface: String, CaseIterable, Identifiable {
-        case compose, execute, inbox
+        case canvas, drafts, outlines, activity
 
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
         var symbol: String {
             switch self {
-                case .compose: "checkmark.app"
-                case .execute: "rectangle.stack"
-                case .inbox: "tray"
+                case .canvas: "checkmark.app"
+                case .drafts: "rectangle.stack"
+                case .outlines: "tray"
+                case .activity: "tray"
             }
         }
     }
 
     func surface(_ model: any Model) -> some View {
-        ZStack(alignment: .top) {
-            switch surface {
-                case .compose:
-                    CanvasSurface(panel: self, model: model)
-                case .execute:
-                    OutlinesSurface(panel: self, model: model)
-                case .inbox:
-                    DraftsSurface(panel: self, model: model)
-            }
+        var ref: Reference? {
+            guard let ref = model.session.selection.structure, Space.with(ref, { $0 }) != nil
+            else { return nil }
+            return ref
         }
-        .toolbar {
-            ToolbarItem(placement: .navigation) { NewDraftButton(panel: self, model: model) }
-            ToolbarSpacer(.flexible, placement: .automatic)
-            ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
-            ToolbarSpacer(.flexible, placement: .automatic)
-            ToolbarItem(placement: .principal) { ContentPicker() }
-            ToolbarSpacer(.flexible, placement: .primaryAction)
-            ToolbarItem(placement: .primaryAction) { InspectorPicker() }
+
+        return ZStack(alignment: .top) {
+            Group {
+                switch surface {
+                    case .activity: SpaceSurface(panel: self, model: model)
+                    case .canvas: CanvasSurface(panel: self, model: model)
+                    case .drafts: DraftsSurface(panel: self, model: model)
+                    case .outlines: DraftsSurface(panel: self, model: model)
+
+                }
+            }
+                .toolbar {
+                    ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
+                    ToolbarSpacer(.flexible, placement: .automatic)
+                    ToolbarItem(placement: .principal) { ContentPicker() }
+                    ToolbarSpacer(.flexible, placement: .primaryAction)
+                    ToolbarItem(placement: .primaryAction) { InspectorPicker() }
+                }
         }
     }
 }

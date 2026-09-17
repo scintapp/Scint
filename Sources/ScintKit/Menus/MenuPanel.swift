@@ -14,9 +14,6 @@ struct MenuPanelContent: View {
         switch controller.kind {
         case .fixed, .dynamic:
             VStack(alignment: .leading, spacing: Style.Spacing.sm) {
-                Text(controller.query.isEmpty ? "Type to filter" : controller.query)
-                    .font(Typography.row).foregroundStyle(Style.Foreground.muted)
-                    .padding(.horizontal, Style.Spacing.md)
                 MenuList(items: controller.items, selectedID: controller.selectedID, onSelect: onSelect)
             }
             .padding(Style.Spacing.md)

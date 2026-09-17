@@ -9,7 +9,6 @@ struct Float<Content: View>: View {
     var body: some View {
         content
             .glassEffect(.regular, in: Style.Shape.panel)
-            .background(Style.Background.overlay.opacity(Style.Opacity.faint))
             .overlay(Style.Shape.panel.stroke(.black.opacity(Style.Opacity.muted), lineWidth: 1))
             .clipShape(Style.Shape.panel)
     }
@@ -19,11 +18,13 @@ struct Float<Content: View>: View {
     private(set) var coordinators: OrderedDictionary<AnyHashable, PanelCoordinator> = [:]
 
     let actions: ActionsPanel = .init()
+    let input: InputPanel = .init()
     let search: SearchPanel = .init()
 
     func panel(for key: PanelKey) -> any Panel {
         switch key {
             case .actions: actions
+            case .input: input
             case .search: search
         }
     }
