@@ -98,7 +98,7 @@ enum Value: Codable, Sendable, Equatable {
 
             case (.sequence(let alternatives), _) where alternatives.count > 1:
                 guard alternatives.contains(where: { (try? $0.construct(supplied, name: name)) != nil })
-                        else { throw ParsingError.invalid("Argument \(name) is not an allowed value.") }
+                else { throw ParsingError.invalid("Argument \(name) is not an allowed value.") }
                 return supplied
 
             case (.range(let scale), .integer(let index)) where !scale.isEmpty:
@@ -106,7 +106,7 @@ enum Value: Codable, Sendable, Equatable {
 
             case (.range(let scale), _):
                 guard scale.contains(supplied)
-                        else { throw ParsingError.invalid("Argument \(name) is not an allowed value.") }
+                else { throw ParsingError.invalid("Argument \(name) is not an allowed value.") }
                 return supplied
 
             case (.sequence(let template), .sequence(let values)):
@@ -123,9 +123,8 @@ enum Value: Codable, Sendable, Equatable {
                 return .collection(constructed)
 
             case (.collection(let template), _):
-                guard template.count == 1, let (key, expected) = template.first else {
-                    throw ParsingError.invalid("Argument \(name) expects a collection.")
-                }
+                guard template.count == 1, let (key, expected) = template.first
+                else { throw ParsingError.invalid("Argument \(name) expects a collection.") }
                 return .collection([key: try expected.construct(supplied, name: name)])
 
             default:
@@ -136,17 +135,14 @@ enum Value: Codable, Sendable, Equatable {
     var rendered: [String] { Renderer.value(self) }
 }
 
-struct Map: Keyed {
+struct Join: Keyed {
     let key: Key
     let origin: Reference
     let value: Value
 
-    var name: String { origin.descriptor.name }
-
     init(_ ref: Reference, _ origin: Reference, _ value: Value) {
-        self.key = .branch(UUID(), ref)
+        self.key = .map(.init(), ref)
         self.origin = origin
         self.value = value
     }
 }
-

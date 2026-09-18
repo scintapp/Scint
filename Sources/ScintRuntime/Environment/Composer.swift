@@ -28,6 +28,11 @@ import Foundation
         return context
     }
 
+    func transmit(_ signal: Signal) -> Composition? {
+        update(signal.ref) { context in context.handle(signal) }
+        return resolve(signal.ref)
+    }
+
     func resolve(_ ref: Reference) -> Composition? {
         guard contexts.get(ref) != nil else { return nil }
         return Composition(ref)
@@ -35,12 +40,6 @@ import Foundation
 
     func resolve() -> [Composition] {
         contexts.keys().compactMap { resolve($0) }
-    }
-
-    func transmit(_ signal: Signal) -> Composition? {
-        guard let composition = resolve(signal.ref) else { return nil }
-        update(signal.ref) { context in context.handle(signal) }
-        return composition
     }
 
     @discardableResult

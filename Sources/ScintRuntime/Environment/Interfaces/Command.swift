@@ -63,7 +63,7 @@ struct Command: Functional {
 
     func matches(_ other: Command) -> Bool { artifact == other.artifact && parameters == other.parameters }
 
-    static func register(_ name: String, exec: Reference, params: [Parameter] = []) -> Reference {
+    static func new(_ name: String, exec: Reference, params: [Parameter] = []) -> Reference {
         register(name, Self(Reference(Self.self), artifact: exec, parameters: params), tags: ["command"])
     }
 }

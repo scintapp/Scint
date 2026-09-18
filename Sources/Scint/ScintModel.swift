@@ -6,7 +6,6 @@ import SwiftUI
     var app: AppModel
     var data: AppData
     var panels: PanelModel = .init()
-    var host: HostModel = .init()
 
     init(_ data: AppData) {
         self.app = AppModel(data)
@@ -18,7 +17,6 @@ import SwiftUI
 
     func load() async {
         await callbacks()
-        await host.load()
     }
 
     func callbacks() async {

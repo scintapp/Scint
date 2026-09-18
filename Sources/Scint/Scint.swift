@@ -1,9 +1,30 @@
 import SwiftUI
 import OSLog
+import Darwin
 
 
 @main
-struct Scint: App {
+enum ScintEntry {
+    static func main() {
+        if ProcessInfo.processInfo.arguments.contains("--mcp") {
+            Task {
+                do {
+                    try await Runtime.shared.load()
+                    try await MCPServer(bridge: RuntimeMCPBridge()).run()
+                    Darwin.exit(EXIT_SUCCESS)
+                } catch {
+                    FileHandle.standardError.write(Data("Scint MCP: \(error)\n".utf8))
+                    Darwin.exit(EXIT_FAILURE)
+                }
+            }
+            dispatchMain()
+        } else {
+            ScintApp.main()
+        }
+    }
+}
+
+struct ScintApp: App {
     @Environment(\.openWindow) private var openWindow
     @State private var scint: ScintModel?
     @State private var loading = false
@@ -40,7 +61,6 @@ struct Scint: App {
             if let scint {
                 Host()
                     .environment(scint)
-                    .environment(scint.host)
                     .focusable(false)
             } else {
                 Text("Scint is loading…")

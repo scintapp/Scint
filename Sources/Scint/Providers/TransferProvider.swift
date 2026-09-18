@@ -66,7 +66,7 @@ enum ReferenceTransfer {
                     Task { @MainActor in
                         let moved = switch payload {
                             case .reference(let ref): apply(ref)
-                            case .file(let url, let name): apply(Artifact.register(name, url))
+                            case .file(let url, let name): apply(Artifact.new(name, url))
                         }
                         if moved { await Runtime.shared.save() }
                     }

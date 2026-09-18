@@ -1,0 +1,5 @@
+project: Scint.xcodeproj
+retain_public: true
+schemes:
+- Scint
+- scintd

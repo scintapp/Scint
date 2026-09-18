@@ -144,7 +144,7 @@ struct ArtifactsGroup: Query {
                 panel.allowsMultipleSelection = true
                 guard panel.runModal() == .OK else { return }
                 for url in panel.urls {
-                    let artifact = Artifact.register(url.lastPathComponent, url)
+                    let artifact = Artifact.new(url.lastPathComponent, url)
                     Space.with(space, { $0 })?.add(artifact)
                 }
             }
@@ -276,7 +276,7 @@ struct CommandsGroup: Query {
                 panel.allowsMultipleSelection = true
                 guard panel.runModal() == .OK else { return }
                 for url in panel.urls {
-                    let artifact = Artifact.register(url.lastPathComponent, url)
+                    let artifact = Artifact.new(url.lastPathComponent, url)
                     Space.with(space, { $0 })?.add(artifact)
                 }
             }

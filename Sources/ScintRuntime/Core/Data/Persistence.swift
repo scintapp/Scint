@@ -9,7 +9,7 @@ actor Persistence {
         return try JSONDecoder().decode(T.self, from: data)
     }
 
-    func write<T: Storable>(_ PersistedObject: PersistedObject<T>) throws {
+    func write<T: Storable>(_ PersistedObject: PersistableObject<T>) throws {
         try FileManager.default.createDirectory(
             at: PersistedObject.url.deletingLastPathComponent(),
             withIntermediateDirectories: true

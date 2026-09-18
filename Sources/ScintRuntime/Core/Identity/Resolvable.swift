@@ -85,8 +85,6 @@ extension Structural {
 extension Functional {
     var id: AnyHashable { ref }
 
-    /// Returns the interface already registered under this name when it's the same one. A
-    /// different interface under a taken name registers with a number appended.
     static func register(_ name: String, _ instance: Self, tags: Set<String>) -> Reference {
         let registered = Runtime.shared.store(for: Reference(Self.self))?.all(as: Self.self) ?? []
 
@@ -133,3 +131,5 @@ extension UUID {
         ))
     }
 }
+
+

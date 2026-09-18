@@ -12,12 +12,12 @@ import LinkPresentation
     let space = Space.new("Research Desk")
     Space.update(space) { $0.description = "Shared research, materials, and tools." }
     Space.update(space) { $0.description = "Prepare the next discovery call." }
-    let file = Artifact.register("Design notes.md", previewData.appending(path: "Design notes.md"))
+    let file = Artifact.new("Design notes.md", previewData.appending(path: "Design notes.md"))
     Artifact.update(file) { $0.description = "Notes and reference material for the interview." }
-    let link = Artifact.register("SwiftUI documentation", URL(string: "https://developer.apple.com/documentation/swiftui")!)
+    let link = Artifact.new("SwiftUI documentation", URL(string: "https://developer.apple.com/documentation/swiftui")!)
     Artifact.update(link) { $0.description = "Apple's documentation for SwiftUI." }
-    let executable = Artifact.register("curl", URL(filePath: "/usr/bin/curl"))
-    let command = Command.register("Fetch Web Page", exec: executable, params: [
+    let executable = Artifact.new("curl", URL(filePath: "/usr/bin/curl"))
+    let command = Command.new("Fetch Web Page", exec: executable, params: [
         .fixed(.string("-L")),
         .fixed(.string("--max-time 20")),
         .argument(name: "URL", type: .string(""), required: true)
@@ -68,9 +68,9 @@ import LinkPresentation
 
     let space = Space.new("Research Desk")
     let material = Material.new(space, name: "Research Brief Template")
-    let file = Artifact.register("Design notes.md", previewData.appending(path: "Design notes.md"))
-    let executable = Artifact.register("curl", URL(filePath: "/usr/bin/curl"))
-    let command = Command.register("Fetch Web Page", exec: executable)
+    let file = Artifact.new("Design notes.md", previewData.appending(path: "Design notes.md"))
+    let executable = Artifact.new("curl", URL(filePath: "/usr/bin/curl"))
+    let command = Command.new("Fetch Web Page", exec: executable)
 
     return VStack(alignment: .leading, spacing: Style.Spacing.lg) {
         Chip(ref: material)

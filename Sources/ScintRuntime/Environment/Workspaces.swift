@@ -19,7 +19,6 @@ final class Workspaces: @unchecked Sendable {
         let settings = Runtime.shared.settings.persistence
         let urls = try await Persistence.shared.files(in: settings.spaces)
         for url in urls where url.pathExtension == "json" { await load(url) }
-//        if spaces.isEmpty { Space.new("Workspace") }
     }
 
     func load(_ ref: Reference) async { await load(Runtime.shared.settings.persistence.spacePath(ref.storageId)) }
@@ -45,7 +44,7 @@ final class Workspaces: @unchecked Sendable {
             guard let space = Space.with(ref, { $0 }) else { throw RuntimeError.spaces(.loadFailed) }
             let stored = try structures.encode(space)
             let url = Runtime.shared.settings.persistence.spacePath(space.ref.storageId)
-            try await Persistence.shared.write(PersistedObject(url: url, value: stored))
+            try await Persistence.shared.write(PersistableObject(url: url, value: stored))
         }
     }
 

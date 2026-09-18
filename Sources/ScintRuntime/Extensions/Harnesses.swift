@@ -12,8 +12,6 @@ enum Harnesses {
         let exec: Reference
     }
 
-    private static let endpoint = "http://127.0.0.1:7345/mcp"
-
     @discardableResult
     static func load() -> References {
         func exists<T: Resolvable>(_ name: String, as type: T.Type) -> Reference? {
@@ -21,11 +19,11 @@ enum Harnesses {
         }
 
         func artifact(_ name: String, _ url: URL) -> Reference {
-            Artifact.register(name, url)
+            Artifact.new(name, url)
         }
 
         func command(name: String, description: String, artifact: Reference, parameters: [Command.Parameter]) -> Reference {
-            let ref = Command.register(name, exec: artifact, params: parameters)
+            let ref = Command.new(name, exec: artifact, params: parameters)
             Catalog.shared.update(ref) { descriptor in descriptor.description = description }
             return ref
         }
@@ -45,9 +43,9 @@ enum Harnesses {
             .fixed(.string("never")),
             .fixed(.string("--skip-git-repo-check")),
             .fixed(.string("-c")),
-            .fixed(.string("mcp_servers.scint.url=\(endpoint)")),
+            .fixed(.string("mcp_servers.scint.command=\"\(Bundle.main.executableURL?.path ?? "/Applications/Scint.app/Contents/MacOS/Scint")\"")),
             .fixed(.string("-c")),
-            .fixed(.string("mcp_servers.scint.bearer_token_env_var=SCINT_CONTEXT"))
+            .fixed(.string("mcp_servers.scint.args=[\"--mcp\"]"))
         ]
 
         let evaluate = command(
@@ -132,4 +130,3 @@ enum Harnesses {
         )
     }
 }
-

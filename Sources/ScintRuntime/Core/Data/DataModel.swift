@@ -64,7 +64,7 @@ extension Bounding {
     func encode(for ref: Reference) async throws {
         guard let record = try record(for: ref) else { return }
         let url = Runtime.shared.settings.persistence.libraryPath(for: ref)
-        try await Persistence.shared.write(PersistedObject(url: url, value: record))
+        try await Persistence.shared.write(PersistableObject(url: url, value: record))
     }
 
     func decode(_ records: [StorableObject]) {
@@ -95,11 +95,7 @@ struct Codec: @unchecked Sendable {
     let decode: Decode
     let encodeFrom: EncodeFrom
 
-    enum Format: String {
-        case json
-        case markdown
-        case source
-    }
+    enum Format: String { case json, markdown, source }
 
     init(format: Format = .json, encode: @escaping Encode, decode: @escaping Decode, encodeFrom: @escaping EncodeFrom) {
         self.format = format
@@ -194,7 +190,7 @@ struct StorableStructure: Storable {
     var spaces: [StorableObject]
 }
 
-struct StorableHarness: Storable {
+struct StorableInterface: Storable {
     var harness: StorableObject
     var commands: [StorableObject]
     var artifacts: [StorableObject]
@@ -202,11 +198,11 @@ struct StorableHarness: Storable {
 
 struct StorableBundle: Storable {
     var structure: StorableStructure
-    var harnesses: [StorableHarness]
+    var harnesses: [StorableInterface]
     var materials: [StorableObject]
 }
 
-struct PersistedObject<Value: Storable>: Sendable {
+struct PersistableObject<Value: Storable>: Sendable {
     let url: URL
     let value: Value
     let encoder: JSONEncoder = {

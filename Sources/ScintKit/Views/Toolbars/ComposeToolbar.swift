@@ -58,14 +58,7 @@ struct InputBar: View {
                 EditorView(
                     input,
                     sizing: .grows(min: Style.Spacing.inputMinHeight, max: Style.Spacing.inputMaxHeight),
-                    autofocus: false,
-                    onFocus: { model.select(input) },
-                    onOpenLink: { link in
-                        switch link {
-                        case .reference(let ref): model.open(ref)
-                        case .url(let url): NSWorkspace.shared.open(url)
-                        }
-                    }
+                    autofocus: false
                 )
                 .id(input)
                 .padding(.horizontal, Style.Spacing.lg)

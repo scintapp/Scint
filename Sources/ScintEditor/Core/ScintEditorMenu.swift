@@ -73,7 +73,7 @@ import AppKit
             }
         case .form(.link, let values):
             guard let url = normalizedURL(from: values.primary.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
-            let ref = Artifact.register(url.host(percentEncoded: false) ?? url.absoluteString, url)
+            let ref = Artifact.new(url.host(percentEncoded: false) ?? url.absoluteString, url)
             if outcome.isInserting, let link = Reference.Link.markdown(for: ref) { editor.replace(outcome.replacementRange, with: link) }
             else if !outcome.isInserting { editor.replaceCard(outcome.target, with: .artifact(ref)) }
         case .form(.artifact, _), .form(.command, _), .form(.material, _): break
@@ -103,7 +103,7 @@ import AppKit
                 guard panel.runModal() == .OK else { return nil }
                 let entries = panel.urls.map { url in
                     let name = url.lastPathComponent.isEmpty ? "Artifact" : url.lastPathComponent
-                    return Material.Block.artifact(Artifact.register(name, url))
+                    return Material.Block.artifact(Artifact.new(name, url))
                 }
                 return entries.isEmpty ? nil : entries
             default: return nil

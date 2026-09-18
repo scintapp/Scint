@@ -52,7 +52,7 @@ import SwiftUI
             $0.description = "Shared research, materials, and reusable tools."
         }
 
-        let file = Artifact.register(
+        let file = Artifact.new(
             "Design notes.md",
             previewData.appending(path: "Design notes.md")
         )
@@ -60,7 +60,7 @@ import SwiftUI
             $0.description = "Interview notes and source material for the research brief."
         }
 
-        let link = Artifact.register(
+        let link = Artifact.new(
             "SwiftUI documentation",
             URL(string: "https://developer.apple.com/documentation/swiftui")!
         )
@@ -68,8 +68,8 @@ import SwiftUI
             $0.description = "Apple's reference for SwiftUI views and controls."
         }
 
-        let executable = Artifact.register("curl", URL(filePath: "/usr/bin/curl"))
-        let command = Command.register("Fetch Web Page", exec: executable, params: [
+        let executable = Artifact.new("curl", URL(filePath: "/usr/bin/curl"))
+        let command = Command.new("Fetch Web Page", exec: executable, params: [
             .fixed(.string("-L")),
             .argument(name: "URL", type: .string(""), required: true)
         ])

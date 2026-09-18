@@ -27,7 +27,7 @@ struct Manifest {
 
         func artifact(_ name: String, _ path: String) -> Reference {
             Runtime.shared.all(as: Artifact.self).first { $0.0.descriptor.name == name }?.0
-                ?? Artifact.register(name, home.appendingPathComponent(path))
+                ?? Artifact.new(name, home.appendingPathComponent(path))
         }
 
         func space(_ name: String, harness: Reference, artifacts: [Reference], in origin: Reference) -> Reference {
@@ -57,7 +57,7 @@ struct Manifest {
         let dew = space("Dew", harness: harnesses.evaluate, artifacts: [dewRepo], in: spaces)
         let voice = space("Voice Study", harness: harnesses.compose, artifacts: [voiceGuide, llmTics], in: spaces)
         let writing = space("Writing", harness: harnesses.compose, artifacts: [published, contentDrafts], in: spaces)
-        let reading = space("Reading", harness: harnesses.search, artifacts: [books], in: spaces)
+        let reading = space("Parser", harness: harnesses.search, artifacts: [books], in: spaces)
 
         // Inbox
 
@@ -156,7 +156,7 @@ struct Manifest {
         ])
         give(persistence, to: [runtime])
 
-        let readingList = material(outlines, "Agents and Search Reading", [
+        let readingList = material(outlines, "Agents and Search Parser", [
             text("**Outcome:** one page of notes connecting tree search, information retrieval, and statecharts to how spaces run."),
             .artifact(books),
             task("Language Agent Tree Search"),
@@ -203,17 +203,28 @@ enum SampleInterfaces {
     static func load() -> References {
         let fileManager = FileManager.default
         let home = fileManager.homeDirectoryForCurrentUser.standardizedFileURL.resolvingSymlinksInPath()
+        let mcpExecutable = Bundle.main.executableURL?.path ?? "/Applications/Scint.app/Contents/MacOS/Scint"
+        let claudeMCPData = try? JSONSerialization.data(withJSONObject: [
+            "mcpServers": [
+                "scint": [
+                    "type": "stdio",
+                    "command": mcpExecutable,
+                    "args": ["--mcp"]
+                ]
+            ]
+        ])
+        let claudeMCPConfig = claudeMCPData.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
 
         func exists<T: Resolvable>(_ name: String, as type: T.Type) -> Reference? {
             Runtime.shared.all(as: type).first { $0.0.descriptor.name == name }?.0
         }
 
         func artifact(_ name: String, _ url: URL) -> Reference {
-            exists(name, as: Artifact.self) ?? Artifact.register(name, url)
+            exists(name, as: Artifact.self) ?? Artifact.new(name, url)
         }
 
         func command(_ name: String, _ artifact: Reference, _ parameters: [Command.Parameter], description: String? = nil) -> Reference {
-            let reference = exists(name, as: Command.self) ?? Command.register(name, exec: artifact, params: parameters)
+            let reference = exists(name, as: Command.self) ?? Command.new(name, exec: artifact, params: parameters)
             if let description {
                 Catalog.shared.update(reference) { descriptor in descriptor.description = description }
             }
@@ -420,7 +431,7 @@ enum SampleInterfaces {
                     .fixed(.string("stream-json")),
                     .fixed(.string("--verbose")),
                     .fixed(.string("--mcp-config")),
-                    .fixed(.string(#"{"mcpServers":{"scint":{"type":"http","url":"http://127.0.0.1:7345/mcp","headers":{"Authorization":"Bearer $SCINT_CONTEXT"}}}}"#)),
+                    .fixed(.string(claudeMCPConfig)),
                     .fixed(.string("--strict-mcp-config"))
                 ]
             ),
@@ -490,9 +501,9 @@ enum SampleInterfaces {
                     .fixed(.string("--skip-git-repo-check")),
                     .fixed(.string("--dangerously-bypass-approvals-and-sandbox")),
                     .fixed(.string("-c")),
-                    .fixed(.string("mcp_servers.scint.url=http://127.0.0.1:7345/mcp")),
+                    .fixed(.string("mcp_servers.scint.command=\"\(mcpExecutable)\"")),
                     .fixed(.string("-c")),
-                    .fixed(.string("mcp_servers.scint.bearer_token_env_var=SCINT_CONTEXT"))
+                    .fixed(.string("mcp_servers.scint.args=[\"--mcp\"]"))
                 ]
             ),
             .evaluate,

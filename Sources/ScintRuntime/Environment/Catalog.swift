@@ -69,7 +69,6 @@ final class Catalog: Sendable {
         return result
     }
 
-    /// Stamps the descriptors of referenced objects with when they were last updated.
     func stamp(_ updates: [Reference: Date]) {
         for (ref, date) in updates {
             descriptors.update(ref) { $0.updated = max($0.updated, date) }

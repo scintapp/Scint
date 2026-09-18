@@ -1,6 +1,20 @@
 import Foundation
 
 
+enum Intent: CaseIterable, Codable, Sendable {
+    case compose, dispatch, evaluate, search
+
+    var rawValue: String { String(describing: self) }
+
+    var forms: (label: String, running: String, completed: String) {
+        switch self {
+            case .compose: ("Compose", "Composing", "Composed")
+            case .dispatch: ("Dispatch", "Dispatching", "Dispatched")
+            case .evaluate: ("Evaluate", "Evaluating", "Evaluated")
+            case .search: ("Research", "Researching", "Researched")
+        }
+    }
+}
 struct Handler: Contextual {
     let key: Key
     let harness: Reference
@@ -62,20 +76,20 @@ struct Handler: Contextual {
                     return true
                 }
 
-                let readings = Reading.read(value)
+                let readings = Parser.read(value)
                 let root = Transcript.with(transcript, { $0.origin })
 
                 Transcript.update(transcript) { record in
                     if signal.terminal { record.insert(signal) }
                     for reading in readings where !message(reading) {
-                        record.insert(Map(transcript, harness, reading))
+                        record.insert(Join(transcript, harness, reading))
                     }
                 }
 
                 if let root, root.type == Transcript.self {
                     Transcript.update(root) { record in
                         for reading in readings where message(reading) {
-                            record.insert(Map(transcript, harness, reading))
+                            record.insert(Join(transcript, harness, reading))
                         }
                     }
                 }

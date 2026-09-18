@@ -12,9 +12,6 @@
 		7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C959129300D54FB007D9E73 /* OrderedCollections */; };
 		7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */; };
 		7CBB434B3020F78300B9D4D7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7CBB434A3020F78300B9D4D7 /* README.md */; };
-		7CD28FA53056510600B60553 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 7CD28FA43056510600B60553 /* MCP */; };
-		7CD28FA73056510600B60553 /* mcp-everything-client in Frameworks */ = {isa = PBXBuildFile; productRef = 7CD28FA63056510600B60553 /* mcp-everything-client */; };
-		7CD28FA93056510600B60553 /* mcp-everything-server in Frameworks */ = {isa = PBXBuildFile; productRef = 7CD28FA83056510600B60553 /* mcp-everything-server */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,38 +69,41 @@
 		7CBB43643020FFC400B9D4D7 /* Exceptions for "Sources" folder in "scintd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ScintRuntime/Core/Coordinator.swift,
+				ScintRuntime/Core/Data/Bounds.swift,
+				ScintRuntime/Core/Data/Coordinator.swift,
+				ScintRuntime/Core/Data/DataModel.swift,
+				ScintRuntime/Core/Data/Index.swift,
+				ScintRuntime/Core/Data/Persistence.swift,
+				ScintRuntime/Core/Data/Store.swift,
 				ScintRuntime/Core/Identity/Key.swift,
+				ScintRuntime/Core/Identity/Mapping.swift,
 				ScintRuntime/Core/Identity/Reference.swift,
+				ScintRuntime/Core/Identity/Registry.swift,
 				ScintRuntime/Core/Identity/Resolvable.swift,
-				ScintRuntime/Core/Model/Bounds.swift,
-				ScintRuntime/Core/Model/DataModel.swift,
-				ScintRuntime/Core/Model/Index.swift,
-				ScintRuntime/Core/Model/Persistence.swift,
-				ScintRuntime/Core/Model/Store.swift,
 				ScintRuntime/Core/Records/Error.swift,
 				ScintRuntime/Core/Records/Property.swift,
 				ScintRuntime/Core/Records/Value.swift,
-				ScintRuntime/Core/Registry.swift,
-				ScintRuntime/Core/Renderer.swift,
 				ScintRuntime/Core/Search.swift,
 				ScintRuntime/Core/Settings.swift,
 				ScintRuntime/Environment/Catalog.swift,
 				ScintRuntime/Environment/Composer.swift,
-				ScintRuntime/Environment/Contextual/Composition.swift,
-				ScintRuntime/Environment/Contextual/Context.swift,
-				ScintRuntime/Environment/Contextual/Handler.swift,
-				ScintRuntime/Environment/Contextual/Signal.swift,
-				ScintRuntime/Environment/Functional/Artifact.swift,
-				ScintRuntime/Environment/Functional/Command.swift,
-				ScintRuntime/Environment/Functional/Harness.swift,
+				ScintRuntime/Environment/Content/Material.swift,
+				ScintRuntime/Environment/Content/Transcript.swift,
+				ScintRuntime/Environment/Interfaces/Arguments.swift,
+				ScintRuntime/Environment/Interfaces/Artifact.swift,
+				ScintRuntime/Environment/Interfaces/Command.swift,
+				ScintRuntime/Environment/Interfaces/Harness.swift,
 				ScintRuntime/Environment/Library.swift,
-				ScintRuntime/Environment/Malleable/Material.swift,
-				ScintRuntime/Environment/Malleable/Transcript.swift,
-				ScintRuntime/Environment/Services.swift,
-				ScintRuntime/Environment/Structural/Bridge.swift,
-				ScintRuntime/Environment/Structural/Closure.swift,
-				ScintRuntime/Environment/Structural/Space.swift,
+				ScintRuntime/Environment/Processes/Composition.swift,
+				ScintRuntime/Environment/Processes/Context.swift,
+				ScintRuntime/Environment/Processes/Handler.swift,
+				ScintRuntime/Environment/Processes/Renderer.swift,
+				ScintRuntime/Environment/Processes/Signal.swift,
+				ScintRuntime/Environment/Services/Parser.swift,
+				ScintRuntime/Environment/Services/Services.swift,
+				ScintRuntime/Environment/Structure/Bridge.swift,
+				ScintRuntime/Environment/Structure/Closure.swift,
+				ScintRuntime/Environment/Structure/Space.swift,
 				ScintRuntime/Environment/Workspaces.swift,
 				ScintRuntime/Extensions/Automation.swift,
 				ScintRuntime/Extensions/Harnesses.swift,
@@ -162,11 +162,8 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */,
-				7CD28FA73056510600B60553 /* mcp-everything-client in Frameworks */,
 				7C443ABD2FF956D600FD0398 /* Collections in Frameworks */,
-				7CD28FA93056510600B60553 /* mcp-everything-server in Frameworks */,
 				7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */,
-				7CD28FA53056510600B60553 /* MCP in Frameworks */,
 			);
 		};
 		7C69AAEF2F8B45D90008D611 /* Frameworks */ = {
@@ -221,9 +218,6 @@
 				7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */,
 				7C443ABC2FF956D600FD0398 /* Collections */,
 				7C443ABE2FF956D600FD0398 /* OrderedCollections */,
-				7CD28FA43056510600B60553 /* MCP */,
-				7CD28FA63056510600B60553 /* mcp-everything-client */,
-				7CD28FA83056510600B60553 /* mcp-everything-server */,
 			);
 			productName = Agency;
 			productReference = 7CC6DF7F304243D800098CC1 /* Scint.app */;
@@ -278,7 +272,6 @@
 			packageReferences = (
 				7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */,
 				7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */,
-				7CD28FA33056510600B60553 /* XCRemoteSwiftPackageReference "swift-sdk" */,
 			);
 			preferredProjectObjectVersion = 110;
 			productRefGroup = 7C4C36DE2ED17D5A00D6F1CF;
@@ -678,14 +671,6 @@
 				minimumVersion = 2.4.0;
 			};
 		};
-		7CD28FA33056510600B60553 /* XCRemoteSwiftPackageReference "swift-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/modelcontextprotocol/swift-sdk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.12.1;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -708,21 +693,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */;
 			productName = KeyboardShortcuts;
-		};
-		7CD28FA43056510600B60553 /* MCP */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7CD28FA33056510600B60553 /* XCRemoteSwiftPackageReference "swift-sdk" */;
-			productName = MCP;
-		};
-		7CD28FA63056510600B60553 /* mcp-everything-client */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7CD28FA33056510600B60553 /* XCRemoteSwiftPackageReference "swift-sdk" */;
-			productName = "mcp-everything-client";
-		};
-		7CD28FA83056510600B60553 /* mcp-everything-server */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7CD28FA33056510600B60553 /* XCRemoteSwiftPackageReference "swift-sdk" */;
-			productName = "mcp-everything-server";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

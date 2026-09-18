@@ -2,21 +2,6 @@ import SwiftUI
 import Foundation
 
 
-struct SpaceActivitySurface: View {
-    var ref: Reference
-    var model: any Model
-
-    var body: some View {
-        VStack(spacing: .zero) {
-            Rectangle()
-                .fill(Style.Border.divider)
-                .frame(height: Style.Dimension.hairline)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Style.Background.base)
-    }
-}
-
 struct SpaceMenu: View {
     @State private var hovered = false
     let model: any Model
@@ -106,18 +91,34 @@ struct SpaceHeader: Surface {
     }
 }
 
+struct SpaceActivity: Surface {
+    var ref: Reference
+    var panel: any Panel
+    var model: any Model
+
+
+    var body: some View {
+        VStack(spacing: .zero) {
+
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Style.Background.base)
+    }
+}
+
 struct SpaceSurface: Surface {
     var panel: any Panel
     var model: any Model
 
     var ref: Reference? {
         guard let ref = model.session.selection.structure, Space.with(ref, { $0 }) != nil
-                else { return nil }
+        else { return nil }
         return ref
     }
 
     var body: some View {
         ZStack(alignment: .center) {
+            if let ref { SpaceActivity(ref: ref, panel: panel, model: model) }
             InputBar(model: model, onSend: {})
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 .padding(.horizontal, Style.Spacing.lg)
