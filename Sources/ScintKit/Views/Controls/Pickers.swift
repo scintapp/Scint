@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -50,7 +51,7 @@ struct ItemDatePicker: View {
             .datePickerStyle(.stepperField)
             .labelsHidden()
             .font(.system(size: 12))
-            .foregroundStyle(Style.Foreground.subtle)
+            .foregroundStyle(Style.Foreground.secondary)
             .fixedSize()
     }
 }
@@ -70,17 +71,17 @@ struct ItemRangePicker: View {
     }
 
     var body: some View {
-        HStack(spacing: Style.Spacing.md) {
+        HStack(spacing: Style.Spacing.label) {
             Spacer(minLength: 0)
 
             let step = step(for: Self.track)
 
             ZStack(alignment: .leading) {
-                Style.Shape.capsule.fill(Style.Background.control)
+                Capsule().fill(Style.Background.selection)
 
                 ForEach(Array(items.indices), id: \.self) { notch in
                     Circle()
-                        .fill(Style.Foreground.faint)
+                        .fill(Style.Foreground.secondary)
                         .frame(width: Self.notch, height: Self.notch)
                         .offset(x: Self.height / 2 + step * CGFloat(notch) - Self.notch / 2)
                 }
@@ -133,13 +134,13 @@ struct TranscriptPicker: View {
                 }
             }) ?? []
 
-            HStack(spacing: hovered ? Style.Spacing.md : 0) {
+            HStack(spacing: hovered ? Style.Spacing.label : 0) {
                 if hovered || selected == context {
                     Button { model.select(context) } label: {
                         Text("Overview")
-                            .font(Typography.row.weight(selected == context ? .medium : .regular))
-                            .foregroundStyle(selected == context ? Style.Foreground.subtle : Style.Foreground.faint)
-                            .lineLimit(Style.Limit.singleLine)
+                            .font(Typography.body.weight(selected == context ? .medium : .regular))
+                            .foregroundStyle(selected == context ? Style.Foreground.secondary : Style.Foreground.secondary)
+                            .lineLimit(1)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -157,15 +158,15 @@ struct TranscriptPicker: View {
                         Button { if let transcript { model.select(transcript) } } label: {
                             Text(label)
                                 .padding(.horizontal, 2)
-                                .font(Typography.row.weight(transcript == selected ? .medium : .regular))
+                                .font(Typography.body.weight(transcript == selected ? .medium : .regular))
                                 .foregroundStyle(
                                     enabled
                                     ? transcript == selected
-                                    ? Style.Foreground.subtle
-                                    : Style.Foreground.faint
-                                    : Style.Foreground.faint
+                                    ? Style.Foreground.secondary
+                                    : Style.Foreground.secondary
+                                    : Style.Foreground.secondary
                                 )
-                                .lineLimit(Style.Limit.singleLine)
+                                .lineLimit(1)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -173,14 +174,37 @@ struct TranscriptPicker: View {
                     }
                 }
             }
-            .padding(.horizontal, Style.Spacing.md)
+            .padding(.horizontal, Style.Spacing.label)
             .frame(height: 30)
             .fixedSize(horizontal: true, vertical: false)
-            .background(Style.Shape.panel.fill(Style.Background.group))
-            .overlay(Style.Shape.panel.stroke(Style.Border.base, lineWidth: 1))
+            .background(Style.Shape.panel.fill(Style.Background.surface))
+            .overlay(Style.Shape.panel.stroke(Style.Border.hairline, lineWidth: 1))
             .contentShape(Style.Shape.panel)
             .onHover { isHovered in withAnimation(.smooth(duration: 0.2)) { hovered = isHovered } }
             .animation(.smooth(duration: 0.2), value: hovered)
         }
+    }
+}
+
+
+struct ContentPicker: View {
+    @Environment(ScintModel.self) var scint
+    var content: ContentPanel { scint.app.studio.content }
+    var navigator: NavigatorPanel { scint.app.studio.navigator }
+
+    var selection: Binding<ContentPanel.PanelSurface> {
+        Binding(get: { content.surface }, set: { content.surface = $0 })
+    }
+
+    var body: some View {
+        Picker("Content", selection: selection) {
+            ForEach(ContentPanel.PanelSurface.allCases) { surface in
+                Text(surface.label).tag(surface)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.secondary)
+        .tint(Style.Background.selection)
     }
 }

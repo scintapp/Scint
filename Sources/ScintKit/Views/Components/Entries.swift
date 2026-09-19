@@ -1,4 +1,5 @@
 import SwiftUI
+import ScintComponents
 
 
 struct TranscriptEntry: View {
@@ -26,14 +27,14 @@ struct TranscriptEntry: View {
         Group {
             if let input, !input.isEmpty {
                 TextBlock(content: input, hugs: true)
-                    .foregroundStyle(Style.Foreground.secondary)
-                    .padding(.horizontal, Style.Spacing.lg)
-                    .padding(.vertical, Style.Spacing.md)
-                    .background(Style.Shape.medium.fill(Style.Background.card))
+                    .foregroundStyle(Style.Foreground.primary)
+                    .padding(.horizontal, Style.Spacing.inset)
+                    .padding(.vertical, Style.Spacing.label)
+                    .background(Style.Shape.card.fill(Style.Background.surface))
                     .overlay(
-                        Style.Shape.medium
+                        Style.Shape.card
                             .strokeBorder(
-                                Style.Border.base,
+                                Style.Border.hairline,
                                 lineWidth: 0.5
                             )
                     )
@@ -44,7 +45,7 @@ struct TranscriptEntry: View {
                         TextBlock(content: field(chunk.value, "text") ?? "", reasoning: true)
 
                     case .record(let chunk, _) where field(chunk.value, "type") == "tool":
-                        HStack(alignment: .firstTextBaseline, spacing: Style.Spacing.md) {
+                        HStack(alignment: .firstTextBaseline, spacing: Style.Spacing.label) {
                             Iconography.icon(for: entry, size: Style.Dimension.icon)
 
                             Text(field(chunk.value, "name").flatMap(Op.named).map(\.sentence) ?? "Called a tool")
@@ -52,17 +53,17 @@ struct TranscriptEntry: View {
                             Spacer(minLength: 0)
 
                             if let status = field(chunk.value, "status"), status != "completed" {
-                                Badge(label: status.capitalized, tint: Style.Foreground.muted)
+                                Badge(label: status.capitalized, tint: Style.Foreground.secondary)
                                     .fixedSize()
                             }
                         }
-                        .foregroundStyle(Style.Foreground.muted)
+                        .foregroundStyle(Style.Foreground.secondary)
 
                     case .record(let chunk, _) where field(chunk.value, "type") != nil:
                         TextBlock(content: field(chunk.value, "text") ?? "")
 
                     case .record(let chunk, _):
-                        VStack(alignment: .leading, spacing: Style.Spacing.md) {
+                        VStack(alignment: .leading, spacing: Style.Spacing.label) {
                             if chunk.origin.type == Command.self || chunk.origin.type == Artifact.self {
                                 Card(ref: chunk.origin, style: .group)
                             }
@@ -78,9 +79,9 @@ struct TranscriptEntry: View {
                 }
             }
         }
-        .font(Typography.prose)
+        .font(Typography.body)
         .foregroundStyle(Style.Foreground.primary)
-        .lineSpacing(Style.Spacing.markdownLineSpacing)
+        .lineSpacing(Style.Prose.lineSpacing)
         .textSelection(.enabled)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .trailing)

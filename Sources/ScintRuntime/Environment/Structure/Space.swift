@@ -90,8 +90,8 @@ struct Space: Structural {
     @discardableResult
     static func new(_ name: String) -> Reference {
         var instance = Space(.init(Self.self))
-        Descriptor.new(instance.ref, name: name, tags: ["space"])
         instance.closure = Closure.new("Closure", origin: instance.ref)
+        Descriptor.new(instance.ref, name: name, tags: ["space"])
         Workspaces.shared.add(instance.ref, instance)
         return instance.ref
     }
@@ -100,10 +100,10 @@ struct Space: Structural {
     static func new(_ origin: Reference, name: String = "New Space") -> Reference {
         guard origin.type == Space.self else { RuntimeError.fatal("Not a valid space.") }
         var instance = Space(.init(Self.self))
-        Descriptor.new(instance.ref, name: name, tags: ["space"])
         instance.closure = Closure.new("Closure", origin: instance.ref)
+        instance.attach(to: origin)
+        Descriptor.new(instance.ref, name: name, tags: ["space"])
         Workspaces.shared.add(instance.ref, instance)
-        Space.update(instance.ref) { $0.attach(to: origin) }
         return instance.ref
     }
 }

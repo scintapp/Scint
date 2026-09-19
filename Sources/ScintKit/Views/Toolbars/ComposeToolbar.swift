@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -57,30 +58,30 @@ struct InputBar: View {
             VStack(alignment: .leading) {
                 EditorView(
                     input,
-                    sizing: .grows(min: Style.Spacing.inputMinHeight, max: Style.Spacing.inputMaxHeight),
+                    sizing: .grows(min: Metrics.inputMinHeight, max: Metrics.inputMaxHeight),
                     autofocus: false
                 )
                 .id(input)
-                .padding(.horizontal, Style.Spacing.lg)
-                .padding(.top, Style.Spacing.lg)
+                .padding(.horizontal, Style.Spacing.inset)
+                .padding(.top, Style.Spacing.inset)
             }
             .padding(.bottom, 8)
             .padding(.horizontal, 8)
             .frame(maxWidth: 660)
             .overlay(alignment: .trailing) { ComposeControl(model: model, input: input, onSend: onSend) }
             .background {
-                Style.Shape.medium
-                    .fill(Style.Background.card.opacity(0.5))
-                    .glassEffect(.regular, in: Style.Shape.medium)
+                Style.Shape.card
+                    .fill(Style.Background.surface.opacity(0.5))
+                    .glassEffect(.regular, in: Style.Shape.card)
                     .blur(radius: 2)
-                Style.Shape.medium
-                    .fill(Style.Background.card.opacity(0.5))
+                Style.Shape.card
+                    .fill(Style.Background.surface.opacity(0.5))
             }
             .overlay {
-                Style.Shape.medium
-                    .stroke(Style.Border.card.opacity(0.75), lineWidth: 1, antialiased: true)
+                Style.Shape.card
+                    .stroke(Style.Border.hairline.opacity(0.75), lineWidth: 1, antialiased: true)
             }
-            .clipShape(Style.Shape.medium)
+            .clipShape(Style.Shape.card)
         }
     }
 }

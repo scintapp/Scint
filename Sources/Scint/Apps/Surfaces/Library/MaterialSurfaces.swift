@@ -57,7 +57,7 @@ struct MaterialSurface: Surface {
     var panel: any Panel
     var model: any Model
 
-    var notes: Reference { model.session.drafts }
+    var library: Reference { model.session.library }
 
     var body: some View {
         ScrollView {

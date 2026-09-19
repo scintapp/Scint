@@ -1,63 +1,45 @@
 import Foundation
 import SwiftUI
-
-
-struct ContentPicker: View {
-    @Environment(ScintModel.self) var scint
-    var content: ContentPanel { scint.app.studio.content }
-    var navigator: NavigatorPanel { scint.app.studio.navigator }
-
-    private var selection: Binding<ContentPanel.PanelSurface> {
-        Binding(get: { content.surface }, set: { content.surface = $0 })
-    }
-
-    var body: some View {
-        Picker("Content", selection: selection) {
-            ForEach(ContentPanel.PanelSurface.allCases) { surface in
-                Text(surface.label).tag(surface)
-            }
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .foregroundStyle(Style.Foreground.primary, Style.Foreground.secondary, Style.Foreground.faint)
-        .tint(Style.Background.control)
-    }
-}
+import ScintComponents
 
 @Observable final class ContentPanel: Panel {
     var state: PanelState = .init()
-    var surface: PanelSurface = .canvas
+    var surface: PanelSurface = .studio
 
     enum PanelSurface: String, CaseIterable, Identifiable {
-        case canvas, drafts, outlines, activity
-
+        case studio, canvas
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
-        var symbol: String {
-            switch self {
-                case .canvas: "checkmark.app"
-                case .drafts: "rectangle.stack"
-                case .outlines: "tray"
-                case .activity: "tray"
+    }
+
+    @ViewBuilder private func content(_ model: any Model) -> some View {
+        ZStack {
+            let session = model.session
+            switch surface {
+                case .canvas:
+                    CanvasSurface(panel: self, model: model)
+
+                case .studio:
+                    if let root = session.selection.root {
+                        switch root {
+                            case session.inbox: InboxSurface(panel: self, model: model)
+                            case session.scheduled: ScheduledSurface(panel: self, model: model)
+                            case session.library: LibrarySurface(panel: self, model: model)
+                            case session.root: SpaceSurface(panel: self,model: model)
+                            default: ActivitySurface(panel: self, model: model)
+                        }
+                    }
             }
         }
     }
 
     func surface(_ model: any Model) -> some View {
-        Group {
-            switch surface {
-                case .activity: SpaceSurface(panel: self, model: model)
-                case .canvas: CanvasSurface(panel: self, model: model)
-                case .drafts: DraftsSurface(panel: self, model: model)
-                case .outlines: DraftsSurface(panel: self, model: model)
+        content(model)
+            .toolbar {
+                ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
+                ToolbarSpacer(.flexible, placement: .automatic)
+                ToolbarSpacer(.flexible, placement: .primaryAction)
+                ToolbarItem(placement: .primaryAction) { InspectorPicker() }
             }
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
-            ToolbarSpacer(.flexible, placement: .automatic)
-            ToolbarItem(placement: .principal) { ContentPicker() }
-            ToolbarSpacer(.flexible, placement: .primaryAction)
-            ToolbarItem(placement: .primaryAction) { InspectorPicker() }
-        }
     }
 }

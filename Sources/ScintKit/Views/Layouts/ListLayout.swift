@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -59,7 +60,7 @@ struct ListLink: View {
         self.detail = detail
         self.ref = ref
         self.image = image
-        self.tint = tint ?? Style.Foreground.subtle
+        self.tint = tint ?? Style.Foreground.secondary
         self.trailingImage = trailingImage
         self.count = count
         self.leadingAccessory = leadingAccessory
@@ -71,9 +72,7 @@ struct ListLink: View {
     }
 
     @ViewBuilder private var icon: some View {
-        Image(systemName: image)
-            .font(.system(size: iconSize, weight: .semibold))
-            .foregroundStyle(selected ? Style.Foreground.primary : self.tint)
+        Iconography.Icon(symbol: image, tint: tint, sizing: iconSize, selected: selected)
             .frame(width: iconSize, height: iconSize)
     }
 
@@ -144,7 +143,7 @@ struct ListRow<Content: View>: View {
 
     private var background: Color {
         guard selected else { return .clear }
-        return focused ? Style.Tint.accent.opacity(0.5) : Style.Background.control.opacity(Style.Opacity.faint)
+        return focused ? Style.Tint.accent.bright.opacity(0.5) : Style.Background.selection.opacity(Style.Opacity.outline)
     }
 
     var body: some View {
@@ -154,8 +153,8 @@ struct ListRow<Content: View>: View {
                 .foregroundColor(.primary),
             detail: described.map {
                 Text($0)
-                    .font(Typography.caption)
-                    .foregroundColor(Style.Foreground.faint)
+                    .font(Typography.detail)
+                    .foregroundColor(Style.Foreground.secondary)
             }
         ) {
             Color.clear.frame(width: indent)
@@ -171,7 +170,7 @@ struct ListRow<Content: View>: View {
                     .padding(.trailing, 3)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: described == nil ? Style.Spacing.rowHeight : Style.Spacing.rowDetailHeight)
+        .frame(maxWidth: .infinity, minHeight: described == nil ? Metrics.rowHeight : Metrics.rowDetailHeight)
         .background(RoundedRectangle(cornerRadius: 7).fill(background))
         .foregroundStyle(.primary)
         .contentShape(RoundedRectangle(cornerRadius: 7))
@@ -246,7 +245,7 @@ struct ListLayout<Content: View>: View {
         self.detail = detail
         self.ref = ref
         self.image = image
-        self.tint = tint ?? Style.Foreground.subtle
+        self.tint = tint ?? Style.Foreground.secondary
         self.trailingImage = trailingImage
         self.count = count
         self.leadingAccessory = leadingAccessory
@@ -262,9 +261,7 @@ struct ListLayout<Content: View>: View {
     }
 
     @ViewBuilder private var icon: some View {
-        Image(systemName: image)
-            .font(.system(size: iconSize))
-            .foregroundStyle(selected ? Style.Foreground.primary : self.tint)
+        Iconography.Icon(symbol: image, tint: tint, sizing: iconSize, selected: selected)
             .frame(width: iconSize, height: iconSize)
     }
 

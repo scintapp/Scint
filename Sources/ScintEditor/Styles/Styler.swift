@@ -1,5 +1,5 @@
 import AppKit
-
+import ScintComponents
 @MainActor final class Styler {
     var theme: Theme = .dark
     var baseAttributes: [NSAttributedString.Key: Any] {
@@ -21,13 +21,13 @@ import AppKit
                 storage.addAttribute(.paragraphStyle, value: paragraph, range: affected)
                 // List depth comes from the paragraph indent, so the source indent is hidden like the marker.
                 if block.kind.isList, NSIntersectionRange(block.indent, range).length > 0 {
-                    storage.addAttributes([.font: Typography.Prose.appKitSyntaxHidden, .foregroundColor: NSColor.clear], range: NSIntersectionRange(block.indent, range))
+                    storage.addAttributes([.font: Typography.Prose.hiddenSyntax, .foregroundColor: NSColor.clear], range: NSIntersectionRange(block.indent, range))
                 }
             }
             for span in document.spans where span.kind == .inlineCode {
                 for offset in [span.range.location - 1, NSMaxRange(span.range)] where offset >= 0 && offset < storage.length {
                     let padding = NSIntersectionRange(NSRange(location: offset, length: 1), range)
-                    if padding.length > 0 { storage.addAttribute(.kern, value: Style.Spacing.sm, range: padding) }
+                    if padding.length > 0 { storage.addAttribute(.kern, value: Style.Spacing.detail, range: padding) }
                 }
             }
             for span in document.spans {
@@ -39,7 +39,7 @@ import AppKit
                 default: syntax = false
                 }
                 let attributes: [NSAttributedString.Key: Any] = syntax ?
-                    [.font: Typography.Prose.appKitSyntaxHidden,
+                    [.font: Typography.Prose.hiddenSyntax,
                      .foregroundColor: NSColor.clear] :
                     attributes(for: span.kind, in: source, at: affected)
                 storage.addAttributes(attributes, range: affected)
@@ -48,19 +48,19 @@ import AppKit
     }
     func paragraphStyle(for block: Markdown.Block, in text: NSString) -> NSParagraphStyle {
         switch block.kind {
-            case .heading(let level): return Typography.Prose.headingParagraphStyle(level)
+            case .heading: return Typography.Prose.paragraphStyle
             case .bullet, .numbered, .checklist: return listParagraphStyle(for: block, in: text)
             case .quote: return Typography.Prose.quoteParagraphStyle
             case .codeFence:
                 let paragraph = NSMutableParagraphStyle()
-                paragraph.maximumLineHeight = Typography.Scale.hiddenSyntax
+                paragraph.maximumLineHeight = Typography.Prose.hiddenSyntax.pointSize
                 return paragraph
             case .codeBlock:
                 let paragraph = NSMutableParagraphStyle()
                 paragraph.setParagraphStyle(Typography.Prose.paragraphStyle)
-                paragraph.headIndent = Style.Spacing.lg
-                paragraph.firstLineHeadIndent = Style.Spacing.lg
-                paragraph.tailIndent = -Style.Spacing.lg
+                paragraph.headIndent = Style.Spacing.inset
+                paragraph.firstLineHeadIndent = Style.Spacing.inset
+                paragraph.tailIndent = -Style.Spacing.inset
                 return paragraph
             case .paragraph: return Typography.Prose.paragraphStyle
         }
@@ -77,7 +77,7 @@ import AppKit
     }
 
     func listIndent(for block: Markdown.Block) -> CGFloat {
-        Style.Spacing.markdownListInset + CGFloat(block.depth) * Style.Spacing.listIndent
+        Style.Prose.listInset + CGFloat(block.depth) * Style.Prose.listIndent
     }
 
     func gutter(for block: Markdown.Block, in text: NSString) -> CGFloat {
@@ -94,10 +94,10 @@ import AppKit
                 return [.font: headingFont(level)]
 
             case .quote:
-                return [.foregroundColor: theme.textColor.withAlphaComponent(Style.Opacity.muted)]
+                return [.foregroundColor: theme.textColor.withAlphaComponent(Style.Opacity.inactive)]
 
             case .quoteMarker:
-                return [.foregroundColor: theme.syntaxHiddenColor, .font: Typography.Prose.appKitSyntaxHidden]
+                return [.foregroundColor: theme.syntaxHiddenColor, .font: Typography.Prose.hiddenSyntax]
 
             case .listMarker:
                 let ordered = text.substring(with: range).first?.isNumber == true
@@ -122,7 +122,7 @@ import AppKit
                 ]
 
             case .codeFence:
-                return [.font: Typography.Prose.appKitSyntaxHidden, .foregroundColor: theme.syntaxHiddenColor]
+                return [.font: Typography.Prose.hiddenSyntax, .foregroundColor: theme.syntaxHiddenColor]
 
             case .strong:
                 return [.font: NSFont.systemFont(ofSize: theme.baseFont.pointSize, weight: .semibold)]
@@ -146,12 +146,12 @@ import AppKit
                 ]
 
             case .linkURL:
-                return [.foregroundColor: theme.syntaxHiddenColor, .font: Typography.Prose.appKitSyntaxHidden]
+                return [.foregroundColor: theme.syntaxHiddenColor, .font: Typography.Prose.hiddenSyntax]
 
             case .syntax:
                 return [
                     .foregroundColor: theme.syntaxHiddenColor,
-                    .font: Typography.Prose.appKitSyntaxHidden,
+                    .font: Typography.Prose.hiddenSyntax,
                 ]
         }
     }

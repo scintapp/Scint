@@ -1,5 +1,6 @@
 import AppKit
 import OrderedCollections
+import ScintComponents
 import SwiftUI
 
 
@@ -9,7 +10,7 @@ struct Float<Content: View>: View {
     var body: some View {
         content
             .glassEffect(.regular, in: Style.Shape.panel)
-            .overlay(Style.Shape.panel.stroke(.black.opacity(Style.Opacity.muted), lineWidth: 1))
+            .overlay(Style.Shape.panel.stroke(.black.opacity(Style.Opacity.inactive), lineWidth: 1))
             .clipShape(Style.Shape.panel)
     }
 }

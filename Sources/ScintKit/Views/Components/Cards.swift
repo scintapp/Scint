@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 import LinkPresentation
 
@@ -51,7 +52,7 @@ struct Card: View {
 
         if case .text(_, let text)? = blocks.dropFirst().first {
             let description = text.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
-                .prefix(Style.Limit.doubleLine)
+                .prefix(2)
                 .joined(separator: "\n")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if !description.isEmpty { result.description = description }
@@ -107,7 +108,7 @@ struct Card: View {
 
     var content: some View {
         let text = Self.text(for: ref, metadata: metadata)
-        let badges = Array(Self.badges(for: ref).prefix(Style.Limit.cardBadges))
+        let badges = Array(Self.badges(for: ref).prefix(Metrics.cardBadges))
 
         return VStack(alignment: .leading) {
             HStack(alignment: .center, spacing: 8) {
@@ -119,15 +120,15 @@ struct Card: View {
                 VStack(alignment: .leading) {
                     Text(text.name)
                         .frame(maxHeight: .infinity, alignment: .topLeading)
-                        .font(Typography.cardTitle)
+                        .font(Typography.body.weight(.medium))
                         .foregroundStyle(Style.Foreground.primary)
-                        .lineLimit(Style.Limit.singleLine)
+                        .lineLimit(1)
 
                     if !text.description.isEmpty {
                         Text(text.description)
-                            .font(Typography.cardDetail())
-                            .foregroundStyle(Style.Foreground.muted)
-                            .lineLimit(Style.Limit.doubleLine)
+                            .font(Typography.detail)
+                            .foregroundStyle(Style.Foreground.secondary)
+                            .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
@@ -136,9 +137,9 @@ struct Card: View {
                 Spacer()
 
                 if !badges.isEmpty {
-                    HStack(spacing: Style.Spacing.sm) {
+                    HStack(spacing: Style.Spacing.detail) {
                         ForEach(Array(badges.enumerated()), id: \.offset) { _, label in
-                            Badge(label: label, tint: icon.tint, outlined: true)
+                            Badge(label: label, tint: icon.tint.bright, outlined: true)
                         }
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
@@ -151,7 +152,7 @@ struct Card: View {
     }
 
     var body: some View {
-        let shape = Style.Shape.medium
+        let shape = Style.Shape.card
 
         Button {
             if let onSelect { onSelect() }
@@ -168,19 +169,19 @@ struct Card: View {
                             .padding(.vertical, 16)
                             .frame(maxWidth: .infinity, maxHeight: 80, alignment: .leading)
                     }
-                    .background { selected ? shape.fill(icon.tint.opacity(0.03)) : shape.fill(Style.Background.group) }
+                    .background { selected ? shape.fill(icon.tint.bright.opacity(0.03)) : shape.fill(Style.Background.surface) }
                     .overlay {
                         shape.strokeBorder(
                             selected || isHovered
-                            ? icon.tint.opacity(selected ? Style.Opacity.strong : Style.Opacity.muted)
-                            : Style.Border.group,
+                            ? icon.tint.bright.opacity(selected ? 1 : Style.Opacity.inactive)
+                            : Style.Border.hairline,
                             lineWidth: selected ? 1 : 0.5
                         )
                     }
                     .contentShape(shape)
                     .offset(y: isHovered ? -1 : 0)
                     .onHover { hovered in
-                        withAnimation(.easeInOut(duration: Style.Duration.interaction)) {
+                        withAnimation(Style.Motion.disclosure) {
                             isHovered = hovered
                         }
                     }
@@ -198,26 +199,26 @@ struct Card: View {
                     }
 
                 case .node:
-                    HStack(spacing: Style.Spacing.md) {
+                    HStack(spacing: Style.Spacing.label) {
                         icon
                         Text(Self.text(for: ref, metadata: metadata).name)
-                            .font(Typography.row)
+                            .font(Typography.body)
                             .foregroundStyle(Style.Foreground.primary)
-                            .lineLimit(Style.Limit.singleLine)
+                            .lineLimit(1)
                         Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, Style.Spacing.sm)
-                    .frame(maxWidth: .infinity, minHeight: Style.Spacing.rowHeight, alignment: .leading)
+                    .padding(.horizontal, Style.Spacing.detail)
+                    .frame(maxWidth: .infinity, minHeight: Metrics.rowHeight, alignment: .leading)
                     .background {
                         if selected || isHovered {
-                            Style.Shape.tiny.fill(
+                            Style.Shape.control.fill(
                                 selected
-                                ? icon.tint.opacity(Style.Opacity.washed)
-                                : Style.Foreground.primary.opacity(Style.Opacity.hairline)
+                                ? icon.tint.bright.opacity(Style.Opacity.surface)
+                                : Style.Foreground.primary.opacity(Style.Opacity.surface)
                             )
                         }
                     }
-                    .contentShape(Style.Shape.tiny)
+                    .contentShape(Style.Shape.control)
                     .onHover { isHovered = $0 }
             }
         }

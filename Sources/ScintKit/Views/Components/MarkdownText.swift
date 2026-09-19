@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 import SwiftUI
 
 
@@ -6,7 +7,7 @@ import SwiftUI
 /// line wrapping, link hit testing, and rounded backgrounds behind inline code runs.
 struct MarkdownText: NSViewRepresentable {
     let content: String
-    var font: NSFont = Typography.Prose.appKitText
+    var font: NSFont = Typography.Prose.text
     var reasoning = false
     var completed = false
     var alignment: NSTextAlignment = .left
@@ -24,7 +25,7 @@ struct MarkdownText: NSViewRepresentable {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: MarkdownTextView, context: Self.Context) -> CGSize? {
-        nsView.measure(proposal.width ?? Style.Spacing.contentMaxWidth, hugs: hugs)
+        nsView.measure(proposal.width ?? Style.Prose.readableWidth, hugs: hugs)
     }
 }
 
@@ -50,11 +51,11 @@ final class MarkdownTextView: NSTextView {
         isRichText = true
         isVerticallyResizable = false
         isHorizontallyResizable = false
-        textContainerInset = NSSize(width: 0, height: Style.Spacing.markdownTextInset)
+        textContainerInset = NSSize(width: 0, height: Style.Prose.textInset)
         markdownContainer.lineFragmentPadding = .zero
         markdownContainer.widthTracksTextView = true
         linkTextAttributes = [
-            .foregroundColor: NSColor(Style.Tint.accent),
+            .foregroundColor: NSColor(Style.Tint.accent.bright),
             .underlineStyle: NSUnderlineStyle.single.rawValue
         ]
         setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -82,9 +83,7 @@ final class MarkdownTextView: NSTextView {
     }
 
     func measure(_ width: CGFloat, hugs: Bool = false) -> CGSize {
-        // SwiftUI can probe several widths before placement. Measuring must never
-        // leave the live text container at the last speculative width.
-        measurementContainer.containerSize = CGSize(width: max(Style.Dimension.border, width), height: .greatestFiniteMagnitude)
+        measurementContainer.containerSize = CGSize(width: max(1, width), height: .greatestFiniteMagnitude)
         measurementLayout.ensureLayout(for: measurementContainer)
         let used = measurementLayout.usedRect(for: measurementContainer)
         return CGSize(width: hugs ? min(width, ceil(used.width)) : width, height: ceil(used.height) + textContainerInset.height * 2)
@@ -92,25 +91,22 @@ final class MarkdownTextView: NSTextView {
 
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
-        markdownContainer.containerSize = CGSize(width: max(Style.Dimension.border, newSize.width), height: .greatestFiniteMagnitude)
+        markdownContainer.containerSize = CGSize(width: max(1, newSize.width), height: .greatestFiniteMagnitude)
     }
 
     override func draw(_ dirtyRect: NSRect) {
         markdownLayout.ensureLayout(for: markdownContainer)
         if let storage = textStorage {
-            let font = Typography.Prose.appKitCode
+            let font = Typography.Prose.code
             storage.enumerateAttribute(.markdownCode, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
                 guard value != nil else { return }
                 let glyphs = markdownLayout.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
-                // Line boxes aren't a reliable height: every line but the last carries line spacing, and a heading's
-                // line is taller than its code. So each line's chip is sized from the code font around that line's
-                // baseline, then padded evenly by the text inset.
                 markdownLayout.enumerateLineFragments(forGlyphRange: glyphs) { fragment, _, _, line, _ in
                     let run = NSIntersectionRange(line, glyphs)
                     let baseline = fragment.minY + self.markdownLayout.location(forGlyphAt: run.location).y
                     self.markdownLayout.enumerateEnclosingRects(forGlyphRange: run, withinSelectedGlyphRange: NSRange(location: NSNotFound, length: 0), in: self.markdownContainer) { rect, _ in
                         let chip = CGRect(x: rect.minX, y: baseline - font.ascender, width: rect.width, height: font.ascender - font.descender)
-                        MarkdownDecoration.code(chip.offsetBy(dx: self.textContainerOrigin.x, dy: self.textContainerOrigin.y).insetBy(dx: 0, dy: -Style.Spacing.markdownTextInset))
+                        MarkdownDecoration.code(chip.offsetBy(dx: self.textContainerOrigin.x, dy: self.textContainerOrigin.y).insetBy(dx: 0, dy: -Style.Prose.textInset))
                     }
                 }
             }
@@ -130,11 +126,11 @@ final class MarkdownTextView: NSTextView {
 /// corners survive. The editor and read-only text use the same decoration.
 enum MarkdownDecoration {
     static func code(_ rect: CGRect) {
-        let path = NSBezierPath(roundedRect: rect, xRadius: Style.Shape.codeRadius, yRadius: Style.Shape.codeRadius)
-        NSColor(Style.Background.overlay).setFill()
+        let path = NSBezierPath(roundedRect: rect, xRadius: Style.Prose.codeRadius, yRadius: Style.Prose.codeRadius)
+        NSColor(Style.Background.surface).setFill()
         path.fill()
-        NSColor(Style.Border.raised).setStroke()
-        path.lineWidth = Style.Dimension.hairline
+        NSColor(Style.Border.hairline).setStroke()
+        path.lineWidth = 1
         path.stroke()
     }
 }
@@ -143,7 +139,7 @@ extension NSAttributedString.Key {
     static let markdownCode = Self("ScintMarkdownCode")
 }
 
-extension Attribute {
+enum Attribute {
     /// Builds display text without source delimiters. The editable source is kept separately.
     static func markdown(_ text: String, font: NSFont, reasoning: Bool, alignment: NSTextAlignment) -> NSMutableAttributedString {
         let document = Markdown.scan(text)
@@ -151,7 +147,7 @@ extension Attribute {
         paragraph.alignment = alignment
         let base: [NSAttributedString.Key: Any] = [
             .font: reasoning ? NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask) : font,
-            .foregroundColor: NSColor(reasoning ? Style.Foreground.muted : Style.Foreground.primary),
+            .foregroundColor: NSColor(reasoning ? Style.Foreground.secondary : Style.Foreground.primary),
             .paragraphStyle: paragraph
         ]
         let output = NSMutableAttributedString(string: text, attributes: base)
@@ -165,7 +161,7 @@ extension Attribute {
                         output.addAttribute(.font, value: NSFontManager.shared.convert(value as? NSFont ?? font, toHaveTrait: .italicFontMask), range: range)
                     }
                 case .inlineCode:
-                    output.addAttributes([.font: Typography.Prose.appKitCode, .markdownCode: true], range: span.range)
+                    output.addAttributes([.font: Typography.Prose.code, .markdownCode: true], range: span.range)
                 case .strikethrough, .completed:
                     output.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: span.range)
                 case .syntax, .linkURL:
@@ -182,7 +178,7 @@ extension Attribute {
         // Turn code delimiters into padding. Distinct code spans stay distinct even
         // when adjacent; padding participates in normal line layout and selection.
         for span in document.spans where span.kind == .inlineCode {
-            output.addAttribute(.font, value: Typography.Prose.appKitCode, range: span.range)
+            output.addAttribute(.font, value: Typography.Prose.code, range: span.range)
             let before = span.range.location - 1
             let after = NSMaxRange(span.range)
             guard before >= 0, after < output.length else { continue }

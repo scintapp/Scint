@@ -35,7 +35,6 @@ struct ItemParams: Hashable, Identifiable {
         entryId: UUID? = nil,
         name: String,
         image: String = "",
-        icon: Iconography.Icon? = nil,
         tint: Color? = nil,
         trailingImage: String? = nil,
         trailingKind: TrailingKind? = nil,

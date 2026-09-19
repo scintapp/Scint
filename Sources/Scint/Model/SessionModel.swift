@@ -2,17 +2,18 @@ import Foundation
 
 
 @MainActor struct Session: Codable, Sendable {
-    private var data: AppData
     private(set) var focus: Focus = .nothing
     private(set) var selection: Selection = .init()
     private(set) var opened: Opened = .init()
     private(set) var navigation: Navigation = .init()
+    private(set) var data: AppData
 
-    var root: Reference { data.space }
-    var spaces: [Reference] { data.spaces }
+    var root: Reference { data.spaces }
+    var spaces: [Reference] { Array(Space.with(data.spaces, { $0.spaces }) ?? []) }
+    var library: Reference { data.library }
     var inbox: Reference { data.inbox }
-    var drafts: Reference { data.drafts }
-    var outlines: Reference { data.outlines }
+    var activity: Reference { data.activity }
+    var scheduled: Reference { data.scheduled }
 
     init(_ data: AppData) {
         self.data = data
@@ -37,6 +38,9 @@ import Foundation
         focus(ref)
         if opened.material != nil  && opened.material != ref { close(opened.material!) }
         apply(selection.selecting(ref, entry,  url))
+        let message = "Selecting \(ref.descriptor.name) of type \(String(describing: ref.type))"
+        if ref == selection.root { print(message + ", a root space.") }
+        else { print(message + ", a descendant of the root \(selection.root?.descriptor.name ?? "").")}
     }
 
     mutating func open(_ ref: Reference) {

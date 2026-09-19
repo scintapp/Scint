@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 import SwiftUI
 
 
@@ -22,7 +23,7 @@ struct PathButton: View {
                 if !last {
                     Image(systemName: "chevron.compact.forward")
                         .frame(maxWidth: 4)
-                        .foregroundStyle(Style.Foreground.faint)
+                        .foregroundStyle(Style.Foreground.secondary)
                         .font(.system(size: 13, weight: .light))
                         .opacity(0.8)
                 }

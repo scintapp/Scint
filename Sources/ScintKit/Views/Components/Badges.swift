@@ -1,4 +1,5 @@
 import SwiftUI
+import ScintComponents
 
 
 struct ComponentCount: Sendable {
@@ -46,42 +47,42 @@ struct RunningIndicator: View {
         ProgressView()
             .progressViewStyle(.circular)
             .controlSize(size)
-            .tint(Style.Tint.space)
+            .tint(Style.Tint.space.bright)
     }
 }
 
 struct Badge: View {
     var label: String
     var image: String = ""
-    var tint: Color = Style.Tint.space
+    var tint: Color = Style.Tint.space.bright
     var active: Bool = true
     var outlined: Bool = false
 
     var body: some View {
-        HStack(spacing: Style.Spacing.sm) {
+        HStack(spacing: Style.Spacing.detail) {
             if !image.isEmpty {
                 Image(systemName: image)
-                    .font(Typography.prose)
-                    .foregroundStyle(active ? tint : Style.Foreground.faint)
+                    .font(Typography.body)
+                    .foregroundStyle(active ? tint : Style.Foreground.secondary)
             }
 
             Text(label)
-                .font(outlined ? Typography.badge : Typography.badge.weight(.light))
-                .foregroundStyle(active ? outlined ? tint : Style.Foreground.primary : Style.Foreground.faint)
-                .lineLimit(Style.Limit.singleLine)
+                .font(outlined ? Typography.detail : Typography.detail.weight(.light))
+                .foregroundStyle(active ? outlined ? tint : Style.Foreground.primary : Style.Foreground.secondary)
+                .lineLimit(1)
         }
-        .padding(.horizontal, outlined ? Style.Spacing.md : .zero)
-        .padding(.vertical, outlined ? Style.Spacing.xs : .zero)
+        .padding(.horizontal, outlined ? Style.Spacing.label : .zero)
+        .padding(.vertical, outlined ? Style.Spacing.detail : .zero)
         .background {
-            if outlined { Style.Shape.capsule.fill(tint.opacity(Style.Opacity.hairline)) }
+            if outlined { Capsule().fill(tint.opacity(Style.Opacity.surface)) }
         }
         .overlay {
             if outlined {
-                Style.Shape.capsule.strokeBorder(tint.opacity(Style.Opacity.faint), lineWidth: Style.Dimension.border)
+                Capsule().strokeBorder(tint.opacity(Style.Opacity.outline), lineWidth: 1)
             }
         }
         .fixedSize(horizontal: false, vertical: true)
-        .opacity(active ? Style.Opacity.full : Style.Opacity.strong)
+        .opacity(active ? 1 : Style.Opacity.inactive)
     }
 }
 
@@ -90,12 +91,12 @@ struct StateBadge: View {
 
     private var appearance: (label: String, symbol: String, tint: Color) {
         switch composition?.state {
-            case .inactive: ("Inactive", "sleep", Style.Foreground.muted)
-            case .active: ("Active", "timer.square", Style.Tint.Intent.observe)
-            case .working: ("Working", "figure.walk.diamond", Style.Tint.material)
-            case .completed: ("Completed", "checkmark.seal", Style.Tint.Intent.search)
-            case .failed: ("Failed", "exclamationmark.octagon", Style.Tint.alert)
-            case nil: ("Unavailable", "minus", Style.Foreground.muted)
+            case .inactive: ("Inactive", "sleep", Style.Foreground.secondary)
+            case .active: ("Active", "timer.square", Style.Tint.accent.bright)
+            case .working: ("Working", "figure.walk.diamond", Style.Tint.material.bright)
+            case .completed: ("Completed", "checkmark.seal", Style.Tint.search.bright)
+            case .failed: ("Failed", "exclamationmark.octagon", Style.Tint.alert.bright)
+            case nil: ("Unavailable", "minus", Style.Foreground.secondary)
         }
     }
 
@@ -148,21 +149,21 @@ struct Badges: View {
             Badge(
                 label: "\(counts.completedTasks)/\(counts.totalTasks)",
                 image: "checkmark.app",
-                tint: Style.Tint.task,
+                tint: Style.Tint.task.bright,
                 active: counts.totalTasks > 0
             )
             Divider().padding(.vertical, 8)
             Badge(
                 label: "\(counts.commands)",
                 image: "switch.2",
-                tint: Style.Tint.command,
+                tint: Style.Tint.command.bright,
                 active: counts.commands > 0
             )
             Divider().padding(.vertical, 8)
             Badge(
                 label: "\(counts.artifacts)",
                 image: "archivebox",
-                tint: Style.Tint.artifact,
+                tint: Style.Tint.artifact.bright,
                 active: counts.artifacts > 0
             )
             Spacer()

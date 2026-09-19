@@ -2,11 +2,11 @@ import Foundation
 
 
 struct MCPServer {
-    let bridge: any ScintMCPBridge
+    let bridge: any ScintHostBridge
     let transport: StdioTransport
 
     init(
-        bridge: any ScintMCPBridge,
+        bridge: any ScintHostBridge,
         transport: StdioTransport = .init()
     ) {
         self.bridge = bridge
@@ -97,7 +97,7 @@ struct MCPServer {
                 )
             }
 
-            let operation: ScintMCPOperation
+            let operation: ScintHostOperation
             switch method {
                 case "tools/list":
                     let cursor = parameters["cursor"]
@@ -154,7 +154,7 @@ struct MCPServer {
                     case .listTools, .listResources, .readResource: "private"
                 }
                 return success(id: id, fields: fields, cacheScope: cacheScope)
-            } catch let error as ScintMCPBridgeError {
+            } catch let error as ScintHostBridgeError {
                 switch error {
                     case .contextNotFound(let context):
                         return failure(

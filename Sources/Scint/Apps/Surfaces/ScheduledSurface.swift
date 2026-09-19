@@ -2,7 +2,7 @@ import SwiftUI
 import Foundation
 
 
-struct InboxSurface: Surface {
+struct ScheduledSurface: Surface {
     var panel: any Panel
     var model: any Model
     var ref: Reference { model.session.inbox }

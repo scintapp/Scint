@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 
 
 final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextStorageDelegate {

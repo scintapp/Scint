@@ -59,7 +59,9 @@ enum RuntimeError: Error, Codable, Equatable {
 
         var description: String {
             switch self {
-                case .missingDescriptor(let ref): return "No descriptor for \(ref.id)"
+                case .missingDescriptor(let ref):
+                    let type = String(describing: Runtime.shared.registry.entriesByTypeId[ref.typeId])
+                    return "No descriptor for \(ref.id) of type \(type)"
             }
         }
     }

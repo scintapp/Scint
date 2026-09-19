@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ScintComponents
 
 
 struct HSplitHandle: View {
@@ -13,7 +14,7 @@ struct HSplitHandle: View {
     var body: some View {
         ZStack(alignment: .leading) {
             Rectangle()
-                .fill(Style.Border.base)
+                .fill(Style.Border.hairline)
                 .frame(width: 0.5)
 
             Color.clear

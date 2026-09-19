@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 
 
 struct Theme: @unchecked Sendable {
@@ -20,19 +21,19 @@ struct Theme: @unchecked Sendable {
 
     static let dark = Theme(
         textColor: NSColor(Style.Foreground.primary),
-        caretColor: NSColor(Style.Tint.accent),
+        caretColor: NSColor(Style.Tint.accent.bright),
         caretWidth: 2,
-        baseFont: Typography.Prose.appKitText,
-        h1Font: Typography.Prose.appKitHeading(1),
-        h2Font: Typography.Prose.appKitHeading(2),
-        h3Font: Typography.Prose.appKitHeading(3),
-        codeFont: Typography.Prose.appKitCode,
-        codeBgColor: NSColor(Style.Background.overlay),
-        bulletColor: NSColor.white.withAlphaComponent(Style.Opacity.faint),
-        checkboxCheckedColor: NSColor.white.withAlphaComponent(Style.Opacity.muted),
-        checkboxUncheckedColor: NSColor.white.withAlphaComponent(Style.Opacity.faint),
-        linkLabelColor: NSColor(Style.Foreground.primary).withAlphaComponent(Style.Opacity.strong),
-        completedColor: NSColor(Style.Foreground.primary).withAlphaComponent(Style.Opacity.faint),
+        baseFont: Typography.Prose.text,
+        h1Font: Typography.Prose.heading(1),
+        h2Font: Typography.Prose.heading(2),
+        h3Font: Typography.Prose.heading(3),
+        codeFont: Typography.Prose.code,
+        codeBgColor: NSColor(Style.Background.surface),
+        bulletColor: NSColor.white.withAlphaComponent(Style.Opacity.outline),
+        checkboxCheckedColor: NSColor.white.withAlphaComponent(Style.Opacity.inactive),
+        checkboxUncheckedColor: NSColor.white.withAlphaComponent(Style.Opacity.outline),
+        linkLabelColor: NSColor(Style.Foreground.primary).withAlphaComponent(1),
+        completedColor: NSColor(Style.Foreground.primary).withAlphaComponent(Style.Opacity.outline),
         syntaxHiddenColor: .clear
     )
 }

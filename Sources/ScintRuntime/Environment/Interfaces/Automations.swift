@@ -1,7 +1,7 @@
 import Foundation
 
 
-enum Automation {
+struct Automation {
     static let schedule = "Schedule Job"
     static let unschedule = "Remove Job"
 
@@ -16,10 +16,7 @@ enum Automation {
         .argument(name: "command", type: .reference(Command.self))
     ]
 
-    private enum When {
-        case at(Date)
-        case cron(String)
-    }
+    enum When { case at(Date), cron(String) }
 
     static func job(_ space: Reference) -> String { "scint-\(space.id.uuidString.lowercased())" }
 
@@ -48,7 +45,7 @@ enum Automation {
         run(unschedule, ["name": .string(job(space))])
     }
 
-    private static func when(_ config: Config) -> When? {
+    static func when(_ config: Config) -> When? {
         func date(_ key: String) -> Date? {
             switch config[key] {
                 case .date(let value)?: value
@@ -81,13 +78,13 @@ enum Automation {
         }
     }
 
-    private static func quote(_ argument: String) -> String {
+    static func quote(_ argument: String) -> String {
         "'" + argument.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
-    private static func run(_ name: String, _ values: [String: Value], then next: (@Sendable @MainActor () -> Void)? = nil) {
+    static func run(_ name: String, _ values: [String: Value], then next: (@Sendable @MainActor () -> Void)? = nil) {
         guard let command = Runtime.shared.all(as: Command.self).first(where: { $0.0.descriptor.name == name })?.1
-                else { return }
+        else { return }
         guard let next else { _ = command.run(values); return }
         _ = command.run(values) { line in
             guard Handler.exit(of: line) != nil else { return }

@@ -1,5 +1,34 @@
 import SwiftUI
+import ScintComponents
 
+
+struct NewMaterialButton: View {
+    var panel: any Panel
+    var model: any Model
+
+    var library: Reference { model.session.library }
+    @State var presented: Bool = false
+
+    var body: some View {
+        Button {
+            model.open(Material.new(library, name: "New Draft"))
+            presented.toggle()
+        } label: {
+            Image(systemName: "square.and.pencil")
+        }
+        .sheet(isPresented: $presented) {
+            if let ref = model.session.opened.material {
+                MaterialSurface(ref: ref, panel: panel, model: model)
+                    .scrollEdgeEffectStyle(.soft, for: .top)
+                    .scrollIndicators(.hidden)
+                    .background(Style.Background.canvas)
+                    .frame(width: 660, height: 380)
+                    .presentationSizing(.fitted)
+
+            }
+        }
+    }
+}
 
 struct ActionButton: View {
     let title: String
@@ -97,18 +126,18 @@ struct CreateSpaceButton: View {
         }
         .menuIndicator(.hidden)
         .sheet(isPresented: $presented) {
-            VStack(alignment: .trailing, spacing: Style.Spacing.xl) {
+            VStack(alignment: .trailing, spacing: Style.Spacing.heading) {
                 TextField("Name", text: $text)
                     .onSubmit { create() }
 
-                HStack(spacing: Style.Spacing.md) {
+                HStack(spacing: Style.Spacing.label) {
                     Button("Cancel", role: .cancel) { presented = false }
                     Button("Create") { create() }
                         .keyboardShortcut(.defaultAction)
                 }
             }
-            .padding(Style.Spacing.xxl)
-            .frame(width: Style.Spacing.menuWidth)
+            .padding(Style.Spacing.page)
+            .frame(width: Metrics.menuWidth)
         }
     }
 }
@@ -150,18 +179,18 @@ struct CreateButton: View {
             } label: { Image(systemName: "plus") }
                 .menuIndicator(.hidden)
                 .sheet(isPresented: $presented) {
-                    VStack(alignment: .trailing, spacing: Style.Spacing.xl) {
+                    VStack(alignment: .trailing, spacing: Style.Spacing.heading) {
                         TextField("Name", text: $text)
                             .onSubmit { space() }
 
-                        HStack(spacing: Style.Spacing.md) {
+                        HStack(spacing: Style.Spacing.label) {
                             Button("Cancel", role: .cancel) { presented = false }
                             Button("Create") { space() }
                                 .keyboardShortcut(.defaultAction)
                         }
                     }
-                    .padding(Style.Spacing.xxl)
-                    .frame(width: Style.Spacing.menuWidth)
+                    .padding(Style.Spacing.page)
+                    .frame(width: Metrics.menuWidth)
                 }
     }
 }
@@ -173,7 +202,7 @@ struct RemoveButton: View {
         Button(action: action) {
             Image(systemName: "minus.circle")
                 .font(.system(size: 14))
-                .foregroundStyle(Style.Foreground.subtle)
+                .foregroundStyle(Style.Foreground.secondary)
         }
         .buttonStyle(.plain)
     }

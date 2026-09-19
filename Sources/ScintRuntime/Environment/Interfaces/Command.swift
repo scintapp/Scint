@@ -29,8 +29,7 @@ struct Command: Functional {
     func arguments(with values: [String: Value]? = nil) -> [String] {
         parameters.flatMap { parameter in
             switch parameter {
-                case .argument(let name, _, _, let value):
-                    return (values?[name] ?? value).map(Arguments.marshal) ?? []
+                case .argument(let name, _, _, let value): return (values?[name] ?? value).map(Arguments.marshal) ?? []
                 case .fixed(let value): return Arguments.marshal(value)
                 case .requirement: return []
             }
@@ -63,7 +62,8 @@ struct Command: Functional {
 
     func matches(_ other: Command) -> Bool { artifact == other.artifact && parameters == other.parameters }
 
-    static func new(_ name: String, exec: Reference, params: [Parameter] = []) -> Reference {
-        register(name, Self(Reference(Self.self), artifact: exec, parameters: params), tags: ["command"])
+    @discardableResult
+    static func new(name: String, description: String? = nil, artifact: Reference, parameters: [Parameter] = []) -> Reference {
+        register(name, Self(Reference(Self.self), artifact: artifact, parameters: parameters), tags: ["command"])
     }
 }

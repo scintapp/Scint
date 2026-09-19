@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 import SwiftUI
 
 
@@ -34,9 +35,9 @@ import SwiftUI
     var size: CGSize {
         switch kind {
             case .fixed, .dynamic:
-                return CGSize(width: Style.Spacing.menuWidth, height: Style.Spacing.menuListHeight)
+                return CGSize(width: Metrics.menuWidth, height: Metrics.menuListHeight)
             case .create, .update:
-                return CGSize(width: Style.Spacing.menuWidth, height: Style.Spacing.menuFormHeight)
+                return CGSize(width: Metrics.menuWidth, height: Metrics.menuFormHeight)
         }
     }
 

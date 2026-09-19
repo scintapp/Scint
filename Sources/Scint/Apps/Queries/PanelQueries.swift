@@ -1,7 +1,100 @@
 import SwiftUI
+import ScintComponents
 
 
-struct NavigatorExecuteQuery: Query {
+struct NavigatorQuery: Query {
+    static func controls(_ model: any Model) -> Controls {
+        .init(
+            focused: { item in
+                guard let ref = item.ref else { return false }
+                return model.session.focus == .structure(ref)
+            },
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
+            },
+            onSelect: { item in
+                guard let ref = item.ref else { return }
+                model.select(ref, entry: item.entryId, url: item.path)
+                model.focus(ref)
+            },
+            surfaceDropTarget: {
+                let space = model.session.root
+                return .init(ref: space, name: space.descriptor.name)
+            },
+            wrapLink: { view, item, _ in
+                guard let ref = item.ref else { return view }
+                return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
+            },
+            wrapHeader: { view, section in
+                switch section.id {
+                    case AnyHashable("spaces"): AnyView(view.contextMenu { ContextActionMenu(ref: model.session.root) })
+                    case AnyHashable("library"): AnyView(view.contextMenu { ContextActionMenu(ref: model.session.library) })
+                    default: view
+                }
+            },
+            dropTypes: { item in
+                item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
+            },
+            onDrop: { providers, target in
+                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target)
+            }
+        )
+    }
+
+    static func parameters(_ model: any Model) -> Params {
+        .init(
+            header: true,
+            sections: [
+                .init(
+                    id: "base",
+                    header: false,
+                    items: [
+                        .init(
+                            ref: model.session.inbox,
+                            name: "Inbox",
+                            image: "tray",
+                            tint: Style.Foreground.secondary
+                        ),
+                        .init(
+                            ref: model.session.activity,
+                            name: "Activity",
+                            image: "waveform.path.ecg",
+                            tint: Style.Foreground.secondary
+                        ),
+                        .init(
+                            ref: model.session.scheduled,
+                            name: "Scheduled",
+                            image: "alarm",
+                            tint: Style.Foreground.secondary
+                        )
+                    ]
+                ),
+                .init(
+                    id: "spaces",
+                    name: "Spaces",
+                    header: true,
+                    items: FlatSpacesList
+                        .parameters(model)
+                        .sections
+                        .flatMap { $0.items }
+                ),
+                .init(
+                    id: "library",
+                    name: "Library",
+                    header: true,
+                    items: NestedLibraryList
+                        .parameters(model)
+                        .sections
+                        .flatMap { $0.items }
+                )
+            ]
+        )
+    }
+}
+
+struct NavigatorCanvasQuery: Query {
     static func controls(_ model: any Model) -> Controls {
         .init(
             focused: { item in
@@ -51,19 +144,19 @@ struct NavigatorExecuteQuery: Query {
                             ref: model.session.inbox,
                             name: "Inbox",
                             image: "tray",
-                            tint: Style.Foreground.subtle
+                            tint: Style.Foreground.secondary
                         ),
                         .init(
-                            ref: model.session.drafts,
-                            name: "Drafts",
-                            image: "text.rectangle",
-                            tint: Style.Foreground.subtle
+                            ref: model.session.activity,
+                            name: "Activity",
+                            image: "waveform.path.ecg",
+                            tint: Style.Foreground.secondary
                         ),
                         .init(
-                            ref: model.session.outlines,
-                            name: "Outlines",
-                            image: "app.grid.2x2.topleft.dashed",
-                            tint: Style.Foreground.subtle
+                            ref: model.session.scheduled,
+                            name: "Scheduled",
+                            image: "alarm",
+                            tint: Style.Foreground.secondary
                         )
                     ]
                 ),
@@ -80,88 +173,6 @@ struct NavigatorExecuteQuery: Query {
         )
     }
 }
-
-
-struct NavigatorComposeQuery: Query {
-    static func controls(_ model: any Model) -> Controls {
-        .init(
-            focused: { item in
-                guard let ref = item.ref else { return false }
-                return model.session.focus == .structure(ref)
-            },
-            selected: { item in
-                guard let ref = item.ref else { return false }
-                if let url = item.path { return model.session.selection.selected(ref, url) }
-                return model.session.selection.selected(ref)
-            },
-            onSelect: { item in
-                guard let ref = item.ref else { return }
-                model.select(ref, entry: item.entryId, url: item.path)
-                model.focus(ref)
-            },
-            surfaceDropTarget: {
-                let space = model.session.root
-                return .init(ref: space, name: space.descriptor.name)
-            },
-            wrapLink: { view, item, _ in
-                guard let ref = item.ref else { return view }
-                return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
-            },
-            wrapHeader: { view, section in
-                guard section.id == AnyHashable("spaces") else { return view }
-                return AnyView(view.contextMenu { ContextActionMenu(ref: model.session.root) })
-            },
-            dropTypes: { item in
-                item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
-            },
-            onDrop: { providers, target in
-                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target)
-            }
-        )
-    }
-
-    static func parameters(_ model: any Model) -> Params {
-        .init(
-            header: true,
-            sections: [
-                .init(
-                    id: "base",
-                    header: false,
-                    items: [
-                        .init(
-                            ref: model.session.inbox,
-                            name: "Inbox",
-                            image: "tray",
-                            tint: Style.Foreground.subtle
-                        ),
-                        .init(
-                            ref: model.session.drafts,
-                            name: "Drafts",
-                            image: "text.rectangle",
-                            tint: Style.Foreground.subtle
-                        ),
-                        .init(
-                            ref: model.session.outlines,
-                            name: "Outlines",
-                            image: "app.grid.2x2.topleft.dashed",
-                            tint: Style.Foreground.subtle
-                        )
-                    ]
-                ),
-                .init(
-                    id: "spaces",
-                    name: "Spaces",
-                    header: true,
-                    items: SpacesList
-                        .parameters(model)
-                        .sections
-                        .flatMap { $0.items }
-                )
-            ]
-        )
-    }
-}
-
 
 struct PathQuery: Query {
     static func controls(_ model: any Model) -> Controls {
@@ -187,7 +198,7 @@ struct PathQuery: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        let spaces = SpacesList
+        let spaces = FlatSpacesList
             .parameters(model)
             .sections
             .flatMap { $0.items }
@@ -228,9 +239,3 @@ struct PathQuery: Query {
         )
     }
 }
-
-struct CanvasQuery: Query {
-    static func controls(_ model: any Model) -> Controls { .init() }
-    static func parameters(_ model: any Model) -> Params { .init() }
-}
-

@@ -101,6 +101,7 @@ extension Functional {
         let taken = Set(registered.map { $0.0.descriptor.name })
         var unique = name
         var suffix = 2
+
         while taken.contains(unique) {
             unique = "\(name) \(suffix)"
             suffix += 1

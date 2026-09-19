@@ -9,7 +9,6 @@ enum Harnesses {
         let search: Reference
         let schedule: Reference
         let unschedule: Reference
-        let exec: Reference
     }
 
     @discardableResult
@@ -23,7 +22,7 @@ enum Harnesses {
         }
 
         func command(name: String, description: String, artifact: Reference, parameters: [Command.Parameter]) -> Reference {
-            let ref = Command.new(name, exec: artifact, params: parameters)
+            let ref = Command.new(name: name, artifact:artifact, parameters: parameters)
             Catalog.shared.update(ref) { descriptor in descriptor.description = description }
             return ref
         }
@@ -126,7 +125,6 @@ enum Harnesses {
             search: search,
             schedule: schedule,
             unschedule: unschedule,
-            exec: exec
         )
     }
 }

@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -10,17 +11,17 @@ struct TableHeader: View {
         Button(action: onToggle) {
             HStack {
                 Text(name)
-                    .font(Typography.cardRow.weight(.semibold))
-                    .foregroundStyle(Style.Foreground.faint)
+                    .font(Typography.body.weight(.semibold))
+                    .foregroundStyle(Style.Foreground.secondary)
 
                 Spacer()
 
                 Image(systemName: "chevron.down")
-                    .font(Typography.label.weight(.heavy))
-                    .foregroundStyle(Style.Foreground.muted)
+                    .font(Typography.footnote.weight(.heavy))
+                    .foregroundStyle(Style.Foreground.secondary)
                     .rotationEffect(.degrees(expanded ? .zero : -90))
-                    .frame(width: Style.Spacing.xxl, height: Style.Spacing.xxl)
-                    .background(Circle().fill(Style.Background.group))
+                    .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
+                    .background(Circle().fill(Style.Background.surface))
             }
             .contentShape(Rectangle())
         }
@@ -40,30 +41,30 @@ struct TableRow: View {
         let selected = transcript != nil && model.session.transcript == transcript
 
         Button { if let transcript { model.select(transcript) } } label: {
-            HStack(spacing: Style.Spacing.lg) {
+            HStack(spacing: Style.Spacing.icon) {
                 Iconography.Icon(
                     symbol: icon.symbol,
-                    tint: icon.tint,
-                    sizing: Style.Spacing.xl,
+                    tint: icon.tint.bright,
+                    sizing: Metrics.rowIcon,
                     selected: enabled
                 )
-                .frame(width: Style.Spacing.xl, height: Style.Spacing.xl)
+                .frame(width: Metrics.rowIcon, height: Metrics.rowIcon)
 
                 Text(intent.forms.label)
-                    .font(Typography.cardRow)
-                    .foregroundStyle(enabled ? Style.Foreground.primary : Style.Foreground.faint)
-                    .lineLimit(Style.Limit.singleLine)
+                    .font(Typography.body)
+                    .foregroundStyle(enabled ? Style.Foreground.primary : Style.Foreground.secondary)
+                    .lineLimit(1)
 
                 Spacer(minLength: .zero)
             }
-            .padding(.horizontal, Style.Spacing.md)
-            .frame(height: Style.Spacing.xxl + Style.Spacing.sm)
+            .padding(.horizontal, Style.Spacing.label)
+            .frame(height: Style.Dimension.control(.regular))
             .background(
-                Style.Shape.small.fill(
-                    selected || hovered ? Color.primary.opacity(Style.Opacity.hairline) : .clear
+                Style.Shape.card.fill(
+                    selected || hovered ? Style.Background.surface : .clear
                 )
             )
-            .contentShape(Style.Shape.small)
+            .contentShape(Style.Shape.card)
         }
         .buttonStyle(.plain)
         .disabled(!enabled || transcript == nil)
@@ -89,42 +90,42 @@ struct TableCard<Rows: View>: View {
 
         VStack(spacing: .zero) {
             Button(action: onToggle) {
-                VStack(alignment: .leading, spacing: Style.Spacing.xs) {
+                VStack(alignment: .leading, spacing: Style.Spacing.detail) {
                     Text(space.descriptor.name)
-                        .font(Typography.cardHeading)
-                        .foregroundStyle(selected ? Style.Foreground.primary : Style.Foreground.subtle)
-                        .lineLimit(Style.Limit.singleLine)
+                        .font(Typography.lead)
+                        .foregroundStyle(selected ? Style.Foreground.primary : Style.Foreground.secondary)
+                        .lineLimit(1)
 
                     if running {
                         Text(intent.map { "\($0.forms.running)…" } ?? "Working…")
-                            .font(Typography.cardDetail())
-                            .foregroundStyle(Style.Foreground.faint)
-                            .lineLimit(Style.Limit.singleLine)
+                            .font(Typography.detail)
+                            .foregroundStyle(Style.Foreground.secondary)
+                            .lineLimit(1)
                     } else {
-                        HStack(spacing: Style.Spacing.sm) {
+                        HStack(spacing: Style.Spacing.detail) {
                             Text(intent?.forms.completed ?? "Updated")
                             Text("at")
                             Text(updated, style: .time)
                         }
-                        .font(Typography.cardDetail())
-                        .foregroundStyle(Style.Foreground.faint)
-                        .lineLimit(Style.Limit.singleLine)
+                        .font(Typography.detail)
+                        .foregroundStyle(Style.Foreground.secondary)
+                        .lineLimit(1)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, Style.Spacing.md)
-                .padding(.vertical, Style.Spacing.md)
+                .padding(.horizontal, Style.Spacing.label)
+                .padding(.vertical, Style.Spacing.label)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
             if expanded {
-                VStack(spacing: Style.Spacing.xs) { rows }
-                    .padding(.horizontal, Style.Spacing.md)
-                    .padding(.bottom, Style.Spacing.lg)
+                VStack(spacing: Style.Spacing.detail) { rows }
+                    .padding(.horizontal, Style.Spacing.label)
+                    .padding(.bottom, Style.Spacing.inset)
             }
         }
-        .background(Style.Shape.medium.fill(selected ? Style.Background.group : .clear))
+        .background(Style.Shape.card.fill(selected ? Style.Background.surface : .clear))
     }
 }
 

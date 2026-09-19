@@ -1,4 +1,5 @@
 import Foundation
+import ScintComponents
 import SwiftUI
 
 
@@ -29,8 +30,8 @@ struct InspectorPicker: View {
             }
         }
         .controlGroupStyle(.navigation)
-        .foregroundStyle(Style.Foreground.primary, Style.Foreground.secondary, Style.Foreground.faint)
-        .tint(Style.Background.control)
+        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.secondary)
+        .tint(Style.Background.selection)
     }
 }
 
@@ -54,11 +55,11 @@ struct InspectorPicker: View {
     }
 
     func surface(_ model: any Model) -> some View {
-        let hole = PanelHole(insets: EdgeInsets(top: 9, leading: 0, bottom: 9, trailing: 9), radius: Style.Shape.holeRadius)
+        let hole = PanelHole(insets: EdgeInsets(top: 9, leading: 0, bottom: 9, trailing: 9), radius: Metrics.inspectorHoleRadius)
 
         return VStack {
             switch surface {
-                case .materials: MaterialsSurface(panel: self, model: model)
+                case .materials: OutlineSurface(panel: self, model: model)
                 case .transcripts: TranscriptSurface(panel: self, model: model)
                 case .settings: HarnessSurface(panel: self, model: model)
             }
@@ -67,14 +68,14 @@ struct InspectorPicker: View {
         .padding([.trailing, .vertical], 9)
         .background {
             Color.clear
-                .glassEffect(.clear.tint(Style.Background.base.opacity(0.75)), in: hole.inset(by: -2))
+                .glassEffect(.clear.tint(Style.Background.canvas.opacity(0.75)), in: hole.inset(by: -2))
                 .opacity(0.5)
                 .ignoresSafeArea()
         }
         .overlay {
             ZStack {
-                PanelFrame(hole: hole).fill(Style.Background.base, style: FillStyle(eoFill: true))
-                hole.strokeBorder(Style.Border.handle, lineWidth: 1).opacity(0.5)
+                PanelFrame(hole: hole).fill(Style.Background.canvas, style: FillStyle(eoFill: true))
+                hole.strokeBorder(Style.Border.hairline, lineWidth: 1).opacity(0.5)
             }
             .ignoresSafeArea()
             .allowsHitTesting(false)

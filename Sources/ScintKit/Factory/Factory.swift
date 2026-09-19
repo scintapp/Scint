@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 import Foundation
 
@@ -42,15 +43,16 @@ import Foundation
 
     @ViewBuilder static func build(_ surface: some Surface, params: PanelParams, controls: Controls) -> some View {
         let panel = surface.panel
-        let sections = (controls.results?(panel.state.query) ?? []).compactMap { group -> SectionParams? in
-            guard !group.results.isEmpty else { return nil }
-            return SectionParams(id: group.id.description, name: group.name, header: !group.name.isEmpty, image: group.image, items: group.results.map {
-                let icon = Iconography.icon(for: $0.ref)
-                return ItemParams(ref: $0.ref, name: $0.name, image: icon.symbol, tint: icon.tint, description: $0.description)
-            })
-        }
+//        let sections = (controls.results?(panel.state.query) ?? []).compactMap { group -> SectionParams? in
+//            guard !group.results.isEmpty else { return nil }
+//            return SectionParams(id: group.id.description, name: group.name, header: !group.name.isEmpty, image: group.image, items: group.results.map {
+//                let icon = Iconography.icon(for: $0.ref)
+//                return ItemParams(ref: $0.ref, name: $0.name, image: icon.symbol, tint: icon.tint.bright, description: $0.description)
+//            })
+//        }
 
-        let items = sections.flatMap(\.items)
+        let sections = params.items
+        let items = params.items.flatMap(\.items)
         let cursor = panel.state.cursor ?? items.first?.id
         let selection = items.first { $0.id == cursor }
         let detail = panel.state.detail ? selection.flatMap { controls.detail?($0) } : nil
@@ -216,7 +218,7 @@ import Foundation
 
                             case .picker:
                                 ItemPicker(value: params.value ?? "", items: params.items) { controls.onChange?(params, $0) }
-                                    .background { Circle().size(width: 20, height: 20, anchor: .center).fill(Style.Background.control) }
+                                    .background { Circle().size(width: 20, height: 20, anchor: .center).fill(Style.Background.selection) }
 
                             case .range:
                                 ItemRangePicker(value: params.value ?? "", items: params.items) { controls.onChange?(params, $0) }
@@ -227,7 +229,7 @@ import Foundation
                             // A date argument is absent or set, not false or true, so the switch is that
                             // distinction and the field beside it only appears once the switch is on.
                             case .date, .time:
-                                HStack(spacing: Style.Spacing.md) {
+                                HStack(spacing: Style.Spacing.label) {
                                     if params.active {
                                         ItemDatePicker(value: params.value ?? "", components: params.trailingKind == .time ? [.hourAndMinute] : [.date]) {
                                             controls.onValueChange?(params, $0)

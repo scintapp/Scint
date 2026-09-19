@@ -5,10 +5,7 @@ struct StdioTransport {
     let input: FileHandle
     let output: FileHandle
 
-    init(
-        input: FileHandle = .standardInput,
-        output: FileHandle = .standardOutput
-    ) {
+    init(input: FileHandle = .standardInput, output: FileHandle = .standardOutput) {
         self.input = input
         self.output = output
     }
@@ -31,7 +28,6 @@ struct StdioTransport {
         }
     }
 
-    /// Writes one already-encoded newline-delimited message.
     func write(_ message: Data) async throws {
         try output.write(contentsOf: message)
     }

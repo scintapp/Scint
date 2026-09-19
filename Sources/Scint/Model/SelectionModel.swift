@@ -59,6 +59,18 @@ struct Selection: Codable, Equatable, Sendable {
         return .collection(values)
     }
 
+    var root: Reference? {
+        guard var cursor = structure else { return nil }
+        var depth = 0
+
+        while let parent = Space.with(cursor, { $0.space }) ?? nil, depth < 100 {
+            cursor = parent
+            depth += 1
+        }
+        return cursor
+    }
+
+
     func selected(_ ref: Reference) -> Bool {
         switch ref.type {
             case is any Structural.Type: structure == ref

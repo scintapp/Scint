@@ -8,18 +8,18 @@ enum ScintHostOperation: Sendable, Equatable {
     case readResource(uri: String)
 }
 
-struct ScintHostRequest: Sendable, Equatable {
-    let context: UUID
-    let operation: ScintHostOperation
-}
-
-protocol ScintMCPBridge: Sendable {
-    func perform(_ request: ScintHostRequest) async throws -> [String: Property]
-}
-
-enum ScintMCPBridgeError: Error, Sendable, Equatable {
+enum ScintHostBridgeError: Error, Sendable, Equatable {
     case contextNotFound(UUID)
     case invalidArguments(String)
     case resourceNotFound(String)
     case toolNotFound(String)
+}
+
+protocol ScintHostBridge: Sendable {
+    func perform(_ request: ScintHostRequest) async throws -> [String: Property]
+}
+
+struct ScintHostRequest: Sendable, Equatable {
+    let context: UUID
+    let operation: ScintHostOperation
 }

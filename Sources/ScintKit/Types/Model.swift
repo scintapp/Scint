@@ -1,6 +1,6 @@
 import SwiftUI
 
-
+protocol Mode: Identifiable, CaseIterable {}
 enum ModelKey: String, Identifiable, CaseIterable {
     case studio, editor
     var id: String { self.rawValue }

@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -33,13 +34,13 @@ struct PanelInput: View {
             HStack(alignment: .center, spacing: 16) {
                 Image(systemName: image)
                     .frame(height: 48, alignment: .center)
-                    .foregroundStyle(Style.Foreground.subtle)
+                    .foregroundStyle(Style.Foreground.secondary)
                     .font(.system(size: 26, weight: .light))
 
                 TextField(placeholder, text: $value)
                     .frame(height: 48, alignment: .center)
                     .padding(.bottom, 2)
-                    .foregroundStyle(Style.Foreground.subtle)
+                    .foregroundStyle(Style.Foreground.secondary)
                     .font(.system(size: 28, weight: .light))
                     .textFieldStyle(.plain)
                     .onKeyPress(.upArrow) { onUpArrow() }
@@ -94,13 +95,13 @@ struct PanelModes: View {
                         Text(item.name)
                             .font(.system(size: 11, weight: active ? .medium : .regular))
                     }
-                    .foregroundStyle(active ? Style.Foreground.primary : Style.Foreground.subtle)
+                    .foregroundStyle(active ? Style.Foreground.primary : Style.Foreground.secondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .contentShape(Style.Shape.panel)
                     .background(
                         Style.Shape.panel
-                            .fill(active ? Style.Background.control : Color.clear)
+                            .fill(active ? Style.Background.selection : Color.clear)
                     )
                 }
                 .buttonStyle(.plain)
@@ -127,15 +128,15 @@ struct PanelRow: View {
                 .foregroundColor(
                     active
                     ? Style.Foreground.primary
-                    : Style.Foreground.secondary
+                    : Style.Foreground.primary
                 ),
             detail: params.description.isEmpty ? nil : Text(params.description)
                 .font(.system(size: 13))
-                .foregroundColor(Style.Foreground.subtle)
+                .foregroundColor(Style.Foreground.secondary)
         ) {
             Iconography.Icon(
                 symbol: params.image.isEmpty ? "square.stack.3d.up" : params.image,
-                tint: params.tint ?? Style.Foreground.secondary,
+                tint: params.tint ?? Style.Foreground.primary,
                 sizing: 20,
                 selected: active
             )
@@ -147,7 +148,7 @@ struct PanelRow: View {
                 Image(systemName: "return")
                     .padding(.trailing, 8)
                     .font(.system(size: 13))
-                    .foregroundStyle(Style.Foreground.subtle)
+                    .foregroundStyle(Style.Foreground.secondary)
             }
         }
         .padding(.horizontal, 12)
@@ -159,7 +160,7 @@ struct PanelRow: View {
             RoundedRectangle(cornerRadius: 17, style: .continuous)
                 .fill(
                     active
-                    ? Style.Background.control
+                    ? Style.Background.selection
                     : Color.clear
                 )
         )
@@ -189,7 +190,7 @@ struct PanelDetail<Content: View>: View {
                     if !params.description.isEmpty {
                         Text(params.description)
                             .font(.system(size: 13))
-                            .foregroundStyle(Style.Foreground.subtle)
+                            .foregroundStyle(Style.Foreground.secondary)
                             .lineLimit(2)
                     }
                 }
@@ -198,7 +199,7 @@ struct PanelDetail<Content: View>: View {
 
                 Text("esc")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Style.Foreground.subtle)
+                    .foregroundStyle(Style.Foreground.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
                     .background(Style.Shape.panel.fill(.tertiary.opacity(0.25)))
@@ -229,7 +230,7 @@ struct PanelPin: View {
         Button(action: onToggle) {
             Image(systemName: pinned ? "pin.fill" : "pin")
                 .font(.system(size: 11))
-                .foregroundStyle(pinned ? Style.Foreground.primary : Style.Foreground.faint)
+                .foregroundStyle(pinned ? Style.Foreground.primary : Style.Foreground.secondary)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
         }

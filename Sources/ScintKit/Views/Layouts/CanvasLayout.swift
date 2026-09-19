@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 import SwiftUI
 
 
@@ -38,14 +39,14 @@ struct CanvasBranch<Content: View>: View {
 
     private var level: AnyLayout {
         axis == .vertical
-        ? AnyLayout(VStackLayout(spacing: Style.Dimension.canvasLevelGap))
-        : AnyLayout(HStackLayout(spacing: Style.Dimension.canvasLevelGap))
+        ? AnyLayout(VStackLayout(spacing: Metrics.canvasLevelGap))
+        : AnyLayout(HStackLayout(spacing: Metrics.canvasLevelGap))
     }
 
     private var siblings: AnyLayout {
         axis == .vertical
-        ? AnyLayout(HStackLayout(alignment: .top, spacing: Style.Dimension.canvasSiblingGap))
-        : AnyLayout(VStackLayout(alignment: .leading, spacing: Style.Dimension.canvasSiblingGap))
+        ? AnyLayout(HStackLayout(alignment: .top, spacing: Metrics.canvasSiblingGap))
+        : AnyLayout(VStackLayout(alignment: .leading, spacing: Metrics.canvasSiblingGap))
     }
 
     var body: some View {
@@ -69,14 +70,14 @@ struct CanvasLinks: View {
     let frames: [AnyHashable: CGRect]
 
     var body: some View {
-        let stroke = StrokeStyle(lineWidth: Style.Dimension.border, lineCap: .round, lineJoin: .round)
+        let stroke = StrokeStyle(lineWidth: 1, lineCap: .round, lineJoin: .round)
         var edges = Path()
         var bridges = Path()
         for ref in refs { tree(ref, &edges, &bridges) }
 
         return ZStack {
-            edges.stroke(Style.Foreground.faint, style: stroke)
-            bridges.stroke(Style.Tint.bridge, style: stroke)
+            edges.stroke(Style.Foreground.secondary, style: stroke)
+            bridges.stroke(Style.Tint.bridge.bright, style: stroke)
         }
     }
 
@@ -94,7 +95,7 @@ struct CanvasLinks: View {
 
     private func tree(_ ref: Reference, _ edges: inout Path, _ bridges: inout Path) {
         guard let parent = frames[ref] else { return }
-        let bar = along(parent).max + Style.Dimension.canvasLevelGap / 2
+        let bar = along(parent).max + Metrics.canvasLevelGap / 2
 
         for child in Space.with(ref, { $0.spaces }) ?? [] {
             guard let node = frames[child] else { continue }
@@ -103,7 +104,7 @@ struct CanvasLinks: View {
             edges.addArc(
                 tangent1End: point(bar, across(node).mid),
                 tangent2End: point(along(node).min, across(node).mid),
-                radius: Style.Spacing.md
+                radius: Style.Shape.controlRadius
             )
             edges.addLine(to: point(along(node).min, across(node).mid))
             tree(child, &edges, &bridges)
@@ -118,7 +119,7 @@ struct CanvasLinks: View {
             let start = (along: along(origin).mid, across: side > 0 ? across(origin).max : across(origin).min)
             let end = (along: along(target).mid, across: side > 0 ? across(target).min : across(target).max)
             let bend = abs(end.across - start.across) / 2
-            let head = Style.Spacing.sm
+            let head = Style.Spacing.detail
 
             bridges.move(to: point(start.along, start.across))
             bridges.addCurve(
@@ -169,7 +170,7 @@ struct CanvasScroll<Content: View>: NSViewRepresentable {
         scroll.documentView = document
         scroll.automaticallyAdjustsContentInsets = false
         scroll.drawsBackground = true
-        scroll.backgroundColor = NSColor(Style.Background.base)
+        scroll.backgroundColor = NSColor(Style.Background.canvas)
         scroll.hasHorizontalScroller = false
         scroll.hasVerticalScroller = false
         scroll.horizontalScrollElasticity = .allowed
@@ -206,8 +207,8 @@ struct CanvasTree<Content: View>: View {
 
     private var siblings: AnyLayout {
         axis == .vertical
-        ? AnyLayout(HStackLayout(alignment: .top, spacing: Style.Dimension.canvasSiblingGap))
-        : AnyLayout(VStackLayout(alignment: .leading, spacing: Style.Dimension.canvasSiblingGap))
+        ? AnyLayout(HStackLayout(alignment: .top, spacing: Metrics.canvasSiblingGap))
+        : AnyLayout(VStackLayout(alignment: .leading, spacing: Metrics.canvasSiblingGap))
     }
 
     var body: some View {
@@ -247,7 +248,7 @@ struct Canvas<Content: View>: View {
             )
             .ignoresSafeArea()
         }
-        .background(Style.Background.base)
+        .background(Style.Background.canvas)
     }
 }
 
@@ -267,7 +268,7 @@ final class CanvasClip: NSClipView {
     }
 
     @objc private func scaled() {
-        onScale?(enclosingScrollView?.magnification ?? Style.Scale.identity)
+        onScale?(enclosingScrollView?.magnification ?? Metrics.canvasActualSize)
     }
 
     override func constrainBoundsRect(_ proposedBounds: NSRect) -> NSRect {
@@ -339,8 +340,8 @@ final class CanvasDocument: NSView {
         guard content.width > 1, content.height > 1 else { return }
 
         let margin = CGSize(
-            width: max(Style.Dimension.canvasPadding, clip.frame.width / 2),
-            height: max(Style.Dimension.canvasPadding, clip.frame.height / 2)
+            width: max(Metrics.canvasPadding, clip.frame.width / 2),
+            height: max(Metrics.canvasPadding, clip.frame.height / 2)
         )
         let frame = CGRect(origin: CGPoint(x: margin.width, y: margin.height), size: content)
         let bounds = CGSize(width: content.width + margin.width * 2, height: content.height + margin.height * 2)
@@ -370,10 +371,10 @@ final class CanvasDocument: NSView {
         let origin: CGPoint = switch axis {
             case .vertical: CGPoint(
                 x: frame.midX - visible.width / 2 - (insets.left - insets.right) / 2,
-                y: frame.minY - insets.top - Style.Dimension.canvasPadding
+                y: frame.minY - insets.top - Metrics.canvasPadding
             )
             case .horizontal: CGPoint(
-                x: frame.minX - insets.left - Style.Dimension.canvasPadding,
+                x: frame.minX - insets.left - Metrics.canvasPadding,
                 y: frame.midY - visible.height / 2 - (insets.top - insets.bottom) / 2
             )
         }
@@ -395,7 +396,7 @@ final class CanvasDocument: NSView {
     static let minimum: CGFloat = 0.35
     static let maximum: CGFloat = 1.75
 
-    private(set) var scale: CGFloat = Style.Scale.identity
+    private(set) var scale: CGFloat = Metrics.canvasActualSize
 
     var percentage: String { "\(Int((scale * 100).rounded()))%" }
 
@@ -419,7 +420,7 @@ final class CanvasDocument: NSView {
         let bounds = scroll.contentView.bounds
         let offset = CanvasInsets.offset(insets, magnification: scroll.magnification)
         apply(
-            scroll.magnification + direction * Style.Scale.step,
+            scroll.magnification + direction * Metrics.canvasZoomStep,
             focus: CGPoint(x: bounds.midX + offset.x, y: bounds.midY + offset.y)
         )
     }
@@ -431,18 +432,18 @@ final class CanvasDocument: NSView {
             width: clip.width - insets.left - insets.right,
             height: clip.height - insets.top - insets.bottom
         )
-        let target = document.contentFrame.insetBy(dx: -Style.Dimension.canvasPadding, dy: -Style.Dimension.canvasPadding)
+        let target = document.contentFrame.insetBy(dx: -Metrics.canvasPadding, dy: -Metrics.canvasPadding)
         guard viewport.width > 0, viewport.height > 0, target.width > 0, target.height > 0 else { return }
 
         let scale = min(viewport.width / target.width, viewport.height / target.height)
-        apply(min(scale, Style.Scale.identity), focus: CGPoint(x: target.midX, y: target.midY))
+        apply(min(scale, Metrics.canvasActualSize), focus: CGPoint(x: target.midX, y: target.midY))
     }
 
     func actual() {
         guard let scroll else { return }
         let bounds = scroll.contentView.bounds
         let offset = CanvasInsets.offset(insets, magnification: scroll.magnification)
-        apply(Style.Scale.identity, focus: CGPoint(x: bounds.midX + offset.x, y: bounds.midY + offset.y))
+        apply(Metrics.canvasActualSize, focus: CGPoint(x: bounds.midX + offset.x, y: bounds.midY + offset.y))
     }
 
     private func apply(_ scale: CGFloat, focus: CGPoint) {

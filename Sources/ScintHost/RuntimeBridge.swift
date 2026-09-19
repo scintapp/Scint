@@ -1,7 +1,7 @@
 import Foundation
 
 
-struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
+struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
     private enum Tool: String, CaseIterable {
         case contentNew = "content.new"
         case contentWith = "content.with"
@@ -87,11 +87,11 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
         }
     }
 
-    func perform(_ request: ScintMCPBridgeRequest) async throws -> [String: Property] {
+    func perform(_ request: ScintHostRequest) async throws -> [String: Property] {
         guard let composition = ContextProvider.context.first(where: {
             $0.space.contextId == request.context || $0.space.id == request.context
         }) else {
-            throw ScintMCPBridgeError.contextNotFound(request.context)
+            throw ScintHostBridgeError.contextNotFound(request.context)
         }
 
         return switch request.operation {
@@ -107,7 +107,7 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
     }
 
     private func call(_ name: String ,arguments: [String: Property],context: Reference) async throws -> [String: Property] {
-        guard let tool = Tool(rawValue: name) else { throw ScintMCPBridgeError.toolNotFound(name) }
+        guard let tool = Tool(rawValue: name) else { throw ScintHostBridgeError.toolNotFound(name) }
 
         let value: Property
         switch tool {
@@ -120,21 +120,21 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
             case .contentWith:
                 let ref = try requiredReference("content", in: arguments)
                 guard let material = ContextProvider.content.with(ref) else {
-                    throw ScintMCPBridgeError.invalidArguments("content does not reference a material.")
+                    throw ScintHostBridgeError.invalidArguments("content does not reference a material.")
                 }
                 value = .fromCodable(material)
 
             case .contentUpdate:
                 let ref = try requiredReference("material", in: arguments)
                 guard let supplied = arguments["block"] else {
-                    throw ScintMCPBridgeError.invalidArguments("block is required.")
+                    throw ScintHostBridgeError.invalidArguments("block is required.")
                 }
                 guard let updated = ContextProvider.content.update(
                     ref,
                     with: try block(supplied),
                     at: try integer("index", in: arguments)
                 ) else {
-                    throw ScintMCPBridgeError.invalidArguments("material does not reference a material.")
+                    throw ScintHostBridgeError.invalidArguments("material does not reference a material.")
                 }
                 value = .fromCodable(updated)
 
@@ -145,7 +145,7 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
             case .structureWith:
                 let ref = try requiredReference("content", in: arguments)
                 guard let space = ContextProvider.structure.with(ref) else {
-                    throw ScintMCPBridgeError.invalidArguments("content does not reference a space.")
+                    throw ScintHostBridgeError.invalidArguments("content does not reference a space.")
                 }
                 value = .fromCodable(space)
 
@@ -153,7 +153,7 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
                 let member = try requiredReference("content", in: arguments)
                 let space = try reference("space", in: arguments) ?? context
                 guard let updated = ContextProvider.structure.update(member, in: space) else {
-                    throw ScintMCPBridgeError.invalidArguments("space does not reference a space.")
+                    throw ScintHostBridgeError.invalidArguments("space does not reference a space.")
                 }
                 value = .fromCodable(updated)
 
@@ -169,7 +169,7 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
             case .composeContext:
                 let space = try reference("space", in: arguments) ?? context
                 guard let current = ContextProvider.compose.context(for: space) else {
-                    throw ScintMCPBridgeError.invalidArguments("space has no composition.")
+                    throw ScintHostBridgeError.invalidArguments("space has no composition.")
                 }
                 value = compose(current)
         }
@@ -179,7 +179,7 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
 
     private func compose(_ activity: ComposeTool.Activity, for space: Reference) throws -> Property {
         guard let current = ContextProvider.compose.compose(activity, for: space) else {
-            throw ScintMCPBridgeError.invalidArguments("The requested composition transition is unavailable.")
+            throw ScintHostBridgeError.invalidArguments("The requested composition transition is unavailable.")
         }
         return compose(current)
     }
@@ -219,15 +219,15 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
         guard let url = URL(string: uri),
               let ref = Reference.Link.reference(in: url),
               resources(in: space).contains(ref)
-        else { throw ScintMCPBridgeError.resourceNotFound(uri) }
+        else { throw ScintHostBridgeError.resourceNotFound(uri) }
 
         let value: Property
         if let material = ContextProvider.content.with(ref) { value = .fromCodable(material) }
         else if let structure = ContextProvider.structure.with(ref) { value = .fromCodable(structure) }
-        else { throw ScintMCPBridgeError.resourceNotFound(uri) }
+        else { throw ScintHostBridgeError.resourceNotFound(uri) }
 
         guard let data = try? JSONEncoder().encode(value), let text = String(data: data, encoding: .utf8) else {
-            throw ScintMCPBridgeError.resourceNotFound(uri)
+            throw ScintHostBridgeError.resourceNotFound(uri)
         }
         return ["contents": .array([.object([
             "uri": .string(uri),
@@ -240,20 +240,20 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
         guard let value = arguments[name] else { return nil }
         guard let address = value.string,
               let ref = Reference.Link.reference(in: address) ?? UUID(uuidString: address).flatMap(Catalog.shared.get)
-        else { throw ScintMCPBridgeError.invalidArguments("\(name) must be a valid Scint address.") }
+        else { throw ScintHostBridgeError.invalidArguments("\(name) must be a valid Scint address.") }
         return ref
     }
 
     private func requiredReference(_ name: String, in arguments: [String: Property]) throws -> Reference {
         guard let ref = try reference(name, in: arguments) else {
-            throw ScintMCPBridgeError.invalidArguments("\(name) is required.")
+            throw ScintHostBridgeError.invalidArguments("\(name) is required.")
         }
         return ref
     }
 
     private func string(_ name: String, in arguments: [String: Property]) throws -> String {
         guard let value = arguments[name]?.string, !value.isEmpty else {
-            throw ScintMCPBridgeError.invalidArguments("\(name) must be a non-empty string.")
+            throw ScintHostBridgeError.invalidArguments("\(name) must be a non-empty string.")
         }
         return value
     }
@@ -261,19 +261,19 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
     private func integer(_ name: String, in arguments: [String: Property]) throws -> Int? {
         guard let value = arguments[name] else { return nil }
         guard let integer = value.int, integer >= 0 else {
-            throw ScintMCPBridgeError.invalidArguments("\(name) must be a non-negative integer.")
+            throw ScintHostBridgeError.invalidArguments("\(name) must be a non-negative integer.")
         }
         return integer
     }
 
     private func block(_ value: Property) throws -> Material.Block {
         guard let object = value.object, let kind = object["kind"]?.string else {
-            throw ScintMCPBridgeError.invalidArguments("block.kind is required.")
+            throw ScintHostBridgeError.invalidArguments("block.kind is required.")
         }
         let id: UUID
         if let supplied = object["id"]?.string {
             guard let parsed = UUID(uuidString: supplied) else {
-                throw ScintMCPBridgeError.invalidArguments("block.id must be a UUID.")
+                throw ScintHostBridgeError.invalidArguments("block.id must be a UUID.")
             }
             id = parsed
         } else {
@@ -283,25 +283,25 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
         switch kind {
             case "text":
                 guard let text = object["text"]?.string else {
-                    throw ScintMCPBridgeError.invalidArguments("A text block requires text.")
+                    throw ScintHostBridgeError.invalidArguments("A text block requires text.")
                 }
                 return .text(id, text)
             case "task":
                 guard let text = object["text"]?.string else {
-                    throw ScintMCPBridgeError.invalidArguments("A task block requires text.")
+                    throw ScintHostBridgeError.invalidArguments("A task block requires text.")
                 }
                 return .task(id, text, object["done"]?.bool ?? false)
             case "artifact", "command", "material":
                 guard let address = object["reference"]?.string,
                       let ref = Reference.Link.reference(in: address) ?? UUID(uuidString: address).flatMap(Catalog.shared.get)
-                else { throw ScintMCPBridgeError.invalidArguments("A \(kind) block requires a valid reference.") }
+                else { throw ScintHostBridgeError.invalidArguments("A \(kind) block requires a valid reference.") }
                 return switch kind {
                     case "artifact": .artifact(ref)
                     case "command": .command(ref)
                     default: .material(ref)
                 }
             default:
-                throw ScintMCPBridgeError.invalidArguments("Unknown block kind: \(kind).")
+                throw ScintHostBridgeError.invalidArguments("Unknown block kind: \(kind).")
         }
     }
 }

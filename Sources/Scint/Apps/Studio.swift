@@ -20,21 +20,13 @@ struct Studio: View {
     @Environment(StudioModel.self) var model
 
     var body: some View {
-        let inspectorPresented = model.inspector.bindable.presented
-
         NavigationSplitView {
-            ZStack(alignment: .trailing) {
-                model.navigator.surface(model)
-
-                Rectangle()
-                    .fill(Style.Border.divider)
-                    .ignoresSafeArea()
-                    .frame(maxWidth: 1, maxHeight: .infinity, alignment: .trailing)
-            }
+            model.navigator.surface(model)
         } detail: {
+            
             model.content.surface(model)
         }
-        .inspector(isPresented: inspectorPresented) {
+        .inspector(isPresented: model.inspector.bindable.presented) {
             model.inspector.surface(model)
                 .inspectorColumnWidth(min: 240, ideal: 320, max: 480)
                 .ignoresSafeArea(.all, edges: .top)

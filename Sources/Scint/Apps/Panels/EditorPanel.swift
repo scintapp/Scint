@@ -1,8 +1,8 @@
+import ScintComponents
 import SwiftUI
 
 
 @Observable final class EditorPanel: Panel {
-    var mode: Modality = .floating
     var state: PanelState = .init()
     var surface: PanelSurface = .edit
 
@@ -23,10 +23,10 @@ import SwiftUI
                     }
                 })
                 .id(ref)
-                .frame(maxWidth: Style.Spacing.contentMaxWidth, maxHeight: .infinity, alignment: .center)
-                .padding(.horizontal, Style.Spacing.xxl)
-                .padding(.top, Style.Spacing.xxl)
-                .padding(.bottom, Style.Spacing.xxxl)
+                .frame(maxWidth: Style.Prose.readableWidth, maxHeight: .infinity, alignment: .center)
+                .padding(.horizontal, Style.Spacing.page)
+                .padding(.top, Style.Spacing.page)
+                .padding(.bottom, Style.Spacing.page)
             }
         }
     }

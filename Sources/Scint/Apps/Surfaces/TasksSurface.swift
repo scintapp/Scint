@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -10,19 +11,19 @@ struct TaskItem: View {
     var body: some View {
         if case .task(_, let text, let completed) = task {
             Button { toggle(task.id) } label: {
-                HStack(alignment: .top, spacing: Style.Spacing.lg) {
+                HStack(alignment: .top, spacing: Style.Spacing.icon) {
                     TaskCompletionIndicator(completed: completed)
                         .padding(.top, 1)
                     Text(text)
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(completed ? Style.Foreground.faint : Style.Foreground.primary)
-                        .strikethrough(completed, color: Style.Foreground.disabled)
-                        .lineSpacing(Style.Spacing.xs)
+                        .foregroundStyle(completed ? Style.Foreground.secondary : Style.Foreground.primary)
+                        .strikethrough(completed, color: Style.Foreground.tertiary)
+                        .lineSpacing(Style.Prose.lineSpacing)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: .zero)
                 }
-                .padding(.vertical, Style.Spacing.sm + 1)
+                .padding(.vertical, Style.Spacing.detail + 1)
                 .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
                 .contentShape(Rectangle())
             }
@@ -50,29 +51,29 @@ struct TasksHeader: View {
     var onClearCompleted: () -> Void
 
     var body: some View {
-        VStack(spacing: Style.Spacing.md) {
-            HStack(spacing: Style.Spacing.sm + 1) {
+        VStack(spacing: Style.Spacing.label) {
+            HStack(spacing: Style.Spacing.detail + 1) {
                 Text("\(completed) Completed")
-                    .foregroundStyle(Style.Foreground.muted)
+                    .foregroundStyle(Style.Foreground.secondary)
 
                 Text("•")
-                    .foregroundStyle(Style.Foreground.faint)
+                    .foregroundStyle(Style.Foreground.secondary)
 
                 Button("Clear", action: onClearCompleted)
                     .buttonStyle(.plain)
-                    .foregroundStyle(completed > 0 ? Style.Tint.task : Style.Foreground.faint)
+                    .foregroundStyle(completed > 0 ? Style.Tint.task.bright : Style.Foreground.secondary)
                     .disabled(completed == 0)
 
-                Spacer(minLength: Style.Spacing.md)
+                Spacer(minLength: Style.Spacing.label)
 
                 Button(showsCompleted ? "Hide" : "Show", action: onToggleCompleted)
                     .buttonStyle(.plain)
-                    .foregroundStyle(Style.Tint.task)
+                    .foregroundStyle(Style.Tint.task.bright)
             }
             .font(.system(size: 13, weight: .regular))
 
             Rectangle()
-                .fill(Style.Border.group)
+                .fill(Style.Border.hairline)
                 .frame(height: 0.5)
         }
     }
@@ -99,13 +100,13 @@ struct TasksSection: Surface {
 
     var body: some View {
         if !allTasks.isEmpty {
-            VStack(alignment: .leading, spacing: Style.Spacing.md) {
-                HStack(spacing: Style.Spacing.md) {
+            VStack(alignment: .leading, spacing: Style.Spacing.label) {
+                HStack(spacing: Style.Spacing.label) {
                     Button { model.open(ref) } label: {
                         Text(ref.descriptor.name)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Style.Foreground.primary)
-                            .lineLimit(Style.Limit.singleLine)
+                            .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())
                     }
@@ -116,7 +117,7 @@ struct TasksSection: Surface {
                     } label: {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(Style.Foreground.subtle)
+                            .foregroundStyle(Style.Foreground.secondary)
                             .rotationEffect(.degrees(expanded ? .zero : -90))
                             .frame(width: 22, height: 22)
                             .contentShape(Rectangle())
@@ -126,7 +127,7 @@ struct TasksSection: Surface {
                 }
 
                 if expanded {
-                    VStack(alignment: .leading, spacing: Style.Spacing.xs) {
+                    VStack(alignment: .leading, spacing: Style.Spacing.detail) {
                         ForEach(tasks) { task in
                             TaskItem(panel: panel, model: model, ref: ref, task: task)
                         }
@@ -194,7 +195,7 @@ struct TasksSurface: Surface {
     var body: some View {
         ScrollView {
             ZStack(alignment: .top) {
-                LazyVStack(alignment: .leading, spacing: Style.Spacing.xxl) {
+                LazyVStack(alignment: .leading, spacing: Style.Spacing.entry) {
                     ForEach(refs) { ref in
                         TasksSection(
                             panel: panel,
@@ -205,9 +206,9 @@ struct TasksSurface: Surface {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
-                .padding(.horizontal, Style.Spacing.xl)
-                .padding(.top, Style.Spacing.lg)
-                .padding(.bottom, Style.Spacing.xxl)
+                .padding(.horizontal, Style.Spacing.page)
+                .padding(.top, Style.Spacing.inset)
+                .padding(.bottom, Style.Spacing.page)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .confirmationDialog("Clear completed tasks?", isPresented: $confirmsClear, titleVisibility: .visible) {

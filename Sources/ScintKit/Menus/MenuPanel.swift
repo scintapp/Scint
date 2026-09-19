@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 import SwiftUI
 
 
@@ -13,12 +14,12 @@ struct MenuPanelContent: View {
     var body: some View {
         switch controller.kind {
         case .fixed, .dynamic:
-            VStack(alignment: .leading, spacing: Style.Spacing.sm) {
+            VStack(alignment: .leading, spacing: Style.Spacing.detail) {
                 MenuList(items: controller.items, selectedID: controller.selectedID, onSelect: onSelect)
             }
-            .padding(Style.Spacing.md)
+            .padding(Style.Spacing.label)
             .frame(width: controller.size.width, height: controller.size.height)
-            .glassEffect(.regular.tint(Style.Background.group), in: Style.Shape.tiny)
+            .glassEffect(.regular.tint(Style.Background.surface), in: Style.Shape.control)
         case .create, .update:
             Menu(
                 query: Binding(get: { controller.query }, set: { controller.query = $0 }),
@@ -176,8 +177,8 @@ final class MenuPanelWindow: NSPanel {
 
     private func frame(for size: CGSize, anchor: CGRect, on screen: NSScreen?) -> NSRect {
         let bounds = screen?.visibleFrame ?? anchor
-        let gap = Style.Spacing.md
-        let padding = Style.Spacing.xl
+        let gap = Style.Spacing.label
+        let padding = Style.Spacing.page
         let leading = bounds.minX + padding
         let trailing = max(leading, bounds.maxX - size.width - padding)
         let x = min(max(anchor.minX, leading), trailing)

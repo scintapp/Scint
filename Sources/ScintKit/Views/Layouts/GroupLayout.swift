@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -79,7 +80,7 @@ struct GroupRow<Leading: View, Trailing: View>: View {
             if dressed {
                 leading
                     .frame(height: 44, alignment: .center)
-                    .foregroundStyle(Style.Foreground.subtle)
+                    .foregroundStyle(Style.Foreground.secondary)
                     .font(.system(size: 16, weight: .light))
                     .padding(.leading, 6)
                     .padding(.trailing, 4)
@@ -87,7 +88,7 @@ struct GroupRow<Leading: View, Trailing: View>: View {
                 leading
             }
 
-            VStack(alignment: .leading, spacing: Style.Spacing.xs) {
+            VStack(alignment: .leading, spacing: Style.Spacing.detail) {
                 title.lineLimit(1)
                 if let detail { detail.lineLimit(detailLineLimit) }
             }
@@ -97,7 +98,7 @@ struct GroupRow<Leading: View, Trailing: View>: View {
 
             if dressed {
                 trailing
-                    .foregroundStyle(Style.Foreground.subtle)
+                    .foregroundStyle(Style.Foreground.secondary)
                     .frame(height: groupHeight)
                     .labelsHidden()
                     .controlSize(.regular)
@@ -123,20 +124,20 @@ struct GroupHeader: View {
         let intent = harness.flatMap { Harness.with($0, { $0.intent }) }
         let explanation = harness?.descriptor.description ?? ""
 
-        VStack(alignment: .leading, spacing: Style.Spacing.md) {
-            HStack(alignment: .center, spacing: Style.Spacing.md) {
+        VStack(alignment: .leading, spacing: Style.Spacing.label) {
+            HStack(alignment: .center, spacing: Style.Spacing.label) {
                 Iconography.icon(for: harness ?? ref, size: 18)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(harness?.descriptor.name ?? "No harness")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Style.Foreground.primary)
-                        .lineLimit(Style.Limit.singleLine)
+                        .lineLimit(1)
 
                     Text(intent?.rawValue.capitalized ?? "Unassigned")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Style.Foreground.subtle)
-                        .lineLimit(Style.Limit.singleLine)
+                        .foregroundStyle(Style.Foreground.secondary)
+                        .lineLimit(1)
                 }
             }
 
@@ -146,12 +147,12 @@ struct GroupHeader: View {
                  ? "Add a harness to make this space runnable."
                  : explanation)
                 .font(.system(size: 12))
-                .foregroundStyle(explanation.isEmpty ? Style.Foreground.faint : Style.Foreground.subtle)
+                .foregroundStyle(explanation.isEmpty ? Style.Foreground.secondary : Style.Foreground.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(Style.Spacing.lg)
+        .padding(Style.Spacing.inset)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(Style.Shape.medium.fill(Style.Background.group))
+        .background(Style.Shape.card.fill(Style.Background.surface))
     }
 }
 
@@ -176,7 +177,7 @@ struct GroupLayout<Content: View>: View {
 
             VStack(spacing: 0) { content() }
                 .frame(maxWidth: .infinity, alignment: .top)
-                .background(Style.Shape.medium.fill(Style.Background.group))
+                .background(Style.Shape.card.fill(Style.Background.surface))
 
             if let footer {
                 Text(footer)

@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 import SwiftUI
 
 
@@ -16,13 +17,13 @@ struct MarkdownTable: View {
             grid
 
             ScrollView(.horizontal) {
-                grid.frame(width: CGFloat(alignments.count) * Style.Dimension.markdownColumnWidth)
+                grid.frame(width: CGFloat(alignments.count) * Style.Prose.tableColumnWidth)
             }
             .fixedSize(horizontal: false, vertical: true)
         }
-        .background(Style.Background.base)
-        .clipShape(Style.Shape.small)
-        .overlay(Style.Shape.small.strokeBorder(Style.Border.raised, lineWidth: Style.Dimension.hairline))
+        .background(Style.Background.canvas)
+        .clipShape(Style.Shape.card)
+        .overlay(Style.Shape.card.strokeBorder(Style.Border.hairline))
     }
 
     private var grid: some View {
@@ -31,19 +32,19 @@ struct MarkdownTable: View {
                 ForEach(Array(cells.enumerated()), id: \.offset) { column, cell in
                     MarkdownText(
                         content: cell,
-                        font: row == 0 ? Typography.Prose.appKitTableHeader : Typography.Prose.appKitText,
+                        font: row == 0 ? Typography.Prose.tableHeader : Typography.Prose.text,
                         reasoning: reasoning,
                         alignment: alignment(alignments[column])
                     )
-                    .padding(.horizontal, Style.Spacing.markdownTableHorizontal)
-                    .padding(.vertical, Style.Spacing.markdownTableVertical)
+                    .padding(.horizontal, Style.Prose.tableCellPadding.leading)
+                    .padding(.vertical, Style.Prose.tableCellPadding.top)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .background(row == 0 ? Style.Background.overlay : Style.Background.card)
-                    .overlay(Rectangle().strokeBorder(Style.Border.raised, lineWidth: Style.Dimension.hairline))
+                    .background(row == 0 ? Style.Background.surface : Style.Background.surface)
+                    .overlay(Rectangle().strokeBorder(Style.Border.hairline))
                 }
             }
         }
-        .padding(.bottom, Style.Dimension.border)
+        .padding(.bottom, 1)
     }
 
     private func alignment(_ alignment: Markdown.ColumnAlignment) -> NSTextAlignment {
@@ -62,7 +63,7 @@ struct MarkdownTableLayout: SwiftUI.Layout {
 
     private func dimensions(_ proposal: ProposedViewSize, _ subviews: Subviews) -> (width: CGFloat, heights: [CGFloat]) {
         let count = max(1, columns)
-        let width = proposal.width ?? CGFloat(count) * Style.Dimension.markdownColumnWidth
+        let width = proposal.width ?? CGFloat(count) * Style.Prose.tableColumnWidth
         var heights: [CGFloat] = []
         for index in stride(from: 0, to: subviews.count, by: count) {
             let height = subviews[index..<min(index + count, subviews.count)].map {

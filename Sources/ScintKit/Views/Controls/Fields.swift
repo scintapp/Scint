@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -25,19 +26,19 @@ struct Filter: View {
             HStack {
                 Image(systemName: "line.3.horizontal.decrease.circle")
                     .padding(.leading, 8)
-                    .foregroundStyle(isFocused ? Style.Foreground.secondary : Style.Foreground.muted)
+                    .foregroundStyle(isFocused ? Style.Foreground.primary : Style.Foreground.secondary)
                     .font(.system(size: 13))
 
                 TextField("Filter", text: $text)
                     .focused($isFocused)
                     .frame(maxWidth: .infinity, maxHeight: height, alignment: .leading)
-                    .foregroundStyle(isFocused ? Style.Foreground.secondary : Style.Foreground.muted)
+                    .foregroundStyle(isFocused ? Style.Foreground.primary : Style.Foreground.secondary)
                     .font(.system(size: 13))
                     .textFieldStyle(.plain)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, maxHeight: height, alignment: .leading)
-            .background(shape.fill(Style.Background.field).stroke(Style.Border.field, lineWidth: 0.5))
+            .background(shape.fill(Style.Background.surface).stroke(Style.Border.hairline, lineWidth: 0.5))
             .contentShape(shape)
         }
         .frame(maxWidth: .infinity, maxHeight: height)

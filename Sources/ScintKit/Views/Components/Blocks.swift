@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 import SwiftUI
 
 
@@ -8,7 +9,7 @@ struct TaskCompletionIndicator: View {
     var body: some View {
         Iconography.Icon(
             symbol: completed ? "checkmark.app" : "app",
-            tint: completed ? Style.Foreground.subtle : Style.Foreground.faint,
+            tint: completed ? Style.Foreground.secondary : Style.Foreground.secondary,
             sizing: 18
         )
         .frame(width: 14, height: 14)
@@ -20,22 +21,22 @@ struct TaskCompletionIndicator: View {
 struct TaskBlock: View {
     let content: String
     let completed: Bool
-    let shape = Style.Shape.large
+    let shape = Style.Shape.panel
 
     var body: some View {
-        HStack(alignment: .top, spacing: Style.Spacing.lg) {
+        HStack(alignment: .top, spacing: Style.Spacing.icon) {
             TaskCompletionIndicator(completed: completed)
-                .padding(.top, Style.Spacing.xs)
+                .padding(.top, Style.Spacing.detail)
 
             Text(content)
-                .font(Typography.prose)
-                .foregroundStyle(completed ? Style.Foreground.faint : Style.Foreground.primary)
-                .strikethrough(completed, color: Style.Foreground.faint)
-                .lineSpacing(Style.Spacing.markdownLineSpacing)
+                .font(Typography.body)
+                .foregroundStyle(completed ? Style.Foreground.secondary : Style.Foreground.primary)
+                .strikethrough(completed, color: Style.Foreground.secondary)
+                .lineSpacing(Style.Prose.lineSpacing)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, Style.Spacing.lg)
-        .padding(.vertical, Style.Spacing.sm)
+        .padding(.horizontal, Style.Spacing.inset)
+        .padding(.vertical, Style.Spacing.detail)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -54,7 +55,7 @@ struct TextBlock: View {
                     render(Array(elements.prefix(count)))
                 }
             }
-            .frame(maxHeight: CGFloat(lineLimit) * (Typography.Prose.appKitLineHeight + Style.Spacing.markdownLineSpacing) + Style.Spacing.markdownTextInset * 2, alignment: .top)
+            .frame(maxHeight: CGFloat(lineLimit) * (Typography.Prose.lineHeight + Style.Prose.lineSpacing) + Style.Prose.textInset * 2, alignment: .top)
             .clipped()
         } else {
             render(elements)
@@ -74,52 +75,52 @@ struct TextBlock: View {
 
     private func spacing(between above: Markdown.Element, and below: Markdown.Element) -> CGFloat {
         guard case .text(let upper, _, _, _) = above, case .text(let lower, _, _, _) = below,
-              upper.isList, lower.isList else { return Style.Spacing.markdownBlockSpacing }
-        return Style.Spacing.markdownListSpacing
+              upper.isList, lower.isList else { return Style.Prose.blockSpacing }
+        return Style.Prose.listSpacing
     }
 
     @ViewBuilder private func block(_ element: Markdown.Element) -> some View {
         switch element {
             case .text(let kind, let text, let depth, let marker):
-                HStack(alignment: .top, spacing: Style.Spacing.md) {
+                HStack(alignment: .top, spacing: Style.Spacing.label) {
                     switch kind {
                         case .bullet:
                             Circle()
-                                .fill(Style.Foreground.subtle)
-                                .frame(width: Style.Dimension.markdownBullet, height: Style.Dimension.markdownBullet)
-                                .frame(width: Style.Spacing.lg, height: Typography.Prose.appKitLineHeight + Style.Spacing.markdownTextInset * 2)
+                                .fill(Style.Foreground.secondary)
+                                .frame(width: Style.Prose.bulletSize, height: Style.Prose.bulletSize)
+                                .frame(width: Style.Prose.markerWidth, height: Typography.Prose.lineHeight + Style.Prose.textInset * 2)
                         case .numbered:
                             Text(marker.trimmingCharacters(in: .whitespaces))
-                                .font(Typography.prose)
-                                .foregroundStyle(Style.Foreground.subtle)
+                                .font(Typography.body)
+                                .foregroundStyle(Style.Foreground.secondary)
                         case .checklist(let checked):
                             TaskCompletionIndicator(completed: checked)
                         default: EmptyView()
                     }
                     MarkdownText(content: text, font: font(kind), reasoning: reasoning, completed: kind == .checklist(checked: true), hugs: hugs)
                 }
-                .padding(.leading, kind.isList ? Style.Spacing.markdownListInset + CGFloat(depth) * Style.Spacing.listIndent : .zero)
+                .padding(.leading, kind.isList ? Style.Prose.listInset + CGFloat(depth) * Style.Prose.listIndent : .zero)
 
             case .quote(let text):
-                HStack(spacing: Style.Spacing.lg) {
+                HStack(spacing: Style.Spacing.icon) {
                     Rectangle()
-                        .fill(Style.Foreground.faint)
-                        .frame(width: Style.Dimension.markdownQuoteBar)
+                        .fill(Style.Foreground.secondary)
+                        .frame(width: Style.Prose.quoteBarWidth)
                     MarkdownText(content: text, reasoning: true, hugs: hugs)
-                        .padding(.vertical, Style.Spacing.sm)
+                        .padding(.vertical, Style.Spacing.detail)
                 }
                 .fixedSize(horizontal: false, vertical: true)
 
             case .code(let code, let language):
-                VStack(alignment: .leading, spacing: Style.Spacing.md) {
+                VStack(alignment: .leading, spacing: Style.Spacing.label) {
                     if !language.isEmpty {
                         Text(language)
-                            .font(Typography.label)
-                            .foregroundStyle(Style.Foreground.muted)
+                            .font(Typography.footnote)
+                            .foregroundStyle(Style.Foreground.secondary)
                     }
                     ScrollView(.horizontal) {
                         Text(code)
-                            .font(Typography.proseCode)
+                            .font(Typography.code)
                             .foregroundStyle(Style.Foreground.primary)
                             .textSelection(.enabled)
                             .fixedSize(horizontal: true, vertical: true)
@@ -127,8 +128,8 @@ struct TextBlock: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Style.Shape.small.fill(Style.Background.overlay))
-                .overlay(Style.Shape.small.strokeBorder(Style.Border.raised, lineWidth: Style.Dimension.hairline))
+                .background(Style.Shape.card.fill(Style.Background.surface))
+                .overlay(Style.Shape.card.strokeBorder(Style.Border.hairline))
 
             case .table(let rows, let alignments):
                 MarkdownTable(rows: rows, alignments: alignments, reasoning: reasoning)
@@ -136,8 +137,8 @@ struct TextBlock: View {
     }
 
     private func font(_ kind: Markdown.BlockKind) -> NSFont {
-        if case .heading(let level) = kind { return Typography.Prose.appKitHeading(level) }
-        return Typography.Prose.appKitText
+        if case .heading(let level) = kind { return Typography.Prose.heading(level) }
+        return Typography.Prose.text
     }
 
 
@@ -153,10 +154,10 @@ struct MaterialBlock: View {
                 Card(ref: ref, style: .group, isSelected: isSelected)
             case .text(_, let content):
                 TextBlock(content: content)
-                    .background(Style.Shape.medium.fill(isSelected ? Style.Background.control : .clear))
+                    .background(Style.Shape.card.fill(isSelected ? Style.Background.selection : .clear))
             case .task(_, let content, let completed):
                 TaskBlock(content: content, completed: completed)
-                    .background(Style.Shape.medium.fill(isSelected ? Style.Background.control : .clear))
+                    .background(Style.Shape.card.fill(isSelected ? Style.Background.selection : .clear))
         }
     }
 }

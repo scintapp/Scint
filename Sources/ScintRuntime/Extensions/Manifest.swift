@@ -4,16 +4,15 @@ import Foundation
 struct Manifest {
     static func load() async {
         let inbox = Space.new("Inbox")
-        let drafts = Space.new("Drafts")
-        let outlines = Space.new("Outlines")
+        let activity = Space.new("Activity")
+        let scheduled = Space.new("Scheduled")
         let spaces = Space.new("Spaces")
         let library = Space.new("Library")
 
-        Bridge.new("Outlines to Spaces", origin: outlines, to: spaces)
-        Bridge.new("Spaces to Inbox", origin: spaces, to: inbox)
-        Bridge.new("Library to Spaces", origin: library, to: inbox)
-        Bridge.new("Drafts to Outlines", origin: drafts, to: outlines)
-        Bridge.new("Outlines to Spaces", origin: outlines, to: spaces)
+        Bridge.new("Activity to Inbox", origin: activity, to: inbox)
+        Bridge.new("Inbox to Library", origin: inbox, to: library)
+        Bridge.new("Library to Spaces", origin: library, to: spaces)
+        Bridge.new("Scheduled to Inbox", origin: scheduled, to: inbox)
         Bridge.new("Spaces to Inbox", origin: spaces, to: inbox)
 
         let harnesses = Harnesses.load()
@@ -64,59 +63,82 @@ struct Manifest {
         let writing = space("Writing", harness: harnesses.compose, artifacts: [published, contentDrafts], in: spaces)
         let reading = space("Parser", harness: harnesses.search, artifacts: [books], in: spaces)
 
-        // Inbox
+        // Library
 
-        material(inbox, "Dew for observers", [
+        let shelf = space("Books", harness: harnesses.search, artifacts: [books], in: library)
+        space("Information Retrieval", harness: harnesses.search, artifacts: [], in: shelf)
+        let papers = space("Papers", harness: harnesses.search, artifacts: [], in: library)
+        let treeSearch = space("Tree Search", harness: harnesses.search, artifacts: [], in: papers)
+        let statecharts = space("Statecharts", harness: harnesses.search, artifacts: [], in: papers)
+        space("Published", harness: harnesses.search, artifacts: [published], in: library)
+
+        func folder(_ name: String, in origin: Reference) -> Reference { Space.new(origin, name: name) }
+
+        let notes = folder("Notes", in: library)
+        let ideas = folder("Ideas", in: notes)
+        let kitchen = folder("Kitchen", in: notes)
+        let writingShelf = folder("Writing", in: library)
+        let essays = folder("Essays", in: writingShelf)
+        let style = folder("Style", in: writingShelf)
+        let projects = folder("Projects", in: library)
+        let scintProjects = folder("Scint", in: projects)
+        let dewProjects = folder("Dew", in: projects)
+        let writingProjects = folder("Writing", in: projects)
+        let researchProjects = folder("Research", in: projects)
+
+        // Notes
+
+        material(ideas, "Dew for observers", [
             text("Could the scheduled observer harnesses lean on dew instead of their own launchd plumbing? It already wraps `claude -p` on a schedule and survives reboots.")
         ])
-        material(inbox, "Statecharts", [
+        material(statecharts, "Statecharts", [
             text("Harel's statecharts paper keeps coming up. Composition state is basically a flat statechart right now: inactive, active, working, completed, failed."),
             text("Nested states might be how a space's lifecycle (Searcher → Evaluator → Observer) gets expressed without a scheduler.")
         ])
-        material(inbox, "Headline", [
+        material(essays, "Headline", [
             text("\"The environment is the agent\" might be the headline, not the subtitle.")
         ])
-        material(inbox, "Banana bread", [
+        material(kitchen, "Banana bread", [
             text("Two very brown bananas on the counter. Friday.")
         ])
 
-        // Drafts
+        // Writing
 
-        let environment = material(drafts, "The Environment Is the Agent", [
+        let environment = material(essays, "The Environment Is the Agent", [
             text("Most agent tools start from a chat and ask you to rebuild the world around it every time. The context is something you pass along, and it's gone by the next message."),
             text("Scint starts from a place instead. A space holds its documents, its tools, and a record of everything it has done. Swap the harness and the space keeps its memory; only the mind changes."),
             text("The claim I want to defend: context isn't an input to the agent. It's where the agent lives."),
             text("- spaces as desks, not prompts\n- harnesses as life stages\n- coordination through shared objects, not messages")
         ])
-        let agency = material(drafts, "What Agency Does", [
+        let agency = material(essays, "What Agency Does", [
             text("Agency is the difference between a tool that answers and a tool that owns an outcome."),
             text("Owning an outcome means knowing what's in reach, what's off limits, and what \"done\" looks like. None of that fits in a system prompt, but all of it fits in a room."),
             task("Find a better example than email triage"),
             task("Cut the second paragraph in half")
         ])
-        material(drafts, "Why Outlines, Not Mandates", [
+        material(essays, "Why Outlines, Not Mandates", [
             text("If the structure carries the guardrails, the instructions can stay short. A space that only has read access to the published folder can't wander off and rewrite it."),
             text("That's the bet: give an agent an outline, not a seventy-page mandate, and let the room do the rest.")
         ])
-        material(drafts, "Backtracking", [
+        material(treeSearch, "Backtracking", [
             text("Language Agent Tree Search treats a run as a tree you can back out of. A forked space at a transcript point is the same idea with a filing cabinet attached."),
             text("- fork on failure, not on every step\n- keep the losing branch as an artifact")
         ])
-        material(drafts, "Tics to Cut", [
+        material(style, "Tics to Cut", [
             text("Patterns that make a draft read as generated:"),
             text("- stacked em-dash asides\n- \"it's not X, it's Y\" reversals\n- triplets for rhythm\n- closing on a rhetorical question"),
             task("Turn this into a checklist for Voice Study", true)
         ])
-        material(drafts, "Dew Roadmap", [
+        material(dewProjects, "Dew Roadmap", [
             text("Small list, mostly polish."),
             task("Human-readable schedule in `dew list`", true),
             task("Log rotation for long-running jobs"),
             task("A `dew run --now` for testing a job without waiting")
         ])
 
-        // Outlines
+        // Projects
 
-        let essay = material(outlines, "Finish the Agency Essay", [
+        let essay = material(writingProjects, "Finish the Agency Essay", [
             text("**Outcome:** a publishable draft of \"The Environment Is the Agent\", around 1,500 words."),
             text("Pull from the drafts below. Keep the voice guide's rules on openings, and run the tics checklist before handing anything back."),
             .material(environment),
@@ -128,10 +150,9 @@ struct Manifest {
             task("First full draft"),
             task("Tics pass")
         ])
-
         give(essay, to: [writing, voice])
 
-        let audit = material(outlines, "Voice Audit", [
+        let audit = material(writingProjects, "Voice Audit", [
             text("**Outcome:** a short report on where the published pieces drift from the voice guide."),
             text("Read only. Sample ten articles, cite the lines, and don't rewrite anything."),
             .artifact(published),
@@ -140,10 +161,9 @@ struct Manifest {
             task("Score each against Part 7"),
             task("Summarize the three most common drifts")
         ])
-
         give(audit, to: [voice])
 
-        let observers = material(outlines, "Dew as the Scheduler", [
+        let observers = material(dewProjects, "Dew as the Scheduler", [
             text("**Outcome:** scheduled observer harnesses run through dew instead of custom launchd scripts."),
             text("Compare what the observe scripts do today with what `dew add` already covers. Propose the smallest change on the Scint side."),
             .artifact(dewRepo),
@@ -152,30 +172,27 @@ struct Manifest {
             task("Map each piece to a dew command"),
             task("Prototype one observer on dew")
         ])
-
         give(observers, to: [dew, scint])
 
-        let persistence = material(outlines, "Persistence Review", [
+        let persistence = material(scintProjects, "Persistence Review", [
             text("**Outcome:** a list of the places where a missing ref crashes instead of coming back empty."),
             text("Focus on descriptor lookups and the space save path. Findings only, no fixes."),
             task("Trace `Runtime.get` callers", true),
             task("Check `Workspaces.save` with a deleted space"),
             task("Write up findings")
         ])
-
         give(persistence, to: [runtime])
 
-        let readingList = material(outlines, "Agents and Search Parser", [
+        let readingList = material(researchProjects, "Agents and Search Parser", [
             text("**Outcome:** one page of notes connecting tree search, information retrieval, and statecharts to how spaces run."),
             .artifact(books),
             task("Language Agent Tree Search"),
             task("Statecharts"),
             task("Introduction to Information Retrieval, chapters 1–3")
         ])
-
         give(readingList, to: [reading])
 
-        material(outlines, "Drafts Grid Polish", [
+        material(scintProjects, "Drafts Grid Polish", [
             text("**Outcome:** the drafts grid feels finished enough to use daily."),
             task("Dim drafts that an outline already references"),
             task("Keyboard selection"),
@@ -234,7 +251,7 @@ enum SampleInterfaces {
         }
 
         func command(_ name: String, _ artifact: Reference, _ parameters: [Command.Parameter], description: String? = nil) -> Reference {
-            let reference = exists(name, as: Command.self) ?? Command.new(name, exec: artifact, params: parameters)
+            let reference = exists(name, as: Command.self) ?? Command.new(name: name, artifact: artifact, parameters: parameters)
             if let description {
                 Catalog.shared.update(reference) { descriptor in descriptor.description = description }
             }
@@ -606,5 +623,191 @@ enum SampleInterfaces {
             claudeCodeHarness: claudeCodeHarness,
             codexHarness: codexHarness,
         )
+    }
+}
+
+enum SampleData {
+    static let interfaces = SampleInterfaces.load()
+
+    @discardableResult
+    static func load(_ space: Reference) async -> Bool {
+        guard Space.with(space, { $0.spaces.isEmpty }) ?? true else { return false }
+
+        let codexHarness = interfaces.codexHarness
+        let mistralMessages = interfaces.mistralMessages
+        let researchCommands = [
+            interfaces.searchTextFiles,
+            interfaces.inspectFileMetadata,
+            interfaces.fetchURLHeaders,
+            interfaces.concatSwiftRepo
+        ]
+
+        Space.update(space, { ws in
+            let components = [
+                mistralMessages, interfaces.codexHarness,
+                interfaces.composer, interfaces.dispatcher,  interfaces.searcher
+            ]
+            for component in components { ws.add(component) }
+            ws.name = "Scint"
+        })
+
+        func write(_ ref: Reference, title: String, body: [String], components: [Reference], tasks: [(String, Bool)]) {
+            Material.update(ref) { material in
+                material.insert(.text(.init(), "# \(title)"), at: nil)
+                for paragraph in body {
+                    material.insert(.text(.init(), paragraph), at: nil)
+                }
+                for component in components {
+                    switch component.type {
+                        case is Artifact.Type: material.insert(.artifact(component), at: nil)
+                        case is Command.Type: material.insert(.command(component), at: nil)
+                        case is Material.Type: material.insert(.material(component), at: nil)
+                        default: break
+                    }
+                }
+                for task in tasks {
+                    material.insert(.task(.init(), task.0, task.1), at: nil)
+                }
+            }
+        }
+
+        @discardableResult
+        func material(_ name: String, origin: Reference, title: String, body: [String], components: [Reference], tasks: [(String, Bool)]) -> Reference {
+            let ref = Material.new(origin, name: name)
+            write(ref, title: title, body: body, components: components, tasks: tasks)
+            return ref
+        }
+
+        func configure(_ spaceRef: Reference, description: String, materials: [Reference], components: [Reference], harness: Reference? = nil) {
+            Space.update(spaceRef) { space in
+                space.description = description
+                if let harness { space.harness = harness }
+                for ref in materials + components { space.add(ref) }
+            }
+        }
+
+        let contentStudio = Space.new("Content Studio", origin: space)
+        let researchDesk = Space.new("Research Desk", origin: contentStudio)
+        let contentProduction = Space.new("Content Production", origin: contentStudio)
+        let editorialCalendar = Space.new("Editorial Calendar", origin: contentProduction)
+
+        let editorialCharter = material(
+            "Editorial System Charter",
+            origin: contentProduction,
+            title: "Editorial System Charter",
+            body: [
+                "This space runs a professional publishing practice where research notes become briefs, drafts, newsletters, and reusable clips.",
+                "Agents may organize sources, extract claims, and draft options. They must preserve attribution and make uncertainty visible."
+            ],
+            components: [codexHarness],
+            tasks: [
+                ("Require source links for any claim that sounds empirical.", false),
+                ("Keep personal opinion separate from sourced findings.", false),
+                ("Store reusable examples after the operator approves them.", false)
+            ]
+        )
+
+        let voiceRules = material(
+            "Voice and Evidence Rules",
+            origin: contentProduction,
+            title: "Voice and Evidence Rules",
+            body: [
+                "Define the house style for content writing. The writing should be specific, grounded, and willing to leave rough edges where the operator needs to decide.",
+                "Avoid generic thought-leadership phrasing. The strongest output should feel like a knowledgeable person organizing a real argument."
+            ],
+            components: [codexHarness],
+            tasks: [
+                ("Prefer concrete examples over category labels.", false),
+                ("Preserve named sources and dates in research summaries.", false),
+                ("Flag unsupported claims instead of smoothing them over.", true)
+            ]
+        )
+
+        configure(
+            contentProduction,
+            description: "Research, drafting, and publishing process materials for a knowledge business.",
+            materials: [editorialCharter, voiceRules],
+            components: [codexHarness],
+            harness: codexHarness
+        )
+
+        let researchBrief = material(
+            "Research Brief Template",
+            origin: researchDesk,
+            title: "Research Brief Template",
+            body: [
+                "Turn a topic prompt into a research brief with a working question, audience context, source plan, and expected use of the finished work.",
+            ],
+            components: [codexHarness, interfaces.searchTextFiles, interfaces.fetchURLHeaders],
+            tasks: [
+                ("State the working question before collecting sources.", false),
+                ("Limit initial source categories to primary, expert, and counterexample.", false),
+                ("Name the intended output: essay, client memo, talk, or product note.", false)
+            ]
+        )
+
+        let reliabilityNotes = material(
+            "Source Reliability Notes",
+            origin: researchDesk,
+            title: "Source Reliability Notes",
+            body: [
+                "The output is a source ledger. It does not need to be elegant, but it needs to be traceable."
+            ],
+            components: [codexHarness, interfaces.inspectFileMetadata],
+            tasks: [
+                ("Record author, date, publisher, and reason for inclusion.", false),
+                ("Mark sources that are useful for framing but weak as evidence.", false),
+                ("Keep rejected sources with a short reason.", false)
+            ]
+        )
+
+        configure(
+            researchDesk,
+            description: "Reusable research methods for source-led writing and strategic analysis.",
+            materials: [researchBrief, reliabilityNotes],
+            components: [codexHarness] + researchCommands,
+            harness: codexHarness
+        )
+
+        let publishingCadence = material(
+            "Publishing Cadence",
+            origin: editorialCalendar,
+            title: "Publishing Cadence",
+            body: [
+                "Maintain an editorial calendar that reflects actual production capacity. A calendar item is not ready just because it has a title. It needs a usable angle and source path."
+            ],
+            components: [codexHarness],
+            tasks: [
+                ("Mark each planned piece as idea, researched, drafted, or scheduled.", false),
+                ("Prefer fewer stronger pieces over a crowded calendar.", true),
+                ("Keep business launch dates visible beside editorial dates.", false)
+            ]
+        )
+
+        let draftReadiness = material(
+            "Draft Readiness Checklist",
+            origin: editorialCalendar,
+            title: "Draft Readiness Checklist",
+            body: [
+                "Before a draft run starts, check whether the piece has a clear reader, point of view, evidence base, and desired action.",
+                "The process should return a readiness verdict. If not ready, it should recommend the smallest next action."
+            ],
+            components: [codexHarness],
+            tasks: [
+                ("Confirm reader, promise, evidence, and CTA.", false),
+                ("List the missing item that most blocks drafting.", false),
+                ("Do not produce a full draft from an unresolved angle.", false)
+            ]
+        )
+
+        configure(
+            editorialCalendar,
+            description: "Planning materials that keep publishing tied to research readiness and business timing.",
+            materials: [publishingCadence, draftReadiness],
+            components: [codexHarness],
+            harness: codexHarness
+        )
+
+        return true
     }
 }

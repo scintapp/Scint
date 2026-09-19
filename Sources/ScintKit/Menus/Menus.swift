@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 import OSLog
 
@@ -153,7 +154,7 @@ struct LoadMenu: View {
                     else {
                         Iconography.Icon(
                             symbol: item.image,
-                            tint: item.tint ?? Style.Tint.space,
+                            tint: item.tint ?? Style.Tint.space.bright,
                             sizing: 15,
                             selected: item.active
                         )
@@ -162,7 +163,7 @@ struct LoadMenu: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.name)
                             .font(.system(size: 13))
-                            .foregroundStyle(Style.Foreground.muted)
+                            .foregroundStyle(Style.Foreground.secondary)
                             .lineLimit(1)
                     }
                     .frame(height: 42, alignment: .leading)
@@ -173,12 +174,12 @@ struct LoadMenu: View {
                         Image(systemName: "checkmark")
                             .frame(height: 32, alignment: .leading)
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Style.Foreground.faint)
+                            .foregroundStyle(Style.Foreground.secondary)
                     }
                 }
                 .padding(.horizontal, 12)
                 .frame(height: 42, alignment: .leading)
-                .contentShape(Style.Shape.large)
+                .contentShape(Style.Shape.panel)
             }
             .buttonStyle(.plain)
         }
@@ -193,10 +194,10 @@ struct LoadMenu: View {
                 VStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 18))
-                        .foregroundStyle(Style.Foreground.faint)
+                        .foregroundStyle(Style.Foreground.secondary)
                     Text(query.isEmpty ? "Nothing in library" : "No matches")
                         .font(.system(size: 12))
-                        .foregroundStyle(Style.Foreground.faint)
+                        .foregroundStyle(Style.Foreground.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -205,7 +206,7 @@ struct LoadMenu: View {
             }
         }
         .frame(width: 280, height: height, alignment: .topLeading)
-        .clipShape(Style.Shape.large)
+        .clipShape(Style.Shape.panel)
     }
 
     var body: some View {
@@ -218,7 +219,7 @@ struct LoadMenu: View {
                     .background {
                         Circle()
                             .size(width: 20, height: 20, anchor: .center)
-                            .fill(Style.Background.control)
+                            .fill(Style.Background.selection)
                     }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -260,15 +261,15 @@ struct TranscriptMenu: View {
                 }
             }
         } label: {
-            HStack(spacing: Style.Spacing.md) {
-                Iconography.Icon(symbol: "text.bubble", tint: Style.Foreground.subtle, sizing: 16)
+            HStack(spacing: Style.Spacing.label) {
+                Iconography.Icon(symbol: "text.bubble", tint: Style.Foreground.secondary, sizing: 16)
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: Style.Spacing.sm) {
+                    HStack(spacing: Style.Spacing.detail) {
                         Text(transcript?.descriptor.name ?? "None")
                         if let transcript = transcript {
                             let count = Transcript.with(transcript, { $0.records.count }) ?? 0
                             Text("· \(count) \(count == 1 ? "message" : "messages")")
-                                .foregroundStyle(Style.Foreground.muted)
+                                .foregroundStyle(Style.Foreground.secondary)
                         }
                     }
                     .fixedSize()
@@ -279,13 +280,13 @@ struct TranscriptMenu: View {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 10, weight: .medium))
             }
-            .font(Typography.row)
+            .font(Typography.body)
             .foregroundStyle(Style.Foreground.primary)
-            .padding(.horizontal, Style.Spacing.md)
+            .padding(.horizontal, Style.Spacing.label)
             .frame(maxWidth: .infinity, minHeight: 32)
-            .background(Style.Shape.tiny.fill(Style.Background.field))
-            .overlay(Style.Shape.tiny.strokeBorder(Style.Border.node, lineWidth: 1))
-            .contentShape(Style.Shape.tiny)
+            .background(Style.Shape.control.fill(Style.Background.surface))
+            .overlay(Style.Shape.control.strokeBorder(Style.Border.hairline, lineWidth: 1))
+            .contentShape(Style.Shape.control)
         }
         .menuStyle(.button)
         .buttonStyle(.plain)

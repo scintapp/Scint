@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -52,7 +53,7 @@ struct MaterialGlyph: View {
             .frame(width: width, height: height, alignment: .topLeading)
             .glassEffect(.regular, in: page)
             .background(page.fill(.primary.opacity(0.9)))
-            .overlay(page.strokeBorder(icon.tint.opacity(0.38), lineWidth: 0.5))
+            .overlay(page.strokeBorder(icon.tint.bright.opacity(0.38), lineWidth: 0.5))
             .clipShape(page)
     }
 }
@@ -82,7 +83,7 @@ struct GridIcon: View {
                 .frame(maxWidth: 112, minHeight: 30, maxHeight: 34, alignment: .top)
         }
         .frame(width: 96, height: 112)
-        .background(shape.fill(focused ? Style.Tint.space.opacity(0.12) : Color.clear))
+        .background(shape.fill(focused ? Style.Tint.space.bright.opacity(0.12) : Color.clear))
         .contentShape(shape)
         .gesture(
             TapGesture(count: 2)
@@ -99,7 +100,7 @@ struct GridIcon: View {
         } else {
             Iconography.Icon(
                 symbol: image,
-                tint: tint ?? Style.Tint.space,
+                tint: tint ?? Style.Tint.space.bright,
                 sizing: 20
             )
         }
@@ -145,7 +146,7 @@ struct GridIcon: View {
         let shape = RoundedRectangle(cornerRadius: 5, style: .continuous)
         let ref = index < refs.count ? refs[index] : nil
         let overflowLabel = index == refs.count && overflow > 0 ? "+\(overflow)" : nil
-        let tint = ref.map { Iconography.accent(for: $0) } ?? Style.Tint.space
+        let tint = ref.map { Iconography.accent(for: $0) } ?? Style.Tint.space.bright
 
         if ref != nil || overflowLabel != nil {
             ZStack {

@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 import SwiftUI
 
 
@@ -10,34 +11,34 @@ struct Chip: View {
     @State private var isHovered = false
 
     var body: some View {
-        let icon = Iconography.icon(for: ref, size: Typography.Scale.inline)
+        let icon = Iconography.icon(for: ref, size: Style.Dimension.icon)
         let selected = isSelected
 
         Button {
             CallbackRouter.open(ref)
         } label: {
-            HStack(spacing: Style.Spacing.sm) {
+            HStack(spacing: Style.Spacing.detail) {
                 icon
                 Text(label ?? ref.descriptor.name)
-                    .font(Typography.chip)
-                    .lineLimit(Style.Limit.singleLine)
+                    .font(Typography.body)
+                    .lineLimit(1)
             }
-            .foregroundStyle(icon.tint)
-            .padding(.horizontal, Style.Spacing.sm)
-            .frame(height: Typography.Prose.appKitLineHeight)
-            .padding(Style.Spacing.xxs)
+            .foregroundStyle(icon.tint.bright)
+            .padding(.horizontal, Style.Spacing.detail)
+            .frame(height: Typography.Prose.lineHeight)
+            .padding(1)
             .background {
                 if selected || isHovered {
-                    Style.Shape.capsule.fill(icon.tint.opacity(Style.Opacity.washed))
+                    Capsule().fill(icon.tint.bright.opacity(Style.Opacity.surface))
                 }
             }
             .overlay {
-                Style.Shape.capsule.strokeBorder(
-                    icon.tint.opacity(selected ? Style.Opacity.strong : Style.Opacity.faint),
-                    lineWidth: Style.Dimension.border
+                Capsule().strokeBorder(
+                    icon.tint.bright.opacity(selected ? 1 : Style.Opacity.outline),
+                    lineWidth: 1
                 )
             }
-            .contentShape(Style.Shape.capsule)
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }

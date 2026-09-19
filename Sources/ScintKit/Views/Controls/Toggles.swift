@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -9,6 +10,21 @@ struct ItemToggle: View {
         Toggle("", isOn: Binding(get: { isOn }, set: { _ in onChange() }))
             .toggleStyle(.switch)
             .scaleEffect(0.8)
+    }
+}
+
+struct CanvasToggle: View {
+    @Environment(ScintModel.self) var scint
+    var isOn: Bool { (scint.app.studio.content.surface == .canvas) }
+
+    var body: some View {
+        Toggle(
+            "",
+            systemImage: "cube.transparent",
+            isOn: Binding(get: { isOn }, set: { isOn in
+                scint.app.studio.content.surface = isOn ? .canvas : .studio
+            }))
+        .labelsHidden()
     }
 }
 

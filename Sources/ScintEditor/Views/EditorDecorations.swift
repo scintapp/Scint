@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ScintComponents
 
 
 extension ScintEditor {
@@ -31,20 +32,20 @@ extension ScintEditor {
         func shows(_ range: NSRange) -> Bool { NSIntersectionRange(range, visible).length > 0 || NSLocationInRange(range.location, visible) }
         func covered(_ range: NSRange) -> Bool { overlays.values.contains { NSIntersectionRange($0.sourceRange, range).length > 0 } }
         for span in document.spans where span.kind == .inlineCode && shows(span.range) && !covered(span.range) {
-            for rect in frames(for: span.range) { MarkdownDecoration.code(rect.insetBy(dx: -Style.Spacing.sm, dy: -Style.Spacing.xs)) }
+            for rect in frames(for: span.range) { MarkdownDecoration.code(rect.insetBy(dx: -Style.Spacing.detail, dy: -Style.Spacing.detail)) }
         }
         for rect in runs(of: .codeBlock, where: shows) {
-            MarkdownDecoration.code(CGRect(x: textContainerOrigin.x, y: rect.minY, width: container.size.width, height: rect.height).insetBy(dx: 0, dy: -Style.Spacing.xs))
+            MarkdownDecoration.code(CGRect(x: textContainerOrigin.x, y: rect.minY, width: container.size.width, height: rect.height).insetBy(dx: 0, dy: -Style.Spacing.detail))
         }
         styler.theme.bulletColor.setFill()
         for rect in runs(of: .quote, where: shows) {
-            CGRect(x: textContainerOrigin.x, y: rect.minY, width: Style.Dimension.markdownQuoteBar, height: rect.height).fill()
+            CGRect(x: textContainerOrigin.x, y: rect.minY, width: Style.Prose.quoteBarWidth, height: rect.height).fill()
         }
         for (index, block) in document.blocks.enumerated() where (block.kind == .bullet || block.kind == .numbered) && shows(block.range) {
             guard let line = frames(for: block.range).first else { continue }
             let gutter = CGRect(x: textContainerOrigin.x + styler.listIndent(for: block), y: line.minY, width: styler.gutter(for: block, in: source), height: line.height)
             if block.kind == .bullet {
-                let size = Style.Dimension.markdownBullet
+                let size = Style.Prose.bulletSize
                 NSBezierPath(ovalIn: CGRect(x: gutter.midX - size / 2, y: gutter.midY - size / 2, width: size, height: size)).fill()
             } else {
                 ("\(ordinal(at: index))." as NSString).draw(at: gutter.origin, withAttributes: [.font: styler.theme.baseFont, .foregroundColor: styler.theme.bulletColor])
@@ -131,12 +132,12 @@ extension ScintEditor {
             let overlay = overlays[key] ?? EditorOverlayView(editor: self, range: range, link: link, root: root)
             if overlays[key] == nil { overlays[key] = overlay; addSubview(overlay) } else { overlay.rootView = root }
             overlay.reserved = overlay.height(at: container.size.width)
-            storage.addAttributes([.font: Typography.Prose.appKitSyntaxHidden, .foregroundColor: NSColor.clear], range: range)
+            storage.addAttributes([.font: Typography.Prose.hiddenSyntax, .foregroundColor: NSColor.clear], range: range)
             for (index, line) in document.blocks.filter({ NSIntersectionRange($0.range, range).length > 0 }).enumerated() {
                 let paragraph = NSMutableParagraphStyle()
                 paragraph.setParagraphStyle(Typography.Prose.paragraphStyle)
                 if index == 0 { paragraph.minimumLineHeight = overlay.reserved }
-                else { paragraph.maximumLineHeight = Typography.Scale.hiddenSyntax; paragraph.paragraphSpacing = 0 }
+                else { paragraph.maximumLineHeight = Typography.Prose.hiddenSyntax.pointSize; paragraph.paragraphSpacing = 0 }
                 storage.addAttribute(.paragraphStyle, value: paragraph, range: NSIntersectionRange(line.range, range))
             }
         }

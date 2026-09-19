@@ -1,92 +1,94 @@
+import ScintComponents
 import SwiftUI
 
 
-//struct FoldersList: Query {
-//    static func controls(_ model: any Model) -> Controls {
-//        .init(
-//            selected: { item in
-//                guard let ref = item.ref else { return false }
-//                if let url = item.path { return model.session.selection.selected(ref, url) }
-//                return model.session.selection.selected(ref)
-//            },
-//            onSelect: { item in
-//                guard let ref = item.ref else { return }
-//                model.select(ref, entry: item.entryId, url: item.path)
-//            }
-//        )
-//    }
-//
-//    static func parameters(_ model: any Model) -> Params {
-//        let expanded: Set<AnyHashable> = []
-//
-//        func sortFileItems(_ items: [ItemParams]) -> [ItemParams] {
-//            items.sorted {
-//                let lhsDirectory = $0.isParent
-//                let rhsDirectory = $1.isParent
-//                if lhsDirectory != rhsDirectory { return lhsDirectory && !rhsDirectory }
-//                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-//            }
-//        }
-//
-//        func file(for entry: Artifact.Handler, root: Reference, in model: some Model) -> ItemParams? {
-//            guard let url = entry.url else { return nil }
-//            let children: [ItemParams] = entry.directory && expanded.contains(AnyHashable(url))
-//            ? sortFileItems(entry.children.compactMap { file(for: $0, root: root, in: model) })
-//            : []
-//
-//            return .init(
-//                ref: root,
-//                path: url,
-//                name: entry.name,
-//                image: entry.directory ? "folder" : "doc",
-//                items: children,
-//                isParent: entry.directory
-//            )
-//        }
-//
-//        func folder(for ref: Reference, in model: some Model) -> ItemParams? {
-//            guard let entry = Artifact.with(ref, { $0.handler }), let url = entry.url else { return nil }
-//            let isDirectory = entry.directory
-//            let isExpanded = expanded.contains(AnyHashable(url))
-//            let children: [ItemParams] = isDirectory && isExpanded
-//            ? sortFileItems(entry.children.compactMap { file(for: $0, root: ref, in: model) })
-//            : []
-//
-//            return .init(
-//                ref: ref,
-//                path: url,
-//                name: Runtime.shared.get(ref).name,
-//                image: isDirectory ? "folder" : "doc",
-//                items: children,
-//                isParent: isDirectory
-//            )
-//        }
-//
-//        func artifacts(_ space: Reference) -> [Reference] {
-//            Space.with(space) { space in
-//                space.artifacts.filter { ref in
-//                    Artifact.with(ref) {
-//                        switch $0.handler {
-//                            case .directory, .file: true
-//                            default: false
-//                        }
-//                    } == true
-//                }
-//            } ?? []
-//        }
-//
-//        return .init(
-//            sections: [
-//                .init(
-//                    id: "folders",
-//                    name: "Folders",
-//                    items: sortFileItems((model.session.roots.map {
-//                        artifacts($0) } ?? []).compactMap { folder(for: $0, in: model) })
-//                )
-//            ]
-//        )
-//    }
-//}
+struct FoldersList: Query {
+    static func controls(_ model: any Model) -> Controls {
+        .init(
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
+            },
+            onSelect: { item in
+                guard let ref = item.ref else { return }
+                model.select(ref, entry: item.entryId, url: item.path)
+            }
+        )
+    }
+
+    static func parameters(_ model: any Model) -> Params {
+        let expanded: Set<AnyHashable> = []
+
+        func sortFileItems(_ items: [ItemParams]) -> [ItemParams] {
+            items.sorted {
+                let lhsDirectory = $0.isParent
+                let rhsDirectory = $1.isParent
+                if lhsDirectory != rhsDirectory { return lhsDirectory && !rhsDirectory }
+                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+        }
+
+        func file(for entry: Artifact.Handler, root: Reference, in model: some Model) -> ItemParams? {
+            guard let url = entry.url else { return nil }
+            let children: [ItemParams] = entry.directory && expanded.contains(AnyHashable(url))
+            ? sortFileItems(entry.children.compactMap { file(for: $0, root: root, in: model) })
+            : []
+
+            return .init(
+                ref: root,
+                path: url,
+                name: entry.name,
+                image: entry.directory ? "folder" : "doc",
+                items: children,
+                isParent: entry.directory
+            )
+        }
+
+        func folder(for ref: Reference, in model: some Model) -> ItemParams? {
+            guard let entry = Artifact.with(ref, { $0.handler }), let url = entry.url else { return nil }
+            let isDirectory = entry.directory
+            let isExpanded = expanded.contains(AnyHashable(url))
+            let children: [ItemParams] = isDirectory && isExpanded
+            ? sortFileItems(entry.children.compactMap { file(for: $0, root: ref, in: model) })
+            : []
+
+            return .init(
+                ref: ref,
+                path: url,
+                name: Runtime.shared.get(ref).name,
+                image: isDirectory ? "folder" : "doc",
+                items: children,
+                isParent: isDirectory
+            )
+        }
+
+        func artifacts(_ space: Reference) -> [Reference] {
+            Space.with(space) { space in
+                space.artifacts.filter { ref in
+                    Artifact.with(ref) {
+                        switch $0.handler {
+                            case .directory, .file: true
+                            default: false
+                        }
+                    } == true
+                }
+            } ?? []
+        }
+
+        return .init(
+            sections: [
+                .init(
+                    id: "folders",
+                    name: "Folders",
+                    items: sortFileItems(
+                        artifacts(model.session.library)
+                            .compactMap { folder(for: $0, in: model) })
+                )
+            ]
+        )
+    }
+}
 
 struct ArtifactsList: Query {
     static func controls(_ model: any Model) -> Controls {
@@ -210,8 +212,7 @@ struct MaterialsList: Query {
                 guard ref.type is Material.Type else { return nil }
                 return .init(
                     ref: ref,
-                    name: ref.descriptor.name,
-                    image: Iconography.icon(for: ref).symbol
+                    name: ref.descriptor.name
                 )
             }.sorted {
                 let lhs = position($0)
@@ -230,74 +231,6 @@ struct MaterialsList: Query {
                     items: items
                 )
             ],
-        )
-    }
-}
-
-struct SpacesList: Query {
-    static func controls(_ model: any Model) -> Controls {
-        .init(
-            focused: { item in
-                guard let ref = item.ref else { return false }
-                return model.session.focus == .structure(ref)
-            },
-            selected: { item in
-                guard let ref = item.ref else { return false }
-                if let url = item.path { return model.session.selection.selected(ref, url) }
-                return model.session.selection.selected(ref)
-            },
-            onSelect: { item in
-                guard let ref = item.ref else { return }
-                model.select(ref, entry: item.entryId, url: item.path)
-                model.focus(ref)
-            },
-            surfaceDropTarget: {
-                .init(name: "Spaces")
-            },
-            wrapLink: { view, item, _ in
-                guard let ref = item.ref else { return view }
-                return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
-            },
-            dropTypes: { item in
-                item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
-            },
-            onDrop: { providers, target in
-                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target)
-            }
-        )
-    }
-
-    static func parameters(_ model: any Model) -> Params {
-        func sorted(_ items: [ItemParams]) -> [ItemParams] {
-            items
-                .sorted {
-                    let lhsBoundary = $0.ref?.type is Space.Type
-                    let rhsBoundary = $1.ref?.type is Space.Type
-                    if lhsBoundary != rhsBoundary { return lhsBoundary && !rhsBoundary }
-                    return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-                }
-        }
-
-        func space(for ref: Reference, origin: Reference) -> ItemParams {
-            .init(
-                ref: ref,
-                origin: origin,
-                name: ref.descriptor.name,
-                image: "app",
-                items: sorted(Space.with(ref, { $0.spaces.map { space(for: $0, origin: ref) }}) ?? [])
-            )
-        }
-
-        return .init(
-            id: "spaces",
-            header: false,
-            sections: [
-                .init(
-                    id: "spaces",
-                    name: "Spaces",
-                    items: sorted(model.session.spaces.map { space(for: $0, origin: $0) })
-                )
-            ]
         )
     }
 }
@@ -423,8 +356,112 @@ struct TranscriptsList: Query {
     }
 }
 
+
+struct NestedLibraryList: Query {
+    static func controls(_ model: any Model) -> Controls {
+        .init(
+            focused: { item in
+                guard let ref = item.ref else { return false }
+                return model.session.focus == .structure(ref)
+            },
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
+            },
+            onSelect: { item in
+                guard let ref = item.ref else { return }
+                model.select(ref, entry: item.entryId, url: item.path)
+                model.focus(ref)
+            },
+            surfaceDropTarget: {
+                .init(name: "Spaces")
+            },
+            wrapLink: { view, item, _ in
+                guard let ref = item.ref else { return view }
+                return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
+            },
+            dropTypes: { item in
+                item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
+            },
+            onDrop: { providers, target in
+                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target)
+            }
+        )
+    }
+
+    static func parameters(_ model: any Model) -> Params {
+        let library = model.session.library
+        let libraryItems = Space.with(library, { $0 })?.spaces ?? []
+
+        func sorted(_ items: [ItemParams]) -> [ItemParams] {
+            items
+                .sorted {
+                    let lhsBoundary = $0.ref?.type is Space.Type
+                    let rhsBoundary = $1.ref?.type is Space.Type
+                    if lhsBoundary != rhsBoundary { return lhsBoundary && !rhsBoundary }
+                    return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+                }
+        }
+
+        func space(for ref: Reference, origin: Reference) -> ItemParams {
+            .init(
+                ref: ref,
+                origin: origin,
+                name: ref.descriptor.name,
+                image: "folder",
+                items: sorted(Space.with(ref, { $0.spaces.map { space(for: $0, origin: ref) }}) ?? [])
+            )
+        }
+
+        return .init(
+            id: "library",
+            header: false,
+            sections: [
+                .init(
+                    id: "library",
+                    name: "Library",
+                    image: "folder",
+                    tint: Style.Foreground.secondary,
+                    items: libraryItems.compactMap { space(for: $0, origin: $0) }
+                )
+            ]
+        )
+    }
+}
+
 struct FlatSpacesList: Query {
-    static func controls(_ model: any Model) -> Controls { SpacesList.controls(model) }
+    static func controls(_ model: any Model) -> Controls {
+        .init(
+            focused: { item in
+                guard let ref = item.ref else { return false }
+                return model.session.focus == .structure(ref)
+            },
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
+            },
+            onSelect: { item in
+                guard let ref = item.ref else { return }
+                model.select(ref, entry: item.entryId, url: item.path)
+                model.focus(ref)
+            },
+            surfaceDropTarget: {
+                .init(name: "Spaces")
+            },
+            wrapLink: { view, item, _ in
+                guard let ref = item.ref else { return view }
+                return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
+            },
+            dropTypes: { item in
+                item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
+            },
+            onDrop: { providers, target in
+                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target)
+            }
+        )
+    }
 
     static func parameters(_ model: any Model) -> Params {
         func sorted(_ refs: [Reference]) -> [Reference] {
@@ -441,7 +478,7 @@ struct FlatSpacesList: Query {
 
         func item(_ ref: Reference, origin: Reference) -> ItemParams {
             let dot = Iconography.dot(for: ref)
-            return .init(ref: ref, origin: origin, name: ref.descriptor.name, image: dot.symbol, tint: dot.tint)
+            return .init(ref: ref, origin: origin, name: ref.descriptor.name, image: dot.symbol, tint: dot.tint.bright)
         }
 
         func working(_ refs: [Reference]) -> Int {
@@ -468,7 +505,7 @@ struct FlatSpacesList: Query {
         }
 
         return .init(
-            id: "flat-spaces",
+            id: "spaces",
             header: false,
             sections: [
                 .init(

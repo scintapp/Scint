@@ -1,4 +1,5 @@
 import AppKit
+import ScintComponents
 import SwiftUI
 
 
@@ -16,22 +17,22 @@ struct MenuForm: View {
             Iconography.Icon(
                 symbol: kind.icon,
                 tint: Iconography.menuTint(for: kind),
-                sizing: Style.Spacing.xl
+                sizing: Metrics.rowIcon
             )
-            .frame(width: Style.Spacing.xxl, height: Style.Spacing.xxl)
+            .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
 
             Text(kind.title(updating: updating))
-                .font(Typography.row.weight(.medium))
+                .font(Typography.body.weight(.medium))
                 .foregroundStyle(Style.Foreground.primary)
 
             Spacer()
         }
-        .padding(.horizontal, Style.Spacing.md)
-        .padding(.vertical, Style.Spacing.md)
+        .padding(.horizontal, Style.Spacing.label)
+        .padding(.vertical, Style.Spacing.label)
     }
 
     var fields: some View {
-        VStack(alignment: .leading, spacing: Style.Spacing.lg) {
+        VStack(alignment: .leading, spacing: Style.Spacing.heading) {
             formField(
                 placeholder: kind.primaryPlaceholder,
                 text: $primary,
@@ -41,28 +42,28 @@ struct MenuForm: View {
 
             actions
         }
-        .padding(Style.Spacing.lg)
+        .padding(Style.Spacing.inset)
     }
 
     var actions: some View {
-        HStack(spacing: Style.Spacing.md) {
+        HStack(spacing: Style.Spacing.label) {
             Spacer()
             Button("Cancel", action: onCancel)
                 .buttonStyle(.plain)
-                .font(Typography.badge)
-                .foregroundStyle(Style.Foreground.disabled)
+                .font(Typography.detail)
+                .foregroundStyle(Style.Foreground.tertiary)
             Button(action: onCommit) {
                 Text(updating ? "Update" : "Insert")
-                    .font(Typography.badge)
-                    .foregroundStyle(Style.Foreground.faint)
-                    .padding(.horizontal, Style.Spacing.md)
-                    .frame(height: Style.Spacing.xxl)
-                    .background(Color.primary.opacity(Style.Opacity.hairline))
-                    .clipShape(Style.Shape.small)
+                    .font(Typography.detail)
+                    .foregroundStyle(Style.Foreground.secondary)
+                    .padding(.horizontal, Style.Spacing.label)
+                    .frame(height: Style.Dimension.control(.small))
+                    .background(Style.Background.surface)
+                    .clipShape(Style.Shape.card)
                     .overlay {
-                        Style.Shape.small
+                        Style.Shape.card
                             .strokeBorder(
-                                Color.primary.opacity(Style.Opacity.hairline),
+                                Style.Background.surface,
                                 lineWidth: 1
                             )
                     }
@@ -74,17 +75,17 @@ struct MenuForm: View {
     func formField(placeholder: String, text: Binding<String>, focusValue: MenuFocus, commit: @escaping () -> Void) -> some View {
         TextField(placeholder, text: text)
             .textFieldStyle(.plain)
-            .font(Typography.row.weight(.medium))
-            .foregroundStyle(Style.Foreground.muted)
-            .padding(.horizontal, Style.Spacing.md)
-            .frame(height: Style.Spacing.xxl)
+            .font(Typography.body.weight(.medium))
+            .foregroundStyle(Style.Foreground.secondary)
+            .padding(.horizontal, Style.Spacing.label)
+            .frame(height: Style.Dimension.control(.small))
             .background(
-                Style.Shape.tiny
-                    .fill(Color.primary.opacity(Style.Opacity.hairline))
+                Style.Shape.control
+                    .fill(Style.Background.surface)
                     .overlay(
-                        Style.Shape.tiny
+                        Style.Shape.control
                             .stroke(
-                                Color.primary.opacity(Style.Opacity.hairline),
+                                Style.Background.surface,
                                 lineWidth: 1
                             )
                     )
@@ -103,11 +104,11 @@ struct MenuForm: View {
     var body: some View {
         VStack(alignment: .leading, spacing: .zero) {
             header
-            Divider().opacity(Style.Opacity.faint)
+            Divider().opacity(Style.Opacity.outline)
             fields
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
-        .glassEffect(.regular.tint(Style.Background.overlay), in: Style.Shape.tiny)
+        .glassEffect(.regular.tint(Style.Background.surface), in: Style.Shape.control)
     }
 }
 
@@ -128,8 +129,8 @@ struct MenuFilterField: NSViewRepresentable {
         field.isBezeled = false
         field.drawsBackground = false
         field.focusRingType = .none
-        field.font = Typography.appKitRow
-        field.textColor = NSColor(Style.Foreground.faint)
+        field.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        field.textColor = NSColor(Style.Foreground.secondary)
         field.usesSingleLineMode = true
         return field
     }
@@ -181,14 +182,14 @@ struct MenuFilter: View {
     var body: some View {
         HStack(alignment: .center) {
             MenuFilterField(text: $text, onCommand: handle)
-                .padding(.leading, Style.Spacing.sm)
+                .padding(.leading, Style.Spacing.detail)
         }
-        .padding(.horizontal, Style.Spacing.xs)
-        .padding(.vertical, Style.Spacing.sm)
-        .frame(maxWidth: .infinity, minHeight: Style.Spacing.rowDetailHeight, alignment: .leading)
-        .background(Style.Shape.tiny.fill(Style.Background.form))
-        .contentShape(Style.Shape.tiny)
-        .padding(.top, Style.Spacing.xs)
+        .padding(.horizontal, Style.Spacing.detail)
+        .padding(.vertical, Style.Spacing.detail)
+        .frame(maxWidth: .infinity, minHeight: Metrics.rowDetailHeight, alignment: .leading)
+        .background(Style.Shape.control.fill(Style.Background.surface))
+        .contentShape(Style.Shape.control)
+        .padding(.top, Style.Spacing.detail)
     }
 }
 
@@ -200,46 +201,46 @@ struct MenuList: View {
     var body: some View {
         ScrollView(.vertical) {
             ScrollViewReader { proxy in
-                VStack(alignment: .leading, spacing: Style.Spacing.xs) {
+                VStack(alignment: .leading, spacing: Style.Spacing.detail) {
                     ForEach(items) { item in
                         if case .divider = item {
                             Divider()
-                                .opacity(Style.Opacity.muted)
-                                .padding(.horizontal, Style.Spacing.lg)
-                                .padding(.vertical, Style.Spacing.sm)
+                                .opacity(Style.Opacity.inactive)
+                                .padding(.horizontal, Style.Spacing.inset)
+                                .padding(.vertical, Style.Spacing.detail)
                         } else {
                             let selected = item.id == selectedID
-                            let shape = Style.Shape.tiny
+                            let shape = Style.Shape.control
 
                             Button { onSelect(item) } label: {
                                 GroupRow(
                                     title: Text(item.label)
-                                        .font(Typography.row.weight(selected ? .medium : .regular))
+                                        .font(Typography.body.weight(selected ? .medium : .regular))
                                         .foregroundColor(
-                                            selected ? Style.Foreground.primary : Style.Foreground.secondary
+                                            selected ? Style.Foreground.primary : Style.Foreground.primary
                                         ),
                                     detail: item.detail.isEmpty ? nil : Text(item.detail)
-                                        .font(Typography.caption.weight(.medium))
-                                        .foregroundColor(Style.Foreground.muted),
+                                        .font(Typography.detail.weight(.medium))
+                                        .foregroundColor(Style.Foreground.secondary),
                                     spacerMinLength: .zero
                                 ) {
                                     Iconography.menuIcon(for: item, selected: selected)
-                                        .padding(.leading, Style.Spacing.xs)
+                                        .padding(.leading, Style.Spacing.detail)
                                 } trailing: {
                                     if selected {
                                         Image(systemName: "return")
-                                            .font(Typography.caption.weight(.medium))
-                                            .foregroundStyle(Style.Foreground.subtle)
-                                            .padding(.trailing, Style.Spacing.xs)
+                                            .font(Typography.detail.weight(.medium))
+                                            .foregroundStyle(Style.Foreground.secondary)
+                                            .padding(.trailing, Style.Spacing.detail)
                                     }
                                 }
-                                .padding(.horizontal, Style.Spacing.xs)
-                                .padding(.vertical, Style.Spacing.sm)
-                                .frame(minHeight: Style.Spacing.xxl)
+                                .padding(.horizontal, Style.Spacing.detail)
+                                .padding(.vertical, Style.Spacing.detail)
+                                .frame(minHeight: Style.Dimension.control(.small))
                                 .background(
                                     shape.fill(
                                         selected
-                                        ? Color.accentColor.opacity(Style.Opacity.faint)
+                                        ? Color.accentColor.opacity(Style.Opacity.outline)
                                         : Color.clear
                                     )
                                 )
@@ -253,7 +254,7 @@ struct MenuList: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onChange(of: selectedID) { _, newID in
                     guard let newID else { return }
-                    withAnimation(.easeOut(duration: Style.Duration.menuSelection)) {
+                    withAnimation(Metrics.menuSelection) {
                         proxy.scrollTo(newID, anchor: .center)
                     }
                 }
@@ -309,9 +310,9 @@ struct Menu: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, Style.Spacing.md)
-        .padding(.vertical, Style.Spacing.sm)
-        .glassEffect(.regular.tint(Style.Background.group), in: Style.Shape.tiny)
+        .padding(.horizontal, Style.Spacing.label)
+        .padding(.vertical, Style.Spacing.detail)
+        .glassEffect(.regular.tint(Style.Background.surface), in: Style.Shape.control)
         .frame(width: size.width, height: size.height, alignment: .topLeading)
         .scrollIndicators(.hidden)
     }

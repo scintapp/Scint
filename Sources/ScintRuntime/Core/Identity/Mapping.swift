@@ -26,6 +26,22 @@ struct Mapping: Keyed {
             }
         }
 
+        func batch(_ type: any Functional.Type, values: [String: Value]? = nil) -> [(pid: Int32, error: String?)] {
+            refs.filter({ $0.type is any Functional.Type }).map {
+                switch type {
+                    case is Command.Type:
+                        guard let command = Command.with($0, { $0 })
+                        else { return (0, nil) }
+                        return command.run() ?? (0, nil)
+                    case is Harness.Type:
+                        guard let harness = Harness.with($0, { $0 })
+                        else { return (0, nil) }
+                        return harness.run() ?? (0, nil)
+                    default: return (0, nil)
+                }
+            }
+        }
+
         func render(_ ref: Reference) -> String {
             switch ref.type {
                 case is Material.Type: Material.with(ref, { $0 })?.rendered ?? ""
@@ -42,21 +58,5 @@ struct Mapping: Keyed {
     init( _ origin: Reference, _ value: Mapping.Value) {
         self.key = .map(.init(), origin)
         self.value = value
-    }
-
-    func batch(_ type: any Functional.Type, values: [String: Value]? = nil) -> [(pid: Int32, error: String?)] {
-        value.refs.filter({ $0.type is any Functional.Type }).map {
-            switch type {
-                case is Command.Type:
-                    guard let command = Command.with($0, { $0 })
-                    else { return (0, nil) }
-                    return command.run() ?? (0, nil)
-                case is Harness.Type:
-                    guard let harness = Harness.with($0, { $0 })
-                    else { return (0, nil) }
-                    return harness.run() ?? (0, nil)
-                default: return (0, nil)
-            }
-        }
     }
 }
