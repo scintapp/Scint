@@ -67,13 +67,13 @@ extension Runtime {
     func start(_ ref: Reference) -> Composition? {
         guard Composer.shared.compose(ref) != nil else { return nil }
         Automation.start(ref)
-        return Composer.shared.transmit(.composed(ref))
+        return Composer.shared.transmit(.composed(.reference(ref)))
     }
 
     func stop(_ ref: Reference) -> Composition? {
         Automation.stop(ref)
         guard Composer.shared.context(ref) != nil else { return nil }
-        return Composer.shared.transmit(.stopped(ref, nil))
+        return Composer.shared.transmit(.stopped(.reference(ref)))
     }
 }
 

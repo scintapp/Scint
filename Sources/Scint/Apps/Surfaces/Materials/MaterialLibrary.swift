@@ -3,7 +3,7 @@ import SwiftUI
 import Foundation
 
 
-struct LibrarySurface: Surface {
+struct LibraryContent: Surface {
     var panel: any Panel
     var model: any Model
 
@@ -39,7 +39,7 @@ struct LibrarySurface: Surface {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 .background(Style.Background.canvas)
-                if let material { MaterialSurface(ref: material, panel: panel, model: model) }
+                if let material { MaterialContent(ref: material, panel: panel, model: model) }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

@@ -56,7 +56,7 @@ struct Context: Contextual {
 
         update(branch)
         update(input, from: material)
-        handle(.started(origin, .reference(origin)))
+        handle(.started(.reference(origin)))
 
         return (intent, branch, arguments)
     }
@@ -73,7 +73,7 @@ struct Context: Contextual {
                 return arguments
             }
         } catch {
-            handle(.failed(harness, .string(String(describing: error))))
+            handle(.failed(.collection(["ref": .reference(harness), "text": .string(String(describing: error))])))
         }
         return arguments
     }
@@ -115,7 +115,7 @@ struct Context: Contextual {
         let existing = roots.first { reference in
             Transcript.with(reference) { transcript in
                 transcript.entries.contains { entry in
-                    guard case .event(.composed(let source), _) = entry else { return false }
+                    guard case .event(.composed(.reference(let source)), _) = entry else { return false }
                     return source == origin
                 }
             } == true
@@ -125,7 +125,7 @@ struct Context: Contextual {
         if let existing { context.transcript = existing }
         else {
             let transcript = Transcript.new(origin)
-            Transcript.update(transcript) { $0.insert(.composed(origin)) }
+            Transcript.update(transcript) { $0.insert(.composed(.reference(origin))) }
             context.transcript = transcript
         }
         return context

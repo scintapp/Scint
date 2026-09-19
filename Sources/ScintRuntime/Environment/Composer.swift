@@ -29,8 +29,9 @@ import Foundation
     }
 
     func transmit(_ signal: Signal) -> Composition? {
-        update(signal.ref) { context in context.handle(signal) }
-        return resolve(signal.ref)
+        guard let ref = signal.ref else { return nil }
+        update(ref) { context in context.handle(signal) }
+        return resolve(ref)
     }
 
     func resolve(_ ref: Reference) -> Composition? {

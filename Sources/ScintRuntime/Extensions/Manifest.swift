@@ -230,13 +230,12 @@ enum SampleInterfaces {
     static func load() -> References {
         let fileManager = FileManager.default
         let home = fileManager.homeDirectoryForCurrentUser.standardizedFileURL.resolvingSymlinksInPath()
-        let mcpExecutable = Bundle.main.executableURL?.path ?? "/Applications/Scint.app/Contents/MacOS/Scint"
         let claudeMCPData = try? JSONSerialization.data(withJSONObject: [
             "mcpServers": [
                 "scint": [
-                    "type": "stdio",
-                    "command": mcpExecutable,
-                    "args": ["--mcp"]
+                    "type": "http",
+                    "url": "http://127.0.0.1:7345/mcp",
+                    "headers": ["Authorization": "Bearer ${SCINT_CONTEXT}"]
                 ]
             ]
         ])
@@ -250,15 +249,18 @@ enum SampleInterfaces {
             exists(name, as: Artifact.self) ?? Artifact.new(name, url)
         }
 
-        func command(_ name: String, _ artifact: Reference, _ parameters: [Command.Parameter], description: String? = nil) -> Reference {
+        func command(_ name: String, _ artifact: Reference, _ parameters: [Parameter], description: String? = nil) -> Reference {
             let reference = exists(name, as: Command.self) ?? Command.new(name: name, artifact: artifact, parameters: parameters)
+            if Command.with(reference, { $0.artifact != artifact || $0.parameters != parameters }) == true {
+                Command.update(reference) { $0 = Command(reference, artifact: artifact, parameters: parameters) }
+            }
             if let description {
                 Catalog.shared.update(reference) { descriptor in descriptor.description = description }
             }
             return reference
         }
 
-        func harness(_ name: String, _ command: Reference, _ intent: Intent, _ parameters: [Harness.Parameter], description: String? = nil) -> Reference {
+        func harness(_ name: String, _ command: Reference, _ intent: Intent, _ parameters: [Parameter], description: String? = nil) -> Reference {
             let reference = exists(name, as: Harness.self) ?? Harness.register(name, command: command, intent: intent, parameters: parameters)
             if Harness.with(reference, { $0.command != command || $0.intent != intent || $0.parameters != parameters }) == true {
                 Harness.update(reference) { $0 = Harness(reference, command: command, intent: intent, params: parameters) }
@@ -528,9 +530,9 @@ enum SampleInterfaces {
                     .fixed(.string("--skip-git-repo-check")),
                     .fixed(.string("--dangerously-bypass-approvals-and-sandbox")),
                     .fixed(.string("-c")),
-                    .fixed(.string("mcp_servers.scint.command=\"\(mcpExecutable)\"")),
+                    .fixed(.string("mcp_servers.scint.url=http://127.0.0.1:7345/mcp")),
                     .fixed(.string("-c")),
-                    .fixed(.string("mcp_servers.scint.args=[\"--mcp\"]"))
+                    .fixed(.string("mcp_servers.scint.bearer_token_env_var=SCINT_CONTEXT"))
                 ]
             ),
             .evaluate,

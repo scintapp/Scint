@@ -17,7 +17,7 @@ import ScintComponents
             let session = model.session
             switch surface {
                 case .canvas:
-                    CanvasSurface(panel: self, model: model)
+                    CanvasContent(panel: self, model: model)
 
                 case .studio:
                     if let root = session.selection.root {

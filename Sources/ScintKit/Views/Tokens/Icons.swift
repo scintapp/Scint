@@ -1,11 +1,11 @@
 import ScintComponents
 import SwiftUI
 
-/// Maps Scint's models onto the design system's icon vocabulary.
+
 @MainActor extension Iconography {
     static func model(for ref: Reference) -> Model {
         switch ref.type {
-            case is Artifact.Type: .artifact()
+            case is Artifact.Type: .artifact(Artifact.with(ref, { handler(of: $0.handler) }))
             case is Space.Type: .space(Space.with(ref, { $0 })?.harness.flatMap(intent(of:)))
             case is Harness.Type: .harness(intent(of: ref))
             case is Command.Type: .command()
@@ -48,10 +48,14 @@ import SwiftUI
 
     static func accent(for ref: Reference) -> Color { model(for: ref).tint.bright }
 
+    /// The symbol behind a space's dot, and how much smaller than a row icon it draws.
+    static let dotSymbol = "circlebadge.fill"
+    static let dotScale: CGFloat = 0.7
+
     /// A space's dot, in its harness's color.
-    static func dot(for ref: Reference, size: CGFloat = 13) -> Icon {
+    static func dot(for ref: Reference, size: CGFloat = 11) -> Icon {
         let intent = Space.with(ref, { $0 })?.harness.flatMap(intent(of:))
-        return Icon(symbol: "circlebadge.fill", tint: intent?.tint ?? .neutral, size: size)
+        return Icon(symbol: dotSymbol, tint: intent?.tint ?? .neutral, size: size)
     }
 
     static func menuTint(for item: MenuItem) -> Color { menuTints(for: item).bright }
@@ -92,12 +96,53 @@ import SwiftUI
         Harness.with(harness, { iconography($0.intent) })
     }
 
-    private static func iconography(_ intent: ScintRuntimeIntent) -> Intent {
+    private static func handler(of handler: Artifact.Handler) -> Model.Handler {
+        switch handler {
+            case .app: .app
+            case .bookmark: .bookmark
+            case .directory: .directory
+            case .executable: .executable
+            case .file: .file
+            case .image: .image
+            case .script: .script
+            case .skill: .skill
+        }
+    }
+
+    static func iconography(_ intent: ScintRuntimeIntent) -> Intent {
         switch intent {
             case .compose: .compose
             case .dispatch: .dispatch
             case .evaluate: .evaluate
             case .search: .search
+        }
+    }
+}
+
+extension Composition.State {
+    /// The runtime's states, in the order the ledger lists them.
+    static let ordered: [Self] = [.failed, .working, .active, .completed, .inactive]
+
+    /// How the views name a state. A failed composition is the one that needs you.
+    var label: String {
+        switch self {
+            case .inactive: "Inactive"
+            case .active: "Active"
+            case .working: "Working"
+            case .completed: "Completed"
+            case .failed: "Needs Attention"
+        }
+    }
+
+    var running: Bool { self == .active || self == .working }
+
+    var iconography: Iconography.State {
+        switch self {
+            case .inactive: .inactive
+            case .active: .active
+            case .working: .working
+            case .completed: .completed
+            case .failed: .failed
         }
     }
 }

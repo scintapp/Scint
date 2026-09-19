@@ -11,6 +11,8 @@ enum Harnesses {
         let unschedule: Reference
     }
 
+    private static let endpoint = "http://127.0.0.1:7345/mcp"
+
     @discardableResult
     static func load() -> References {
         func exists<T: Resolvable>(_ name: String, as type: T.Type) -> Reference? {
@@ -21,13 +23,13 @@ enum Harnesses {
             Artifact.new(name, url)
         }
 
-        func command(name: String, description: String, artifact: Reference, parameters: [Command.Parameter]) -> Reference {
+        func command(name: String, description: String, artifact: Reference, parameters: [Parameter]) -> Reference {
             let ref = Command.new(name: name, artifact:artifact, parameters: parameters)
             Catalog.shared.update(ref) { descriptor in descriptor.description = description }
             return ref
         }
 
-        func harness(name: String, description: String, command: Reference, intent: Intent, parameters: [Harness.Parameter]) -> Reference {
+        func harness(name: String, description: String, command: Reference, intent: Intent, parameters: [Parameter]) -> Reference {
             let ref = Harness.register(name, command: command, intent: intent, parameters: parameters)
             Catalog.shared.update(ref) { descriptor in descriptor.description = description }
             return ref
@@ -35,16 +37,16 @@ enum Harnesses {
 
         let codex = artifact("Codex CLI", URL(fileURLWithPath: "/opt/homebrew/bin/codex"))
 
-        let base: [Command.Parameter] = [
+        let base: [Parameter] = [
             .fixed(.string("exec")),
             .fixed(.string("--json")),
             .fixed(.string("--color")),
             .fixed(.string("never")),
             .fixed(.string("--skip-git-repo-check")),
             .fixed(.string("-c")),
-            .fixed(.string("mcp_servers.scint.command=\"\(Bundle.main.executableURL?.path ?? "/Applications/Scint.app/Contents/MacOS/Scint")\"")),
+            .fixed(.string("mcp_servers.scint.url=\(endpoint)")),
             .fixed(.string("-c")),
-            .fixed(.string("mcp_servers.scint.args=[\"--mcp\"]"))
+            .fixed(.string("mcp_servers.scint.bearer_token_env_var=SCINT_CONTEXT"))
         ]
 
         let evaluate = command(

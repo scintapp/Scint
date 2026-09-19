@@ -30,7 +30,7 @@ struct Composition: Sendable {
         } ?? nil
     }
 
-    var closure: Reference {
+    private var closure: Reference {
         guard let closure = Space.with(space, { $0.closure })
         else { RuntimeError.fatal() }
         return closure

@@ -24,7 +24,6 @@ import OSLog
     func restartService(_ id: String, reply: @escaping (String) -> Void)
 }
 
-
 final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Sendable {
     private static let logger = Logger(subsystem: "com.kaechle.scint", category: "Services")
     private let connection: NSXPCConnection
@@ -64,17 +63,20 @@ final class Services: NSObject, ServiceHandling, ObservableObject, @unchecked Se
 
     func output(pid: Int32, _ handler: @escaping (String) -> Void) {
         let receive: (String) -> Void = { [weak self] chunk in
+            print(chunk)
             guard let self else { return }
             for line in self.lines(pid: pid, chunk: chunk) {
                 handler(line)
                 if self.terminated(line) { self.removeOutputHandler(pid: pid) }
             }
         }
+
         let pendingCount = lock.withLock { () -> Int in
             handlers[pid] = receive
             draining.insert(pid)
             return pending[pid]?.count ?? 0
         }
+
         Self.logger.debug("Registered output handler for pid \(pid) with \(pendingCount) pending chunks")
 
         while let chunks = lock.withLock({ () -> [String]? in

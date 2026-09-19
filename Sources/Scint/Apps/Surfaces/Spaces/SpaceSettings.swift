@@ -2,7 +2,7 @@ import SwiftUI
 import Foundation
 
 
-struct HarnessSurface: Surface {
+struct SpaceSettings: Surface {
     var panel: any Panel
     var model: any Model
     var surface: AnySurface { .init(panel: panel, model: model) }

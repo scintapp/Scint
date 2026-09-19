@@ -115,3 +115,32 @@ struct Transcript: Malleable {
         return branch.ref
     }
 }
+
+extension Transcript.Entry {
+    private enum Tag: String, CodingKey, CaseIterable { case event, record, transcript }
+    private enum CodingKeys: String, CodingKey { case date, intent }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let tagged = try decoder.container(keyedBy: Tag.self)
+        let date = try c.decode(Date.self, forKey: .date)
+        switch try tagged.tag() {
+            case .event: self = .event(try tagged.decode(Signal.self, forKey: .event), date)
+            case .record: self = .record(try tagged.decode(Join.self, forKey: .record), date)
+            case .transcript: self = .transcript(try tagged.decode(Reference.self, forKey: .transcript), try c.decode(Intent.self, forKey: .intent), date)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        var tagged = encoder.container(keyedBy: Tag.self)
+        try c.encode(created, forKey: .date)
+        switch self {
+            case .event(let signal, _): try tagged.encode(signal, forKey: .event)
+            case .record(let join, _): try tagged.encode(join, forKey: .record)
+            case .transcript(let ref, let intent, _):
+                try tagged.encode(ref, forKey: .transcript)
+                try c.encode(intent, forKey: .intent)
+        }
+    }
+}

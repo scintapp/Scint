@@ -92,13 +92,6 @@ struct CanvasMap: Surface {
     }
 }
 
-struct GlassControlStyle: ControlGroupStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.content
-    }
-}
-
-
 struct CanvasControl<Content: View>: View {
     @ViewBuilder var content: Content
 
@@ -112,7 +105,7 @@ struct CanvasControl<Content: View>: View {
     }
 }
 
-struct CanvasSurface: Surface {
+struct CanvasContent: Surface {
     var panel: any Panel
     var model: any Model
 
@@ -121,7 +114,7 @@ struct CanvasSurface: Surface {
 
     var body: some View {
         Canvas(refs: model.session.bridged, axis: axis, viewport: viewport, onBackground: { model.focus(nil) }) { ref in
-            CanvasNodeSurface(ref: ref, panel: panel, model: model)
+            CanvasNode(ref: ref, panel: panel, model: model)
                 .frame(width: 320)
         }
         .ignoresSafeArea(.container, edges: .trailing)

@@ -5,31 +5,12 @@ import ScintComponents
 
 
 @main
-enum ScintEntry {
-    static func main() {
-        if ProcessInfo.processInfo.arguments.contains("--mcp") {
-            Task {
-                do {
-                    try await Runtime.shared.load()
-                    try await MCPServer(bridge: RuntimeBridge()).run()
-                    Darwin.exit(EXIT_SUCCESS)
-                } catch {
-                    FileHandle.standardError.write(Data("Scint MCP: \(error)\n".utf8))
-                    Darwin.exit(EXIT_FAILURE)
-                }
-            }
-            dispatchMain()
-        } else {
-            ScintApp.main()
-        }
-    }
-}
-
 struct ScintApp: App {
     @Environment(\.openWindow) private var openWindow
     @State private var scint: ScintModel?
     @State private var loading = false
     @State private var pending: URL?
+    @State private var host = HTTPTransport()
     static let logger = Logger(subsystem: "com.kaechle.model", category: "App")
 
     var body: some Scene {
@@ -79,10 +60,19 @@ struct ScintApp: App {
             let model = ScintModel(data)
             await model.load()
             scint = model
+            await serve()
             if let pending { CallbackRouter.handle(pending) }
             pending = nil
         } catch {
             Self.logger.error("Runtime load failed: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    func serve() async {
+        do {
+            try await MCPServer(bridge: RuntimeBridge()).serve(host)
+        } catch {
+            Self.logger.error("MCP server failed to start: \(String(describing: error), privacy: .public)")
         }
     }
 }

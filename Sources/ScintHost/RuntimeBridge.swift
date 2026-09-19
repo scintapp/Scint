@@ -87,7 +87,7 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
         }
     }
 
-    func perform(_ request: ScintHostRequest) async throws -> [String: Property] {
+    @MainActor func perform(_ request: ScintHostRequest) async throws -> [String: Property] {
         guard let composition = ContextProvider.context.first(where: {
             $0.space.contextId == request.context || $0.space.id == request.context
         }) else {

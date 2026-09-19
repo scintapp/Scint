@@ -59,9 +59,9 @@ struct InspectorPicker: View {
 
         return VStack {
             switch surface {
-                case .materials: OutlineSurface(panel: self, model: model)
-                case .transcripts: TranscriptSurface(panel: self, model: model)
-                case .settings: HarnessSurface(panel: self, model: model)
+                case .materials: MaterialInspector(panel: self, model: model)
+                case .transcripts: TranscriptContent(panel: self, model: model)
+                case .settings: HarnessSidebar(panel: self, model: model)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

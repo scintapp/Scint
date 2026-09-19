@@ -24,13 +24,11 @@ import AppKit
         guard Runtime.shared.start(ref) != nil else { throw CallbackError.dispatchFailed(ref) }
     }
 
-    private static func bind(_ parameters: [String: String], against declared: [Harness.Parameter]) throws -> [String: Value] {
+    private static func bind(_ parameters: [String: String], against declared: [Parameter]) throws -> [String: Value] {
         let templates = declared.reduce(into: [String: Value]()) { templates, parameter in
             switch parameter {
                 case .argument(let name, let type, _, _): templates[name] = type
-                case .requirement(let name, let type, _): templates[name] = type
-                case .target(let name, let type, _): templates[name] = type
-                case .command: break
+                case .command, .fixed: break
             }
         }
 

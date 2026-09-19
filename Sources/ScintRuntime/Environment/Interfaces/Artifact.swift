@@ -141,3 +141,29 @@ struct Artifact: Functional {
         return register(name, instance, tags: [instance.handler.type])
     }
 }
+
+extension Artifact.Handler {
+    private enum CodingKeys: String, CodingKey, CaseIterable { case app, bookmark, directory, executable, file, image, script, skill }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let key = try c.tag()
+        let url = try c.decodeIfPresent(URL.self, forKey: key)
+        switch key {
+            case .app: self = .app(url)
+            case .bookmark: self = .bookmark(url)
+            case .directory: self = .directory(url)
+            case .executable: self = .executable(url)
+            case .file: self = .file(url)
+            case .image: self = .image(url)
+            case .script: self = .script(url)
+            case .skill: self = .skill(url)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        guard let key = CodingKeys(rawValue: type) else { return }
+        try c.encode(url, forKey: key)
+    }
+}

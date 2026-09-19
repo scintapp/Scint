@@ -437,14 +437,14 @@ struct HarnessGroup: Query {
         }
         let harness = declaration?.ref
         let config = Space.with(space, { $0.config }) ?? [:]
-        let parameters: [Harness.Parameter]
+        let parameters: [Parameter]
         if let declaration, declaration.intent == .evaluate {
             parameters = declaration.parameters
         } else {
             parameters = []
         }
 
-        func setting(_ parameter: Harness.Parameter) -> ItemParams? {
+        func setting(_ parameter: Parameter) -> ItemParams? {
             guard case .argument(let key, let type, let required, let defaultValue) = parameter,
                   !required
                     else { return nil }

@@ -5,7 +5,7 @@ struct Automation {
     static let schedule = "Schedule Job"
     static let unschedule = "Remove Job"
 
-    static let parameters: [Harness.Parameter] = [
+    static let parameters: [Parameter] = [
         .argument(name: "date", type: .date(.distantPast)),
         .argument(name: "time", type: .date(.distantPast)),
         .argument(

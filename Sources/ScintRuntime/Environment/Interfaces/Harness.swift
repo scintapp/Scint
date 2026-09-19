@@ -7,13 +7,6 @@ struct Harness: Functional {
     let command: Reference
     let parameters: [Parameter]
 
-    enum Parameter: Codable, Sendable, Equatable {
-        case argument(name: String, type: Value, required: Bool = false, default: Value? = nil)
-        case command(content: String, value: Value? = nil)
-        case requirement(name: String, type: Value, value: Value)
-        case target(name: String, type: Value, default: Value? = nil)
-    }
-
     init(_ ref: Reference, command: Reference, intent: Intent, params: [Parameter]) {
         self.ref = ref
         self.command = command
@@ -31,10 +24,9 @@ struct Harness: Functional {
     func arguments(with values: [String: Value]? = nil) -> [String] {
         parameters.flatMap { parameter in
             switch parameter {
-                case .argument(let name, _, _, let value):
-                    return (values?[name] ?? value).map(Arguments.marshal) ?? []
-                case .command, .requirement, .target:
-                    return []
+                case .argument(let name, _, _, let value): return (values?[name] ?? value).map(Parameter.marshal) ?? []
+                case .command(name: let name, ref: let ref): return []
+                case .fixed(let value): return Parameter.marshal(value)
             }
         }
     }
@@ -61,17 +53,11 @@ struct Harness: Functional {
                     else if let fallback { parsed[name] = try type.construct(fallback, name: name) }
                     else if required { throw ParsingError.missingArgument(name) }
 
-                case .requirement(let name, let type, let value):
-                    expected.insert(name)
-                    parsed[name] = try type.construct(arguments[name] ?? value, name: name)
+                case .command(let name, let value):
+                    command[name] = value
 
-                case .target(let name, let type, let fallback):
-                    expected.insert(name)
-                    if let value = arguments[name] { parsed[name] = try type.construct(value, name: name) }
-                    else if let fallback { parsed[name] = try type.construct(fallback, name: name) }
-
-                case .command(let content, let value):
-                    command[content] = value ?? .string("")
+                case .fixed:
+                    break
             }
         }
 

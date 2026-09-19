@@ -81,7 +81,7 @@ struct NodeSection: View {
     }
 }
 
-struct CanvasNodeSurface: Surface {
+struct CanvasNode: Surface {
     var ref: Reference
     var panel: any Panel
     var model: any Model

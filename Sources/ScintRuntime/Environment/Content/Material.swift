@@ -122,3 +122,41 @@ struct Material: Malleable {
         return instance.ref
     }
 }
+
+extension Material.Block {
+    private enum CodingKeys: String, CodingKey, CaseIterable { case artifact, command, material, task, text }
+    private enum Fields: String, CodingKey { case id, text, done }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        switch try c.tag() {
+            case .artifact: self = .artifact(try c.decode(Reference.self, forKey: .artifact))
+            case .command: self = .command(try c.decode(Reference.self, forKey: .command))
+            case .material: self = .material(try c.decode(Reference.self, forKey: .material))
+            case .task:
+                let f = try c.nestedContainer(keyedBy: Fields.self, forKey: .task)
+                self = .task(try f.decode(UUID.self, forKey: .id), try f.decode(String.self, forKey: .text), try f.decode(Bool.self, forKey: .done))
+            case .text:
+                let f = try c.nestedContainer(keyedBy: Fields.self, forKey: .text)
+                self = .text(try f.decode(UUID.self, forKey: .id), try f.decode(String.self, forKey: .text))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+            case .artifact(let ref): try c.encode(ref, forKey: .artifact)
+            case .command(let ref): try c.encode(ref, forKey: .command)
+            case .material(let ref): try c.encode(ref, forKey: .material)
+            case .task(let id, let text, let done):
+                var f = c.nestedContainer(keyedBy: Fields.self, forKey: .task)
+                try f.encode(id, forKey: .id)
+                try f.encode(text, forKey: .text)
+                try f.encode(done, forKey: .done)
+            case .text(let id, let text):
+                var f = c.nestedContainer(keyedBy: Fields.self, forKey: .text)
+                try f.encode(id, forKey: .id)
+                try f.encode(text, forKey: .text)
+        }
+    }
+}

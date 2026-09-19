@@ -6,12 +6,6 @@ struct Command: Functional {
     let artifact: Reference
     let parameters: [Parameter]
 
-    enum Parameter: Codable, Sendable, Equatable {
-        case argument(name: String, type: Value, required: Bool = false, default: Value? = nil)
-        case fixed(Value)
-        case requirement(name: String, type: Value, value: Value)
-    }
-
     init(_ ref: Reference, artifact: Reference, parameters: [Parameter]) {
         self.ref = ref
         self.artifact = artifact
@@ -29,9 +23,9 @@ struct Command: Functional {
     func arguments(with values: [String: Value]? = nil) -> [String] {
         parameters.flatMap { parameter in
             switch parameter {
-                case .argument(let name, _, _, let value): return (values?[name] ?? value).map(Arguments.marshal) ?? []
-                case .fixed(let value): return Arguments.marshal(value)
-                case .requirement: return []
+                case .argument(let name, _, _, let value): return (values?[name] ?? value).map(Parameter.marshal) ?? []
+                case .command(name: let name, ref: let ref): return []
+                case .fixed(let value): return Parameter.marshal(value)
             }
         }
     }

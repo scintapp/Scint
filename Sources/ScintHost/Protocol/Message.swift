@@ -5,6 +5,13 @@ enum MCPProtocol {
     static let version = "2026-07-28"
     static let jsonRPCVersion = "2.0"
     static let contextMetadataKey = "com.kaechle.scint/context"
+
+    /// Versions negotiated through `initialize`; the latest is offered when a client asks for one outside this list.
+    static let initializedVersion = "2025-11-25"
+    static let initializedVersions = ["2025-06-18", initializedVersion]
+
+    static let port: UInt16 = 7345
+    static let endpoint = "/mcp"
 }
 
 enum JSONRPCResponse: Sendable, Equatable, Codable {

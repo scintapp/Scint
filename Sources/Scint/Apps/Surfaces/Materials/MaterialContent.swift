@@ -52,7 +52,7 @@ struct MaterialCard: View {
     }
 }
 
-struct MaterialSurface: Surface {
+struct MaterialContent: Surface {
     var ref: Reference
     var panel: any Panel
     var model: any Model

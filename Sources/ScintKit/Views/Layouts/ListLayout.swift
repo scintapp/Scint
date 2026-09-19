@@ -36,7 +36,7 @@ struct ListLabel: View {
 
 struct ListLink: View {
     @State private var isHovered = false
-    private let iconSize: CGFloat = 15
+    private let iconSize: CGFloat = 16
     let ref: Reference?
     let name: String
     let detail: String?
@@ -60,7 +60,7 @@ struct ListLink: View {
         self.detail = detail
         self.ref = ref
         self.image = image
-        self.tint = tint ?? Style.Foreground.secondary
+        self.tint = tint ?? Style.Foreground.glyph
         self.trailingImage = trailingImage
         self.count = count
         self.leadingAccessory = leadingAccessory
@@ -72,7 +72,8 @@ struct ListLink: View {
     }
 
     @ViewBuilder private var icon: some View {
-        Iconography.Icon(symbol: image, tint: tint, sizing: iconSize, selected: selected)
+        Iconography.Icon(symbol: image, tint: tint, sizing: image == Iconography.dotSymbol ? iconSize * Iconography.dotScale : iconSize, selected: selected)
+            .fontWeight(.medium)
             .frame(width: iconSize, height: iconSize)
     }
 
@@ -204,7 +205,7 @@ struct ListHeader: View {
 struct ListLayout<Content: View>: View {
     @ViewBuilder let content: () -> Content
     @State private var isHovered = false
-    private let iconSize: CGFloat = 15
+    private let iconSize: CGFloat = 16
     let ref: Reference?
     let name: String
     let detail: String?
@@ -245,7 +246,7 @@ struct ListLayout<Content: View>: View {
         self.detail = detail
         self.ref = ref
         self.image = image
-        self.tint = tint ?? Style.Foreground.secondary
+        self.tint = tint ?? Style.Foreground.glyph
         self.trailingImage = trailingImage
         self.count = count
         self.leadingAccessory = leadingAccessory
@@ -261,7 +262,8 @@ struct ListLayout<Content: View>: View {
     }
 
     @ViewBuilder private var icon: some View {
-        Iconography.Icon(symbol: image, tint: tint, sizing: iconSize, selected: selected)
+        Iconography.Icon(symbol: image, tint: tint, sizing: image == Iconography.dotSymbol ? iconSize * Iconography.dotScale : iconSize, selected: selected)
+            .fontWeight(.medium)
             .frame(width: iconSize, height: iconSize)
     }
 

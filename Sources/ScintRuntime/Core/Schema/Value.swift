@@ -135,14 +135,45 @@ enum Value: Codable, Sendable, Equatable {
     var rendered: [String] { Renderer.value(self) }
 }
 
-struct Join: Keyed {
-    let key: Key
-    let origin: Reference
-    let value: Value
+extension Value {
+    private enum CodingKeys: String, CodingKey, CaseIterable { case bool, integer, decimal, string, date, reference, sequence, range, collection }
 
-    init(_ ref: Reference, _ origin: Reference, _ value: Value) {
-        self.key = .map(.init(), ref)
-        self.origin = origin
-        self.value = value
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        switch try c.tag() {
+            case .bool: self = .bool(try c.decode(Bool.self, forKey: .bool))
+            case .integer: self = .integer(try c.decode(Int.self, forKey: .integer))
+            case .decimal: self = .decimal(try c.decode(Decimal.self, forKey: .decimal))
+            case .string: self = .string(try c.decode(String.self, forKey: .string))
+            case .date: self = .date(try c.decode(Date.self, forKey: .date))
+            case .reference: self = .reference(try c.decode(Reference.self, forKey: .reference))
+            case .sequence: self = .sequence(try c.decode([Value].self, forKey: .sequence))
+            case .range: self = .range(try c.decode([Value].self, forKey: .range))
+            case .collection: self = .collection(try c.decode([String: Value].self, forKey: .collection))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+            case .bool(let value): try c.encode(value, forKey: .bool)
+            case .integer(let value): try c.encode(value, forKey: .integer)
+            case .decimal(let value): try c.encode(value, forKey: .decimal)
+            case .string(let value): try c.encode(value, forKey: .string)
+            case .date(let value): try c.encode(value, forKey: .date)
+            case .reference(let value): try c.encode(value, forKey: .reference)
+            case .sequence(let value): try c.encode(value, forKey: .sequence)
+            case .range(let value): try c.encode(value, forKey: .range)
+            case .collection(let value): try c.encode(value, forKey: .collection)
+        }
+    }
+}
+
+extension KeyedDecodingContainer where K: CaseIterable {
+    /// The case key of a single-key enum encoding: `{"case": payload}`.
+    func tag() throws -> K {
+        guard let key = K.allCases.first(where: contains)
+        else { throw DecodingError.dataCorrupted(.init(codingPath: codingPath, debugDescription: "No case key in \(allKeys.map(\.stringValue))")) }
+        return key
     }
 }

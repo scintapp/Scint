@@ -12,6 +12,7 @@
 		7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C959129300D54FB007D9E73 /* OrderedCollections */; };
 		7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */; };
 		7CB368F6305DC9C700064C4B /* ScintComponents in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB368F5305DC9C700064C4B /* ScintComponents */; };
+		7CB36A89305E711E00064C4B /* messages.json in Resources */ = {isa = PBXBuildFile; fileRef = 7CB36A88305E711600064C4B /* messages.json */; };
 		7CBB434B3020F78300B9D4D7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7CBB434A3020F78300B9D4D7 /* README.md */; };
 /* End PBXBuildFile section */
 
@@ -61,6 +62,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7CB36A88305E711600064C4B /* messages.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = messages.json; sourceTree = "<group>"; };
 		7CBB434A3020F78300B9D4D7 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		7CC6DF7F304243D800098CC1 /* Scint.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scint.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CC6DF80304243D800098CC1 /* scintd.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = scintd.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -76,21 +78,21 @@
 				ScintRuntime/Core/Data/Index.swift,
 				ScintRuntime/Core/Data/Persistence.swift,
 				ScintRuntime/Core/Data/Store.swift,
-				ScintRuntime/Core/Identity/Key.swift,
-				ScintRuntime/Core/Identity/Mapping.swift,
-				ScintRuntime/Core/Identity/Reference.swift,
-				ScintRuntime/Core/Identity/Registry.swift,
-				ScintRuntime/Core/Identity/Resolvable.swift,
-				ScintRuntime/Core/Records/Error.swift,
-				ScintRuntime/Core/Records/Property.swift,
-				ScintRuntime/Core/Records/Value.swift,
+				ScintRuntime/Core/Schema/Error.swift,
+				ScintRuntime/Core/Schema/Key.swift,
+				ScintRuntime/Core/Schema/Mapping.swift,
+				ScintRuntime/Core/Schema/Parameter.swift,
+				ScintRuntime/Core/Schema/Property.swift,
+				ScintRuntime/Core/Schema/Reference.swift,
+				ScintRuntime/Core/Schema/Registry.swift,
+				ScintRuntime/Core/Schema/Resolvable.swift,
+				ScintRuntime/Core/Schema/Value.swift,
 				ScintRuntime/Core/Search.swift,
 				ScintRuntime/Core/Settings.swift,
 				ScintRuntime/Environment/Catalog.swift,
 				ScintRuntime/Environment/Composer.swift,
 				ScintRuntime/Environment/Content/Material.swift,
 				ScintRuntime/Environment/Content/Transcript.swift,
-				ScintRuntime/Environment/Interfaces/Arguments.swift,
 				ScintRuntime/Environment/Interfaces/Artifact.swift,
 				ScintRuntime/Environment/Interfaces/Automations.swift,
 				ScintRuntime/Environment/Interfaces/Command.swift,
@@ -189,6 +191,7 @@
 				7CC6DF7F304243D800098CC1 /* Scint.app */,
 				7CC6DF80304243D800098CC1 /* scintd.xpc */,
 				7CB36A72305DD00700064C4B /* Frameworks */,
+				7CB36A88305E711600064C4B /* messages.json */,
 			);
 			sourceTree = "<group>";
 		};
@@ -303,6 +306,7 @@
 			isa = PBXResourcesBuildPhase;
 			files = (
 				7CBB434B3020F78300B9D4D7 /* README.md in Resources */,
+				7CB36A89305E711E00064C4B /* messages.json in Resources */,
 			);
 		};
 		7C69AAF02F8B45D90008D611 /* Resources */ = {

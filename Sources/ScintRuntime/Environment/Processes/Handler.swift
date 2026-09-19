@@ -1,10 +1,8 @@
 import Foundation
 
 
-enum Intent: CaseIterable, Codable, Sendable {
+enum Intent: String, CaseIterable, Codable, Sendable {
     case compose, dispatch, evaluate, search
-
-    var rawValue: String { String(describing: self) }
 
     var forms: (label: String, running: String, completed: String) {
         switch self {
@@ -15,11 +13,12 @@ enum Intent: CaseIterable, Codable, Sendable {
         }
     }
 }
+
 struct Handler: Contextual {
     let key: Key
-    let harness: Reference
     let arguments: [String: Value]
     var transcript: Reference
+    let harness: Reference
 
     init(_ origin: Reference, harness: Reference, transcript: Reference, arguments: [String: Value]) {
         self.key = .context(origin)
@@ -40,7 +39,7 @@ struct Handler: Contextual {
         do {
             try compose(handle(terminal))
         } catch {
-            let signal = Signal.failed(harness, .string(String(describing: error)))
+            let signal = Signal.failed(value(.string(String(describing: error))))
             let branch = transcript
 
             Task { @MainActor in
@@ -64,9 +63,9 @@ struct Handler: Contextual {
             guard !text.isEmpty else { return }
             let value = Value.string(text)
             let signal: Signal = switch Self.exit(of: text) {
-                case .some(0): .completed(harness, value)
-                case .some: .failed(harness,  value)
-                case nil: .updated(harness, value)
+                case .some(0): .completed(self.value(value))
+                case .some: .failed(self.value(value))
+                case nil: .updated(self.value(value))
             }
 
             Task { @MainActor in
@@ -98,6 +97,8 @@ struct Handler: Contextual {
             }
         }
     }
+
+    private func value(_ text: Value) -> Value { .collection(["ref": .reference(harness), "text": text]) }
 
     static func exit(of line: String) -> Int? {
         func code(_ value: String) -> Int? {
