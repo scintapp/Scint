@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -12,10 +13,10 @@ struct TranscriptHeader: View {
                 0
             }
 
-            HStack(spacing: Style.Spacing.md) {
+            HStack(spacing: Style.Spacing.label) {
                 Text(value.origin.type is Transcript.Type ? ref.descriptor.name : "Overview Transcript")
-                    .font(Typography.row.weight(.semibold))
-                    .foregroundStyle(Style.Foreground.muted)
+                    .font(Typography.body.weight(.semibold))
+                    .foregroundStyle(Style.Foreground.secondary)
                     .lineLimit(1)
 
                 if let started = value.started {
@@ -26,8 +27,8 @@ struct TranscriptHeader: View {
                     Text(elapsed < 60 ? "\(elapsed)s" : "\(elapsed / 60)m \(elapsed % 60)s")
                 }
             }
-            .font(Typography.row)
-            .foregroundStyle(Style.Foreground.faint)
+            .font(Typography.body)
+            .foregroundStyle(Style.Foreground.secondary)
             .frame(height: 24)
         }
     }
@@ -44,12 +45,12 @@ struct TranscriptSurface: Surface {
     }
 
     var body: some View {
-        Color.clear.frame(height: 9)
-            TranscriptPicker(model: model)
-                .frame(alignment: .center)
+        ZStack(alignment: .bottom) {
+
             GeometryReader { geometry in
                 ScrollView {
-                    LazyVStack(spacing: Style.Spacing.transcriptEntrySpacing) {
+                    Color.clear.frame(height: 9)
+                    LazyVStack(spacing: Style.Spacing.entry) {
                         if let transcript = model.session.transcript {
                             let records = (Transcript.with(transcript, { $0.entries }) ?? []).filter { entry in
                                 if case .record = entry { true } else { false }
@@ -57,7 +58,7 @@ struct TranscriptSurface: Surface {
 
                             ForEach(records) { entry in
                                 TranscriptEntry(transcript: transcript, entry: entry, model: model)
-                                .frame(maxWidth: Style.Dimension.transcriptMaxWidth)
+                                    .frame(maxWidth: Style.Prose.readableWidth)
                             }
                         }
                     }
@@ -66,7 +67,15 @@ struct TranscriptSurface: Surface {
                 }
                 .defaultScrollAnchor(.bottom, for: .initialOffset)
                 .scrollEdgeEffectStyle(.soft, for: .vertical)
+                .padding(.bottom, 24)
             }
+
+            InputBar(model: model, onSend: {})
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .padding(.horizontal, Style.Spacing.inset)
+                .padding(.bottom, Style.Spacing.inset)
+
+        }
     }
 }
 

@@ -1,3 +1,4 @@
+import ScintComponents
 import SwiftUI
 
 
@@ -8,12 +9,12 @@ struct MaterialRow: Surface {
 
     var body: some View {
         Button { model.open(ref) } label: {
-            HStack(spacing: Style.Spacing.md) {
+            HStack(spacing: Style.Spacing.label) {
                 Iconography.icon(for: ref).frame(width: 18)
                 Text(Card.text(for: ref).name).lineLimit(1)
                 Spacer(minLength: 0)
             }
-            .font(Typography.row)
+            .font(Typography.body)
             .foregroundStyle(Style.Foreground.primary)
             .frame(minHeight: 28)
             .contentShape(Rectangle())
@@ -42,41 +43,41 @@ struct MaterialHeader: Surface {
     @Binding var state: PanelState
 
     var body: some View {
-        HStack(alignment: .center, spacing: Style.Spacing.lg) {
+        HStack(alignment: .center, spacing: Style.Spacing.icon) {
             Button {
-                withAnimation(.smooth(duration: Style.Duration.interaction)) {
+                withAnimation(Style.Motion.disclosure) {
                     if collapsed { state.collapsed.remove(ref) }
                     else { state.collapsed.update(with: ref) }
                 }
             } label: {
-                HStack(alignment: .center, spacing: Style.Spacing.lg) {
+                HStack(alignment: .center, spacing: Style.Spacing.icon) {
                     Image(systemName: "chevron.down")
-                        .foregroundStyle(Style.Foreground.faint)
+                        .foregroundStyle(Style.Foreground.secondary)
                         .font(.system(size: 12, weight: .semibold))
                         .rotationEffect(.degrees(collapsed ? -90 : .zero))
-                        .frame(width: Style.Dimension.control, height: Style.Dimension.control)
+                        .frame(width: Style.Dimension.control(.regular), height: Style.Dimension.control(.regular))
 
-                    if collapsed { Text(title).font(Typography.display) }
+                    if collapsed { Text(title).font(Typography.sectionTitle) }
                 }
             }
             .buttonStyle(.plain)
 
-            if !collapsed { Text(title).font(Typography.cardTitle) }
+            if !collapsed { Text(title).font(Typography.body.weight(.medium)) }
 
             Spacer()
 
             Button { model.session.open(ref) } label: {
                 Image(systemName: "rectangle.righthalf.inset.fill.arrow.right")
-                    .foregroundStyle(Style.Foreground.faint)
+                    .foregroundStyle(Style.Foreground.secondary)
                     .font(.system(size: 12, weight: .semibold))
-                    .frame(width: Style.Dimension.control, height: Style.Dimension.control)
-                    .contentShape(Style.Shape.medium)
+                    .frame(width: Style.Dimension.control(.regular), height: Style.Dimension.control(.regular))
+                    .contentShape(Style.Shape.card)
             }
             .buttonStyle(.plain)
         }
-        .frame(maxWidth: .infinity, maxHeight: Style.Spacing.cardHeight)
-        .padding(.horizontal, Style.Spacing.md)
-        .padding(.vertical, Style.Spacing.sm)
+        .frame(maxWidth: .infinity, maxHeight: Metrics.cardHeight)
+        .padding(.horizontal, Style.Spacing.label)
+        .padding(.vertical, Style.Spacing.detail)
     }
 }
 
@@ -99,13 +100,13 @@ struct MaterialFooter: Surface {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: Style.Spacing.lg) {
+        HStack(alignment: .center, spacing: Style.Spacing.icon) {
             Text(tasks)
         }
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, maxHeight: 32)
         .frame(alignment: .center)
-        .foregroundStyle(Style.Foreground.faint)
+        .foregroundStyle(Style.Foreground.secondary)
         .font(.callout)
     }
 }
@@ -129,10 +130,10 @@ struct MaterialSurface: Surface {
                 }
             })
             .id(ref)
-            .frame(maxWidth: Style.Spacing.contentMaxWidth, alignment: .center)
-            .padding(.horizontal, Style.Spacing.xxl)
-            .padding(.top, Style.Spacing.xxl)
-            .padding(.bottom, Style.Spacing.xxxl)
+            .frame(maxWidth: Style.Prose.readableWidth, alignment: .center)
+            .padding(.horizontal, Style.Spacing.page)
+            .padding(.top, Style.Spacing.page)
+            .padding(.bottom, Style.Spacing.page)
         }
         .scrollEdgeEffectStyle(.soft, for: .top)
         .scrollIndicators(.hidden)
@@ -150,7 +151,7 @@ struct MaterialsSurface: Surface {
 
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: Style.Spacing.xs) {
+            LazyVStack(spacing: Style.Spacing.detail) {
                 ForEach(materials) { ref in
                     MaterialSurface(ref: ref, panel: panel, model: model)
                 }

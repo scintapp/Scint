@@ -163,28 +163,28 @@ struct RuntimeMCPBridge: ScintMCPBridge, @unchecked Sendable {
                 ))
 
             case .composeStart:
-                value = try composition(.start, for: try reference("space", in: arguments) ?? context)
+                value = try compose(.start, for: try reference("space", in: arguments) ?? context)
             case .composeStop:
-                value = try composition(.stop, for: try reference("space", in: arguments) ?? context)
+                value = try compose(.stop, for: try reference("space", in: arguments) ?? context)
             case .composeContext:
                 let space = try reference("space", in: arguments) ?? context
                 guard let current = ContextProvider.compose.context(for: space) else {
                     throw ScintMCPBridgeError.invalidArguments("space has no composition.")
                 }
-                value = composition(current)
+                value = compose(current)
         }
 
         return result(value)
     }
 
-    private func composition(_ activity: ComposeTool.Activity, for space: Reference) throws -> Property {
+    private func compose(_ activity: ComposeTool.Activity, for space: Reference) throws -> Property {
         guard let current = ContextProvider.compose.compose(activity, for: space) else {
             throw ScintMCPBridgeError.invalidArguments("The requested composition transition is unavailable.")
         }
-        return composition(current)
+        return compose(current)
     }
 
-    private func composition(_ value: Composition) -> Property {
+    private func compose(_ value: Composition) -> Property {
         .object([
             "space": .fromCodable(value.space),
             "state": .string(String(describing: value.state))

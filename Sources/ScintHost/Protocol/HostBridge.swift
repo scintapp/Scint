@@ -1,20 +1,20 @@
 import Foundation
 
 
-enum ScintMCPOperation: Sendable, Equatable {
+enum ScintHostOperation: Sendable, Equatable {
     case listTools(cursor: String?)
     case callTool(name: String, arguments: [String: Property])
     case listResources(cursor: String?)
     case readResource(uri: String)
 }
 
-struct ScintMCPBridgeRequest: Sendable, Equatable {
+struct ScintHostRequest: Sendable, Equatable {
     let context: UUID
-    let operation: ScintMCPOperation
+    let operation: ScintHostOperation
 }
 
 protocol ScintMCPBridge: Sendable {
-    func perform(_ request: ScintMCPBridgeRequest) async throws -> [String: Property]
+    func perform(_ request: ScintHostRequest) async throws -> [String: Property]
 }
 
 enum ScintMCPBridgeError: Error, Sendable, Equatable {

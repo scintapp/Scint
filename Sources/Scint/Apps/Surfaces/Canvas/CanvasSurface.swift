@@ -1,4 +1,5 @@
 import Foundation
+import ScintComponents
 import SwiftUI
 
 
@@ -24,6 +25,7 @@ struct CanvasPresentation: View {
             Toggle(isOn: .init(get: { axis == option }, set: { if $0 { axis = option } })) {
                 Image(systemName: option.symbol)
             }
+            .toggleStyle(.button)
         }
     }
 }
@@ -46,10 +48,10 @@ struct CanvasMap: Surface {
         if let scope {
             CanvasControl {
                 Button { presented.toggle() } label: {
-                    HStack(alignment: .center, spacing: Style.Spacing.lg) {
+                    HStack(alignment: .center, spacing: Style.Spacing.icon) {
                         Text(scope.descriptor.name)
                             .font(.system(size: 13.5, weight: .medium))
-                            .lineLimit(Style.Limit.singleLine)
+                            .lineLimit(1)
                     }
                     .padding(.horizontal, 8)
                 }
@@ -59,7 +61,7 @@ struct CanvasMap: Surface {
                     Filter(text: $text)
 
                     if text.isEmpty {
-                        surface.render(surface, SpacesList.parameters(model), SpacesList.controls(model))
+                        surface.render(surface, PathQuery.parameters(model), PathQuery.controls(model))
                     } else if matches.isEmpty {
                         Text("No Matches")
                     } else {
@@ -90,18 +92,23 @@ struct CanvasMap: Surface {
     }
 }
 
+struct GlassControlStyle: ControlGroupStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.content
+    }
+}
+
+
 struct CanvasControl<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        ControlGroup {
-            content
-        }
-        .controlSize(.extraLarge)
-        .controlGroupStyle(.navigation)
-        .glassEffect(.regular.tint(Style.Background.glass.opacity(0.75)), in: Capsule())
-        .foregroundStyle(Style.Foreground.primary, Style.Foreground.faint, Style.Foreground.muted)
-        .tint(Style.Background.control)
+        ControlGroup { content }
+            .controlGroupStyle(.navigation)
+            .controlSize(.extraLarge)
+            .foregroundStyle(Style.Foreground.primary, Style.Foreground.secondary)
+            .tint(Style.Background.selection)
+            .glassEffect(.regular.tint(.black.opacity(0.2)), in: Capsule())
     }
 }
 
@@ -114,12 +121,12 @@ struct CanvasSurface: Surface {
 
     var body: some View {
         Canvas(refs: model.session.bridged, axis: axis, viewport: viewport, onBackground: { model.focus(nil) }) { ref in
-            NodeSurface(ref: ref, panel: panel, model: model)
+            CanvasNodeSurface(ref: ref, panel: panel, model: model)
                 .frame(width: 320)
         }
         .ignoresSafeArea(.container, edges: .trailing)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Style.Background.void)
+        .background(Style.Background.canvas)
         .safeAreaInset(edge: .bottom) {
             HStack(alignment: .bottom) {
                 CanvasMap(panel: panel, model: model)

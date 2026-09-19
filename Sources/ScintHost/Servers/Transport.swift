@@ -1,15 +1,6 @@
 import Foundation
 
 
-/// Newline-delimited stdio transport for MCP messages.
-///
-/// Invariants:
-/// - stdin is read as a sequence of complete newline-delimited JSON messages;
-/// - stdout contains only newline-delimited JSON messages;
-/// - EOF ends input without synthesizing a protocol message.
-///
-/// Non-goals: decoding JSON-RPC, dispatching MCP methods, retaining request
-/// state, or interpreting Scint context.
 struct StdioTransport {
     let input: FileHandle
     let output: FileHandle
@@ -22,7 +13,6 @@ struct StdioTransport {
         self.output = output
     }
 
-    /// Reads the next complete message, or returns `nil` after EOF.
     func read() async throws -> Data? {
         let maximumFrameLength = 16 * 1_024 * 1_024
         var message = Data()

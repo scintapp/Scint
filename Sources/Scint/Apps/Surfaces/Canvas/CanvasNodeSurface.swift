@@ -1,10 +1,11 @@
+import ScintComponents
 import SwiftUI
 import Foundation
 
 
 struct NodeDivider: View {
     var body: some View {
-        Style.Border.node.frame(height: Style.Dimension.border)
+        Style.Border.hairline.frame(height: 1)
     }
 }
 
@@ -23,22 +24,22 @@ struct NodeHeader: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Style.Spacing.md) {
+        VStack(alignment: .leading, spacing: Style.Spacing.label) {
             HStack(spacing: 16) {
                 if let intent { Iconography.icon(for: intent, size: 24) }
 
                 VStack(alignment: .leading) {
                     Text(name)
                         .frame(alignment: .topLeading)
-                        .font(Typography.cardHeading.weight(.semibold))
+                        .font(Typography.lead.weight(.semibold))
                         .foregroundStyle(Style.Foreground.primary)
-                        .lineLimit(Style.Limit.singleLine)
+                        .lineLimit(1)
 
                     Text(intent?.rawValue.capitalized ?? "No Harness")
                         .frame(alignment: .topLeading)
-                        .font(Typography.badge)
-                        .foregroundStyle(Style.Foreground.muted)
-                        .lineLimit(Style.Limit.singleLine)
+                        .font(Typography.detail)
+                        .foregroundStyle(Style.Foreground.secondary)
+                        .lineLimit(1)
                 }
                 .frame(height: 36)
             }
@@ -47,8 +48,8 @@ struct NodeHeader: View {
             Text(description.isEmpty ? "Add a description..." : description)
                 .frame(alignment: .topLeading)
                 .padding(.vertical, 4)
-                .font(Typography.badge)
-                .foregroundStyle(description.isEmpty ? Style.Foreground.faint : Style.Foreground.subtle)
+                .font(Typography.detail)
+                .foregroundStyle(description.isEmpty ? Style.Foreground.secondary : Style.Foreground.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
@@ -63,12 +64,12 @@ struct NodeSection: View {
 
     var body: some View {
         if !materials.isEmpty {
-            VStack(alignment: .leading, spacing: Style.Spacing.sm) {
+            VStack(alignment: .leading, spacing: Style.Spacing.detail) {
                 NodeDivider()
 
                 ForEach(materials) { material in
                     MaterialRow(ref: material, panel: panel, model: model)
-                        .font(Typography.row)
+                        .font(Typography.body)
                         .foregroundStyle(Style.Foreground.primary)
                         .frame(minHeight: 28)
                         .contentShape(Rectangle())
@@ -80,7 +81,7 @@ struct NodeSection: View {
     }
 }
 
-struct NodeSurface: Surface {
+struct CanvasNodeSurface: Surface {
     var ref: Reference
     var panel: any Panel
     var model: any Model
@@ -91,29 +92,29 @@ struct NodeSurface: Surface {
     var transcripts: [Reference] { Space.with(ref, { $0.transcripts }) ?? [] }
 
     var border: Color {
-        guard selected else { return Style.Border.node }
-        return focused ? intent : intent.opacity(Style.Opacity.faint)
+        guard selected else { return Style.Border.hairline }
+        return focused ? intent : intent.opacity(Style.Opacity.outline)
     }
 
     var intent: Color {
         guard let harness = Space.with(ref, { $0 })?.harness, let intent = Harness.with(harness, { $0 })?.intent
                 else { return Iconography.accent(for: ref) }
-        return Iconography.icon(for: intent).tint
+        return Iconography.icon(for: intent).tint.bright
     }
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: Style.Spacing.lg) {
+            VStack(alignment: .leading, spacing: Style.Spacing.heading) {
                 NodeHeader(ref: ref, panel: panel, model: model)
                 NodeSection(ref: ref, panel: panel, model: model)
                 TranscriptMenu(ref: ref, model: model)
             }
             .frame(maxWidth: .infinity, alignment: .top)
             .padding(12)
-            .background { Style.Shape.large.fill(Style.Background.node) }
-            .overlay { Style.Shape.large.stroke(border, lineWidth: 1, antialiased: true) }
-            .clipShape(Style.Shape.large)
-            .contentShape(Style.Shape.large)
+            .background { Style.Shape.panel.fill(Style.Background.surface) }
+            .overlay { Style.Shape.panel.stroke(border, lineWidth: 1, antialiased: true) }
+            .clipShape(Style.Shape.panel)
+            .contentShape(Style.Shape.panel)
             .onTapGesture { model.select(ref) }
         }
     }
