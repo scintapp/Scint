@@ -10,7 +10,7 @@ struct TranscriptEntry: View {
 
     var input: String? {
         switch entry {
-            case .record(let chunk, _) where chunk.origin.type == Document.self:
+            case .record(let chunk, _) where chunk.origin.type == ScintRuntime.Document.self:
                 chunk.value.rendered.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
             default:
                 nil
@@ -82,7 +82,7 @@ struct TranscriptEntry: View {
         }
         .font(Typography.body)
         .foregroundStyle(Style.Foreground.primary)
-        .lineSpacing(Style.Prose.lineSpacing)
+        .lineSpacing(Typography.Prose.lineSpacing)
         .textSelection(.enabled)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .trailing)

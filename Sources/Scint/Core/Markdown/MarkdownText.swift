@@ -23,7 +23,7 @@ struct MarkdownText: NSViewRepresentable {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: MarkdownTextView, context: Self.Context) -> CGSize? {
-        nsView.measure(proposal.width ?? Style.Prose.readableWidth, hugs: hugs)
+        nsView.measure(proposal.width ?? Typography.Prose.readableWidth, hugs: hugs)
     }
 }
 
@@ -49,7 +49,7 @@ final class MarkdownTextView: NSTextView {
         isRichText = true
         isVerticallyResizable = false
         isHorizontallyResizable = false
-        textContainerInset = NSSize(width: 0, height: Style.Prose.textInset)
+        textContainerInset = NSSize(width: 0, height: Typography.Prose.textInset)
         markdownContainer.lineFragmentPadding = .zero
         markdownContainer.widthTracksTextView = true
         linkTextAttributes = [
@@ -104,7 +104,7 @@ final class MarkdownTextView: NSTextView {
                     let baseline = fragment.minY + self.markdownLayout.location(forGlyphAt: run.location).y
                     self.markdownLayout.enumerateEnclosingRects(forGlyphRange: run, withinSelectedGlyphRange: NSRange(location: NSNotFound, length: 0), in: self.markdownContainer) { rect, _ in
                         let chip = CGRect(x: rect.minX, y: baseline - font.ascender, width: rect.width, height: font.ascender - font.descender)
-                        MarkdownDecoration.code(chip.offsetBy(dx: self.textContainerOrigin.x, dy: self.textContainerOrigin.y).insetBy(dx: 0, dy: -Style.Prose.textInset))
+                        MarkdownDecoration.code(chip.offsetBy(dx: self.textContainerOrigin.x, dy: self.textContainerOrigin.y).insetBy(dx: 0, dy: -Typography.Prose.textInset))
                     }
                 }
             }
@@ -122,11 +122,11 @@ final class MarkdownTextView: NSTextView {
 
 enum MarkdownDecoration {
     static func code(_ rect: CGRect) {
-        let path = NSBezierPath(roundedRect: rect, xRadius: Style.Prose.codeRadius, yRadius: Style.Prose.codeRadius)
+        let path = NSBezierPath(roundedRect: rect, xRadius: Typography.Prose.codeRadius, yRadius: Typography.Prose.codeRadius)
         NSColor(Style.Background.surface).setFill()
         path.fill()
-        NSColor(Style.Border.hairline).setStroke()
-        path.lineWidth = 1
+        NSColor(Style.Border.panel).setStroke()
+        path.lineWidth = 0.75
         path.stroke()
     }
 }

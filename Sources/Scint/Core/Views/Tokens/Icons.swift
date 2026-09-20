@@ -14,14 +14,14 @@ import ScintComponents
             case is Harness.Type: .harness(intent(of: ref))
             case is Command.Type: .command()
             case is Bridge.Type: .bridge
-            case is Document.Type: .document
+            case is ScintRuntime.Document.Type: .document
             case is Transcript.Type: .transcript
             case is Closure.Type: .closure
             default: .space()
         }
     }
 
-    static func model(for block: Document.Block) -> Model {
+    static func model(for block: ScintRuntime.Document.Block) -> Model {
         switch block {
             case .artifact(let ref), .command(let ref), .document(let ref): model(for: ref)
             case .text: .text
@@ -47,7 +47,7 @@ import ScintComponents
     }
 
     static func icon(for ref: Reference, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: ref), size: size) }
-    static func icon(for block: Document.Block, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: block), size: size) }
+    static func icon(for block: ScintRuntime.Document.Block, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: block), size: size) }
     static func icon(for entry: Transcript.Entry, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: entry), size: size) }
     static func icon(for intent: ScintRuntimeIntent, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(.harness(iconography(intent)), size: size) }
 

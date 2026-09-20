@@ -13,7 +13,7 @@ public struct MarkdownTable: View {
             grid
 
             ScrollView(.horizontal) {
-                grid.frame(width: CGFloat(alignments.count) * Style.Prose.tableColumnWidth)
+                grid.frame(width: CGFloat(alignments.count) * Typography.Prose.tableColumnWidth)
             }
             .fixedSize(horizontal: false, vertical: true)
         }
@@ -32,8 +32,8 @@ public struct MarkdownTable: View {
                         reasoning: reasoning,
                         alignment: alignment(alignments[column])
                     )
-                    .padding(.horizontal, Style.Prose.tableCellPadding.leading)
-                    .padding(.vertical, Style.Prose.tableCellPadding.top)
+                    .padding(.horizontal, Typography.Prose.tableCellPadding.leading)
+                    .padding(.vertical, Typography.Prose.tableCellPadding.top)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .background(row == 0 ? Style.Background.surface : Style.Background.surface)
                     .overlay(Rectangle().strokeBorder(Style.Border.hairline))
@@ -57,7 +57,7 @@ public struct MarkdownTableLayout: SwiftUI.Layout {
 
     private func dimensions(_ proposal: ProposedViewSize, _ subviews: Subviews) -> (width: CGFloat, heights: [CGFloat]) {
         let count = max(1, columns)
-        let width = proposal.width ?? CGFloat(count) * Style.Prose.tableColumnWidth
+        let width = proposal.width ?? CGFloat(count) * Typography.Prose.tableColumnWidth
         var heights: [CGFloat] = []
         for index in stride(from: 0, to: subviews.count, by: count) {
             let height = subviews[index..<min(index + count, subviews.count)].map {

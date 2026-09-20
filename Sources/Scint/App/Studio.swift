@@ -1,16 +1,15 @@
 import SwiftUI
+import ScintComponents
 
 
 @Observable @MainActor final class StudioModel: Model {
     var content: ContentPanel
-    var editor: EditorPanel
     var inspector: InspectorPanel
     var navigator: NavigatorPanel
     var session: Session
 
     init(_ session: Session) {
         self.content = .init()
-        self.editor = .init()
         self.inspector = .init()
         self.navigator = .init()
         self.session = session
@@ -58,6 +57,7 @@ struct Studio: View {
         }
         .inspector(isPresented: model.inspector.bindable.presented) {
             model.inspector.surface(model)
+                .background(Style.Background.canvas)
                 .inspectorColumnWidth(min: 240, ideal: 320, max: 480)
                 .ignoresSafeArea(.all, edges: .top)
         }

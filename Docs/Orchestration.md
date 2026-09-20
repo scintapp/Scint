@@ -8,8 +8,6 @@ the design depends on), **Open** (a decision not yet made).
 Source: working notes in `Orchestration and Composition.md`, checked against the
 code on 2026-09-14.
 
----
-
 ## 1. Thesis
 
 Scint builds **clusters**: a handful of spaces joined in a process tree that behaves,
@@ -23,8 +21,6 @@ can see what) and leaves flow to the agents working inside it. That keeps a clus
 small enough to understand and judge.
 
 The canvas exists to design, tune, and refine these constructs.
-
----
 
 ## 2. Vocabulary
 

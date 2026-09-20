@@ -70,10 +70,6 @@ struct GroupRow<Leading: View, Trailing: View>: View {
         )
     }
 
-    // `groupHeight` is what separates the two kinds of row that share this view. A group row states
-    // one, and takes the settings dressing: a tall leading box, inset edges, full-size controls. A
-    // list row, a menu row and a panel row state none, size themselves, and are left bare — they
-    // bring their own metrics and the dressing would swallow them.
     private var dressed: Bool { groupHeight != nil }
 
     var body: some View {
@@ -126,10 +122,10 @@ struct GroupHeader: View {
         let explanation = harness?.descriptor.description ?? ""
 
         VStack(alignment: .leading, spacing: Style.Spacing.label) {
-            HStack(alignment: .center, spacing: Style.Spacing.label) {
+            HStack(alignment: .center) {
                 Iconography.icon(for: harness ?? ref, size: 18)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading) {
                     Text(harness?.descriptor.name ?? "No harness")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Style.Foreground.primary)
@@ -141,6 +137,8 @@ struct GroupHeader: View {
                         .lineLimit(1)
                 }
             }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
 
             GroupDivider()
 

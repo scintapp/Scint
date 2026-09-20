@@ -114,8 +114,6 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         return max(font.ascender - font.descender + Typography.Prose.paragraphStyle.paragraphSpacing, textLayout.usageBoundsForTextContainer.maxY)
     }
 
-    // MARK: Editing
-
     func replace(_ range: NSRange, with text: String) {
         replace(range, with: NSAttributedString(string: text, attributes: typingAttributes))
     }

@@ -28,7 +28,7 @@ import SwiftUI
         return SearchMenu.search(for: query) { block(for: $0) != nil }
     }
 
-    static func blocks(for outcome: MenuOutcome) -> [Document.Block] {
+    static func blocks(for outcome: MenuOutcome) -> [ScintRuntime.Document.Block] {
         switch outcome.choice {
             case .item(let item):
                 if let ref = item.ref { return block(for: ref).map { [$0] } ?? [] }
@@ -49,17 +49,17 @@ import SwiftUI
         }
     }
 
-    nonisolated static func block(for ref: Reference) -> Document.Block? {
+    nonisolated static func block(for ref: Reference) -> ScintRuntime.Document.Block? {
         switch ref.type {
             case is Artifact.Type: return .artifact(ref)
             case is Command.Type: return .command(ref)
-            case is Document.Type: return .document(ref)
+            case is ScintRuntime.Document.Type: return .document(ref)
             default: return nil
         }
     }
 
     /// Markdown prefixes are text, so they splice into the block the trigger came from.
-    private static func stamp(_ command: String) -> [Document.Block] {
+    private static func stamp(_ command: String) -> [ScintRuntime.Document.Block] {
         switch command {
             case "heading-1": return [.text(UUID(), "# ")]
             case "heading-2": return [.text(UUID(), "## ")]
@@ -74,7 +74,7 @@ import SwiftUI
         }
     }
 
-    private static func files() -> [Document.Block] {
+    private static func files() -> [ScintRuntime.Document.Block] {
         let panel = NSOpenPanel()
         panel.title = "Add Files or Folders"
         panel.prompt = "Add"

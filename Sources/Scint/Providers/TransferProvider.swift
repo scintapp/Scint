@@ -125,7 +125,7 @@ enum ReferenceTransfer {
             case is Space.Type: Space.with(ref, { _ in true }) == true
             case is Closure.Type: Closure.with(ref, { _ in true }) == true
             case is Bridge.Type: Bridge.with(ref, { _ in true }) == true
-            case is Document.Type: Document.with(ref, { _ in true }) == true
+            case is ScintRuntime.Document.Type: Document.with(ref, { _ in true }) == true
             case is Transcript.Type: Transcript.with(ref, { _ in true }) == true
             case is Artifact.Type: Artifact.with(ref, { _ in true }) == true
             case is Command.Type: Command.with(ref, { _ in true }) == true
@@ -215,7 +215,7 @@ enum ReferenceTransfer {
     private static func type(for ref: Reference) -> UTType? {
         switch ref.type {
             case is Space.Type: .space
-            case is Document.Type: .document
+            case is ScintRuntime.Document.Type: .document
             case is Artifact.Type: .artifact
             case is Command.Type: .control
             case is Harness.Type: .service

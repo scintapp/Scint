@@ -19,7 +19,7 @@ struct DocumentsGroup: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        func item(for block: Scint.Document.Block, origin: Reference) -> ItemParams {
+        func item(for block: ScintRuntime.Document.Block, origin: Reference) -> ItemParams {
             let icon = Iconography.icon(for: block)
 
             switch block {
@@ -76,7 +76,7 @@ struct DocumentsGroup: Query {
             }
         }
 
-        guard case .content(let document) = model.session.focus, document.type is Document.Type
+        guard case .content(let document) = model.session.focus, document.type is ScintRuntime.Document.Type
                 else { return .init(layout: .group) }
         let items = Document.with(document, { value in value.blocks.map { item(for: $0, origin: document) } }) ?? []
 

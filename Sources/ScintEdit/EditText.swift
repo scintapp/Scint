@@ -40,7 +40,7 @@ final class EditTextView: NSTextView {
     required init?(coder: NSCoder) { nil }
 
     private func configure() {
-        container.widthTracksTextView = true
+        container.widthTracksTextView = false
         container.heightTracksTextView = false
         container.lineFragmentPadding = 0
         isEditable = true
@@ -52,7 +52,7 @@ final class EditTextView: NSTextView {
         autoresizingMask = [.width]
         drawsBackground = false
         wantsLayer = false
-        textContainerInset = NSSize(width: 0, height: Style.Spacing.detail)
+        textContainerInset = NSSize(width: Typography.Prose.codeInset, height: Style.Spacing.detail)
         minSize = NSSize(width: 0, height: lineHeight)
         maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         isAutomaticQuoteSubstitutionEnabled = false
@@ -107,10 +107,10 @@ final class EditTextView: NSTextView {
     /// The surface's own text changed: report it, then restyle around the caret.
     func edited() {
         guard !isRestyling else { return }
+        // The AppKit edit is finished; report its value and nothing else. No trigger
+        // detection, no restyle, no block mutation from inside the notification.
         _ = onEvent(.changed(string))
-        report(detect())
         entry = nil
-        apply(string, selection: selectedRange())
     }
 
     /// The caret moved. A trigger is only re-read while one is already live, so putting
@@ -142,7 +142,6 @@ final class EditTextView: NSTextView {
         typingAttributes = Self.styler.baseAttributes
         isRestyling = false
 
-        invalidateIntrinsicContentSize()
         needsDisplay = true
     }
 
@@ -186,13 +185,17 @@ final class EditTextView: NSTextView {
 
     // MARK: Keys
 
-    /// The keys this surface hands up: a newline, a delete that would reach past the
-    /// start, escape, and the caret leaving by an edge. While deferring, every vertical
-    /// key is an exit, because the host is driving something with them.
+    /// The keys this surface hands up: a delete that would reach past the start, escape,
+    /// and the caret leaving by an edge. While deferring, Return goes up too and every
+    /// vertical key is an exit, because the host is driving something with them.
     func handle(_ selector: Selector) -> Bool {
         switch selector {
             case #selector(insertNewline(_:)):
-                return onEvent(.newline(selectedRange().location))
+                // A newline is text and stays in the block — unless the host asked for
+                // the key, in which case what it is doing with it is not this surface's
+                // business.
+                guard defers else { return false }
+                return onEvent(.newline)
 
             case #selector(cancelOperation(_:)):
                 return onEvent(.escape)
@@ -239,6 +242,111 @@ final class EditTextView: NSTextView {
         return abs(caret.midY - boundary.midY) < max(caret.height, boundary.height) / 2
     }
 
+    // MARK: Decorations
+
+    /// `Styler` hides the markdown it stands in for — list markers, quote markers,
+    /// fences — and reserves the room. Filling that room is the other half of the job,
+    /// and without it the syntax is gone and nothing has replaced it.
+    override func draw(_ dirtyRect: NSRect) {
+        let source = string as NSString
+
+        for span in markdown.spans where span.kind == .inlineCode {
+            for rect in frames(for: span.range) {
+                MarkdownDecoration.code(
+                    rect.insetBy(dx: -Typography.Prose.codeChipPadding, dy: -Typography.Prose.codeChipPadding)
+                )
+            }
+        }
+
+        // Across the whole view, not the text container: the inset either side is the
+        // room the box is meant to occupy.
+        for rect in runs(of: .codeBlock) {
+            MarkdownDecoration.code(
+                CGRect(x: 0, y: rect.minY, width: bounds.width, height: rect.height)
+                    .insetBy(dx: 0, dy: -Typography.Prose.codeBlockPadding)
+            )
+        }
+
+        Self.styler.theme.bulletColor.setFill()
+        let bar = textContainerOrigin.x + Typography.Prose.listInset
+        + (Typography.Prose.markerWidth - Typography.Prose.quoteBarWidth) / 2
+        for rect in runs(of: .quote) {
+            CGRect(x: bar, y: rect.minY, width: Typography.Prose.quoteBarWidth, height: rect.height).fill()
+        }
+
+        for (index, block) in markdown.blocks.enumerated() where block.kind == .bullet || block.kind == .numbered {
+            guard let line = frames(for: block.range).first else { continue }
+            let gutter = CGRect(
+                x: textContainerOrigin.x + Self.styler.listIndent(for: block),
+                y: line.minY,
+                width: Typography.Prose.markerWidth,
+                height: line.height
+            )
+            if block.kind == .bullet {
+                let size = Typography.Prose.bulletSize
+                NSBezierPath(ovalIn: CGRect(x: gutter.midX - size / 2, y: gutter.midY - size / 2, width: size, height: size)).fill()
+            } else {
+                ("\(ordinal(at: index))." as NSString).draw(
+                    at: gutter.origin,
+                    withAttributes: [.font: Self.styler.theme.baseFont, .foregroundColor: Self.styler.theme.bulletColor]
+                )
+            }
+        }
+
+        super.draw(dirtyRect)
+    }
+
+    private func textRange(_ range: NSRange) -> NSTextRange? {
+        guard let start = content.location(content.documentRange.location, offsetBy: range.location),
+              let end = content.location(start, offsetBy: range.length)
+                else { return nil }
+        return NSTextRange(location: start, end: end)
+    }
+
+    private func frames(for range: NSRange) -> [CGRect] {
+        guard let range = textRange(range) else { return [] }
+        var frames: [CGRect] = []
+        layout.enumerateTextSegments(in: range, type: .standard, options: [.rangeNotRequired]) { _, frame, _, _ in
+            frames.append(frame.offsetBy(dx: self.textContainerOrigin.x, dy: self.textContainerOrigin.y))
+            return true
+        }
+        return frames
+    }
+
+    /// Consecutive lines of one kind, unioned into a single rect per run.
+    private func runs(of kind: Markdown.BlockKind) -> [CGRect] {
+        var rects: [CGRect] = []
+        var previous = -2
+        let length = (string as NSString).length
+        for (index, block) in markdown.blocks.enumerated() where block.kind == kind {
+            let span = NSRange(
+                location: block.range.location,
+                length: min(block.range.length + 1, length - block.range.location)
+            )
+            let lines = frames(for: span)
+            guard let first = lines.first else { continue }
+            let rect = lines.reduce(first) { $0.union($1) }
+            if index == previous + 1, let last = rects.popLast() { rects.append(last.union(rect)) }
+            else { rects.append(rect) }
+            previous = index
+        }
+        return rects
+    }
+
+    /// Counts back through items at the same depth, skipping deeper ones, until the list
+    /// changes.
+    private func ordinal(at index: Int) -> Int {
+        let depth = markdown.blocks[index].depth
+        var ordinal = 1
+        for block in markdown.blocks[..<index].reversed() {
+            guard block.kind.isList, block.depth >= depth else { break }
+            guard block.depth == depth else { continue }
+            guard block.kind == .numbered else { break }
+            ordinal += 1
+        }
+        return ordinal
+    }
+
     // MARK: Links
 
     override func mouseDown(with event: NSEvent) {
@@ -267,27 +375,16 @@ final class EditTextView: NSTextView {
         return ceil(font.ascender - font.descender + font.leading)
     }
 
-    func measuredHeight(for width: CGFloat) -> CGFloat {
-        let target = max(width, 1)
-        if container.containerSize.width != target {
-            container.containerSize = NSSize(width: target, height: CGFloat.greatestFiniteMagnitude)
+    /// Measured at the width the host proposes, never at `bounds`, which is zero on the
+    /// first pass and would lay the text out one point wide.
+    func height(for width: CGFloat) -> CGFloat {
+        let textWidth = max(0, width - textContainerInset.width * 2)
+        if abs(container.size.width - textWidth) > 0.5 {
+            container.size = CGSize(width: textWidth, height: CGFloat.greatestFiniteMagnitude)
         }
-        layout.ensureLayout(for: CGRect(origin: .zero, size: CGSize(width: target, height: CGFloat.greatestFiniteMagnitude)))
+        layout.ensureLayout(for: layout.documentRange)
         let inset = textContainerInset.height * 2
         return max(ceil(layout.usageBoundsForTextContainer.height) + inset, lineHeight + inset)
-    }
-
-    override var intrinsicContentSize: NSSize {
-        NSSize(width: NSView.noIntrinsicMetric, height: measuredHeight(for: bounds.width))
-    }
-
-    override func setFrameSize(_ newSize: NSSize) {
-        super.setFrameSize(newSize)
-        if container.containerSize.width != newSize.width {
-            container.containerSize = NSSize(width: newSize.width, height: CGFloat.greatestFiniteMagnitude)
-        }
-        invalidateIntrinsicContentSize()
-        needsDisplay = true
     }
 }
 
@@ -313,6 +410,13 @@ struct EditText: NSViewRepresentable {
         apply(to: view, coordinator: context.coordinator)
     }
 
+    /// SwiftUI probes with unspecified and infinite widths; measuring at those tells it
+    /// nothing and makes the block jump on the pass after.
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView view: EditTextView, context: Self.Context) -> CGSize? {
+        guard let width = proposal.width, width.isFinite, width > 0 else { return nil }
+        return CGSize(width: width, height: view.height(for: width))
+    }
+
     private func apply(to view: EditTextView, coordinator: Coordinator) {
         view.onEvent = onEvent
         view.defers = defers
@@ -327,22 +431,46 @@ struct EditText: NSViewRepresentable {
 
         coordinator.wantsFocus = isFocused
         guard isFocused else {
+            coordinator.cancelFocusRequest()
             coordinator.entry = nil
             if view.window?.firstResponder === view { view.window?.makeFirstResponder(nil) }
             return
         }
+
+        coordinator.focusGeneration += 1
+        let generation = coordinator.focusGeneration
+
         // AppKit first responder and SwiftUI focus settle in different passes, so the
         // claim is made after this one and re-checked in case it went stale.
-        DispatchQueue.main.async {
-            guard coordinator.wantsFocus, view.window?.firstResponder !== view else { return }
+        DispatchQueue.main.async { [weak view, weak coordinator] in
+            guard let view, let coordinator,
+                  coordinator.wantsFocus,
+                  coordinator.focusGeneration == generation,
+                  view.superview != nil,
+                  view.window?.firstResponder !== view
+                    else { return }
             view.window?.makeFirstResponder(view)
         }
+    }
+
+    static func dismantleNSView(_ view: EditTextView, coordinator: Coordinator) {
+        coordinator.cancelFocusRequest()
+        coordinator.entry = nil
+        coordinator.view = nil
+        view.delegate = nil
+        view.onEvent = { _ in false }
     }
 
     @MainActor final class Coordinator: NSObject, NSTextViewDelegate {
         weak var view: EditTextView?
         var wantsFocus = false
         var entry: EditEdge?
+        var focusGeneration = 0
+
+        func cancelFocusRequest() {
+            focusGeneration += 1
+            wantsFocus = false
+        }
 
         func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
             view?.handle(selector) ?? false

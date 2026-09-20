@@ -25,7 +25,7 @@ enum EditEvent {
     case focused
     case changed(String)
     case trigger(EditTrigger?)
-    case newline(Int)
+    case newline
     case deleteAtStart
     case escape
     case exit(EditEdge)

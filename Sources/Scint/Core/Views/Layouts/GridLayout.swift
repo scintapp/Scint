@@ -21,7 +21,7 @@ enum GridItemRole: Equatable {
     init(_ ref: Reference?) {
         switch ref?.type {
             case is Space.Type: self = .space
-            case is Document.Type: self = ref.map(Self.document) ?? .item
+            case is ScintRuntime.Document.Type: self = ref.map(Self.document) ?? .item
             default: self = .item
         }
     }
@@ -94,7 +94,7 @@ struct GridIcon: View {
     }
 
     @ViewBuilder var glyph: some View {
-        if let ref, ref.type is Document.Type {
+        if let ref, ref.type is ScintRuntime.Document.Type {
             DocumentGlyph(ref: ref)
         } else if let ref {
             spaceGlyph(ref)
@@ -188,7 +188,7 @@ struct GridIcon: View {
                 return []
         }
 
-        let documents = contents.1.flatMap { Closure.with($0, { $0.content.filter { $0.type is Document.Type } }) } ?? []
+        let documents = contents.1.flatMap { Closure.with($0, { $0.content.filter { $0.type is ScintRuntime.Document.Type } }) } ?? []
         return contents.0 + documents
     }
 }

@@ -20,14 +20,12 @@ extension ScintEditor {
         return frames
     }
 
-    /// The characters laid out in `rect`. TextKit's viewport goes stale inside an outer SwiftUI scroll view.
     private func characters(in rect: CGRect) -> NSRange {
         let top = textLayout.textLayoutFragment(for: CGPoint(x: 0, y: rect.minY - textContainerOrigin.y))?.rangeInElement.location ?? content.documentRange.location
         let bottom = textLayout.textLayoutFragment(for: CGPoint(x: 0, y: rect.maxY - textContainerOrigin.y))?.rangeInElement.endLocation ?? content.documentRange.endLocation
         return NSRange(location: content.offset(from: content.documentRange.location, to: top), length: max(0, content.offset(from: top, to: bottom)))
     }
 
-    // Decorations are drawn under the text, for the dirty lines only.
     override func draw(_ dirtyRect: NSRect) {
         let visible = characters(in: dirtyRect), source = string as NSString, selected = selectedLink
         func shows(_ range: NSRange) -> Bool { NSIntersectionRange(range, visible).length > 0 || NSLocationInRange(range.location, visible) }
@@ -40,13 +38,13 @@ extension ScintEditor {
         }
         styler.theme.bulletColor.setFill()
         for rect in runs(of: .quote, where: shows) {
-            CGRect(x: textContainerOrigin.x, y: rect.minY, width: Style.Prose.quoteBarWidth, height: rect.height).fill()
+            CGRect(x: textContainerOrigin.x, y: rect.minY, width: Typography.Prose.quoteBarWidth, height: rect.height).fill()
         }
         for (index, block) in document.blocks.enumerated() where (block.kind == .bullet || block.kind == .numbered) && shows(block.range) {
             guard let line = frames(for: block.range).first else { continue }
             let gutter = CGRect(x: textContainerOrigin.x + styler.listIndent(for: block), y: line.minY, width: styler.gutter(for: block, in: source), height: line.height)
             if block.kind == .bullet {
-                let size = Style.Prose.bulletSize
+                let size = Typography.Prose.bulletSize
                 NSBezierPath(ovalIn: CGRect(x: gutter.midX - size / 2, y: gutter.midY - size / 2, width: size, height: size)).fill()
             } else {
                 ("\(ordinal(at: index))." as NSString).draw(at: gutter.origin, withAttributes: [.font: styler.theme.baseFont, .foregroundColor: styler.theme.bulletColor])
@@ -58,7 +56,6 @@ extension ScintEditor {
             (isSelected ? NSColor.selectedTextBackgroundColor : styler.theme.codeBgColor).setFill()
             for rect in frames(for: link.label) { NSBezierPath(roundedRect: rect.insetBy(dx: -2, dy: -1), xRadius: 4, yRadius: 4).fill() }
         }
-        // Cards and overlays show their own selection, so the highlight skips them.
         if selected == nil {
             (window?.isKeyWindow == true && window?.firstResponder === self ? NSColor.selectedTextBackgroundColor : .unemphasizedSelectedTextBackgroundColor).setFill()
             for range in highlighted(selectedRange()) where shows(range) {
@@ -66,12 +63,17 @@ extension ScintEditor {
             }
         }
         if let origin = placeholderOrigin {
-            ("Press ‘/’ for commands" as NSString).draw(at: origin, withAttributes: [.font: styler.theme.baseFont, .foregroundColor: NSColor.placeholderTextColor])
+            ("Press ‘/’ for commands" as NSString).draw(
+                at: origin,
+                withAttributes: [
+                    .font: styler.theme.baseFont,
+                    .foregroundColor: NSColor(Color(red: 0.2902, green: 0.29804, blue: 0.31765))
+                ]
+            )
         }
         super.draw(dirtyRect)
     }
 
-    /// An empty line holding the caret shows a hint where its text would start.
     private var placeholderOrigin: CGPoint? {
         let selection = selectedRange(), source = string as NSString
         guard window?.firstResponder === self, selection.length == 0, !hasMarkedText(), !menuController.isOpen else { return nil }
@@ -79,7 +81,6 @@ extension ScintEditor {
         return frames(for: selection, type: .selection).first?.origin
     }
 
-    /// Consecutive lines of one kind, each run as a single rect over all of its laid-out lines.
     private func runs(of kind: Markdown.BlockKind, where shows: (NSRange) -> Bool) -> [CGRect] {
         var rects: [CGRect] = [], previous = -2
         for (index, block) in document.blocks.enumerated() where block.kind == kind && shows(block.range) {
@@ -134,11 +135,23 @@ extension ScintEditor {
             if overlays[key] == nil { overlays[key] = overlay; addSubview(overlay) } else { overlay.rootView = root }
             overlay.reserved = overlay.height(at: container.size.width)
             storage.addAttributes([.font: Typography.Prose.hiddenSyntax, .foregroundColor: NSColor.clear], range: range)
-            for (index, line) in document.blocks.filter({ NSIntersectionRange($0.range, range).length > 0 }).enumerated() {
+            // The overlay's own height is the whole of the component's room. Every
+            // hidden source line beneath it must contribute nothing — including line
+            // spacing, which `maximumLineHeight` does not clamp — and the last line
+            // owns the gap to whatever follows, the way any other block does.
+            let lines = document.blocks.filter { NSIntersectionRange($0.range, range).length > 0 }
+            for (index, line) in lines.enumerated() {
                 let paragraph = NSMutableParagraphStyle()
                 paragraph.setParagraphStyle(Typography.Prose.paragraphStyle)
-                if index == 0 { paragraph.minimumLineHeight = overlay.reserved }
-                else { paragraph.maximumLineHeight = Typography.Prose.hiddenSyntax.pointSize; paragraph.paragraphSpacing = 0 }
+                paragraph.lineSpacing = 0
+                paragraph.paragraphSpacingBefore = 0
+                paragraph.paragraphSpacing = index == lines.count - 1 ? Typography.Prose.blockSpacing : 0
+                if index == 0 {
+                    paragraph.minimumLineHeight = overlay.reserved
+                } else {
+                    paragraph.minimumLineHeight = 0
+                    paragraph.maximumLineHeight = Typography.Prose.hiddenSyntax.pointSize
+                }
                 storage.addAttribute(.paragraphStyle, value: paragraph, range: NSIntersectionRange(line.range, range))
             }
         }

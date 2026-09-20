@@ -24,11 +24,11 @@ struct TranscriptContent: Surface {
 
                     ForEach(records) { entry in
                         TranscriptEntry(transcript: transcript, entry: entry, model: model)
-                            .frame(maxWidth: Style.Prose.readableWidth)
+                            .frame(maxWidth: Typography.Prose.readableWidth)
                     }
                 }
             }
-            .frame(maxWidth: Style.Prose.readableWidth, maxHeight: .infinity, alignment: .top)
+            .frame(maxWidth: Typography.Prose.readableWidth, maxHeight: .infinity, alignment: .top)
             .padding(8)
         }
         .defaultScrollAnchor(.bottom, for: .initialOffset)

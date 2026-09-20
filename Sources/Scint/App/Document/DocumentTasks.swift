@@ -7,7 +7,7 @@ struct TaskItem: View {
     var panel: any Panel
     var model: any Model
     var ref: Reference
-    var task: Document.Block
+    var task: ScintRuntime.Document.Block
 
     var body: some View {
         if case .task(_, let text, let completed) = task {
@@ -19,7 +19,7 @@ struct TaskItem: View {
                         .font(.system(size: 14, weight: .regular))
                         .foregroundStyle(completed ? Style.Foreground.secondary : Style.Foreground.primary)
                         .strikethrough(completed, color: Style.Foreground.tertiary)
-                        .lineSpacing(Style.Prose.lineSpacing)
+                        .lineSpacing(Typography.Prose.lineSpacing)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: .zero)
@@ -88,13 +88,13 @@ struct TasksSection: Surface {
     var ref: Reference
     var showsCompleted: Bool
 
-    var allTasks: [Document.Block] {
+    var allTasks: [ScintRuntime.Document.Block] {
         Document.with(ref) { document in
             document.blocks.filter { if case .task = $0 { true } else { false } }
         } ?? []
     }
 
-    var tasks: [Document.Block] {
+    var tasks: [ScintRuntime.Document.Block] {
         guard !showsCompleted else { return allTasks }
         return allTasks.filter { if case .task(_, _, false) = $0 { true } else { false } }
     }
@@ -156,7 +156,7 @@ struct DocumentTasks: Surface {
         ?? []
     }
 
-    var tasks: [Document.Block] {
+    var tasks: [ScintRuntime.Document.Block] {
         refs.flatMap { document in
             Document.with(document) { document in
                 document.blocks.filter { if case .task = $0 { true } else { false } }
@@ -168,7 +168,7 @@ struct DocumentTasks: Surface {
         tasks.filter { if case .task(_, _, true) = $0 { true } else { false } }.count
     }
 
-    var visibleTasks: [Document.Block] {
+    var visibleTasks: [ScintRuntime.Document.Block] {
         guard !showsCompleted else { return tasks }
         return tasks.filter { if case .task(_, _, false) = $0 { true } else { false } }
     }

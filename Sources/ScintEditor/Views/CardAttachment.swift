@@ -3,10 +3,8 @@ import SwiftUI
 import ScintRuntime
 
 
-typealias Document = ScintRuntime.Document
-
 final class CardAttachment: NSTextAttachment {
-    let block: Document.Block
+    let block: ScintRuntime.Document.Block
     @MainActor weak var view: CardView?
     @MainActor var isSelected = false { didSet { if isSelected != oldValue { view?.rootView = DocumentBlock(block: block, isSelected: isSelected) } } }
 
@@ -17,7 +15,7 @@ final class CardAttachment: NSTextAttachment {
         }
     }
 
-    init(_ block: Document.Block) {
+    init(_ block: ScintRuntime.Document.Block) {
         self.block = block
         super.init(data: nil, ofType: nil)
     }

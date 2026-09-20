@@ -53,7 +53,7 @@ struct NavigatorPicker: View {
                     ToolbarItem(placement: .automatic) { CanvasToggle() }
                 }
             Rectangle()
-                .fill(Style.Border.hairline)
+                .fill(Style.Border.panel)
                 .ignoresSafeArea()
                 .frame(maxWidth: 1, maxHeight: .infinity, alignment: .trailing)
         }

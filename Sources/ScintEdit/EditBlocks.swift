@@ -41,21 +41,6 @@ enum EditBlocks {
         } ?? false
     }
 
-    /// Splits a text block, returning the new trailing block's id.
-    static func split(_ ref: Reference, at index: Int, offset: Int) -> AnyHashable? {
-        Document.update(ref) { document -> AnyHashable? in
-            guard document.blocks.indices.contains(index),
-                  case .text(let id, let text) = document.blocks[index]
-            else { return nil }
-            let source = text as NSString
-            let cut = min(max(offset, 0), source.length)
-            let trailing = UUID()
-            document.update(.text(id, source.substring(to: cut)), at: index)
-            document.insert(.text(trailing, source.substring(from: cut)), at: index + 1)
-            return trailing
-        } ?? nil
-    }
-
     /// Merges a text block into the text block before it.
     static func mergeBackward(_ ref: Reference, at index: Int) -> Landing? {
         Document.update(ref) { document -> Landing? in

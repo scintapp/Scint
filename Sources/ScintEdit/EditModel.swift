@@ -52,6 +52,7 @@ import ScintRuntime
     func handle(_ event: EditEvent, from id: AnyHashable) -> Bool {
         switch event {
             case .focused:
+                guard block(id) != nil else { return false }
                 onFocus()
                 took(id)
                 // The surface owns its caret from here.
@@ -67,8 +68,8 @@ import ScintRuntime
                 sync(trigger)
                 return true
 
-            case .newline(let offset):
-                if menu.isOpen { commitMenu() } else { insertNewline(in: id, at: offset) }
+            case .newline:
+                if menu.isOpen { commitMenu() } else { insertBelow(id) }
                 return true
 
             case .deleteAtStart:
@@ -123,15 +124,11 @@ import ScintRuntime
 
     // MARK: Structure
 
-    /// Return splits a text block at the caret. On anything else it opens a new paragraph
-    /// directly below that block, not wherever the next one happens to be.
-    private func insertNewline(in id: AnyHashable, at offset: Int) {
-        guard let index = index(of: id) else { return }
-        guard isText(id) else {
-            return land(.init(id: EditBlocks.insertText(document, at: index + 1), edge: .start))
-        }
-        guard let trailing = EditBlocks.split(document, at: index, offset: offset) else { return }
-        land(.init(id: trailing, edge: .start))
+    /// Return on a block with no text surface of its own opens a new paragraph directly
+    /// below it. A text surface keeps its own Return: that newline is part of its text.
+    private func insertBelow(_ id: AnyHashable) {
+        guard let index = index(of: id), !isText(id) else { return }
+        land(.init(id: EditBlocks.insertText(document, at: index + 1), edge: .start))
     }
 
     /// Delete at the start of a text block merges it backwards. With nothing to merge
@@ -159,7 +156,7 @@ import ScintRuntime
         let delta = edge == .start ? -1 : 1
         guard let index = blocks.firstIndex(where: { $0.id == id }),
               blocks.indices.contains(index + delta)
-        else { return false }
+                else { return false }
         land(.init(id: blocks[index + delta].id, edge: delta < 0 ? .end : .start))
         return true
     }
@@ -175,13 +172,13 @@ import ScintRuntime
 
         guard let last = EditBlocks.splice(document, at: origin, replacing: range, with: stamped),
               let index = index(of: last)
-        else { return land(nil) }
+                else { return land(nil) }
 
         // The splice leaves whatever followed the trigger in a block of its own.
         let next = index + 1
         let landing = blocks.indices.contains(next) && blocks[next].isText
-            ? blocks[next].id
-            : EditBlocks.insertText(document, at: next)
+        ? blocks[next].id
+        : EditBlocks.insertText(document, at: next)
         land(.init(id: landing, edge: .start))
     }
 

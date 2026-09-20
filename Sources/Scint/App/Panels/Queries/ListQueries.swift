@@ -171,13 +171,13 @@ struct DocumentsList: Query {
                 return model.session.document == ref || model.session.selection.selected(ref)
             },
             onSelect: { item in
-                guard let ref = item.ref, ref.type is Document.Type else { return }
+                guard let ref = item.ref, ref.type is ScintRuntime.Document.Type else { return }
                 model.select(ref)
             },
             itemPalette: { item in
                 item.path == nil ? Action.itemItems(for: item) : []
             }, itemLeadingAccessory: { item, _ in
-                guard let ref = item.ref, ref.type is Document.Type else { return nil }
+                guard let ref = item.ref, ref.type is ScintRuntime.Document.Type else { return nil }
                 return AnyView(
                     Button {
                         model.session.close(ref)
@@ -193,7 +193,7 @@ struct DocumentsList: Query {
                     }
                         .buttonStyle(.plain)
                         .help("Close")
-                )
+)
             }
         )
     }
@@ -210,7 +210,7 @@ struct DocumentsList: Query {
             .map { $0.0 }
             .filter { $0.descriptor.name != "Input" }
             .compactMap { ref -> ItemParams? in
-                guard ref.type is Document.Type else { return nil }
+                guard ref.type is ScintRuntime.Document.Type else { return nil }
                 return .init(
                     ref: ref,
                     name: ref.descriptor.name

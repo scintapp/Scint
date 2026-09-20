@@ -33,7 +33,7 @@ struct TaskBlock: View {
                 .font(Typography.body)
                 .foregroundStyle(completed ? Style.Foreground.secondary : Style.Foreground.primary)
                 .strikethrough(completed, color: Style.Foreground.secondary)
-                .lineSpacing(Style.Prose.lineSpacing)
+                .lineSpacing(Typography.Prose.lineSpacing)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, Style.Spacing.inset)
@@ -56,7 +56,7 @@ struct TextBlock: View {
                     render(Array(elements.prefix(count)))
                 }
             }
-            .frame(maxHeight: CGFloat(lineLimit) * (Typography.Prose.lineHeight + Style.Prose.lineSpacing) + Style.Prose.textInset * 2, alignment: .top)
+            .frame(maxHeight: CGFloat(lineLimit) * (Typography.Prose.lineHeight + Typography.Prose.lineSpacing) + Typography.Prose.textInset * 2, alignment: .top)
             .clipped()
         } else {
             render(elements)
@@ -70,26 +70,27 @@ struct TextBlock: View {
                     .padding(.top, index == 0 ? .zero : spacing(between: elements[index - 1], and: element))
             }
         }
-        .frame(maxWidth: hugs ? nil : .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
     }
 
     private func spacing(between above: Markdown.Element, and below: Markdown.Element) -> CGFloat {
+        if case .text(let lower, _, _, _) = below, case .heading = lower { return Typography.Prose.headingSpacing }
         guard case .text(let upper, _, _, _) = above, case .text(let lower, _, _, _) = below,
-              upper.isList, lower.isList else { return Style.Prose.blockSpacing }
-        return Style.Prose.listSpacing
+              upper.isList, lower.isList else { return Typography.Prose.blockSpacing }
+        return Typography.Prose.listSpacing
     }
 
     @ViewBuilder private func block(_ element: Markdown.Element) -> some View {
         switch element {
             case .text(let kind, let text, let depth, let marker):
-                HStack(alignment: .top, spacing: Style.Spacing.label) {
+                HStack(alignment: .top, spacing: Typography.Prose.markerGap) {
                     switch kind {
                         case .bullet:
                             Circle()
                                 .fill(Style.Foreground.secondary)
-                                .frame(width: Style.Prose.bulletSize, height: Style.Prose.bulletSize)
-                                .frame(width: Style.Prose.markerWidth, height: Typography.Prose.lineHeight + Style.Prose.textInset * 2)
+                                .frame(width: Typography.Prose.bulletSize, height: Typography.Prose.bulletSize)
+                                .frame(width: Typography.Prose.markerWidth, height: Typography.Prose.lineHeight + Typography.Prose.textInset * 2)
                         case .numbered:
                             Text(marker.trimmingCharacters(in: .whitespaces))
                                 .font(Typography.body)
@@ -100,16 +101,18 @@ struct TextBlock: View {
                     }
                     MarkdownText(content: text, font: font(kind), reasoning: reasoning, completed: kind == .checklist(checked: true), hugs: hugs)
                 }
-                .padding(.leading, kind.isList ? Style.Prose.listInset + CGFloat(depth) * Style.Prose.listIndent : .zero)
+                .padding(.leading, kind.isList ? Typography.Prose.listInset + CGFloat(depth) * Typography.Prose.listIndent : .zero)
 
             case .quote(let text):
-                HStack(spacing: Style.Spacing.icon) {
+                HStack(spacing: Typography.Prose.markerGap) {
                     Rectangle()
                         .fill(Style.Foreground.secondary)
-                        .frame(width: Style.Prose.quoteBarWidth)
+                        .frame(width: Typography.Prose.quoteBarWidth)
+                        .frame(width: Typography.Prose.markerWidth)
                     MarkdownText(content: text, reasoning: true, hugs: hugs)
                         .padding(.vertical, Style.Spacing.detail)
                 }
+                .padding(.leading, Typography.Prose.listInset)
                 .fixedSize(horizontal: false, vertical: true)
 
             case .code(let code, let language):
@@ -124,7 +127,7 @@ struct TextBlock: View {
                             .font(Typography.code)
                             .foregroundStyle(Style.Foreground.primary)
                             .textSelection(.enabled)
-                            .fixedSize(horizontal: true, vertical: true)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .fixedSize(horizontal: false, vertical: true)
                 }
@@ -141,18 +144,18 @@ struct TextBlock: View {
         if case .heading(let level) = kind { return Typography.Prose.heading(level) }
         return Typography.Prose.text
     }
-
-
 }
 
 struct DocumentBlock: View {
-    let block: Document.Block
+    let block: ScintRuntime.Document.Block
     var isSelected = false
+    var scale: CGFloat? = 1.0
 
     var body: some View {
         switch block {
             case .artifact(let ref), .command(let ref), .document(let ref):
                 Card(ref: ref, style: .group, isSelected: isSelected)
+                    .scaleEffect(scale ?? 1.0)
 
             case .series(_, _):
                 EmptyView()
@@ -160,10 +163,12 @@ struct DocumentBlock: View {
             case .task(_, let content, let completed):
                 TaskBlock(content: content, completed: completed)
                     .background(Style.Shape.card.fill(isSelected ? Style.Background.selection : .clear))
+                    .scaleEffect(scale ?? 1.0)
 
             case .text(_, let content):
                 TextBlock(content: content)
                     .background(Style.Shape.card.fill(isSelected ? Style.Background.selection : .clear))
+                    .scaleEffect(scale ?? 1.0)
         }
     }
 }

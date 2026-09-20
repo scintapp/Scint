@@ -12,7 +12,7 @@ struct ComponentCount: Sendable {
     var completedTasks = 0
     var totalTasks = 0
 
-    mutating func include(_ blocks: [Document.Block], countDocuments: Bool = true) {
+    mutating func include(_ blocks: [ScintRuntime.Document.Block], countDocuments: Bool = true) {
         for (index, block) in blocks.enumerated() {
             switch block {
                 case .artifact: artifacts += 1
@@ -32,7 +32,7 @@ struct ComponentCount: Sendable {
                         switch ref.type {
                             case is Artifact.Type: artifacts += 1
                             case is Command.Type: commands += 1
-                            case is Document.Type: if countDocuments { documents += 1 }
+                            case is ScintRuntime.Document.Type: if countDocuments { documents += 1 }
                             default: break
                         }
                     }

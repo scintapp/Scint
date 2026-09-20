@@ -10,8 +10,8 @@ struct Card: View {
     let ref: Reference
     let style: CardStyle
     var onSelect: (() -> Void)? = nil
-
     var isSelected: Bool = false
+
     @State var isHovered: Bool = false
     @State var linkMetadata: (url: URL, value: LPLinkMetadata)?
 
@@ -64,7 +64,7 @@ struct Card: View {
 
     static func badges(for ref: Reference) -> [String] {
         switch ref.type {
-            case is Document.Type:
+            case is ScintRuntime.Document.Type:
                 return Document.with(ref) { document in
                     var counts = ComponentCount()
                     counts.include(document.blocks)
@@ -77,7 +77,7 @@ struct Card: View {
                     let documents = space.documents
                     var counts = ComponentCount()
                     for document in documents {
-                        Document.with(document) { counts.include($0.blocks, countDocuments: false) }
+                        ScintRuntime.Document.with(document) { counts.include($0.blocks, countDocuments: false) }
                     }
 
                     return [
