@@ -1,4 +1,5 @@
 import SwiftUI
+import ScintRuntime
 
 
 enum Modality: CaseIterable { case fixed, floating }

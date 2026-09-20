@@ -1,5 +1,6 @@
 import Foundation
 @preconcurrency import Network
+import ScintRuntime
 
 
 final class HTTPTransport: @unchecked Sendable {

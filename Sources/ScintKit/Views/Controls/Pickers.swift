@@ -1,5 +1,6 @@
-import ScintComponents
 import SwiftUI
+import ScintRuntime
+import ScintComponents
 
 
 struct ItemPicker: View {
@@ -186,7 +187,6 @@ struct TranscriptPicker: View {
     }
 }
 
-
 struct ContentPicker: View {
     @Environment(ScintModel.self) var scint
     var content: ContentPanel { scint.app.studio.content }
@@ -204,6 +204,38 @@ struct ContentPicker: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
+        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.secondary)
+        .tint(Style.Background.selection)
+    }
+}
+
+struct InspectorPicker: View {
+    @Environment(ScintModel.self) var scint
+    var panel: InspectorPanel { scint.app.studio.inspector }
+
+    private func selection(for surface: InspectorPanel.PanelSurface) -> Binding<Bool> {
+        Binding(
+            get: { panel.state.presented && panel.surface == surface },
+            set: { selected in
+                if selected {
+                    panel.surface = surface
+                    panel.state.presented = true
+                } else if panel.surface == surface {
+                    panel.state.presented = false
+                }
+            }
+        )
+    }
+
+    var body: some View {
+        ControlGroup {
+            ForEach(InspectorPanel.PanelSurface.allCases) { surface in
+                Toggle(isOn: selection(for: surface)) {
+                    Image(systemName: surface.symbol)
+                }
+            }
+        }
+        .controlGroupStyle(.navigation)
         .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.secondary)
         .tint(Style.Background.selection)
     }

@@ -1,8 +1,9 @@
 import SwiftUI
+import ScintRuntime
 import ScintComponents
 
 
-struct NewMaterialButton: View {
+struct CreateDocumentButton: View {
     var panel: any Panel
     var model: any Model
 
@@ -11,60 +12,19 @@ struct NewMaterialButton: View {
 
     var body: some View {
         Button {
-            model.open(Material.new(library, name: "New Draft"))
+            model.open(Document.new(library, name: "New Draft"))
             presented.toggle()
         } label: {
             Image(systemName: "square.and.pencil")
         }
         .sheet(isPresented: $presented) {
-            if let ref = model.session.opened.material {
-                MaterialSurface(ref: ref, panel: panel, model: model)
-                    .scrollEdgeEffectStyle(.soft, for: .top)
-                    .scrollIndicators(.hidden)
-                    .background(Style.Background.canvas)
-                    .frame(width: 660, height: 380)
-                    .presentationSizing(.fitted)
+            DocumentContent(panel: panel, model: model)
+                .scrollEdgeEffectStyle(.soft, for: .top)
+                .scrollIndicators(.hidden)
+                .background(Style.Background.canvas)
+                .frame(width: 660, height: 380)
+                .presentationSizing(.fitted)
 
-            }
-        }
-    }
-}
-
-struct ActionButton: View {
-    let title: String
-    let onAction: (String) -> Void
-
-    var symbol: String {
-        switch title {
-            case "Approve": return "checkmark"
-            case "Pause": return "pause"
-            case "Resume": return "play.fill"
-            case "Stop": return "stop"
-            case "Open": return "text.bubble"
-            default: return "ellipsis"
-        }
-    }
-
-    var opensTranscript: Bool { title == "Open" }
-    var controlSize: CGFloat { opensTranscript ? 27 : 25 }
-    var iconSize: CGFloat { opensTranscript ? 10.5 : 10 }
-    var fill: Color { Color.primary.opacity(opensTranscript ? 0.065 : 0.07) }
-    var stroke: Color { Color.primary.opacity(opensTranscript ? 0.09 : 0.08) }
-    var helpText: String { opensTranscript ? "Open transcript" : title }
-
-    var body: some View {
-        Button { onAction(title) } label: {
-            Iconography.Icon(symbol: symbol, tint: Style.Foreground.primary, sizing: iconSize)
-                .frame(width: controlSize, height: controlSize)
-        }
-        .help(helpText)
-        .buttonStyle(.plain)
-        .font(.system(size: 10.5, weight: .semibold))
-        .foregroundStyle(Style.Foreground.primary)
-        .background { Circle().fill(fill) }
-        .overlay {
-            if opensTranscript { Circle().strokeBorder(stroke, lineWidth: 0.75) }
-            else { RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(stroke, lineWidth: 0.75) }
         }
     }
 }
@@ -149,12 +109,12 @@ struct CreateButton: View {
     @State var text: String = ""
     @State var presented: Bool = false
 
-    private func material() {
+    private func document() {
         let name = text.trimmingCharacters(in: .whitespacesAndNewlines)
         presented = false
-        Action.createMaterial(
+        Action.createDocument(
             in: ref,
-            name: name.isEmpty ? "New Material" : name,
+            name: name.isEmpty ? "New Document" : name,
             model: model
         )
     }
@@ -170,28 +130,28 @@ struct CreateButton: View {
     }
 
     var body: some View {
-            SwiftUI.Menu {
-                Button { text = ""; presented = true } label: { Label("New Space", systemImage: "plus") }
-                    .modifier(SpaceButtonStyle())
+        SwiftUI.Menu {
+            Button { text = ""; presented = true } label: { Label("New Space", systemImage: "plus") }
+                .modifier(SpaceButtonStyle())
 
-                Button { text = ""; presented = true } label: { Label("New Material", systemImage: "plus") }
-                    .modifier(SpaceButtonStyle())
-            } label: { Image(systemName: "plus") }
-                .menuIndicator(.hidden)
-                .sheet(isPresented: $presented) {
-                    VStack(alignment: .trailing, spacing: Style.Spacing.heading) {
-                        TextField("Name", text: $text)
-                            .onSubmit { space() }
+            Button { text = ""; presented = true } label: { Label("New Document", systemImage: "plus") }
+                .modifier(SpaceButtonStyle())
+        } label: { Image(systemName: "plus") }
+            .menuIndicator(.hidden)
+            .sheet(isPresented: $presented) {
+                VStack(alignment: .trailing, spacing: Style.Spacing.heading) {
+                    TextField("Name", text: $text)
+                        .onSubmit { space() }
 
-                        HStack(spacing: Style.Spacing.label) {
-                            Button("Cancel", role: .cancel) { presented = false }
-                            Button("Create") { space() }
-                                .keyboardShortcut(.defaultAction)
-                        }
+                    HStack(spacing: Style.Spacing.label) {
+                        Button("Cancel", role: .cancel) { presented = false }
+                        Button("Create") { space() }
+                            .keyboardShortcut(.defaultAction)
                     }
-                    .padding(Style.Spacing.page)
-                    .frame(width: Metrics.menuWidth)
                 }
+                .padding(Style.Spacing.page)
+                .frame(width: Metrics.menuWidth)
+            }
     }
 }
 

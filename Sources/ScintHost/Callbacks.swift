@@ -1,5 +1,6 @@
-import Foundation
 import AppKit
+import Foundation
+import ScintRuntime
 
 
 @MainActor enum CallbackTrigger {

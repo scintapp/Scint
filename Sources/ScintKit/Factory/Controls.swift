@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import ScintRuntime
 
 
 struct ResultGroup: Identifiable {
@@ -53,7 +54,7 @@ struct Controls {
     var canDrag: ((_ item: ItemParams) -> Bool)?
     var dropTypes: ((_ item: ItemParams) -> [UTType])?
     var onDrop: ((_ providers: [NSItemProvider], _ target: ItemParams) -> Bool)?
-    var onMaterialPosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)?
+    var onDocumentPosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)?
 
     init(
         onToggle: ((ItemParams) -> Void)? = nil,
@@ -92,7 +93,7 @@ struct Controls {
         canDrag: ((_ item: ItemParams) -> Bool)? = nil,
         dropTypes: ((_ item: ItemParams) -> [UTType])? = nil,
         onDrop: ((_ providers: [NSItemProvider], _ target: ItemParams) -> Bool)? = nil,
-        onMaterialPosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)? = nil
+        onDocumentPosition: ((_ item: ItemParams, _ position: CGPoint) -> Void)? = nil
     ) {
         self.onToggle = onToggle
         self.onChange = onChange
@@ -130,7 +131,7 @@ struct Controls {
         self.canDrag = canDrag
         self.dropTypes = dropTypes
         self.onDrop = onDrop
-        self.onMaterialPosition = onMaterialPosition
+        self.onDocumentPosition = onDocumentPosition
     }
 
     var isEditable: Bool {

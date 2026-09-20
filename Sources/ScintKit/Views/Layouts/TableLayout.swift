@@ -1,5 +1,6 @@
-import ScintComponents
 import SwiftUI
+import ScintRuntime
+import ScintComponents
 
 
 struct TableHeader: View {

@@ -1,7 +1,8 @@
 import AppKit
 import OrderedCollections
-import ScintComponents
 import SwiftUI
+import ScintRuntime
+import ScintComponents
 
 
 struct Float<Content: View>: View {

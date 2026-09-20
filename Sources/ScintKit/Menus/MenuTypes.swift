@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import ScintRuntime
 
 
 enum MenuFocus: Hashable { case filter, form }
@@ -16,7 +17,7 @@ enum MenuFormKind: Equatable {
     case link
     case artifact
     case command
-    case material
+    case document
 
     var name: String {
         switch self {
@@ -24,7 +25,7 @@ enum MenuFormKind: Equatable {
             case .link: return "Link"
             case .artifact: return "Artifact"
             case .command: return "Command"
-            case .material: return "Material"
+            case .document: return "Document"
         }
     }
 
@@ -34,7 +35,7 @@ enum MenuFormKind: Equatable {
             case .link: return "link"
             case .artifact: return "folder.badge.plus"
             case .command: return "curlybraces"
-            case .material: return "textformat"
+            case .document: return "textformat"
         }
     }
 
@@ -44,7 +45,7 @@ enum MenuFormKind: Equatable {
         switch self {
             case .task: return "Task"
             case .link: return "URL"
-            case .artifact, .command, .material: return "Search \(name.lowercased())s"
+            case .artifact, .command, .document: return "Search \(name.lowercased())s"
         }
     }
 }

@@ -10,7 +10,7 @@ Every call uses the existing `Property` / `Properties` representation:
 {
   "name": "scint.domain",
   "arguments": {
-    "domain": "material",
+    "domain": "document",
     "action": "create",
     "arguments": { "name": "Notes", "text": "First note" }
   }
@@ -27,7 +27,7 @@ the URL kind must match the stored reference's type.
 
 | Domain | Actions | Arguments and behavior |
 | --- | --- | --- |
-| `material` | `create`, `insert`, `delete` | Create takes `name`, optional `text` and `space`. Insert takes `ref` plus `text` (optional task `done`), or `member` for a reference block. Optional `index` inserts at a position; `block` instead edits an existing text/task block. Delete takes `ref`; optional `block` deletes only that block. |
+| `document` | `create`, `insert`, `delete` | Create takes `name`, optional `text` and `space`. Insert takes `ref` plus `text` (optional task `done`), or `member` for a reference block. Optional `index` inserts at a position; `block` instead edits an existing text/task block. Delete takes `ref`; optional `block` deletes only that block. |
 | `interface` | `create`, `run`, `delete` | Create takes `kind` (`artifact`, `command`, `harness`), `name`, optional `space`, and kind-specific fields below. Run takes `ref` and optional interface `arguments`. Delete takes `ref` and rejects interfaces with dependents. |
 | `structure` | `create`, `update`, `delete` | Create takes `name` and optional `parent`. Update takes optional `ref` (current space by default), metadata (`name`, `description`, `tags`), `config`, one relationship change (`add` or `remove`), and optional `harness` (`null` clears it). Delete takes an empty, uncomposed child space's `ref`. |
 
@@ -54,7 +54,7 @@ Each parameter is an object with `name`, `type` (`string`, `boolean`, `integer`,
 Setting a space's `harness` also adds that harness to the space. Replacing or
 removing an active harness requires stopping its intent first. `remove` detaches
 membership; `delete` deletes the underlying record. Shared values, referenced
-interfaces/materials, recorded transcripts, and the caller's origin cannot be
+interfaces/documents, recorded transcripts, and the caller's origin cannot be
 deleted through Domain.
 
 ## Intent
@@ -78,7 +78,7 @@ Discover and read:
 {
   "intent": "search",
   "action": "search",
-  "arguments": { "method": "list", "domain": "material" }
+  "arguments": { "method": "list", "domain": "document" }
 }
 ```
 
@@ -86,14 +86,14 @@ Discover and read:
 {
   "intent": "search",
   "action": "search",
-  "arguments": { "method": "describe", "ref": "scint://material/<id>" }
+  "arguments": { "method": "describe", "ref": "scint://document/<id>" }
 }
 ```
 
 Catalog search takes `query`, optional `domain`, and optional `scope` (`space`
 by default, or `library`). Library discovery returns published metadata with
 `import` scope; it does not authorize reading or running the value. Use Domain
-structure/update/add to attach that value to an owned space. Importing a material
+structure/update/add to attach that value to an owned space. Importing a document
 preserves its existing origin, and a value shared with another origin remains
 read-only.
 
@@ -104,9 +104,9 @@ server binds a request to one running composition, then rechecks that identity
 at dispatch and when resolving references. A cached tool binding is not a grant.
 
 The caller can manage its origin and descendants. Parents, siblings, and bridge
-targets are outside that scope. Published materials/interfaces in those spaces
-can be read; unshared materials can be edited; commands/harnesses can run.
-Private input materials are unavailable. Transcript roots and their recorded
+targets are outside that scope. Published documents/interfaces in those spaces
+can be read; unshared documents can be edited; commands/harnesses can run.
+Private input documents are unavailable. Transcript roots and their recorded
 branches can be read, including unpublished intent branches, but never edited.
 
 Every background run receives a new transcript branch and uses that branch's

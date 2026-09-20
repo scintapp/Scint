@@ -1,4 +1,5 @@
 import SwiftUI
+import ScintRuntime
 import ScintComponents
 
 
@@ -7,16 +8,18 @@ struct ComponentCount: Sendable {
     var spaces = 0
     var artifacts = 0
     var commands = 0
-    var materials = 0
+    var documents = 0
     var completedTasks = 0
     var totalTasks = 0
 
-    mutating func include(_ blocks: [Material.Block], countMaterials: Bool = true) {
+    mutating func include(_ blocks: [Document.Block], countDocuments: Bool = true) {
         for (index, block) in blocks.enumerated() {
             switch block {
                 case .artifact: artifacts += 1
                 case .command: commands += 1
-                case .material: if countMaterials { materials += 1 }
+                case .document: if countDocuments { documents += 1 }
+                case .series(_, let series):
+                    include(series, countDocuments: countDocuments)
                 case .task(_, _, let completed):
                     totalTasks += 1
                     if completed { completedTasks += 1 }
@@ -29,7 +32,7 @@ struct ComponentCount: Sendable {
                         switch ref.type {
                             case is Artifact.Type: artifacts += 1
                             case is Command.Type: commands += 1
-                            case is Material.Type: if countMaterials { materials += 1 }
+                            case is Document.Type: if countDocuments { documents += 1 }
                             default: break
                         }
                     }
@@ -40,16 +43,6 @@ struct ComponentCount: Sendable {
     }
 }
 
-struct RunningIndicator: View {
-    var size: ControlSize = .small
-
-    var body: some View {
-        ProgressView()
-            .progressViewStyle(.circular)
-            .controlSize(size)
-            .tint(Style.Tint.space.bright)
-    }
-}
 
 struct Badge: View {
     var label: String
@@ -86,56 +79,30 @@ struct Badge: View {
     }
 }
 
-struct StateBadge: View {
-    let composition: Composition?
-
-    private var appearance: (label: String, symbol: String, tint: Color) {
-        switch composition?.state {
-            case .inactive: ("Inactive", "sleep", Style.Foreground.secondary)
-            case .active: ("Active", "timer.square", Style.Tint.accent.bright)
-            case .working: ("Working", "figure.walk.diamond", Style.Tint.material.bright)
-            case .completed: ("Completed", "checkmark.seal", Style.Tint.search.bright)
-            case .failed: ("Failed", "exclamationmark.octagon", Style.Tint.alert.bright)
-            case nil: ("Unavailable", "minus", Style.Foreground.secondary)
-        }
-    }
-
-    var body: some View {
-        let appearance = appearance
-        Image(systemName: appearance.symbol)
-            .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(appearance.tint)
-            .frame(width: 26, height: 26)
-            .background(appearance.tint.opacity(0.3), in: Circle())
-            .accessibilityLabel("Composition state: \(appearance.label)")
-            .help(appearance.label)
-    }
-}
-
 struct Badges: View {
     let model: any Model
     var ref: Reference? = nil
 
     var counts: ComponentCount {
         var counts = ComponentCount()
-        var materials: [Reference] = []
-        let scoped = ref == nil ? model.session.opened.material : nil
+        var documents: [Reference] = []
+        let scoped = ref == nil ? model.session.opened.document : nil
 
         if let scoped {
-            materials = [scoped]
+            documents = [scoped]
         } else if let structure = ref ?? model.session.selection.structure, let space = Space.with(structure, { $0 }) {
             counts.spaces = space.spaces.count
             counts.artifacts = space.artifacts.count
             counts.commands = space.commands.count
-            materials = space.materials
+            documents = space.documents
         }
 
-        materials.removeAll { $0.descriptor.tags.contains("input") }
-        if scoped == nil { counts.materials = materials.count }
+        documents.removeAll { $0.descriptor.tags.contains("input") }
+        if scoped == nil { counts.documents = documents.count }
 
-        for ref in materials {
-            Material.with(ref) { material in
-                counts.include(material.blocks, countMaterials: scoped != nil)
+        for ref in documents {
+            Document.with(ref) { document in
+                counts.include(document.blocks, countDocuments: scoped != nil)
             }
         }
 
@@ -166,8 +133,6 @@ struct Badges: View {
                 tint: Style.Tint.artifact.bright,
                 active: counts.artifacts > 0
             )
-            Spacer()
-            if let ref { StateBadge(composition: model.compose(ref)) }
         }
         .frame(maxHeight: 30)
     }

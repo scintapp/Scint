@@ -1,8 +1,12 @@
-import ScintComponents
 import SwiftUI
+import ScintRuntime
+import ScintComponents
 
 
 @MainActor extension Iconography {
+    static let dotSymbol = "circlebadge.fill"
+    static let dotScale: CGFloat = 0.7
+
     static func model(for ref: Reference) -> Model {
         switch ref.type {
             case is Artifact.Type: .artifact(Artifact.with(ref, { handler(of: $0.handler) }))
@@ -10,17 +14,18 @@ import SwiftUI
             case is Harness.Type: .harness(intent(of: ref))
             case is Command.Type: .command()
             case is Bridge.Type: .bridge
-            case is Material.Type: .material
+            case is Document.Type: .document
             case is Transcript.Type: .transcript
             case is Closure.Type: .closure
             default: .space()
         }
     }
 
-    static func model(for block: Material.Block) -> Model {
+    static func model(for block: Document.Block) -> Model {
         switch block {
-            case .artifact(let ref), .command(let ref), .material(let ref): model(for: ref)
+            case .artifact(let ref), .command(let ref), .document(let ref): model(for: ref)
             case .text: .text
+            case .series: .text
             case .task(_, _, let done): .task(done: done)
         }
     }
@@ -34,7 +39,7 @@ import SwiftUI
                     return model(for: chunk.origin)
                 }
                 if case .collection(let fields) = chunk.value, case .string("tool")? = fields["type"] {
-                    if case .string(let name)? = fields["name"], let op = Op.named(name) { return .tool(op.symbol) }
+                    if case .string(let name)? = fields["name"], let op = Operation.named(name) { return .tool(op.symbol) }
                     return .tool()
                 }
                 return .note
@@ -42,17 +47,12 @@ import SwiftUI
     }
 
     static func icon(for ref: Reference, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: ref), size: size) }
-    static func icon(for block: Material.Block, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: block), size: size) }
+    static func icon(for block: Document.Block, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: block), size: size) }
     static func icon(for entry: Transcript.Entry, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: entry), size: size) }
     static func icon(for intent: ScintRuntimeIntent, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(.harness(iconography(intent)), size: size) }
 
     static func accent(for ref: Reference) -> Color { model(for: ref).tint.bright }
 
-    /// The symbol behind a space's dot, and how much smaller than a row icon it draws.
-    static let dotSymbol = "circlebadge.fill"
-    static let dotScale: CGFloat = 0.7
-
-    /// A space's dot, in its harness's color.
     static func dot(for ref: Reference, size: CGFloat = 11) -> Icon {
         let intent = Space.with(ref, { $0 })?.harness.flatMap(intent(of:))
         return Icon(symbol: dotSymbol, tint: intent?.tint ?? .neutral, size: size)
@@ -67,7 +67,7 @@ import SwiftUI
         switch item.commandID {
             case "new-task", "checklist": return .task
             case "new-link", "add-files": return .artifact
-            case "heading-1", "heading-2", "heading-3", "quote": return .material
+            case "heading-1", "heading-2", "heading-3", "quote": return .document
             case "code-block": return .command
             default: return .space
         }
@@ -78,7 +78,7 @@ import SwiftUI
             case .task: .task
             case .link, .artifact: .artifact
             case .command: .command
-            case .material: .material
+            case .document: .document
         }
     }
 
@@ -120,10 +120,8 @@ import SwiftUI
 }
 
 extension Composition.State {
-    /// The runtime's states, in the order the ledger lists them.
     static let ordered: [Self] = [.failed, .working, .active, .completed, .inactive]
 
-    /// How the views name a state. A failed composition is the one that needs you.
     var label: String {
         switch self {
             case .inactive: "Inactive"
@@ -147,11 +145,9 @@ extension Composition.State {
     }
 }
 
-/// Scint's `Intent`, named so it can be told apart from `Iconography.Intent` inside the extension above.
 typealias ScintRuntimeIntent = Intent
 
 extension Iconography.Icon {
-    /// Scint's views pass plain colors; a color stands in for both strengths.
     init(symbol: String, tint: Color, sizing: CGFloat = Style.Dimension.icon, selected: Bool = true) {
         self.init(symbol: symbol, tint: Style.Tint(bright: tint, dull: tint), size: sizing, selected: selected)
     }

@@ -1,4 +1,5 @@
 import AppKit
+import ScintRuntime
 
 
 @MainActor enum ScintEditorMenu {
@@ -21,19 +22,18 @@ import AppKit
         }
     }
 
-    static func block(for ref: Reference) -> Material.Block? {
+    static func block(for ref: Reference) -> Document.Block? {
         switch ref.type {
             case is Artifact.Type: return .artifact(ref)
             case is Command.Type: return .command(ref)
-            case is Material.Type: return .material(ref)
+            case is Document.Type: return .document(ref)
             default: return nil
         }
     }
 
-    static func form(for block: Material.Block) -> (MenuFormKind, MenuFormValues)? {
+    static func form(for block: Document.Block) -> (MenuFormKind, MenuFormValues)? {
         switch block {
-            case .task(_, let text, let completed):
-                return (.task, MenuFormValues(primary: text, completed: completed))
+
             case .artifact(let ref):
                 let link = Artifact.with(ref) { artifact -> (Bool, String) in
                     if case .bookmark(let url) = artifact.handler { return (true, url?.absoluteString ?? "") }
@@ -42,8 +42,12 @@ import AppKit
                 return (link.0 ? .link : .artifact, MenuFormValues(primary: link.1, completed: false))
             case .command:
                 return (.command, .empty)
-            case .material:
-                return (.material, .empty)
+            case .document:
+                return (.document, .empty)
+            case .series(_, let series):
+                return nil
+            case .task(_, let text, let completed):
+                return (.task, MenuFormValues(primary: text, completed: completed))
             case .text:
                 return nil
         }
@@ -58,7 +62,7 @@ import AppKit
             } else if let blocks = build(for: item) {
                 let links = blocks.compactMap { block -> String? in
                     switch block {
-                    case .artifact(let ref), .command(let ref), .material(let ref): Reference.Link.markdown(for: ref)
+                    case .artifact(let ref), .command(let ref), .document(let ref): Reference.Link.markdown(for: ref)
                     default: nil
                     }
                 }
@@ -76,7 +80,7 @@ import AppKit
             let ref = Artifact.new(url.host(percentEncoded: false) ?? url.absoluteString, url)
             if outcome.isInserting, let link = Reference.Link.markdown(for: ref) { editor.replace(outcome.replacementRange, with: link) }
             else if !outcome.isInserting { editor.replaceCard(outcome.target, with: .artifact(ref)) }
-        case .form(.artifact, _), .form(.command, _), .form(.material, _): break
+        case .form(.artifact, _), .form(.command, _), .form(.document, _): break
         }
     }
 
@@ -84,12 +88,12 @@ import AppKit
         switch form {
             case .artifact: return Artifact.self
             case .command: return Command.self
-            case .material: return Material.self
+            case .document: return Document.self
             case .task, .link: return nil
         }
     }
 
-    static func build(for item: MenuItem) -> [Material.Block]? {
+    static func build(for item: MenuItem) -> [Document.Block]? {
         guard let commandID = item.commandID else { return nil }
 
         switch commandID {
@@ -103,7 +107,7 @@ import AppKit
                 guard panel.runModal() == .OK else { return nil }
                 let entries = panel.urls.map { url in
                     let name = url.lastPathComponent.isEmpty ? "Artifact" : url.lastPathComponent
-                    return Material.Block.artifact(Artifact.new(name, url))
+                    return Document.Block.artifact(Artifact.new(name, url))
                 }
                 return entries.isEmpty ? nil : entries
             default: return nil

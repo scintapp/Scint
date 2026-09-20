@@ -1,4 +1,5 @@
 import Foundation
+import ScintRuntime
 
 
 struct Navigation: Codable, Equatable, Sendable {

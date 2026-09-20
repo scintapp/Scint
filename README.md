@@ -2,7 +2,7 @@
 
 Scint is a native Mac application for composing agentic work as an inspectable, repeatable, contextual processes and systems . It brings documents, files, tools, configuration, execution, and history into one spatial model that's runnable from a place with durable context—not from a prompt assembled just before you interact with the agent.
 
-Most agent interfaces begin with a chat and make the user repeatedly reconstruct the world around it. Scint begins with a space. Inside it, nested `Space`s hold materials, resources, capabilities, configuration, and prior runs. Give a space an active `Harness`, and that authored environment can become a live process without ceasing to
+Most agent interfaces begin with a chat and make the user repeatedly reconstruct the world around it. Scint begins with a space. Inside it, nested `Space`s hold documents, resources, capabilities, configuration, and prior runs. Give a space an active `Harness`, and that authored environment can become a live process without ceasing to
 be the place the user navigates and edits.
 
 > In Scint, an agent doesn't merely receive context. It's an agentic process evaluated from a place that already
@@ -35,13 +35,13 @@ A typical flow looks like this:
 
 1. **Choose a place.** Navigate a space or nested space representing a project,
    client, investigation, recurring operation, or another meaningful boundary.
-2. **Author the environment.** Build `Material`s from text, tasks, and references to other
-   materials, files, and commands. Attach directories, documents, URLs, scripts, skills,
+2. **Author the environment.** Build `Document`s from text, tasks, and references to other
+   documents, files, and commands. Attach directories, documents, URLs, scripts, skills,
    or executables as `Artifact`s.
 3. **Add capabilities.** Make commands and harnesses available in the space, choose the
    active harness, and configure its typed arguments in the inspector.
 4. **Supply the immediate objective.** Write into the composer input. Scint also makes
-   the relevant application session—focus, selection, and open material—explicit input
+   the relevant application session—focus, selection, and open document—explicit input
    to the run.
 5. **Run in place.** Start with the composer button or Command–Return. The runtime turns
    the selected space into a live context and evaluates the harness through the local
@@ -49,16 +49,16 @@ A typical flow looks like this:
 6. **Follow the record.** Output streams into an intent transcript beneath the space's
    root transcript. Messages, reasoning, tool activity, failures, and terminal outcomes
    remain connected to the context that produced them.
-7. **Continue from the same topology.** Edit the materials, change capabilities, move into
+7. **Continue from the same topology.** Edit the documents, change capabilities, move into
    a narrower space, or return to an earlier transcript without rebuilding the world in
    another chat window.
 
 The Studio experience is deliberately Mac-native:
 
-- a space sidebar for nested spaces, open materials, transcripts, library interfaces,
+- a space sidebar for nested spaces, open documents, transcripts, library interfaces,
   and attached filesystem locations;
 - a visual canvas for the contents of the selected space or space;
-- a block editor for authoring materials and embedding runtime references;
+- a block editor for authoring documents and embedding runtime references;
 - a composer for input and streamed transcript output;
 - an inspector for harnesses, commands, files, and execution configuration;
 - a keyboard-driven floating palette for searching content, interfaces, and topology;
@@ -116,7 +116,7 @@ When a run starts, the layers contribute in sequence:
 1. Scint adds the current session description to the selected origin's authored input.
 2. `Composer` creates or reuses the origin's live `Context`.
 3. The context creates an `Intent` and a child transcript beneath its root history.
-4. `Parser` binds closure configuration and rendered material input to typed harness and
+4. `Parser` binds closure configuration and rendered document input to typed harness and
    command parameters.
 5. `Harness → Command → Artifact` resolves the executable invocation.
 6. `scintd` owns the process identifier, standard input and output, termination, and
@@ -181,7 +181,7 @@ The current Xcode targets use Swift 6 and deploy to macOS 27.0.
 3. Run on **My Mac**.
 
 Swift Package Manager resolves Swift Collections, KeyboardShortcuts, and the Swift MCP
-SDK. On an empty store, first launch creates a sample Scint space with materials,
+SDK. On an empty store, first launch creates a sample Scint space with documents,
 spaces, artifacts, commands, and harnesses.
 
 The development build phase invokes `Resources/serviceRegistration.sh`, which is
@@ -205,7 +205,7 @@ and falls back to:
 ~/.local/share/Scint
 ```
 
-Structural values are persisted together as a space graph. Materials, transcripts,
+Structural values are persisted together as a space graph. Documents, transcripts,
 artifacts, commands, and harnesses are stored as individual library records. Writes are
 atomic and coordinated through debounced runtime saves.
 

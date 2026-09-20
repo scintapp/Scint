@@ -1,21 +1,23 @@
 import AppKit
 import SwiftUI
+import ScintRuntime
 
 
-/// A non-text material block, shown as its SwiftUI component on its own line.
+typealias Document = ScintRuntime.Document
+
 final class CardAttachment: NSTextAttachment {
-    let block: Material.Block
+    let block: Document.Block
     @MainActor weak var view: CardView?
-    @MainActor var isSelected = false { didSet { if isSelected != oldValue { view?.rootView = MaterialBlock(block: block, isSelected: isSelected) } } }
+    @MainActor var isSelected = false { didSet { if isSelected != oldValue { view?.rootView = DocumentBlock(block: block, isSelected: isSelected) } } }
 
     var reference: Reference? {
         switch block {
-        case .artifact(let ref), .command(let ref), .material(let ref): ref
-        case .task, .text: nil
+        case .artifact(let ref), .command(let ref), .document(let ref): ref
+            case .task, .text, .series: nil
         }
     }
 
-    init(_ block: Material.Block) {
+    init(_ block: Document.Block) {
         self.block = block
         super.init(data: nil, ofType: nil)
     }
@@ -29,7 +31,6 @@ final class CardAttachment: NSTextAttachment {
     }
 }
 
-// TextKit asks for views and bounds on the main thread, from methods it does not mark isolated.
 final class CardProvider: NSTextAttachmentViewProvider {
     override func loadView() {
         nonisolated(unsafe) let provider = self
@@ -52,8 +53,6 @@ final class CardProvider: NSTextAttachmentViewProvider {
     }
 }
 
-/// A SwiftUI component inside the text. It takes the clicks over its content and measures its height at a given width:
-/// fittingSize measures at the content's ideal width, so text that wraps in the real frame would overflow it.
 class EmbeddedView<Content: View>: NSHostingView<Content> {
     private let sizer: NSHostingController<Content>
 
@@ -72,11 +71,11 @@ class EmbeddedView<Content: View>: NSHostingView<Content> {
     override func hitTest(_ point: NSPoint) -> NSView? { super.hitTest(point) == nil ? nil : self }
 }
 
-final class CardView: EmbeddedView<MaterialBlock> {
+final class CardView: EmbeddedView<DocumentBlock> {
     weak var card: CardAttachment?
 
     convenience init(_ card: CardAttachment) {
-        self.init(rootView: MaterialBlock(block: card.block, isSelected: card.isSelected))
+        self.init(rootView: DocumentBlock(block: card.block, isSelected: card.isSelected))
         self.card = card
     }
 
@@ -88,7 +87,7 @@ final class CardView: EmbeddedView<MaterialBlock> {
 
 extension ScintEditor {
     /// Blocks joined by newlines. The newline on either side of a card separates it; it is not text.
-    static func render(_ blocks: [Material.Block]) -> NSAttributedString {
+    static func render(_ blocks: [ScintRuntime.Document.Block]) -> NSAttributedString {
         let result = NSMutableAttributedString()
         for (index, block) in blocks.enumerated() {
             if index > 0 { result.append(NSAttributedString(string: "\n")) }
@@ -99,10 +98,10 @@ extension ScintEditor {
     }
 
     /// The inverse of `render`. Text blocks keep the ids of the previous text blocks, in order.
-    static func blocks(in text: NSAttributedString, reusing previous: [Material.Block]) -> [Material.Block] {
+    static func blocks(in text: NSAttributedString, reusing previous: [ScintRuntime.Document.Block]) -> [ScintRuntime.Document.Block] {
         let source = text.string as NSString
         var ids = previous.compactMap { block -> UUID? in if case .text(let id, _) = block { id } else { nil } }
-        var blocks: [Material.Block] = [], start = 0
+        var blocks: [ScintRuntime.Document.Block] = [], start = 0
         func appendText(upTo end: Int) {
             var range = NSRange(location: start, length: end - start)
             if start > 0, range.length > 0, source.character(at: range.location) == 10 { range.location += 1; range.length -= 1 }

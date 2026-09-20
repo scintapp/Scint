@@ -1,6 +1,6 @@
-import ScintComponents
-import SwiftUI
 import Foundation
+import SwiftUI
+import ScintComponents
 
 
 @MainActor enum Factory {

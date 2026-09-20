@@ -1,5 +1,6 @@
 import KeyboardShortcuts
 import SwiftUI
+import ScintRuntime
 
 
 @MainActor final class ShortcutManager {

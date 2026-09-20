@@ -1,5 +1,5 @@
-import ScintComponents
 import SwiftUI
+import ScintComponents
 
 
 struct ItemToggle: View {

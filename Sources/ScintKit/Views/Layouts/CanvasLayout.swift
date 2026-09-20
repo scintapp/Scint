@@ -1,6 +1,7 @@
 import AppKit
-import ScintComponents
 import SwiftUI
+import ScintRuntime
+import ScintComponents
 
 
 enum CanvasAxis: String, CaseIterable, Identifiable, Sendable {

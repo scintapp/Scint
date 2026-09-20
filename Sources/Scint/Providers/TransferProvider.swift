@@ -1,15 +1,16 @@
-import UniformTypeIdentifiers
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
+import ScintRuntime
 
 
 extension UTType {
     nonisolated static let space = UTType(exportedAs: "com.kaechle.scint.space")
-    nonisolated static let material = UTType(exportedAs: "com.kaechle.scint.material")
+    nonisolated static let document = UTType(exportedAs: "com.kaechle.scint.document")
     nonisolated static let artifact = UTType(exportedAs: "com.kaechle.scint.artifact")
     nonisolated static let control = UTType(exportedAs: "com.kaechle.scint.control")
     nonisolated static let service = UTType(exportedAs: "com.kaechle.scint.service")
-    nonisolated static var scint: [UTType] { [.space, .space, .material, .artifact, .control, .service] }
+    nonisolated static var scint: [UTType] { [.space, .space, .document, .artifact, .control, .service] }
 }
 
 enum ReferenceTransfer {
@@ -20,7 +21,7 @@ enum ReferenceTransfer {
 
     static func origin(of ref: Reference) -> Reference? {
         if ref.type is Space.Type { return Space.with(ref, { $0.space }) ?? nil }
-        if let origin = Material.with(ref, { $0.origin }) { return origin }
+        if let origin = Document.with(ref, { $0.origin }) { return origin }
         return nil
     }
 
@@ -124,7 +125,7 @@ enum ReferenceTransfer {
             case is Space.Type: Space.with(ref, { _ in true }) == true
             case is Closure.Type: Closure.with(ref, { _ in true }) == true
             case is Bridge.Type: Bridge.with(ref, { _ in true }) == true
-            case is Material.Type: Material.with(ref, { _ in true }) == true
+            case is Document.Type: Document.with(ref, { _ in true }) == true
             case is Transcript.Type: Transcript.with(ref, { _ in true }) == true
             case is Artifact.Type: Artifact.with(ref, { _ in true }) == true
             case is Command.Type: Command.with(ref, { _ in true }) == true
@@ -214,7 +215,7 @@ enum ReferenceTransfer {
     private static func type(for ref: Reference) -> UTType? {
         switch ref.type {
             case is Space.Type: .space
-            case is Material.Type: .material
+            case is Document.Type: .document
             case is Artifact.Type: .artifact
             case is Command.Type: .control
             case is Harness.Type: .service

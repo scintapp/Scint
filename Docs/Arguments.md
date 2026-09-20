@@ -111,7 +111,7 @@ Every HIG component is listed once and sorted by what it can do for arguments.
 | Component | Use for arguments | macOS API |
 | --- | --- | --- |
 | [Popovers](https://developer.apple.com/design/human-interface-guidelines/popovers) | Edit one row's complex value in place (graphical date, token list, nested collection) | `.popover` |
-| [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets) | Scoped multi-argument tasks, such as defining a command's parameters in "Add Command…" | `.sheet` |
+| [Documents](https://developer.apple.com/design/human-interface-guidelines/sheets) | Scoped multi-argument tasks, such as defining a command's parameters in "Add Command…" | `.sheet` |
 | [Panels](https://developer.apple.com/design/human-interface-guidelines/panels) | File and folder choosing (`NSOpenPanel`, as in `HarnessGroup.choose`), the inspector itself | `.fileImporter`, `NSOpenPanel`, `.inspector` |
 | [Alerts](https://developer.apple.com/design/human-interface-guidelines/alerts) | Confirm a dangerous value before it's saved (`danger-full-access`) | `.alert` |
 | [Action sheets](https://developer.apple.com/design/human-interface-guidelines/action-sheets) | Pick between a few consequential options at run time | `.confirmationDialog` |

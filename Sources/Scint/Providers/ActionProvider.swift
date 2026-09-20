@@ -1,6 +1,7 @@
-import UniformTypeIdentifiers
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
+import ScintRuntime
 
 
 @Observable @MainActor final class ReferenceSelection {
@@ -10,7 +11,7 @@ import SwiftUI
 }
 
 enum PanelContext: CaseIterable, Sendable { case canvas, editor, navigator, search, settings }
-enum SurfaceContext: CaseIterable, Sendable { case activity, harness, materials, node, tasks, transcript }
+enum SurfaceContext: CaseIterable, Sendable { case activity, harness, documents, node, tasks, transcript }
 enum SearchAction: String, CaseIterable, Sendable { case search, disclose, activate }
 enum StructureAction: String, CaseIterable, Sendable { case new, update, add, remove, attach, detach, delete }
 enum ContentAction: String, CaseIterable, Sendable { case new, update, open, insert, clear, remove, delete }

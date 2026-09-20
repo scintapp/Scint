@@ -1,4 +1,5 @@
 import SwiftUI
+import ScintRuntime
 
 protocol Mode: Identifiable, CaseIterable {}
 enum ModelKey: String, Identifiable, CaseIterable {

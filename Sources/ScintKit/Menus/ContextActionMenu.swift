@@ -1,6 +1,7 @@
-import UniformTypeIdentifiers
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
+import ScintRuntime
 
 
 struct ContextActionMenu: View {
@@ -19,7 +20,7 @@ struct ContextActionMenu: View {
     var body: some View {
         if space {
             Button("New Space…") { prompt("New Space") { name in Space.new(ref, name: name) } }
-            Button("New Material…") { prompt("New Material") { name in Material.new(ref, name: name) } }
+            Button("New Document…") { prompt("New Document") { name in Document.new(ref, name: name) } }
             Divider()
         }
 

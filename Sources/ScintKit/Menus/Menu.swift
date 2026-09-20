@@ -1,6 +1,7 @@
 import AppKit
-import ScintComponents
 import SwiftUI
+import ScintRuntime
+import ScintComponents
 
 
 struct MenuForm: View {
@@ -279,7 +280,7 @@ struct Menu: View {
 
     private var initialFocus: MenuFocus? {
         switch kind {
-            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.material): nil
+            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.document): nil
             case .create, .update: .form
         }
     }
@@ -287,7 +288,7 @@ struct Menu: View {
     private var emptyTitle: String {
         switch kind {
             case .fixed: return "No commands found"
-            case .dynamic, .update(.artifact), .update(.command), .update(.material): return "No references found"
+            case .dynamic, .update(.artifact), .update(.command), .update(.document): return "No references found"
             case .create, .update: return ""
         }
     }
@@ -303,7 +304,7 @@ struct Menu: View {
 
             Group {
                 if items.isEmpty {
-                    NoSpace(title: emptyTitle)
+                    NoReference(title: emptyTitle)
                 } else {
                     MenuList(items: items, selectedID: selectedID, onSelect: onSelect)
                 }
@@ -320,7 +321,7 @@ struct Menu: View {
     var body: some View {
         Group {
             switch kind {
-                case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.material):
+                case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.document):
                     list
                 case .create(let form):
                     MenuForm(

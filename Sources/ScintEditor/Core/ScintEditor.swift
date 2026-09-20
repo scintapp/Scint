@@ -1,9 +1,10 @@
 import AppKit
+import ScintRuntime
 import ScintComponents
 
 
 final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextStorageDelegate {
-    let material: Reference
+    let ref: Reference
     var onFocus: () -> Void = {}
     var onOpenLink: (EditorLink) -> Void = { _ in }
     let styler = Styler()
@@ -17,13 +18,13 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
     var tables: [NSRange] = []
     var overlays: [OverlayKey: EditorOverlayView] = [:]
     private let autofocus: Bool
-    private var saved: [Material.Block] = []
+    private var saved: [Document.Block] = []
     private var restyling: NSRange?
     private var trigger: Int?
     private var reference: Reference?
 
-    init(_ material: Reference, autofocus: Bool) {
-        self.material = material; self.autofocus = autofocus
+    init(_ document: Reference, autofocus: Bool) {
+        self.ref = document; self.autofocus = autofocus
         content.addTextLayoutManager(textLayout); textLayout.textContainer = container
         super.init(frame: .zero, textContainer: container)
         container.widthTracksTextView = true; container.lineFragmentPadding = 0
@@ -33,13 +34,13 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         font = styler.theme.baseFont; insertionPointColor = styler.theme.caretColor; typingAttributes = styler.baseAttributes
         selectedTextAttributes = [.backgroundColor: NSColor.clear]
         delegate = self; textStorage?.delegate = self
-        load(Material.with(material, { $0.blocks }) ?? [])
+        load(Document.with(document, { $0.blocks }) ?? [])
         setSelectedRange(NSRange(location: (string as NSString).length, length: 0))
     }
 
     required init?(coder: NSCoder) { nil }
 
-    func load(_ blocks: [Material.Block]) {
+    func load(_ blocks: [Document.Block]) {
         guard blocks != saved, !hasMarkedText(), let storage = textStorage else { return }
         saved = blocks
         let caret = selectedRange().location
@@ -54,16 +55,15 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         let blocks = Self.blocks(in: storage, reusing: saved)
         guard blocks != saved else { return }
         saved = blocks
-        Material.update(material) { material in
-            let old = material.blocks
+        Document.update(ref) { document in
+            let old = document.blocks
             let prefix = zip(old, blocks).prefix(while: { $0 == $1 }).count
             let suffix = zip(old[prefix...].reversed(), blocks[prefix...].reversed()).prefix(while: { $0 == $1 }).count
-            for _ in prefix..<(old.count - suffix) { material.delete(at: prefix) }
-            material.insert(Array(blocks[prefix..<(blocks.count - suffix)]), at: prefix)
+            for _ in prefix..<(old.count - suffix) { document.delete(at: prefix) }
+            document.insert(Array(blocks[prefix..<(blocks.count - suffix)]), at: prefix)
         }
     }
 
-    // Every character edit passes through here: typing, undo, find and replace, reloads.
     func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions, range editedRange: NSRange, changeInLength delta: Int) {
         guard editedMask.contains(.editedCharacters) else { return }
         let previous = document
@@ -104,7 +104,6 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
 
     func textDidChange(_ notification: Notification) { updateTrigger() }
 
-    /// Lays the text out at `width`. TextKit keeps the old layout after a container resize unless told otherwise.
     func height(for width: CGFloat) -> CGFloat {
         if abs(container.size.width - width) > 0.5 {
             container.size = CGSize(width: width, height: CGFloat.greatestFiniteMagnitude)
@@ -129,8 +128,7 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         didChangeText()
     }
 
-    /// Inserts a card on its own line in place of `range`.
-    func insert(_ block: Material.Block, replacing range: NSRange) {
+    func insert(_ block: Document.Block, replacing range: NSRange) {
         let source = string as NSString
         guard NSMaxRange(range) <= source.length else { return }
         let card = NSMutableAttributedString(attributedString: NSAttributedString(attachment: CardAttachment(block)))
@@ -139,7 +137,7 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         replace(range, with: card)
     }
 
-    func replaceCard(_ id: AnyHashable, with block: Material.Block) {
+    func replaceCard(_ id: AnyHashable, with block: Document.Block) {
         guard let range = range(of: id) else { return }
         replace(range, with: NSAttributedString(attachment: CardAttachment(block)))
     }
@@ -248,7 +246,7 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
             ? source.substring(with: NSRange(location: offset, length: caret.location - offset)) : ""
         guard let character = typed.first, "/@".contains(character), !typed.contains("\n") else { return cancelMenu() }
         if menuController.isOpen, case .create = menuController.kind { return }
-        menuController.open(kind: character == "/" ? .fixed : .dynamic, query: String(typed.dropFirst()), target: material,
+        menuController.open(kind: character == "/" ? .fixed : .dynamic, query: String(typed.dropFirst()), target: ref,
                   replacementRange: NSRange(location: offset, length: caret.location - offset),
                   anchorRect: firstRect(forCharacterRange: caret, actualRange: nil))
         presentMenu()

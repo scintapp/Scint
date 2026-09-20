@@ -1,5 +1,6 @@
-import ScintComponents
 import SwiftUI
+import ScintRuntime
+import ScintComponents
 
 
 struct OutlineControls: View {
@@ -9,7 +10,7 @@ struct OutlineControls: View {
 
     var refs: [Reference] {
         model.session.navigation.path(for: model.session.selection)
-            .filter { $0.type != Material.self }
+            .filter { $0.type != ScintRuntime.Document.self }
     }
 
     var body: some View {

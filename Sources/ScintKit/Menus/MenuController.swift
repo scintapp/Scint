@@ -1,6 +1,6 @@
 import AppKit
-import ScintComponents
 import SwiftUI
+import ScintComponents
 
 
 @Observable final class MenuController {
@@ -98,7 +98,7 @@ import SwiftUI
 
     func commit() -> MenuOutcome? {
         switch kind {
-            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.material):
+            case .fixed, .dynamic, .update(.artifact), .update(.command), .update(.document):
                 guard let item = selectedItem else { return nil }
                 if case .fixed = kind, let form = item.opens { openCreate(form); return nil }
                 return outcome(.item(item))

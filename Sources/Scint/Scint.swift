@@ -1,6 +1,6 @@
-import SwiftUI
 import OSLog
-import Darwin
+import SwiftUI
+import ScintRuntime
 import ScintComponents
 
 
@@ -33,6 +33,19 @@ struct ScintApp: App {
                     .environment(scint)
                     .environment(scint.app.editor)
                     .focusable(false)
+            } else {
+                ProgressView()
+                    .task { await load() }
+            }
+        }
+
+        Window("Block Editor", id: "blockedit") {
+            if let scint, let ref = scint.app.studio.session.opened.document {
+                ScintEdit(ref: ref)
+                    .environment(scint)
+                    .focusable(false)
+            } else if scint != nil {
+                ContentUnavailableView("No document open", systemImage: "doc.text")
             } else {
                 ProgressView()
                     .task { await load() }

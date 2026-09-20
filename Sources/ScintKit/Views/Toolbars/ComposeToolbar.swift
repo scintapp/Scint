@@ -1,5 +1,6 @@
-import ScintComponents
 import SwiftUI
+import ScintRuntime
+import ScintComponents
 
 
 struct ComposeControl: View {
@@ -15,14 +16,14 @@ struct ComposeControl: View {
     }
 
     var empty: Bool {
-        return Material.with(input) { material in
-            material.rendered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return Document.with(input) { document in
+            document.rendered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         } ?? true
     }
 
     func send() {
         guard let space, composable, !empty else { return }
-        Material.update(input) { $0.clear() }
+        Document.update(input) { $0.clear() }
         model.start(space)
         onSend()
     }

@@ -31,13 +31,13 @@ The canvas exists to design, tune, and refine these constructs.
 | Term | Meaning | Type in code |
 | --- | --- | --- |
 | **Space** | A container of context and the agent working in it. Holds a closure, a harness, transcripts, and bridges. | `Space` (`Structural`) |
-| **Closure** | What a space contains: artifacts, commands, harnesses, materials, transcripts. | `Closure` |
+| **Closure** | What a space contains: artifacts, commands, harnesses, documents, transcripts. | `Closure` |
 | **Harness** | The process that works in a space: a command plus an intent and parameters. | `Harness` (`Functional`) |
 | **Intent** | What kind of work a harness does. It decides which tools the harness gets and how its context is built. | `Intent`: `compose`, `dispatch`, `observe`, `evaluate`, `search` |
 | **Cluster** | A tree of spaces with one composer, presented outward as a single agent. | Space tree |
 | **Composition** | A running process for a space. | `Composition`, `Composer` |
 | **Bridge** | A harnessless closure shared by two spaces in different parts of the tree. | `Bridge` (`Structural`) |
-| **Transcript** | Append-only record of what processing produced. A side effect, not the agent's identity. | `Transcript` (`Malleable`) |
+| **Transcript** | Append-only record of what processing produced. A side effect, not the agent's identity. | `Transcript` (`Material`) |
 | **Alcove** | A branch transcript holding context that stays out of the primary thread unless it's needed. | `.transcript(Reference, Intent, Date)` entry |
 | **Fold** | The context an agent sees on a turn, built fresh by walking and serializing parts of the transcript tree and closure. | `Renderer` |
 | **Descriptor** | Name, description, and tags for any object. The index that routing uses. | `Catalog` |
@@ -167,7 +167,7 @@ like any space. It does nothing on its own. **The seam is a place, not a pipe.**
 ```
 
 **Built:**
-- `Bridge` is `Structural`, has its own `Closure`, and `add`/`remove` accept `Functional` and `Malleable` refs like `Space`.
+- `Bridge` is `Structural`, has its own `Closure`, and `add`/`remove` accept `Functional` and `Material` refs like `Space`.
 - `Bridge` has no `harness` property (`Space` has `harness: Reference?`). Being harnessless is part of the type, not a convention.
 - `Runtime.adjacent` and `Runtime.cross` traverse bridges, which is the graph walk the canvas needs.
 - `Space.bridges` records each bridge on both ends, and `Scope.structures` lists them.
@@ -229,7 +229,7 @@ information, closer to shape than to content.
 **Built:**
 - A transcript's branches aren't nested inside it. They're found by filtering its own entries for `.transcript(Reference, Intent, Date)`. Each child is a separate object with its own reference and entries.
 - `entries` is `private(set)` with only `insert` exposed, so transcripts are append-only by construction.
-- `Transcript` is `Malleable`, not `Structural`: a transcript is content, not architecture.
+- `Transcript` is `Material`, not `Structural`: a transcript is content, not architecture.
 - Branches exist only as references. Logically, every transcript stands on its own.
 - `Handler.handle` sends message readings to the root and everything else to the branch, so branch content is kept out of the main thread when it's written.
 

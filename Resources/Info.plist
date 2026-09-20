@@ -51,13 +51,13 @@
 				<string>public.data</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Draggable Material</string>
+			<string>Draggable Document</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.kaechle.scint.material</string>
+			<string>com.kaechle.scint.document</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.mime-type</key>
-				<string>application/vnd.kaechle.scint.material+json</string>
+				<string>application/vnd.kaechle.scint.document+json</string>
 			</dict>
 		</dict>
 		<dict>

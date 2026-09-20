@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ScintRuntime
 
 
 enum EditorLink: Equatable { case reference(Reference), url(URL) }
@@ -7,25 +8,25 @@ enum EditorLink: Equatable { case reference(Reference), url(URL) }
 struct EditorView: NSViewRepresentable {
     enum Sizing { case fitsContent, grows(min: CGFloat, max: CGFloat) }
 
-    let material: Reference
+    let document: Reference
     let sizing: Sizing
     let autofocus: Bool
     let onFocus: () -> Void
     let onOpenLink: (EditorLink) -> Void
 
-    init(_ material: Reference, sizing: Sizing = .fitsContent, autofocus: Bool = true,
+    init(_ document: Reference, sizing: Sizing = .fitsContent, autofocus: Bool = true,
          onFocus: @escaping () -> Void = {}, onOpenLink: @escaping (EditorLink) -> Void = { _ in }) {
-        self.material = material; self.sizing = sizing; self.autofocus = autofocus
+        self.document = document; self.sizing = sizing; self.autofocus = autofocus
         self.onFocus = onFocus; self.onOpenLink = onOpenLink
     }
 
     func makeNSView(context: Self.Context) -> EditorScrollView {
-        EditorScrollView(ScintEditor(material, autofocus: autofocus), sizing: sizing)
+        EditorScrollView(ScintEditor(document, autofocus: autofocus), sizing: sizing)
     }
 
     func updateNSView(_ view: EditorScrollView, context: Self.Context) {
         view.editor.onFocus = onFocus; view.editor.onOpenLink = onOpenLink
-        view.editor.load(Material.with(material, { $0.blocks }) ?? [])
+        view.editor.load(Document.with(document, { $0.blocks }) ?? [])
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: EditorScrollView, context: Self.Context) -> CGSize? {

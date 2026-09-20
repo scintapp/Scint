@@ -1,4 +1,5 @@
 import Foundation
+import ScintRuntime
 
 
 struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
@@ -16,13 +17,13 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
 
         var description: String {
             switch self {
-                case .contentNew: "Create a material in a space."
-                case .contentWith: "Return a material as a structured runtime value."
-                case .contentUpdate: "Append or replace one block in a material."
+                case .contentNew: "Create a document in a space."
+                case .contentWith: "Return a document as a structured runtime value."
+                case .contentUpdate: "Append or replace one block in a document."
                 case .structureNew: "Create a child space."
                 case .structureWith: "Return a space as a structured runtime value."
-                case .structureUpdate: "Add a material or space to a space."
-                case .structureDelete: "Delete a material or space through the runtime."
+                case .structureUpdate: "Add a document or space to a space."
+                case .structureDelete: "Delete a document or space through the runtime."
                 case .composeStart: "Start a space through its configured harness."
                 case .composeStop: "Stop a running space."
                 case .composeContext: "Return the current composition state for a space."
@@ -37,7 +38,7 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
             let block: Property = .object([
                 "type": .string("object"),
                 "properties": .object([
-                    "kind": .object(["enum": .array(["artifact", "command", "material", "task", "text"])]),
+                    "kind": .object(["enum": .array(["artifact", "command", "document", "task", "text"])]),
                     "reference": address,
                     "text": .object(["type": .string("string")]),
                     "done": .object(["type": .string("boolean")]),
@@ -58,10 +59,10 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
                     .schema(["content": address], required: ["content"])
                 case .contentUpdate:
                     .schema([
-                        "material": address,
+                        "document": address,
                         "block": block,
                         "index": .object(["type": .string("integer"), "minimum": .integer(0)])
-                    ], required: ["material", "block"])
+                    ], required: ["document", "block"])
                 case .structureNew:
                     .schema([
                         "name": .object(["type": .string("string")]),
@@ -119,13 +120,13 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
 
             case .contentWith:
                 let ref = try requiredReference("content", in: arguments)
-                guard let material = ContextProvider.content.with(ref) else {
-                    throw ScintHostBridgeError.invalidArguments("content does not reference a material.")
+                guard let document = ContextProvider.content.with(ref) else {
+                    throw ScintHostBridgeError.invalidArguments("content does not reference a document.")
                 }
-                value = .fromCodable(material)
+                value = .fromCodable(document)
 
             case .contentUpdate:
-                let ref = try requiredReference("material", in: arguments)
+                let ref = try requiredReference("document", in: arguments)
                 guard let supplied = arguments["block"] else {
                     throw ScintHostBridgeError.invalidArguments("block is required.")
                 }
@@ -134,7 +135,7 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
                     with: try block(supplied),
                     at: try integer("index", in: arguments)
                 ) else {
-                    throw ScintHostBridgeError.invalidArguments("material does not reference a material.")
+                    throw ScintHostBridgeError.invalidArguments("document does not reference a document.")
                 }
                 value = .fromCodable(updated)
 
@@ -201,7 +202,7 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
 
     private func resources(in space: Reference) -> [Reference] {
         guard let value = ContextProvider.structure.with(space) else { return [] }
-        return ([value.ref] + Array(value.spaces) + value.materials)
+        return ([value.ref] + Array(value.spaces) + value.documents)
             .filter { $0.descriptor.published }
             .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
     }
@@ -222,7 +223,7 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
         else { throw ScintHostBridgeError.resourceNotFound(uri) }
 
         let value: Property
-        if let material = ContextProvider.content.with(ref) { value = .fromCodable(material) }
+        if let document = ContextProvider.content.with(ref) { value = .fromCodable(document) }
         else if let structure = ContextProvider.structure.with(ref) { value = .fromCodable(structure) }
         else { throw ScintHostBridgeError.resourceNotFound(uri) }
 
@@ -266,7 +267,7 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
         return integer
     }
 
-    private func block(_ value: Property) throws -> Material.Block {
+    private func block(_ value: Property) throws -> Document.Block {
         guard let object = value.object, let kind = object["kind"]?.string else {
             throw ScintHostBridgeError.invalidArguments("block.kind is required.")
         }
@@ -291,14 +292,14 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
                     throw ScintHostBridgeError.invalidArguments("A task block requires text.")
                 }
                 return .task(id, text, object["done"]?.bool ?? false)
-            case "artifact", "command", "material":
+            case "artifact", "command", "document":
                 guard let address = object["reference"]?.string,
                       let ref = Reference.Link.reference(in: address) ?? UUID(uuidString: address).flatMap(Catalog.shared.get)
                 else { throw ScintHostBridgeError.invalidArguments("A \(kind) block requires a valid reference.") }
                 return switch kind {
                     case "artifact": .artifact(ref)
                     case "command": .command(ref)
-                    default: .material(ref)
+                    default: .document(ref)
                 }
             default:
                 throw ScintHostBridgeError.invalidArguments("Unknown block kind: \(kind).")

@@ -1,4 +1,5 @@
 import Foundation
+import ScintRuntime
 
 
 @MainActor struct Session: Codable, Sendable {
@@ -8,12 +9,12 @@ import Foundation
     private(set) var navigation: Navigation = .init()
     private(set) var data: AppData
 
-    var root: Reference { data.spaces }
-    var spaces: [Reference] { Array(Space.with(data.spaces, { $0.spaces }) ?? []) }
-    var library: Reference { data.library }
     var inbox: Reference { data.inbox }
     var activity: Reference { data.activity }
     var scheduled: Reference { data.scheduled }
+    var space: Reference { data.spaces }
+    var spaces: [Reference] { Array(Space.with(data.spaces, { $0.spaces }) ?? []) }
+    var library: Reference { data.library }
 
     init(_ data: AppData) {
         self.data = data
@@ -29,14 +30,14 @@ import Foundation
         switch ref.type {
             case is Space.Type: focus = .structure(ref)
             case is any Functional.Type: focus = .interface(ref)
-            case is any Malleable.Type: focus = .content(ref)
+            case is any Material.Type: focus = .content(ref)
             default: focus = .nothing
         }
     }
 
     mutating func select(_ ref: Reference, entry: UUID? = nil, url: URL? = nil) {
         focus(ref)
-        if opened.material != nil  && opened.material != ref { close(opened.material!) }
+        if opened.document != nil  && opened.document != ref { close(opened.document!) }
         apply(selection.selecting(ref, entry,  url))
         let message = "Selecting \(ref.descriptor.name) of type \(String(describing: ref.type))"
         if ref == selection.root { print(message + ", a root space.") }
@@ -57,7 +58,7 @@ import Foundation
 
     @discardableResult
     mutating func back() -> Selection? {
-        if opened.material != nil { close(opened.material!) }
+        if opened.document != nil { close(opened.document!) }
         guard let target = navigation.back() else { return nil }
         apply(target, push: false)
         if let content = selection.content { opened.open(content) }
@@ -110,15 +111,15 @@ extension Session {
         return roots.sorted { $0.descriptor.created > $1.descriptor.created }
     }
 
-    var material: Reference? {
+    var document: Reference? {
         guard let content = selection.content else { return nil }
-        guard content.type is Material.Type else { return nil }
+        guard content.type is Document.Type else { return nil }
         return content
     }
 
-    var materials: [Reference] {
+    var documents: [Reference] {
         guard let structure = selection.structure else { return [] }
-        let roots = Space.with(structure, { $0.materials }) ?? []
+        let roots = Space.with(structure, { $0.documents }) ?? []
         return roots.sorted { $0.descriptor.created > $1.descriptor.created }
     }
 

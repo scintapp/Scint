@@ -1,13 +1,14 @@
 import Foundation
 import SwiftUI
+import ScintRuntime
 
 
 final class AppData: Codable, @unchecked Sendable {
-    var inbox: Reference = Reference(Space.self)
-    var activity: Reference = Reference(Space.self)
-    var scheduled: Reference = Reference(Space.self)
-    var spaces: Reference = Reference(Space.self)
-    var library: Reference = Reference(Space.self)
+    var inbox: Reference = Space.sentinel()
+    var activity: Reference = Space.sentinel()
+    var scheduled: Reference = Space.sentinel()
+    var spaces: Reference = Space.sentinel()
+    var library: Reference = Space.sentinel()
 
     init() async {
         Harnesses.load()

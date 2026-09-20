@@ -1,6 +1,8 @@
-import ScintComponents
-import SwiftUI
 import OSLog
+import SwiftUI
+import ScintRuntime
+import ScintComponents
+
 
 
 struct Item: Identifiable {
@@ -62,7 +64,6 @@ enum Action {
             Catalog.shared.update(ref) { descriptor in
                 descriptor.name = name
             }
-            Task { await Runtime.shared.save() }
         }
     }
 
@@ -76,21 +77,19 @@ enum Action {
         }
     }
 
-    @MainActor static func createMaterial(in origin: Reference, name: String = "New Material", model: any Model) {
-        let ref = Material.new(origin, name: name)
+    @MainActor static func createDocument(in origin: Reference, name: String = "New Document", model: any Model) {
+        let ref = Document.new(origin, name: name)
         model.open(ref)
-        Task { await Runtime.shared.save() }
     }
 
     @MainActor static func createSpace(in origin: Reference, name: String = "New Space", model: any Model) {
         let ref = Space.new(origin, name: name)
         model.select(ref)
-        Task { await Runtime.shared.save() }
     }
 
     static func surfaceItems(for origin: Reference) -> [Item] {
         [
-            .init(id: "new-material", label: "New Material", image: "text.alignleft") { Action.createMaterial(in: origin, model: $0) },
+            .init(id: "new-document", label: "New Document", image: "text.alignleft") { Action.createDocument(in: origin, model: $0) },
             .init(id: "new-space", label: "New Space", image: "app") { Action.createSpace(in: origin, model: $0) }
         ]
     }
@@ -234,7 +233,7 @@ struct TranscriptMenu: View {
     var ref: Reference
     var model: any Model
 
-    var materials: [Reference] { Space.with(ref, { $0.materials }) ?? [] }
+    var documents: [Reference] { Space.with(ref, { $0.documents }) ?? [] }
     var transcripts: [Reference] { Space.with(ref, { $0.transcripts }) ?? [] }
     var selected: Bool { model.session.selection.selected(ref) }
 

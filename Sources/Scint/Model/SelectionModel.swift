@@ -1,4 +1,5 @@
 import Foundation
+import ScintRuntime
 
 
 enum Focus: Codable, Equatable, Sendable {
@@ -20,12 +21,12 @@ enum Focus: Codable, Equatable, Sendable {
 }
 
 struct Opened: Codable, Equatable, Sendable {
-    var material: Reference?
+    var document: Reference?
     var transcript: Reference?
 
     mutating func open(_ ref: Reference) {
         switch ref.type {
-            case is Material.Type: material = ref
+            case is Document.Type: document = ref
             case is Transcript.Type: transcript = ref
             default: break
         }
@@ -33,7 +34,7 @@ struct Opened: Codable, Equatable, Sendable {
 
     mutating func close(_ ref: Reference) {
         switch ref.type {
-            case is Material.Type: if material == ref { material = nil }
+            case is Document.Type: if document == ref { document = nil }
             case is Transcript.Type: if transcript == ref { transcript = nil }
             default: break
         }
@@ -75,7 +76,7 @@ struct Selection: Codable, Equatable, Sendable {
         switch ref.type {
             case is any Structural.Type: structure == ref
             case is any Functional.Type: interface == ref && entry == nil && url == nil
-            case is any Malleable.Type: content == ref && entry == nil && url == nil
+            case is any Material.Type: content == ref && entry == nil && url == nil
             default: false
         }
     }
@@ -104,7 +105,7 @@ struct Selection: Codable, Equatable, Sendable {
                 next.content = nil
                 next.entry = nil
                 next.url = url
-            case is any Malleable.Type:
+            case is any Material.Type:
                 next.interface = nil
                 next.content = ref
                 next.entry = entry

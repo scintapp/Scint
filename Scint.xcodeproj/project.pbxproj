@@ -12,7 +12,8 @@
 		7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C959129300D54FB007D9E73 /* OrderedCollections */; };
 		7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */; };
 		7CB368F6305DC9C700064C4B /* ScintComponents in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB368F5305DC9C700064C4B /* ScintComponents */; };
-		7CB36A89305E711E00064C4B /* messages.json in Resources */ = {isa = PBXBuildFile; fileRef = 7CB36A88305E711600064C4B /* messages.json */; };
+		7CB36A9D305F47EC00064C4B /* ScintRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB36A9C305F47EC00064C4B /* ScintRuntime */; };
+		7CB36A9F305F591200064C4B /* ScintRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB36A9E305F591200064C4B /* ScintRuntime */; };
 		7CBB434B3020F78300B9D4D7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7CBB434A3020F78300B9D4D7 /* README.md */; };
 /* End PBXBuildFile section */
 
@@ -62,7 +63,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		7CB36A88305E711600064C4B /* messages.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = messages.json; sourceTree = "<group>"; };
 		7CBB434A3020F78300B9D4D7 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		7CC6DF7F304243D800098CC1 /* Scint.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scint.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CC6DF80304243D800098CC1 /* scintd.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = scintd.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -72,47 +72,6 @@
 		7CBB43643020FFC400B9D4D7 /* Exceptions for "Sources" folder in "scintd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ScintRuntime/Core/Data/Bounds.swift,
-				ScintRuntime/Core/Data/Coordinator.swift,
-				ScintRuntime/Core/Data/DataModel.swift,
-				ScintRuntime/Core/Data/Index.swift,
-				ScintRuntime/Core/Data/Persistence.swift,
-				ScintRuntime/Core/Data/Store.swift,
-				ScintRuntime/Core/Schema/Error.swift,
-				ScintRuntime/Core/Schema/Key.swift,
-				ScintRuntime/Core/Schema/Mapping.swift,
-				ScintRuntime/Core/Schema/Parameter.swift,
-				ScintRuntime/Core/Schema/Property.swift,
-				ScintRuntime/Core/Schema/Reference.swift,
-				ScintRuntime/Core/Schema/Registry.swift,
-				ScintRuntime/Core/Schema/Resolvable.swift,
-				ScintRuntime/Core/Schema/Value.swift,
-				ScintRuntime/Core/Search.swift,
-				ScintRuntime/Core/Settings.swift,
-				ScintRuntime/Environment/Catalog.swift,
-				ScintRuntime/Environment/Composer.swift,
-				ScintRuntime/Environment/Content/Material.swift,
-				ScintRuntime/Environment/Content/Transcript.swift,
-				ScintRuntime/Environment/Interfaces/Artifact.swift,
-				ScintRuntime/Environment/Interfaces/Automations.swift,
-				ScintRuntime/Environment/Interfaces/Command.swift,
-				ScintRuntime/Environment/Interfaces/Harness.swift,
-				ScintRuntime/Environment/Library.swift,
-				ScintRuntime/Environment/Processes/Composition.swift,
-				ScintRuntime/Environment/Processes/Context.swift,
-				ScintRuntime/Environment/Processes/Handler.swift,
-				ScintRuntime/Environment/Processes/Renderer.swift,
-				ScintRuntime/Environment/Processes/Signal.swift,
-				ScintRuntime/Environment/Services/Parser.swift,
-				ScintRuntime/Environment/Services/Services.swift,
-				ScintRuntime/Environment/Structure/Bridge.swift,
-				ScintRuntime/Environment/Structure/Closure.swift,
-				ScintRuntime/Environment/Structure/Space.swift,
-				ScintRuntime/Environment/Workspaces.swift,
-				ScintRuntime/Extensions/Artifacts.swift,
-				ScintRuntime/Extensions/Commands.swift,
-				ScintRuntime/Extensions/Harnesses.swift,
-				ScintRuntime/Runtime.swift,
 				ScintServices/Service.swift,
 				ScintServices/ServiceDaemon.swift,
 				ScintServices/ServiceProcess.swift,
@@ -124,6 +83,11 @@
 		7CBB43923021077200B9D4D7 /* Exceptions for "Sources" folder in "Scint" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				ScintEditor/Core/ScintEditor.swift,
+				ScintEditor/Core/ScintEditorMenu.swift,
+				ScintEditor/Views/CardAttachment.swift,
+				ScintEditor/Views/EditorDecorations.swift,
+				ScintEditor/Views/EditorView.swift,
 				ScintServices/Service.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* Scint */;
@@ -169,6 +133,7 @@
 				7CB368F6305DC9C700064C4B /* ScintComponents in Frameworks */,
 				7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */,
 				7C443ABD2FF956D600FD0398 /* Collections in Frameworks */,
+				7CB36A9D305F47EC00064C4B /* ScintRuntime in Frameworks */,
 				7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */,
 			);
 		};
@@ -176,6 +141,7 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */,
+				7CB36A9F305F591200064C4B /* ScintRuntime in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -191,7 +157,6 @@
 				7CC6DF7F304243D800098CC1 /* Scint.app */,
 				7CC6DF80304243D800098CC1 /* scintd.xpc */,
 				7CB36A72305DD00700064C4B /* Frameworks */,
-				7CB36A88305E711600064C4B /* messages.json */,
 			);
 			sourceTree = "<group>";
 		};
@@ -234,6 +199,7 @@
 				7C443ABC2FF956D600FD0398 /* Collections */,
 				7C443ABE2FF956D600FD0398 /* OrderedCollections */,
 				7CB368F5305DC9C700064C4B /* ScintComponents */,
+				7CB36A9C305F47EC00064C4B /* ScintRuntime */,
 			);
 			productName = Agency;
 			productReference = 7CC6DF7F304243D800098CC1 /* Scint.app */;
@@ -253,6 +219,7 @@
 			name = scintd;
 			packageProductDependencies = (
 				7C959129300D54FB007D9E73 /* OrderedCollections */,
+				7CB36A9E305F591200064C4B /* ScintRuntime */,
 			);
 			productName = agencyd;
 			productReference = 7CC6DF80304243D800098CC1 /* scintd.xpc */;
@@ -289,6 +256,7 @@
 				7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */,
 				7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */,
 				7CB368F4305DC9C700064C4B /* XCLocalSwiftPackageReference "../Components" */,
+				7CB36A9B305F47EC00064C4B /* XCLocalSwiftPackageReference "../ScintRuntime" */,
 			);
 			preferredProjectObjectVersion = 110;
 			productRefGroup = 7C4C36DE2ED17D5A00D6F1CF;
@@ -306,7 +274,6 @@
 			isa = PBXResourcesBuildPhase;
 			files = (
 				7CBB434B3020F78300B9D4D7 /* README.md in Resources */,
-				7CB36A89305E711E00064C4B /* messages.json in Resources */,
 			);
 		};
 		7C69AAF02F8B45D90008D611 /* Resources */ = {
@@ -677,6 +644,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../Components;
 		};
+		7CB36A9B305F47EC00064C4B /* XCLocalSwiftPackageReference "../ScintRuntime" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../ScintRuntime;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -722,6 +693,15 @@
 		7CB368F5305DC9C700064C4B /* ScintComponents */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ScintComponents;
+		};
+		7CB36A9C305F47EC00064C4B /* ScintRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ScintRuntime;
+		};
+		7CB36A9E305F591200064C4B /* ScintRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CB36A9B305F47EC00064C4B /* XCLocalSwiftPackageReference "../ScintRuntime" */;
+			productName = ScintRuntime;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

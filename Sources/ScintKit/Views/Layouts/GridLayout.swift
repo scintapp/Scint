@@ -1,26 +1,27 @@
-import ScintComponents
 import SwiftUI
+import ScintRuntime
+import ScintComponents
 
 
 enum GridItemRole: Equatable {
     case item
     case space
-    case material(Reference)
+    case document(Reference)
 
-    var isMaterial: Bool {
-        if case .material = self { return true }
+    var isDocument: Bool {
+        if case .document = self { return true }
         return false
     }
 
     var reference: Reference? {
-        if case .material(let ref) = self { return ref }
+        if case .document(let ref) = self { return ref }
         return nil
     }
 
     init(_ ref: Reference?) {
         switch ref?.type {
             case is Space.Type: self = .space
-            case is Material.Type: self = ref.map(Self.material) ?? .item
+            case is Document.Type: self = ref.map(Self.document) ?? .item
             default: self = .item
         }
     }
@@ -35,7 +36,7 @@ extension ContainerValues {
     }
 }
 
-struct MaterialGlyph: View {
+struct DocumentGlyph: View {
     let ref: Reference
     var width: CGFloat = 42
     var height: CGFloat = 54
@@ -43,7 +44,7 @@ struct MaterialGlyph: View {
     var body: some View {
         let page = RoundedRectangle(cornerRadius: 6, style: .continuous)
         let icon = Iconography.icon(for: ref, size: 15)
-        let content = Material.with(ref, { $0.rendered }) ?? ""
+        let content = Document.with(ref, { $0.rendered }) ?? ""
 
         Text(content)
             .font(.system(size: 3, weight: .light))
@@ -93,8 +94,8 @@ struct GridIcon: View {
     }
 
     @ViewBuilder var glyph: some View {
-        if let ref, ref.type is Material.Type {
-            MaterialGlyph(ref: ref)
+        if let ref, ref.type is Document.Type {
+            DocumentGlyph(ref: ref)
         } else if let ref {
             spaceGlyph(ref)
         } else {
@@ -187,8 +188,8 @@ struct GridIcon: View {
                 return []
         }
 
-        let materials = contents.1.flatMap { Closure.with($0, { $0.content.filter { $0.type is Material.Type } }) } ?? []
-        return contents.0 + materials
+        let documents = contents.1.flatMap { Closure.with($0, { $0.content.filter { $0.type is Document.Type } }) } ?? []
+        return contents.0 + documents
     }
 }
 
@@ -202,7 +203,7 @@ struct GridLayout<Content: View>: View {
     var body: some View {
         Group(subviews: content()) { subviews in
             let spaces = subviews.filter { $0.containerValues.gridItem == .space }
-            let materials = subviews.filter { $0.containerValues.gridItem.isMaterial }
+            let documents = subviews.filter { $0.containerValues.gridItem.isDocument }
             let items = subviews.filter { $0.containerValues.gridItem == .item }
 
             HStack(alignment: .top, spacing: 8) {
@@ -213,7 +214,7 @@ struct GridLayout<Content: View>: View {
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                 } else { Spacer(minLength: 0) }
 
-                if !spaces.isEmpty || !materials.isEmpty {
+                if !spaces.isEmpty || !documents.isEmpty {
                     VStack(spacing: 8) {
                         ForEach(spaces) { $0 }
                     }

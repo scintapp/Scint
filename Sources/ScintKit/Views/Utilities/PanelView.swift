@@ -1,5 +1,6 @@
-import ScintComponents
 import SwiftUI
+import ScintRuntime
+import ScintComponents
 
 
 private struct PanelCursorKey: EnvironmentKey { nonisolated(unsafe) static let defaultValue: AnyHashable? = nil }
