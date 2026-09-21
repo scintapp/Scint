@@ -34,9 +34,6 @@ struct TranscriptContent: Surface {
         .defaultScrollAnchor(.bottom, for: .initialOffset)
         .scrollEdgeEffectStyle(.soft, for: .vertical)
         .padding(.bottom, 24)
-
-        InputBar(model: model, onSend: {})
-            .padding([.horizontal, .bottom], 10)
     }
 }
 

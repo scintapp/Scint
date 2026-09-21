@@ -15,19 +15,18 @@ import ScintComponents
 
     @ViewBuilder private func content(_ model: any Model) -> some View {
         ZStack {
-            let session = model.session
-            if let root = session.selection.root {
+            if let root = model.session.selection.root {
                 switch root {
-                    case session.inbox:
+                    case model.session.inbox:
                         TranscriptInbox(panel: self, model: model)
-                    case session.activity:
-                        SpaceActivity(panel: self, model: model)
-                    case session.scheduled:
+                    case model.session.drafts:
+                        DocumentDrafts(panel: self, model: model)
+                    case model.session.tasks:
                         SpaceSchedule(panel: self, model: model)
-                    case session.space:
+                    case model.session.space:
                         SpaceContent(panel: self, model: model)
-                    case session.library:
-                        if let _ = session.opened.document { DocumentContent(panel: self, model: model) }
+                    case model.session.library:
+                        if let _ = model.session.opened.document { DocumentContent(panel: self, model: model) }
                         else { DocumentLibrary(panel: self, model: model) }
                     default:
                         NoReference(ref: root, title: "Nothing Here")

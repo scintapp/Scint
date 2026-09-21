@@ -10,8 +10,8 @@ import ScintRuntime
     private(set) var data: AppData
 
     var inbox: Reference { data.inbox }
-    var activity: Reference { data.activity }
-    var scheduled: Reference { data.scheduled }
+    var drafts: Reference { data.drafts }
+    var tasks: Reference { data.tasks }
     var space: Reference { data.spaces }
     var spaces: [Reference] { Array(Space.with(data.spaces, { $0.spaces }) ?? []) }
     var library: Reference { data.library }

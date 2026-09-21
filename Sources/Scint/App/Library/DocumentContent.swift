@@ -1,7 +1,6 @@
 import SwiftUI
 import ScintRuntime
 import ScintComponents
-import MarkdownEngine
 
 
 struct DocumentContent: Surface {

@@ -67,14 +67,8 @@ enum Action {
         }
     }
 
-    static func delete(_ ref: Reference) {
-        Task {
-            do { try await ref.delete() }
-            catch {
-                Logger(subsystem: "com.kaechle.scint", category: "Actions")
-                    .error("Delete failed for \(ref.id.uuidString, privacy: .public): \(String(describing: error), privacy: .public)")
-            }
-        }
+    static func remove(_ ref: Reference) {
+        Task { try await Runtime.shared.remove(ref) }
     }
 
     @MainActor static func createDocument(in origin: Reference, name: String = "New Document", model: any Model) {
@@ -100,7 +94,7 @@ enum Action {
             .init(id: "rename", label: "Rename", image: "pencil") { Action.rename(ref, in: $0) }
         ]
 
-        items.append(.init(id: "delete", label: "Delete", image: "trash", role: .destructive) { _ in Action.delete(ref) })
+        items.append(.init(id: "delete", label: "Delete", image: "trash", role: .destructive) { _ in Action.remove(ref) })
         return items
     }
 

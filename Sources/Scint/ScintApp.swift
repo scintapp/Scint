@@ -27,31 +27,6 @@ struct ScintApp: App {
             }
         }
 
-        Window("Editor", id: "editor") {
-            if let scint {
-                EditorWindow()
-                    .environment(scint)
-                    .environment(scint.app.editor)
-                    .focusable(false)
-            } else {
-                ProgressView()
-                    .task { await load() }
-            }
-        }
-
-        Window("Block Editor", id: "blockedit") {
-            if let scint, let ref = scint.app.studio.session.opened.document {
-                EditorView(ref)
-                    .environment(scint)
-                    .focusable(false)
-            } else if scint != nil {
-                ContentUnavailableView("No document open", systemImage: "doc.text")
-            } else {
-                ProgressView()
-                    .task { await load() }
-            }
-        }
-
         MenuBarExtra(content: {
             if let scint {
                 Host()

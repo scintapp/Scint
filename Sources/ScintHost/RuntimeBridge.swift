@@ -10,7 +10,6 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
         case structureNew = "structure.new"
         case structureWith = "structure.with"
         case structureUpdate = "structure.update"
-        case structureDelete = "structure.delete"
         case composeStart = "compose.start"
         case composeStop = "compose.stop"
         case composeContext = "compose.context"
@@ -23,7 +22,6 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
                 case .structureNew: "Create a child space."
                 case .structureWith: "Return a space as a structured runtime value."
                 case .structureUpdate: "Add a document or space to a space."
-                case .structureDelete: "Delete a document or space through the runtime."
                 case .composeStart: "Start a space through its configured harness."
                 case .composeStop: "Stop a running space."
                 case .composeContext: "Return the current composition state for a space."
@@ -72,8 +70,6 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
                     .schema(["content": address], required: ["content"])
                 case .structureUpdate:
                     .schema(["content": address, "space": address], required: ["content"])
-                case .structureDelete:
-                    .schema(["content": address], required: ["content"])
                 case .composeStart, .composeStop, .composeContext:
                     .schema(["space": address])
             }
@@ -157,11 +153,6 @@ struct RuntimeBridge: ScintHostBridge, @unchecked Sendable {
                     throw ScintHostBridgeError.invalidArguments("space does not reference a space.")
                 }
                 value = .fromCodable(updated)
-
-            case .structureDelete:
-                value = .fromCodable(try await ContextProvider.structure.delete(
-                    try requiredReference("content", in: arguments)
-                ))
 
             case .composeStart:
                 value = try compose(.start, for: try reference("space", in: arguments) ?? context)

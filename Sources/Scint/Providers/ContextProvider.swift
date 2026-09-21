@@ -59,9 +59,8 @@ enum StructureTool {
         }
     }
 
-    static func delete(_ content: Reference) async throws -> Reference {
-        try await content.delete()
-        return content
+    static func remove(_ content: Reference) async throws {
+        await Runtime.shared.remove(content)
     }
 }
 

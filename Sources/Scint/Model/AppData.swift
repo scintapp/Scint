@@ -5,8 +5,8 @@ import ScintRuntime
 
 final class AppData: Codable, @unchecked Sendable {
     var inbox: Reference = Space.sentinel()
-    var activity: Reference = Space.sentinel()
-    var scheduled: Reference = Space.sentinel()
+    var drafts: Reference = Space.sentinel()
+    var tasks: Reference = Space.sentinel()
     var spaces: Reference = Space.sentinel()
     var library: Reference = Space.sentinel()
 
@@ -14,7 +14,7 @@ final class AppData: Codable, @unchecked Sendable {
         Harnesses.load()
         SampleInterfaces.load()
         if sort() { return }
-        await Manifest.load()
+        await RuntimeModel.load()
         await Runtime.shared.save()
         sort()
     }
@@ -22,15 +22,16 @@ final class AppData: Codable, @unchecked Sendable {
     @discardableResult
     private func sort() -> Bool {
         func named(_ name: String) -> Reference? { Runtime.shared.spaces.first { $0.descriptor.name == name } }
-        guard let spaces = named("Spaces"),
+        guard
               let inbox = named("Inbox"),
-              let activity = named("Activity"),
-              let scheduled = named("Scheduled"),
+              let drafts = named("Drafts"),
+              let tasks = named("Tasks"),
+              let spaces = named("Spaces"),
               let library = named("Library")
         else { return false }
         self.inbox = inbox
-        self.activity = activity
-        self.scheduled = scheduled
+        self.drafts = drafts
+        self.tasks = tasks
         self.spaces = spaces
         self.library = library
         return true

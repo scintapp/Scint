@@ -3,7 +3,7 @@ import ScintRuntime
 
 protocol Mode: Identifiable, CaseIterable {}
 enum ModelKey: String, Identifiable, CaseIterable {
-    case studio, editor
+    case studio
     var id: String { self.rawValue }
 }
 
