@@ -30,7 +30,6 @@ struct EditorView: NSViewRepresentable {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: EditorScrollView, context: Self.Context) -> CGSize? {
-        // SwiftUI probes with unspecified and infinite widths; laying text out at those breaks attachment frames.
         guard let width = proposal.width, width.isFinite, width > 0 else { return nil }
         let height = view.editor.height(for: width) + (view.isFindBarVisible ? view.findBarView?.frame.height ?? 0 : 0)
         guard case .grows(let lower, let upper) = sizing else { return CGSize(width: width, height: height) }
@@ -54,7 +53,6 @@ final class EditorScrollView: NSScrollView {
     override var isFindBarVisible: Bool { didSet { invalidateIntrinsicContentSize() } }
     override func findBarViewDidChangeHeight() { super.findBarViewDidChangeHeight(); invalidateIntrinsicContentSize() }
 
-    // A content-sized editor sits inside a SwiftUI scroll view, which owns scrolling.
     override func scrollWheel(with event: NSEvent) {
         if scrolls { super.scrollWheel(with: event) } else { nextResponder?.scrollWheel(with: event) }
     }

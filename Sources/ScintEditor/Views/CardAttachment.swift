@@ -11,7 +11,7 @@ final class CardAttachment: NSTextAttachment {
     var reference: Reference? {
         switch block {
         case .artifact(let ref), .command(let ref), .document(let ref): ref
-            case .task, .text, .series: nil
+            case .task, .text, .frame: nil
         }
     }
 

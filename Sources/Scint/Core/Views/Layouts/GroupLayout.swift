@@ -137,21 +137,24 @@ struct GroupHeader: View {
                         .lineLimit(1)
                 }
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 6)
 
             GroupDivider()
 
             Text(explanation.isEmpty
                  ? "Add a harness to make this space runnable."
                  : explanation)
-                .font(.system(size: 12))
-                .foregroundStyle(explanation.isEmpty ? Style.Foreground.secondary : Style.Foreground.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            .padding(.bottom, 6)
+            .padding([.top, .horizontal], 4)
+            .font(.system(size: 12))
+            .foregroundStyle(explanation.isEmpty ? Style.Foreground.secondary : Style.Foreground.secondary)
+            .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(Style.Spacing.inset)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(Style.Shape.card.fill(Style.Background.surface))
+        .background(Style.Shape.card.fill(Style.Background.group))
     }
 }
 
@@ -176,7 +179,7 @@ struct GroupLayout<Content: View>: View {
 
             VStack(spacing: 0) { content() }
                 .frame(maxWidth: .infinity, alignment: .top)
-                .background(Style.Shape.card.fill(Style.Background.surface))
+                .background(Style.Shape.card.fill(Style.Background.group))
 
             if let footer {
                 Text(footer)

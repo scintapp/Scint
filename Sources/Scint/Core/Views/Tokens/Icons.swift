@@ -25,7 +25,7 @@ import ScintComponents
         switch block {
             case .artifact(let ref), .command(let ref), .document(let ref): model(for: ref)
             case .text: .text
-            case .series: .text
+            case .frame: .text
             case .task(_, _, let done): .task(done: done)
         }
     }

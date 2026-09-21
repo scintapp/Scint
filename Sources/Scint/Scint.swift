@@ -41,7 +41,7 @@ struct ScintApp: App {
 
         Window("Block Editor", id: "blockedit") {
             if let scint, let ref = scint.app.studio.session.opened.document {
-                ScintEdit(ref: ref)
+                EditorView(ref)
                     .environment(scint)
                     .focusable(false)
             } else if scint != nil {

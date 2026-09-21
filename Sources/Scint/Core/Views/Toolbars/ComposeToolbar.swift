@@ -57,7 +57,7 @@ struct InputBar: View {
     var body: some View {
         if let input {
             VStack(alignment: .leading) {
-                ScintEdit(ref: input)
+                EditorView(input)
                 .id(input)
                 .padding(.horizontal, Style.Spacing.inset)
                 .padding(.top, Style.Spacing.inset)

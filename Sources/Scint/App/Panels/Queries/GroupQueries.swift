@@ -55,7 +55,7 @@ struct DocumentsGroup: Query {
                         description: ref.descriptor.description,
                         items: children
                     )
-                case .series(let id, let series):
+                case .frame(let id, let series):
                     return .init(
                         ref: origin,
                         origin: origin,

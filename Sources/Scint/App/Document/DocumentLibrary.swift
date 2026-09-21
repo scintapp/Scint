@@ -29,12 +29,11 @@ struct DocumentRow: Surface {
 struct DocumentCard: View {
     let ref: Reference
     let model: any Model
+    let sizing: CGFloat = 240.0
+    let scale = 0.6
 
     @State var selected: Bool
     @State var isHovered: Bool
-
-    private let width: CGFloat = 240
-    private let previewScale: CGFloat = 0.66
 
     var blocks: [ScintRuntime.Document.Block] { Document.with(ref, { $0.blocks }) ?? [] }
 
@@ -44,40 +43,32 @@ struct DocumentCard: View {
     }
 
     var body: some View {
+
         VStack(alignment: .leading, spacing: Style.Spacing.label) {
             VStack(alignment: .leading, spacing: Style.Spacing.inset) {
                 Text(updated)
-                    .font(Typography.sectionTitle)
+                    .font(Typography.detail)
                     .foregroundStyle(Style.Foreground.secondary)
                     .lineLimit(1)
 
                 ForEach(blocks.prefix(6)) {
                     DocumentBlock(block: $0)
                         .textSelection(.disabled)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
                 }
             }
-            .frame(width: (width - Style.Spacing.tile * 1.66) / previewScale, alignment: .topLeading)
-            .scaleEffect(previewScale, anchor: .topLeading)
+            .frame(width: (sizing - Style.Spacing.tile * 2) / scale, alignment: .topLeading)
+            .scaleEffect(scale, anchor: .top)
         }
         .padding(Style.Spacing.tile)
-        .frame(minWidth: width, maxWidth: width, minHeight: 250, maxHeight: 300, alignment: .topLeading)
+        .frame(minWidth: sizing, maxWidth: sizing, maxHeight: sizing * 1.2, alignment: .top)
         .clipShape(Style.Shape.card)
-        .background(Style.Shape.card.fill(Style.Background.panel))
+        .background(Style.Shape.card.fill(Style.Background.surface))
+        .overlay(Style.Shape.card.strokeBorder(Style.Border.card, lineWidth: 0.5))
         .contentShape(Style.Shape.card)
-        .background {
-            selected ? Style.Shape.card.fill(Style.Background.surface)
-            : Style.Shape.card.fill(Style.Background.surface)
-        }
-        .overlay {
-            Style.Shape.card.strokeBorder(
-                selected || isHovered
-                ? Style.Border.card
-                : Style.Border.card,
-                lineWidth: selected ? 1 : 0.5
-            )
-        }
-        .contentShape(Style.Shape.card)
-        .offset(y: isHovered ? -1 : 0)
+        .shadow(color: .black.opacity(0.2), radius: isHovered ? 3 : 1.5, y: isHovered ? 2 : 1)
+        .offset(y: isHovered ? -2 : 0)
         .onHover { hovered in
             withAnimation(Style.Motion.disclosure) {
                 isHovered = hovered
@@ -100,7 +91,7 @@ struct DocumentLibrary: Surface {
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 250), spacing: Style.Spacing.section)], spacing: Style.Spacing.section) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 250), spacing: Style.Spacing.entry)], spacing: Style.Spacing.entry) {
                 if !documents.isEmpty {
                     ForEach(documents) { document in
                         DocumentCard(
@@ -114,12 +105,14 @@ struct DocumentLibrary: Surface {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
             .scrollIndicators(.hidden)
             .contentShape(Rectangle())
+            .padding(.horizontal, Style.Spacing.entry)
+            .padding(.top, Style.Spacing.section)
         }
         .onTapGesture { if let ref = model.session.selection.content { model.session.close(ref) } }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .background(Style.Background.canvas)
     }
 }

@@ -17,9 +17,6 @@ public struct MarkdownTable: View {
             }
             .fixedSize(horizontal: false, vertical: true)
         }
-        .background(Style.Background.canvas)
-        .clipShape(Style.Shape.card)
-        .overlay(Style.Shape.card.strokeBorder(Style.Border.hairline))
     }
 
     private var grid: some View {
@@ -35,12 +32,11 @@ public struct MarkdownTable: View {
                     .padding(.horizontal, Typography.Prose.tableCellPadding.leading)
                     .padding(.vertical, Typography.Prose.tableCellPadding.top)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .background(row == 0 ? Style.Background.surface : Style.Background.surface)
+                    .background(row == 0 ? Style.Background.surface : Style.Background.canvas)
                     .overlay(Rectangle().strokeBorder(Style.Border.hairline))
                 }
             }
         }
-        .padding(.bottom, 1)
     }
 
     private func alignment(_ alignment: Markdown.ColumnAlignment) -> NSTextAlignment {

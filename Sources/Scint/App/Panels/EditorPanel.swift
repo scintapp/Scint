@@ -16,7 +16,7 @@ import ScintComponents
     func surface(_ model: any Model) -> some View {
         VStack {
             if let ref = model.session.opened.document {
-                ScintEdit(ref: ref, onFocus: { model.select(ref) })
+                EditorView(ref, onFocus: { model.select(ref) })
                 .id(ref)
                 .frame(maxWidth: Typography.Prose.readableWidth, maxHeight: .infinity, alignment: .center)
                 .padding(.horizontal, Style.Spacing.page)
