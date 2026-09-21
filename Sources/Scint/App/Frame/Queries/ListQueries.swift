@@ -258,13 +258,13 @@ struct MapList: Query {
             },
             wrapLink: { view, item, _ in
                 guard let ref = item.ref else { return view }
-                return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
+                return AnyView(view.contextMenu { ContextActionMenu(ref: ref, model: model) })
             },
             dropTypes: { item in
                 item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
             },
             onDrop: { providers, target in
-                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target)
+                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target, sharing: true)
             }
         )
     }
@@ -380,7 +380,7 @@ struct NestedLibraryList: Query {
             },
             wrapLink: { view, item, _ in
                 guard let ref = item.ref else { return view }
-                return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
+                return AnyView(view.contextMenu { ContextActionMenu(ref: ref, model: model) })
             },
             dropTypes: { item in
                 item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
@@ -453,13 +453,13 @@ struct FlatSpacesList: Query {
             },
             wrapLink: { view, item, _ in
                 guard let ref = item.ref else { return view }
-                return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
+                return AnyView(view.contextMenu { ContextActionMenu(ref: ref, model: model) })
             },
             dropTypes: { item in
                 item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
             },
             onDrop: { providers, target in
-                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target)
+                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target, sharing: true)
             }
         )
     }

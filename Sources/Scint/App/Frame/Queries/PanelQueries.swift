@@ -26,17 +26,19 @@ struct NavigatorQuery: Query {
             },
             wrapLink: { view, item, _ in
                 guard let ref = item.ref else { return view }
-                return AnyView(view.contextMenu { ContextActionMenu(ref: ref) })
+                return AnyView(view.contextMenu { ContextActionMenu(ref: ref, model: model) })
             },
             wrapHeader: { view, section in
                 guard section.id == AnyHashable("spaces") else { return view }
-                return AnyView(view.contextMenu { ContextActionMenu(ref: model.session.space) })
+                return AnyView(view.contextMenu { ContextActionMenu(ref: model.session.space, model: model) })
             },
             dropTypes: { item in
                 item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
             },
             onDrop: { providers, target in
-                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target)
+                guard let ref = target.ref else { return ReferenceTransfer.detach(providers) }
+                let sharing = !Navigation().spaces(to: ref).contains(model.session.library)
+                return ReferenceTransfer.handle(providers, target: target, sharing: sharing)
             }
         )
     }

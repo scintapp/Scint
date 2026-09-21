@@ -47,9 +47,9 @@ enum ReferenceTransfer {
         provider(.file(url, name: name), as: .artifact, named: name)
     }
 
-    static func handle(_ providers: [NSItemProvider], target: Reference) -> Bool {
+    static func handle(_ providers: [NSItemProvider], target: Reference, sharing: Bool = false) -> Bool {
         guard canDrop(on: target) else { return false }
-        return receive(providers) { move($0, from: nil, to: target) }
+        return receive(providers) { move($0, from: nil, to: target, sharing: sharing) }
     }
 
     static func detach(_ providers: [NSItemProvider]) -> Bool {
@@ -91,9 +91,9 @@ enum ReferenceTransfer {
         return provider
     }
 
-    static func handle(_ providers: [NSItemProvider], target: ItemParams) -> Bool {
+    static func handle(_ providers: [NSItemProvider], target: ItemParams, sharing: Bool = false) -> Bool {
         guard target.path == nil, let ref = target.ref else { return false }
-        return handle(providers, target: ref)
+        return handle(providers, target: ref, sharing: sharing)
     }
 
     static func provider(for item: ItemParams) -> NSItemProvider? {
@@ -139,7 +139,7 @@ enum ReferenceTransfer {
     }
 
     static func canShare(_ ref: Reference) -> Bool {
-        exists(ref) && ref.type is any Functional.Type
+        exists(ref) && (ref.type is any Functional.Type || ref.type is ScintRuntime.Document.Type)
     }
 
     @discardableResult
@@ -193,7 +193,13 @@ enum ReferenceTransfer {
             detach(ref, from: source)
         }
 
-        if let space = Space.with(destination, { $0 }) { space.add(ref) }
+        if let space = Space.with(destination, { $0 }) {
+            let origin = Self.origin(of: ref)
+            space.add(ref)
+            if sharing, let origin, ref.type is ScintRuntime.Document.Type {
+                Document.update(ref) { $0.origin = origin }
+            }
+        }
         else { return false }
 
         return true

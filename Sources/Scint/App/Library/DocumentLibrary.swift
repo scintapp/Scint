@@ -22,6 +22,8 @@ struct DocumentRow: Surface {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onDrag { ReferenceTransfer.provider(for: ref) ?? NSItemProvider() }
+        .contextMenu { ContextActionMenu(ref: ref, model: model) }
         .help(Card.text(for: ref).name)
     }
 }
@@ -58,6 +60,7 @@ struct DocumentCard: View {
                         .padding(.top, 12)
                 }
             }
+            .allowsHitTesting(false)
             .frame(width: (sizing - Style.Spacing.tile * 2) / scale, alignment: .topLeading)
             .scaleEffect(scale, anchor: .top)
         }
@@ -74,6 +77,8 @@ struct DocumentCard: View {
                 isHovered = hovered
             }
         }
+        .onDrag { ReferenceTransfer.provider(for: ref) ?? NSItemProvider() }
+        .contextMenu { ContextActionMenu(ref: ref, model: model) }
     }
 }
 
@@ -116,5 +121,3 @@ struct DocumentLibrary: Surface {
         .background(Style.Background.canvas)
     }
 }
-
-

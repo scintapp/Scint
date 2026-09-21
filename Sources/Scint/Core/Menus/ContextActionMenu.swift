@@ -6,15 +6,29 @@ import ScintRuntime
 
 struct ContextActionMenu: View {
     let ref: Reference
+    let model: any Model
 
     var space: Bool { ref.type is Space.Type }
+    var document: Bool { ref.type is ScintRuntime.Document.Type }
     var parent: Reference? { Space.with(ref, { $0.space }) ?? nil }
+    var origin: Reference? { ReferenceTransfer.origin(of: ref) }
 
-    var destinations: [Reference] {
+    var moveDestinations: [Reference] {
         Runtime.shared.all(as: Space.self)
             .map { $0.0 }
             .filter { $0 != ref && $0 != parent && !Navigation().spaces(to: $0).contains(ref) }
             .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
+    }
+
+    var spaceDestinations: [Reference] {
+        destinations(in: model.session.space)
+            .filter { destination in
+                Space.with(destination, { !$0.documents.contains(ref) }) ?? false
+            }
+    }
+
+    var folderDestinations: [Reference] {
+        ([model.session.library] + destinations(in: model.session.library)).filter { $0 != origin }
     }
 
     var body: some View {
@@ -37,7 +51,7 @@ struct ContextActionMenu: View {
                     }
                     Divider()
                 }
-                ForEach(destinations, id: \.self) { destination in
+                ForEach(moveDestinations, id: \.self) { destination in
                     Button(destination.descriptor.name) {
                         ReferenceTransfer.paste([ref], by: nil, move: true, to: destination)
                         Task { await Runtime.shared.save() }
@@ -46,8 +60,39 @@ struct ContextActionMenu: View {
             }
         }
 
+        if document {
+            if !spaceDestinations.isEmpty {
+                SwiftUI.Menu("Add to Space") {
+                    ForEach(spaceDestinations, id: \.self) { destination in
+                        Button(destination.descriptor.name) {
+                            ReferenceTransfer.paste([ref], by: nil, move: false, to: destination)
+                            Task { await Runtime.shared.save() }
+                        }
+                    }
+                }
+            }
+
+            if !folderDestinations.isEmpty {
+                SwiftUI.Menu("Move to Folder") {
+                    ForEach(folderDestinations, id: \.self) { destination in
+                        Button(destination.descriptor.name) {
+                            ReferenceTransfer.paste([ref], by: nil, move: true, to: destination)
+                            Task { await Runtime.shared.save() }
+                        }
+                    }
+                }
+            }
+        }
+
         Divider()
         Button("Remove", role: .destructive) { Action.remove(ref) }
+    }
+
+    private func destinations(in root: Reference) -> [Reference] {
+        Runtime.shared.all(as: Space.self)
+            .map { $0.0 }
+            .filter { $0 != root && Navigation().spaces(to: $0).contains(root) }
+            .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
     }
 
     private func prompt(_ title: String, _ initial: String = "", _ apply: @escaping (String) -> Void) {
@@ -71,7 +116,5 @@ struct ContextActionMenu: View {
         }
     }
 }
-
-
 
 
