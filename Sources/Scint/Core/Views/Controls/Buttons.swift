@@ -103,30 +103,17 @@ struct CreateSpaceButton: View {
 }
 
 struct CreateButton: View {
-    var ref: Reference
     var model: any Model
+
+    var ref: Reference? { model.session.selection.root }
 
     @State var text: String = ""
     @State var presented: Bool = false
 
-    private func document() {
+    private func create(_ ref: Reference) {
         let name = text.trimmingCharacters(in: .whitespacesAndNewlines)
         presented = false
-        Action.createDocument(
-            in: ref,
-            name: name.isEmpty ? "New Document" : name,
-            model: model
-        )
-    }
-
-    private func space() {
-        let name = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        presented = false
-        Action.createSpace(
-            in: ref,
-            name: name.isEmpty ? "New Space" : name,
-            model: model
-        )
+        Action.createSpace(in: ref, name: name.isEmpty ? "New Space" : name, model: model)
     }
 
     var body: some View {
@@ -139,18 +126,20 @@ struct CreateButton: View {
         } label: { Image(systemName: "plus") }
             .menuIndicator(.hidden)
             .sheet(isPresented: $presented) {
-                VStack(alignment: .trailing, spacing: Style.Spacing.heading) {
-                    TextField("Name", text: $text)
-                        .onSubmit { space() }
+                if let ref {
+                    VStack(alignment: .trailing, spacing: Style.Spacing.heading) {
+                        TextField("Name", text: $text)
+                            .onSubmit { create(ref) }
 
-                    HStack(spacing: Style.Spacing.label) {
-                        Button("Cancel", role: .cancel) { presented = false }
-                        Button("Create") { space() }
-                            .keyboardShortcut(.defaultAction)
+                        HStack(spacing: Style.Spacing.label) {
+                            Button("Cancel", role: .cancel) { presented = false }
+                            Button("Create") { create(ref) }
+                                .keyboardShortcut(.defaultAction)
+                        }
                     }
+                    .padding(Style.Spacing.page)
+                    .frame(width: Metrics.menuWidth)
                 }
-                .padding(Style.Spacing.page)
-                .frame(width: Metrics.menuWidth)
             }
     }
 }

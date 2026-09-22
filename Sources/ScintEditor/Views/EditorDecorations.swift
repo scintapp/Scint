@@ -27,7 +27,7 @@ extension ScintEditor {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let visible = characters(in: dirtyRect), source = string as NSString, selected = selectedLink
+        let visible = characters(in: dirtyRect), source = self.source, selected = selectedLink
         func shows(_ range: NSRange) -> Bool { NSIntersectionRange(range, visible).length > 0 || NSLocationInRange(range.location, visible) }
         func covered(_ range: NSRange) -> Bool { overlays.values.contains { NSIntersectionRange($0.sourceRange, range).length > 0 } }
         for span in document.spans where span.kind == .inlineCode && shows(span.range) && !covered(span.range) {
@@ -52,7 +52,7 @@ extension ScintEditor {
         }
         for link in document.links where shows(link.range) && !covered(link.range) {
             let isSelected = selected?.range == link.range
-            guard isSelected || Reference.Link.reference(in: source.substring(with: link.url)) != nil else { continue }
+            guard isSelected || { if case .reference? = target(of: link) { true } else { false } }() else { continue }
             (isSelected ? NSColor.selectedTextBackgroundColor : styler.theme.codeBgColor).setFill()
             for rect in frames(for: link.label) { NSBezierPath(roundedRect: rect.insetBy(dx: -2, dy: -1), xRadius: 4, yRadius: 4).fill() }
         }
@@ -75,7 +75,7 @@ extension ScintEditor {
     }
 
     private var placeholderOrigin: CGPoint? {
-        let selection = selectedRange(), source = string as NSString
+        let selection = selectedRange(), source = self.source
         guard window?.firstResponder === self, selection.length == 0, !hasMarkedText(), !menuController.isOpen else { return nil }
         guard source.substring(with: source.lineRange(for: selection)).trimmingCharacters(in: .newlines).isEmpty else { return nil }
         return frames(for: selection, type: .selection).first?.origin
@@ -84,7 +84,7 @@ extension ScintEditor {
     private func runs(of kind: Markdown.BlockKind, where shows: (NSRange) -> Bool) -> [CGRect] {
         var rects: [CGRect] = [], previous = -2
         for (index, block) in document.blocks.enumerated() where block.kind == kind && shows(block.range) {
-            let line = frames(for: NSRange(location: block.range.location, length: min(block.range.length + 1, (string as NSString).length - block.range.location)))
+            let line = frames(for: NSRange(location: block.range.location, length: min(block.range.length + 1, source.length - block.range.location)))
             guard let first = line.first else { continue }
             let rect = line.reduce(first) { $0.union($1) }
             if index == previous + 1, let last = rects.popLast() { rects.append(last.union(rect)) } else { rects.append(rect) }
@@ -126,7 +126,7 @@ extension ScintEditor {
     /// The source stays in the text, hidden, with its line as tall as the component.
     func styleOverlays() {
         guard let storage = textStorage else { return }
-        let source = storage.string as NSString
+        let source = storage.mutableString
         var active = Set<OverlayKey>()
         func install(_ range: NSRange, link: EditorLink?, root: AnyView) {
             let key = OverlayKey(offset: range.location, source: source.substring(with: range))
@@ -156,7 +156,7 @@ extension ScintEditor {
             }
         }
         for link in document.links {
-            guard let reference = Reference.Link.reference(in: source.substring(with: link.url)),
+            guard case .reference(let reference)? = target(of: link),
                   source.substring(with: source.lineRange(for: link.range)).trimmingCharacters(in: .whitespacesAndNewlines) == source.substring(with: link.range) else { continue }
             install(link.range, link: .reference(reference), root: AnyView(Card(ref: reference, style: .group, isSelected: selectedRange() == link.range)))
         }
@@ -197,9 +197,6 @@ final class EditorOverlayView: EmbeddedView<AnyView> {
     }
 
     override func mouseDown(with event: NSEvent) {
-        guard let editor else { return }
-        if event.modifierFlags.contains(.command), let link { return editor.onOpenLink(link) }
-        editor.window?.makeFirstResponder(editor)
-        editor.setSelectedRange(link == nil ? NSRange(location: sourceRange.location, length: 0) : sourceRange)
+        editor?.activate(link == nil ? NSRange(location: sourceRange.location, length: 0) : sourceRange, link: link, with: event)
     }
 }

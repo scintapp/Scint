@@ -43,6 +43,9 @@ import ScintComponents
                     return .tool()
                 }
                 return .note
+            case .space(let ref, _, _):
+                return model(for: ref)
+
         }
     }
 

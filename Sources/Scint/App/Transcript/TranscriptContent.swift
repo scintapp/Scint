@@ -23,7 +23,7 @@ struct TranscriptContent: Surface {
                     }
 
                     ForEach(records) { entry in
-                        TranscriptEntry(transcript: transcript, entry: entry, model: model)
+                        TranscriptEntry(entry)
                             .frame(maxWidth: Typography.Prose.readableWidth)
                     }
                 }
@@ -32,8 +32,7 @@ struct TranscriptContent: Surface {
             .padding(8)
         }
         .defaultScrollAnchor(.bottom, for: .initialOffset)
-        .scrollEdgeEffectStyle(.soft, for: .vertical)
+        .scrollEdgeEffectStyle(.hard, for: .vertical)
         .padding(.bottom, 24)
     }
 }
-

@@ -25,6 +25,9 @@ struct CanvasToggle: View {
                 scint.app.studio.content.surface = isOn ? .canvas : .studio
             }))
         .labelsHidden()
+        .tint(.clear)
+        .toggleStyle(.button)
+        .buttonStyle(.borderedProminent)
     }
 }
 

@@ -48,7 +48,7 @@ struct ComposeControl: View {
     }
 }
 
-struct InputBar: View {
+struct InputToolbar: View {
     var model: any Model
     var onSend: () -> Void
 
@@ -59,8 +59,8 @@ struct InputBar: View {
             VStack(alignment: .leading) {
                 EditorView(input)
                 .id(input)
-                .padding(.horizontal, Style.Spacing.inset)
-                .padding(.top, Style.Spacing.inset)
+                .padding(.horizontal, 12)
+                .padding(.top, 16)
             }
             .padding(.bottom, 8)
             .padding(.horizontal, 8)
@@ -68,15 +68,15 @@ struct InputBar: View {
             .overlay(alignment: .trailing) { ComposeControl(model: model, input: input, onSend: onSend) }
             .background {
                 Style.Shape.card
-                    .fill(Style.Background.surface.opacity(0.5))
-                    .glassEffect(.regular, in: Style.Shape.card)
-                    .blur(radius: 2)
+                    .fill(Style.Background.surface.opacity(0.25))
+                    .glassEffect(.clear, in: Style.Shape.card)
+                    .opacity(0.25)
                 Style.Shape.card
                     .fill(Style.Background.surface.opacity(0.5))
             }
             .overlay {
                 Style.Shape.card
-                    .stroke(Style.Border.hairline.opacity(0.75), lineWidth: 1, antialiased: true)
+                    .strokeBorder(Style.Border.hairline, lineWidth: 1).opacity(0.35)
             }
             .clipShape(Style.Shape.card)
         }

@@ -5,21 +5,29 @@ import ScintComponents
 
 @Observable final class InspectorPanel: Panel {
     var state: PanelState = .init()
-    var surface: PanelSurface = .documents
+    var surface: PanelSurface = .outline
 
     enum PanelSurface: String, CaseIterable, Identifiable {
-        case documents, transcripts, settings
+        case context, outline, settings
 
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
 
         var symbol: String {
             switch self {
-                case .documents: "text.alignleft"
-                case .transcripts: "text.bubble"
-                case .settings: "switch.2"
+                case .context: "text.bubble"
+                case .outline: "square.fill.text.grid.1x2"
+                case .settings: "gearshape"
             }
         }
+    }
+
+    func controls(_ model: any Model) -> Controls {
+        SpaceOutlineQuery.controls(model)
+    }
+
+    func parameters(_ model: any Model) -> Params {
+        SpaceOutlineQuery.parameters(model)
     }
 
     func surface(_ model: any Model) -> some View {
@@ -27,9 +35,12 @@ import ScintComponents
 
         return VStack {
             switch surface {
-                case .documents: DocumentContent(panel: self, model: model)
-                case .transcripts: TranscriptContent(panel: self, model: model)
-                case .settings: SpaceSettings(panel: self, model: model)
+                case .context:
+                    EmptyView()
+                case .outline:
+                    SpaceOutline(panel: self, model: model)
+                case .settings:
+                    SpaceSettings(panel: self, model: model)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

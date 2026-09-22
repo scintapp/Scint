@@ -10,6 +10,7 @@ struct ContextActionMenu: View {
 
     var space: Bool { ref.type is Space.Type }
     var document: Bool { ref.type is ScintRuntime.Document.Type }
+    var folder: Bool { space && Navigation().spaces(to: ref).contains(model.session.library) }
     var parent: Reference? { Space.with(ref, { $0.space }) ?? nil }
     var origin: Reference? { ReferenceTransfer.origin(of: ref) }
 
@@ -33,8 +34,12 @@ struct ContextActionMenu: View {
 
     var body: some View {
         if space {
-            Button("New Space…") { prompt("New Space") { name in Space.new(ref, name: name) } }
-            Button("New Document…") { prompt("New Document") { name in Document.new(ref, name: name) } }
+            Button(folder ? "New Folder…" : "New Space…") {
+                prompt(folder ? "New Folder" : "New Space") { name in Space.new(ref, name: name) }
+            }
+            if folder {
+                Button("New Document…") { prompt("New Document") { name in Document.new(ref, name: name) } }
+            }
             Divider()
         }
 
@@ -116,5 +121,4 @@ struct ContextActionMenu: View {
         }
     }
 }
-
 

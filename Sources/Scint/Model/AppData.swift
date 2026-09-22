@@ -11,8 +11,6 @@ final class AppData: Codable, @unchecked Sendable {
     var library: Reference = Space.sentinel()
 
     init() async {
-        Harnesses.load()
-        SampleInterfaces.load()
         if sort() { return }
         await RuntimeModel.load()
         await Runtime.shared.save()

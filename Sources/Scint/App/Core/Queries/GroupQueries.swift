@@ -55,7 +55,7 @@ struct DocumentsGroup: Query {
                         description: ref.descriptor.description,
                         items: children
                     )
-                case .frame(let id, let series):
+                case .frame(let id, _):
                     return .init(
                         ref: origin,
                         origin: origin,
@@ -112,7 +112,7 @@ struct ArtifactsGroup: Query {
 
         func remove(_ ref: Reference) {
             Space.with(space, { $0 })?.remove(ref)
-            
+
         }
 
         func configure(_ value: Value?, for key: String) {
@@ -367,6 +367,7 @@ struct HarnessGroup: Query {
             if case .structure(let ref) = model.session.focus { return ref }
             else { return model.session.space }
         }
+
         guard let space = focused else { return .init() }
 
         func load(_ ref: Reference) {
@@ -381,8 +382,8 @@ struct HarnessGroup: Query {
             guard !item.active else { return configure(nil, for: key) }
 
             let opening = item.trailingKind == .time
-                ? Calendar.current.date(bySetting: .minute, value: 0, of: .now.addingTimeInterval(3600)) ?? .now
-                : Date.now
+            ? Calendar.current.date(bySetting: .minute, value: 0, of: .now.addingTimeInterval(3600)) ?? .now
+            : Date.now
 
             configure(.string(Value.formatter.string(from: opening)), for: key)
         }
@@ -410,6 +411,7 @@ struct HarnessGroup: Query {
                 }
             },
             onChange: { item, selection in
+                if let ref = selection.ref, ref.type is Harness.Type { return load(ref) }
                 guard let key = item.key else { return }
                 configure(selection.value.map(Value.string), for: key)
             },
@@ -437,21 +439,47 @@ struct HarnessGroup: Query {
             if case .structure(let ref) = model.session.focus { return ref }
             else { return model.session.space }
         }
+
         guard let space = focused else { return .init() }
 
         let selectedHarness = Space.with(space, { $0.harness }).flatMap { $0 }
+
         let declaration = selectedHarness.flatMap { ref in
             Harness.with(ref) { harness in
-                (ref: ref, intent: harness.intent, parameters: harness.parameters)
+                (ref: ref, intent: harness.intent, command: harness.command, parameters: harness.parameters)
             }
         }
+
         let harness = declaration?.ref
         let config = Space.with(space, { $0.config }) ?? [:]
-        let parameters: [Parameter]
-        if let declaration, declaration.intent == .evaluate {
-            parameters = declaration.parameters
-        } else {
-            parameters = []
+
+        /// The key of an argument that takes a command to pass through (e.g. Exec's `command`), if this is one.
+        func passthroughKey(_ parameter: Parameter) -> String? {
+            guard case .argument(let key, let type, _, _) = parameter else { return nil }
+            func accepts(_ value: Value) -> Bool {
+                switch value {
+                    case .reference(let ref): ref.type is Command.Type
+                    case .collection(let values) where values.count == 1: values.values.first.map(accepts) ?? false
+                    default: false
+                }
+            }
+            return accepts(type) ? key : nil
+        }
+
+        let passthrough = (declaration?.parameters ?? []).filter { passthroughKey($0) != nil }
+        let passthroughKeys = Set(passthrough.compactMap(passthroughKey))
+
+        let passthroughCommand = passthroughKeys.sorted().lazy
+            .compactMap { config[$0]?.references.first }
+            .first
+
+        let passthroughParameters = passthroughCommand.flatMap { Command.with($0, { $0.parameters }) } ?? []
+
+        // The harness's own arguments, then those of the command it was handed.
+        var seen: Set<String> = []
+        let parameters = ((declaration?.parameters ?? []) + passthroughParameters).filter { parameter in
+            guard case .argument(let key, _, _, _) = parameter else { return false }
+            return !passthroughKeys.contains(key) && seen.insert(key).inserted
         }
 
         func setting(_ parameter: Parameter) -> ItemParams? {
@@ -549,12 +577,10 @@ struct HarnessGroup: Query {
                         active: configured != nil
                     )
 
-                // A folder is chosen, not typed. `.action` already renders a button wired to
-                // onAction, so the row needs no control of its own.
                 case .string where directory(key):
                     let chosen = selectedValue.isEmpty
-                        ? (defaultValue.map(leaf)?.rendered.last ?? "")
-                        : selectedValue
+                    ? (defaultValue.map(leaf)?.rendered.last ?? "")
+                    : selectedValue
                     return .init(
                         key: key,
                         name: label(key),
@@ -563,8 +589,8 @@ struct HarnessGroup: Query {
                         trailingKind: .action,
                         value: "Choose",
                         description: chosen.isEmpty
-                            ? "No folder"
-                            : URL(fileURLWithPath: chosen).lastPathComponent
+                        ? "No folder"
+                        : URL(fileURLWithPath: chosen).lastPathComponent
                     )
                 case .string, .integer, .decimal:
                     return .init(
@@ -607,9 +633,9 @@ struct HarnessGroup: Query {
             let key = key.lowercased()
             return switch true {
                 case key.contains("model"): "cpu"
-                case key.contains("reason"), key.contains("effort"): "brain"
+                case key.contains("reason"), key.contains("effort"): "lightbulb.max"
                 case key.contains("sandbox"), key.contains("permission"): "lock.shield"
-                case key.contains("command"): "switch.2"
+                case key.contains("command"), key == "action": "switch.2"
                 case key.contains("target"), key.contains("space"): "square.stack"
                 case key.contains("schedule"), key.contains("date"), key == "at": "calendar"
                 case key.contains("repeat"), key.contains("every"): "repeat"
@@ -665,41 +691,102 @@ struct HarnessGroup: Query {
             }
         }
 
+        // Keyed so SpaceSettingsQuery routes it here even before a harness is set.
         let loader = ItemParams(
             ref: harness,
-            name: harness == nil ? "Set Harness" : "Change Harness",
-            image: "arrow.triangle.2.circlepath",
+            key: "harness",
+            name: "Harness",
+            image: "gearshape",
             tint: Style.Foreground.secondary,
-            trailingKind: .load,
+            trailingKind: .picker,
+            value: harness?.descriptor.name ?? "",
+            description: harness?.descriptor.name ?? "None",
             items: Runtime.shared.all(as: Harness.self)
                 .map { $0.0 }
                 .sorted {
                     $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
                 }
                 .map { ref in
-                    return ItemParams(
+                    ItemParams(
                         ref: ref,
                         name: ref.descriptor.name,
-                        image: "arrow.triangle.2.circlepath",
-                        tint: Style.Foreground.secondary,
-                        description: ref.descriptor.description,
+                        image: Iconography.dotSymbol,
+                        tint: Iconography.accent(for: ref),
+                        value: ref.descriptor.name,
                         active: ref == harness
                     )
                 }
         )
 
+        func commandPicker(_ parameter: Parameter) -> ItemParams? {
+            guard let key = passthroughKey(parameter),
+                  case .argument(_, _, let required, _) = parameter
+                    else { return nil }
+
+            let selected = config[key]?.references.first
+            let icon = selected.map { Iconography.icon(for: $0) }
+
+            // Leave out the harness's own runner and any other passthrough command, so Exec can't be handed Exec.
+            let choices = Runtime.shared.all(as: Command.self)
+                .map { $0.0 }
+                .filter { ref in
+                    guard ref != declaration?.command else { return false }
+                    let forwards = Command.with(ref, { $0.parameters.contains { passthroughKey($0) != nil } }) ?? false
+                    return !forwards
+                }
+                .sorted {
+                    $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
+                }
+                .map { ref in
+                    let icon = Iconography.icon(for: ref)
+                    return ItemParams(
+                        ref: ref,
+                        key: key,
+                        name: ref.descriptor.name,
+                        image: icon.symbol,
+                        tint: Style.Foreground.secondary,
+                        description: ref.descriptor.description,
+                        active: ref == selected
+                    )
+                }
+
+            let fallback: [ItemParams] = required ? [] : [
+                .init(
+                    key: key,
+                    name: "Default",
+                    image: "circle.dashed",
+                    tint: Style.Foreground.secondary,
+                    active: selected == nil
+                )
+            ]
+
+            return .init(
+                ref: selected,
+                key: key,
+                name: selected == nil ? "Choose Command" : "Change Command",
+                image: icon?.symbol ?? "switch.2",
+                tint: Style.Foreground.secondary,
+                trailingKind: .load,
+                description: selected?.descriptor.name ?? (required ? "Required" : "Default"),
+                items: fallback + choices
+            )
+        }
+
+        let commandItems = passthrough.compactMap(commandPicker)
+
         var sections: [SectionParams] = [
             .init(
                 id: "harness",
+                name: "Harness",
                 header: false,
                 tint: Style.Foreground.secondary,
-                items: [loader]
+                items: [loader] + commandItems
             )
         ]
 
         if !settingItems.isEmpty {
             sections.append(
-                .init(id: "harness-settings", name: "Harness Settings", header: false, tint: Style.Foreground.secondary, items: settingItems)
+                .init(id: "harness-settings", name: "Settings", header: false, tint: Style.Foreground.secondary, items: settingItems)
             )
         }
 
@@ -716,48 +803,6 @@ struct HarnessGroup: Query {
             layout: .group,
             header: false,
             sections: sections
-
-        )
-    }
-}
-
-struct SpaceSettingsQuery: Query {
-    static func controls(_ model: any Model) -> Controls {
-        let harness = HarnessGroup.controls(model)
-        let commands = CommandsGroup.controls(model)
-        let artifacts = ArtifactsGroup.controls(model)
-
-        func source(for item: ItemParams) -> Controls {
-            if let key = item.key {
-                if key == "add-artifacts" || key == "add-files" { return artifacts }
-                return harness
-            }
-            if item.ref?.type is Command.Type { return commands }
-            if item.ref?.type is Harness.Type { return harness }
-            return artifacts
-        }
-
-        return .init(
-            onToggle: { item in source(for: item).onToggle?(item) },
-            onChange: { item, selection in source(for: item).onChange?(item, selection) },
-            onValueChange: { item, value in source(for: item).onValueChange?(item, value) },
-            onSelect: { item in source(for: item).onSelect?(item) },
-            onAction: { item in source(for: item).onAction?(item) }
-        )
-    }
-
-    static func parameters(_ model: any Model) -> Params {
-        var focused: Reference? {
-            if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
-        }
-        guard let space = focused else { return .init() }
-
-        return .init(
-            ref: space,
-            layout: .group,
-            header: true,
-            sections: HarnessGroup.parameters(model).sections + CommandsGroup.parameters(model).sections
         )
     }
 }

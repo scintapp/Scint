@@ -57,7 +57,7 @@ struct FoldersList: Query {
             return .init(
                 ref: ref,
                 path: url,
-                name: Runtime.shared.get(ref).name,
+                name: ref.descriptor.name,
                 image: isDirectory ? "folder" : "doc",
                 items: children,
                 isParent: isDirectory
@@ -357,8 +357,7 @@ struct TranscriptsList: Query {
     }
 }
 
-
-struct NestedLibraryList: Query {
+struct LibraryList: Query {
     static func controls(_ model: any Model) -> Controls {
         .init(
             focused: { item in
@@ -431,7 +430,7 @@ struct NestedLibraryList: Query {
     }
 }
 
-struct FlatSpacesList: Query {
+struct SpacesList: Query {
     static func controls(_ model: any Model) -> Controls {
         .init(
             focused: { item in
@@ -513,6 +512,55 @@ struct FlatSpacesList: Query {
                     id: "spaces",
                     name: "Spaces",
                     items: sorted(model.session.spaces).map(root)
+                )
+            ]
+        )
+    }
+}
+
+struct TagsList: Query {
+    static func controls(_ model: any Model) -> Controls {
+        .init(
+            focused: { item in
+                guard let ref = item.ref else { return false }
+                return model.session.focus == .structure(ref)
+            },
+            selected: { item in
+                guard let ref = item.ref else { return false }
+                if let url = item.path { return model.session.selection.selected(ref, url) }
+                return model.session.selection.selected(ref)
+            },
+            onSelect: { item in
+                guard let ref = item.ref else { return }
+                model.select(ref, entry: item.entryId, url: item.path)
+                model.focus(ref)
+            },
+            surfaceDropTarget: {
+                .init(name: "Spaces")
+            },
+            wrapLink: { view, item, _ in
+                guard let ref = item.ref else { return view }
+                return AnyView(view.contextMenu { ContextActionMenu(ref: ref, model: model) })
+            },
+            dropTypes: { item in
+                item.ref == nil ? [.space] : ReferenceTransfer.dropTypes(for: item)
+            },
+            onDrop: { providers, target in
+                target.ref == nil ? ReferenceTransfer.detach(providers) : ReferenceTransfer.handle(providers, target: target, sharing: true)
+            }
+        )
+    }
+
+    static func parameters(_ model: any Model) -> Params {
+        return .init(
+            id: "tags",
+            name: "Tags",
+            header: true,
+            sections: [
+                .init(
+                    id: "spaces",
+                    name: "Spaces",
+                    items: []
                 )
             ]
         )

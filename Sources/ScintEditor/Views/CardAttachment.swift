@@ -78,8 +78,9 @@ final class CardView: EmbeddedView<DocumentBlock> {
     }
 
     override func mouseDown(with event: NSEvent) {
-        guard let card, let editor = enclosingScrollView?.documentView as? ScintEditor else { return }
-        editor.click(card, with: event)
+        guard let card, let editor = enclosingScrollView?.documentView as? ScintEditor,
+              let range = editor.cards().first(where: { $0.card === card })?.range else { return }
+        editor.activate(range, link: card.reference.map(EditorLink.reference), with: event)
     }
 }
 

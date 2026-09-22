@@ -18,11 +18,9 @@ import ScintComponents
             if let root = model.session.selection.root {
                 switch root {
                     case model.session.inbox:
-                        TranscriptInbox(panel: self, model: model)
-                    case model.session.drafts:
-                        DocumentDrafts(panel: self, model: model)
+                        NoReference(ref: root, title: "Nothing Here")
                     case model.session.tasks:
-                        SpaceSchedule(panel: self, model: model)
+                        DocumentTasks(panel: self, model: model)
                     case model.session.space:
                         SpaceContent(panel: self, model: model)
                     case model.session.library:
@@ -37,12 +35,17 @@ import ScintComponents
     }
 
     func surface(_ model: any Model) -> some View {
-        content(model)
-            .toolbar {
-                ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
-                ToolbarSpacer(.flexible, placement: .automatic)
-                ToolbarSpacer(.flexible, placement: .primaryAction)
-                ToolbarItem(placement: .primaryAction) { InspectorPicker() }
+        Group {
+            switch surface {
+                case .studio: content(model)
+                case .canvas: SpaceCanvas(panel: self, model: model)
             }
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
+            ToolbarSpacer(.flexible, placement: .automatic)
+            ToolbarSpacer(.flexible, placement: .primaryAction)
+            ToolbarItem(placement: .primaryAction) { InspectorPicker() }
+        }
     }
 }

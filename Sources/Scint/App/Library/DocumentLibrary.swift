@@ -55,20 +55,21 @@ struct DocumentCard: View {
 
                 ForEach(blocks.prefix(6)) {
                     DocumentBlock(block: $0)
+                        .allowsHitTesting(false)
                         .textSelection(.disabled)
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
                 }
             }
-            .allowsHitTesting(false)
             .frame(width: (sizing - Style.Spacing.tile * 2) / scale, alignment: .topLeading)
+            .textSelection(.disabled)
             .scaleEffect(scale, anchor: .top)
         }
         .padding(Style.Spacing.tile)
         .frame(minWidth: sizing, maxWidth: sizing, maxHeight: sizing * 1.2, alignment: .top)
         .clipShape(Style.Shape.card)
         .background(Style.Shape.card.fill(Style.Background.surface))
-        .overlay(Style.Shape.card.strokeBorder(Style.Border.card, lineWidth: 0.5))
+        .overlay(Style.Shape.card.strokeBorder(selected ? Style.Tint.document.dull : Style.Border.card, lineWidth: 0.5))
         .contentShape(Style.Shape.card)
         .shadow(color: .black.opacity(0.2), radius: isHovered ? 3 : 1.5, y: isHovered ? 2 : 1)
         .offset(y: isHovered ? -2 : 0)
@@ -86,10 +87,15 @@ struct DocumentLibrary: Surface {
     var panel: any Panel
     var model: any Model
 
-    var space: Reference? { model.session.selection.structure }
-    var document: Reference? { model.session.opened.document }
+    var folder: Reference {
+        let selected = model.session.selection.structure
+        guard let selected, selected != model.session.drafts
+        else { return model.session.drafts }
+        return selected
+    }
+
     var documents: [Reference] {
-        guard let space, let documents = Space.with(space, { $0 })?.documents
+        guard let documents = Space.with(folder, { $0 })?.documents
         else { return [] }
         return documents
     }
@@ -105,7 +111,7 @@ struct DocumentLibrary: Surface {
                             selected: model.session.selection.selected(document),
                             isHovered: false
                         )
-                        .onTapGesture { model.focus(document) }
+                        .onTapGesture { model.select(document) }
                         .onTapGesture(count: 2) { model.open(document) }
                     }
                 }

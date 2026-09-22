@@ -18,7 +18,6 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
     var tables: [NSRange] = []
     var overlays: [OverlayKey: EditorOverlayView] = [:]
     private let autofocus: Bool
-    private var saved: [Document.Block] = []
     private var restyling: NSRange?
     private var trigger: Int?
     private var reference: Reference?
@@ -34,15 +33,22 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         font = styler.theme.baseFont; insertionPointColor = styler.theme.caretColor; typingAttributes = styler.baseAttributes
         selectedTextAttributes = [.backgroundColor: NSColor.clear]
         delegate = self; textStorage?.delegate = self
-        load(Document.with(document, { $0.blocks }) ?? [])
-        setSelectedRange(NSRange(location: (string as NSString).length, length: 0))
+        load()
+        setSelectedRange(NSRange(location: source.length, length: 0))
     }
 
     required init?(coder: NSCoder) { nil }
 
-    func load(_ blocks: [Document.Block]) {
-        guard blocks != saved, !hasMarkedText(), let storage = textStorage else { return }
-        saved = blocks
+    /// The text as the storage holds it. Bridging `string` to Swift copies the whole document.
+    var source: NSString { textStorage?.mutableString ?? NSString() }
+
+    /// The document's blocks, read from the store.
+    var blocks: [Document.Block] { Document.with(ref, { $0.blocks }) ?? [] }
+
+    /// Shows the stored blocks, unless the text already holds them.
+    func load() {
+        let blocks = self.blocks
+        guard !hasMarkedText(), let storage = textStorage, Self.blocks(in: storage, reusing: blocks) != blocks else { return }
         let caret = selectedRange().location
         storage.setAttributedString(Self.render(blocks))
         history.removeAllActions()
@@ -52,9 +58,9 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
 
     private func save() {
         guard let storage = textStorage else { return }
-        let blocks = Self.blocks(in: storage, reusing: saved)
-        guard blocks != saved else { return }
-        saved = blocks
+        let stored = self.blocks
+        let blocks = Self.blocks(in: storage, reusing: stored)
+        guard blocks != stored else { return }
         Document.update(ref) { document in
             let old = document.blocks
             let prefix = zip(old, blocks).prefix(while: { $0 == $1 }).count
@@ -72,11 +78,9 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         // A fence restyles every line after it, as does a second edit before styling catches up.
         let code = { (document: Markdown.Document) in document.blocks.filter { $0.kind == .codeFence || $0.kind == .codeBlock }.count }
         let scope = restyling == nil && code(previous) == code(document)
-            ? (textStorage.string as NSString).paragraphRange(for: editedRange) : NSRange(location: 0, length: textStorage.length)
+            ? textStorage.mutableString.paragraphRange(for: editedRange) : NSRange(location: 0, length: textStorage.length)
         schedule(scope)
         save()
-        needsDisplay = true
-        enclosingScrollView?.invalidateIntrinsicContentSize()
     }
 
     // Styling is its own attribute edit, run before the next display. Changing attributes
@@ -110,8 +114,12 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
             textLayout.invalidateLayout(for: textLayout.documentRange)
         }
         textLayout.ensureLayout(for: textLayout.documentRange)
+        var bottom: CGFloat = 0
+        textLayout.enumerateTextLayoutFragments(from: textLayout.documentRange.endLocation, options: [.reverse, .ensuresLayout, .ensuresExtraLineFragment]) {
+            bottom = $0.layoutFragmentFrame.maxY; return false
+        }
         let font = styler.theme.baseFont
-        return max(font.ascender - font.descender + Typography.Prose.paragraphStyle.paragraphSpacing, textLayout.usageBoundsForTextContainer.maxY)
+        return max(font.ascender - font.descender + Typography.Prose.paragraphStyle.paragraphSpacing, textLayout.usageBoundsForTextContainer.maxY, bottom)
     }
 
     func replace(_ range: NSRange, with text: String) {
@@ -127,7 +135,7 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
     }
 
     func insert(_ block: Document.Block, replacing range: NSRange) {
-        let source = string as NSString
+        let source = self.source
         guard NSMaxRange(range) <= source.length else { return }
         let card = NSMutableAttributedString(attributedString: NSAttributedString(attachment: CardAttachment(block)))
         if range.location > 0, source.character(at: range.location - 1) != 10 { card.insert(NSAttributedString(string: "\n"), at: 0) }
@@ -140,27 +148,26 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         replace(range, with: NSAttributedString(attachment: CardAttachment(block)))
     }
 
-    func card(_ id: AnyHashable) -> CardAttachment? {
-        range(of: id).flatMap { textStorage?.attribute(.attachment, at: $0.location, effectiveRange: nil) as? CardAttachment }
-    }
-
-    private func range(of id: AnyHashable) -> NSRange? {
-        var result: NSRange?
-        textStorage?.enumerateAttribute(.attachment, in: NSRange(location: 0, length: (string as NSString).length)) { value, range, stop in
-            guard (value as? CardAttachment)?.block.id == id else { return }
-            result = NSRange(location: range.location, length: 1); stop.pointee = true
+    /// Cards in a range, or in the whole text, in order.
+    func cards(in range: NSRange? = nil) -> [(range: NSRange, card: CardAttachment)] {
+        var cards: [(range: NSRange, card: CardAttachment)] = []
+        textStorage?.enumerateAttribute(.attachment, in: range ?? NSRange(location: 0, length: source.length)) { value, range, _ in
+            if let card = value as? CardAttachment { cards.append((NSRange(location: range.location, length: 1), card)) }
         }
-        return result
+        return cards
     }
 
-    private func isCard(at location: Int) -> Bool {
-        guard location >= 0, location < (string as NSString).length else { return false }
-        return textStorage?.attribute(.attachment, at: location, effectiveRange: nil) is CardAttachment
+    func card(at location: Int) -> CardAttachment? {
+        guard location >= 0, location < source.length else { return nil }
+        return textStorage?.attribute(.attachment, at: location, effectiveRange: nil) as? CardAttachment
     }
+
+    func card(_ id: AnyHashable) -> CardAttachment? { cards().first { $0.card.block.id == id }?.card }
+    private func range(of id: AnyHashable) -> NSRange? { cards().first { $0.card.block.id == id }?.range }
 
     private var selectedCard: CardAttachment? {
         let range = selectedRange()
-        return range.length == 1 && isCard(at: range.location) ? textStorage?.attribute(.attachment, at: range.location, effectiveRange: nil) as? CardAttachment : nil
+        return range.length == 1 ? card(at: range.location) : nil
     }
 
     override func insertText(_ string: Any, replacementRange: NSRange) {
@@ -169,23 +176,21 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         guard !hasMarkedText() else { return super.insertText(string, replacementRange: replacementRange) }
         // Text typed beside a card starts a new line, so the card keeps its own.
         let range = replacementRange.location == NSNotFound ? selectedRange() : replacementRange
-        let before = isCard(at: range.location - 1) && !typed.hasPrefix("\n"), after = isCard(at: NSMaxRange(range)) && !typed.hasSuffix("\n")
+        let before = card(at: range.location - 1) != nil && !typed.hasPrefix("\n"), after = card(at: NSMaxRange(range)) != nil && !typed.hasSuffix("\n")
         super.insertText((before ? "\n" : "") + typed + (after ? "\n" : ""), replacementRange: replacementRange)
         if after { setSelectedRange(NSRange(location: selectedRange().location - 1, length: 0)) }
-        let source = self.string as NSString, offset = selectedRange().location - 1
+        let source = self.source, offset = selectedRange().location - 1
         guard typed == "/" || typed == "@", offset >= 0 else { return }
         if offset == 0 || " \t\n".contains(source.substring(with: NSRange(location: offset - 1, length: 1))) { trigger = offset; updateTrigger() }
     }
 
     // Deleting a card also deletes one of its separators, so the lines around it rejoin.
     func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString: String?) -> Bool {
-        let source = string as NSString
+        let source = self.source
         guard replacementString == "", range.length > 0, range.length < source.length, !history.isUndoing, !history.isRedoing,
               range.location == 0 || source.character(at: range.location - 1) == 10,
               NSMaxRange(range) == source.length || source.character(at: NSMaxRange(range)) == 10 else { return true }
-        var card = false
-        textStorage?.enumerateAttribute(.attachment, in: range) { value, _, stop in card = value is CardAttachment; stop.pointee = ObjCBool(card) }
-        guard card else { return true }
+        guard !cards(in: range).isEmpty else { return true }
         replace(NSMaxRange(range) < source.length ? NSRange(location: range.location, length: range.length + 1)
                                                   : NSRange(location: range.location - 1, length: range.length + 1), with: "")
         return false
@@ -239,7 +244,7 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
 
     private func updateTrigger() {
         guard let offset = trigger, !hasMarkedText() else { return }
-        let source = string as NSString, caret = selectedRange()
+        let source = self.source, caret = selectedRange()
         let typed = caret.length == 0 && caret.location > offset && caret.location <= source.length
             ? source.substring(with: NSRange(location: offset, length: caret.location - offset)) : ""
         guard let character = typed.first, "/@".contains(character), !typed.contains("\n") else { return cancelMenu() }
@@ -281,9 +286,7 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
     func textViewDidChangeSelection(_ notification: Notification) {
         updateTrigger()
         let selection = selectedRange()
-        textStorage?.enumerateAttribute(.attachment, in: NSRange(location: 0, length: (string as NSString).length)) { value, range, _ in
-            (value as? CardAttachment)?.isSelected = NSIntersectionRange(range, selection).length > 0
-        }
+        for (range, card) in cards() { card.isSelected = NSIntersectionRange(range, selection).length > 0 }
         for overlay in overlays.values { overlay.isSelected = NSIntersectionRange(overlay.sourceRange, selection).length > 0 }
         var selected = selectedCard?.reference
         if let link = selectedLink, case .reference(let ref)? = self.link(at: link.range.location)?.link { selected = ref }
@@ -291,11 +294,15 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
         needsDisplay = true
     }
 
+    func target(of link: Markdown.Link) -> EditorLink? {
+        let url = source.substring(with: link.url)
+        if let reference = Reference.Link.reference(in: url) { return .reference(reference) }
+        return URL(string: url).map(EditorLink.url)
+    }
+
     func link(at offset: Int) -> (range: NSRange, link: EditorLink)? {
-        guard let match = document.links.first(where: { NSLocationInRange(offset, $0.range) }) else { return nil }
-        let url = (string as NSString).substring(with: match.url)
-        if let reference = Reference.Link.reference(in: url) { return (match.range, .reference(reference)) }
-        return URL(string: url).map { (match.range, .url($0)) }
+        guard let match = document.links.first(where: { NSLocationInRange(offset, $0.range) }), let target = target(of: match) else { return nil }
+        return (match.range, target)
     }
 
     var selectedLink: Markdown.Link? { document.links.first { $0.range == selectedRange() } }
@@ -303,13 +310,12 @@ final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextS
     override func mouseDown(with event: NSEvent) {
         let offset = characterIndexForInsertion(at: convert(event.locationInWindow, from: nil))
         guard let match = link(at: offset) else { return super.mouseDown(with: event) }
-        if event.modifierFlags.contains(.command) { return onOpenLink(match.link) }
-        window?.makeFirstResponder(self); setSelectedRange(match.range)
+        activate(match.range, link: match.link, with: event)
     }
 
-    func click(_ card: CardAttachment, with event: NSEvent) {
-        guard let range = range(of: card.block.id) else { return }
-        if event.modifierFlags.contains(.command) { if let ref = card.reference { onOpenLink(.reference(ref)) }; return }
+    /// A click on a link, card or overlay: command opens what it points to, anything else selects it.
+    func activate(_ range: NSRange, link: EditorLink?, with event: NSEvent) {
+        if event.modifierFlags.contains(.command) { if let link { onOpenLink(link) }; return }
         window?.makeFirstResponder(self)
         setSelectedRange(event.modifierFlags.contains(.shift) ? NSUnionRange(selectedRange(), range) : range)
     }

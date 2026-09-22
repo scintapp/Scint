@@ -129,7 +129,7 @@ extension Markdown {
         return cells.isEmpty ? nil : cells
     }
 
-    private static func tableAlignments(_ cells: [String]) -> [ColumnAlignment]? {
+    static func tableAlignments(_ cells: [String]) -> [ColumnAlignment]? {
         var alignments: [ColumnAlignment] = []
         for cell in cells {
             let dashes = cell.trimmingCharacters(in: CharacterSet(charactersIn: ":"))

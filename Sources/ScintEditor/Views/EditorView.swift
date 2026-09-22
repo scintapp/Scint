@@ -26,7 +26,7 @@ struct EditorView: NSViewRepresentable {
 
     func updateNSView(_ view: EditorScrollView, context: Self.Context) {
         view.editor.onFocus = onFocus; view.editor.onOpenLink = onOpenLink
-        view.editor.load(Document.with(document, { $0.blocks }) ?? [])
+        view.editor.load()
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: EditorScrollView, context: Self.Context) -> CGSize? {
@@ -45,6 +45,7 @@ final class EditorScrollView: NSScrollView {
         self.editor = editor
         if case .grows = sizing { scrolls = true } else { scrolls = false }
         super.init(frame: .zero)
+        if !scrolls { contentView = PinnedClipView() }
         drawsBackground = false; hasVerticalScroller = scrolls; documentView = editor
     }
 
@@ -55,5 +56,14 @@ final class EditorScrollView: NSScrollView {
 
     override func scrollWheel(with event: NSEvent) {
         if scrolls { super.scrollWheel(with: event) } else { nextResponder?.scrollWheel(with: event) }
+    }
+}
+
+/// Sized to its content, the editor never scrolls within itself. Caret scrolling goes to the scroll view outside instead.
+private final class PinnedClipView: NSClipView {
+    override func constrainBoundsRect(_ proposedBounds: NSRect) -> NSRect {
+        var bounds = super.constrainBoundsRect(proposedBounds)
+        bounds.origin = .zero
+        return bounds
     }
 }

@@ -7,6 +7,7 @@ import ScintComponents
 struct SpaceMenu: View {
     @State private var hovered = false
     let model: any Model
+    
     var selection: Selection { model.session.selection }
     var path: [Reference] { model.session.navigation.path(for: selection) }
 
@@ -30,12 +31,14 @@ struct SpaceHeader: Surface {
 
     var ref: Reference? {
         guard let ref = model.session.selection.structure, Space.with(ref, { $0 }) != nil
-                else { return nil }
+        else { return nil }
         return ref
     }
 
+    var context: Composition? { ref?.context }
+
     var state: (label: String, tint: Color) {
-        if let ref, let context = ref.context {
+        if let context {
             switch context.state {
                 case .active: return ("Active", Style.Tint.accent.bright)
                 case .working: return ("Working", Style.Tint.accent.bright)
@@ -74,17 +77,13 @@ struct SpaceHeader: Surface {
             }
 
             HStack(alignment: .center) {
-                TranscriptPicker(model: model)
-
-                if let ref, let context = ref.context  {
-                    if context.state == .active {
-                        Button { } label: {
-                            Image(systemName: "pause.fill")
-                                .frame(width: 23, height: 23)
-                        }
-                        .buttonStyle(.accessoryBarAction)
-                        .buttonBorderShape(.circle)
+                if let context, context.state == .active {
+                    Button { } label: {
+                        Image(systemName: "pause.fill")
+                            .frame(width: 23, height: 23)
                     }
+                    .buttonStyle(.accessoryBarAction)
+                    .buttonBorderShape(.circle)
                 }
 
                 Button { } label: {
@@ -115,7 +114,10 @@ struct SpaceContent: Surface {
             TranscriptContent(panel: panel, model: model)
                 .background(Style.Background.canvas)
                 .safeAreaBar(edge: .top) { SpaceHeader(panel: panel, model: model) }
-                .safeAreaBar(edge: .bottom) { InputBar(model: model, onSend: {}) }
+                .safeAreaBar(edge: .bottom) {
+                    InputToolbar(model: model, onSend: {})
+                        .padding([.bottom, .vertical], 10)
+                }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

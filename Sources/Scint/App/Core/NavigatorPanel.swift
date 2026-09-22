@@ -50,7 +50,7 @@ struct NavigatorPicker: View {
                 .toolbar {
                     ToolbarItem(placement: .automatic) { NavigatorToggle(presented: bindable.presented) }
                     ToolbarSpacer(.flexible, placement: .automatic)
-                    ToolbarItem(placement: .automatic) { CanvasToggle() }
+                    ToolbarItem(placement: .automatic) { CreateButton(model: model) }
                 }
             Rectangle()
                 .fill(Style.Border.panel)

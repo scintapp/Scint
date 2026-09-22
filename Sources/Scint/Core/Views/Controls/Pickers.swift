@@ -13,9 +13,16 @@ struct ItemPicker: View {
 
         SwiftUI.Menu {
             ForEach(items) { item in
-                Button { onChange(item) } label: {
-                    Text(item.name)
-                    if item == selected { Image(systemName: "checkmark") }
+                if let tint = item.tint, !item.image.isEmpty {
+                    // A toggle keeps the checkmark in the menu's own column, leaving the icon slot for the tint.
+                    Toggle(isOn: Binding(get: { item == selected }, set: { _ in onChange(item) })) {
+                        Label { Text(item.name) } icon: { Image(nsImage: Self.tinted(item.image, tint)) }
+                    }
+                } else {
+                    Button { onChange(item) } label: {
+                        Text(item.name)
+                        if item == selected { Image(systemName: "checkmark") }
+                    }
                 }
             }
         } label: {
@@ -32,6 +39,15 @@ struct ItemPicker: View {
         .menuStyle(.button)
         .buttonStyle(.borderless)
         .menuIndicator(.hidden)
+    }
+
+    /// Menus draw SwiftUI images as templates, so a colored symbol has to arrive as a non-template image.
+    private static func tinted(_ symbol: String, _ tint: Color) -> NSImage {
+        let configuration = NSImage.SymbolConfiguration(paletteColors: [NSColor(tint)])
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+            .withSymbolConfiguration(configuration) ?? NSImage()
+        image.isTemplate = false
+        return image
     }
 }
 
@@ -138,7 +154,7 @@ struct TranscriptPicker: View {
             HStack(spacing: hovered ? Style.Spacing.label : 0) {
                 if hovered || selected == context {
                     Button { model.select(context) } label: {
-                        Text("Overview")
+                        Text("Thread")
                             .font(Typography.body.weight(selected == context ? .medium : .regular))
                             .foregroundStyle(selected == context ? Style.Foreground.secondary : Style.Foreground.secondary)
                             .lineLimit(1)

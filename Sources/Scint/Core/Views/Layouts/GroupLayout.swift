@@ -119,14 +119,14 @@ struct GroupHeader: View {
     var body: some View {
         let harness = harness
         let intent = harness.flatMap { Harness.with($0, { $0.intent }) }
-        let explanation = harness?.descriptor.description ?? ""
+        let explanation = ref.descriptor.description
 
         VStack(alignment: .leading, spacing: Style.Spacing.label) {
             HStack(alignment: .center) {
                 Iconography.icon(for: harness ?? ref, size: 18)
 
                 VStack(alignment: .leading) {
-                    Text(harness?.descriptor.name ?? "No harness")
+                    Text(ref.descriptor.name)
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Style.Foreground.primary)
                         .lineLimit(1)
@@ -143,7 +143,7 @@ struct GroupHeader: View {
             GroupDivider()
 
             Text(explanation.isEmpty
-                 ? "Add a harness to make this space runnable."
+                 ? "No description."
                  : explanation)
             .padding(.bottom, 6)
             .padding([.top, .horizontal], 4)
