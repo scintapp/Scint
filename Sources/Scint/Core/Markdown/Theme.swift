@@ -21,7 +21,7 @@ struct Theme: @unchecked Sendable {
 
     static let dark = Theme(
         textColor: NSColor(Style.Foreground.primary),
-        caretColor: NSColor(Style.Tint.accent.bright),
+        caretColor: NSColor(Style.Tint.space.bright),
         caretWidth: 4,
         baseFont: Typography.Prose.text,
         h1Font: Typography.Prose.heading(1),

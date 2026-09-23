@@ -84,7 +84,8 @@ struct SearchDetail: Query {
             case .open: model.open(ref)
             case .execute: _ = Runtime.shared.start(ref)
             case .insert:
-                Space.with(model.session.space, { $0 })?.add(ref)
+                Space.with(model.session.spaces, { $0 })?.add(ref)
+
         }
     }
 }
@@ -149,4 +150,22 @@ struct SearchDetail: Query {
     }
 
     func surface(_ model: any Model) -> some View { AnySurface(panel: self, model: model) }
+}
+
+#Preview {
+    @Previewable @State var panel = SearchPanel()
+    @Previewable @State var model: StudioModel?
+
+    VStack {
+        if let model {
+            Float(content: panel.surface(model))
+                .frame(width: 640, height: 480)
+        }
+    }
+    .frame(width: 760, height: 600)
+    .background(LinearGradient(colors: [.indigo, .pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)).opacity(0.5)
+    .task {
+        try? await Runtime.shared.load()
+        model = StudioModel(Session(await AppData()))
+    }
 }

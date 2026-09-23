@@ -10,9 +10,14 @@ struct Float<Content: View>: View {
 
     var body: some View {
         content
-            .glassEffect(.regular, in: Style.Shape.panel)
-            .overlay(Style.Shape.panel.stroke(.black.opacity(Style.Opacity.inactive), lineWidth: 1))
             .clipShape(Style.Shape.panel)
+            .glassEffect(.regular, in: Style.Shape.panel)
+            .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
+            .overlay {
+                Style.Shape.panel
+                    .strokeBorder(.black.opacity(Style.Opacity.border), lineWidth: 0.5)
+
+            }
     }
 }
 

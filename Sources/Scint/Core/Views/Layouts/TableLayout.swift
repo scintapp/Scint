@@ -58,7 +58,7 @@ struct TableRow: View {
 
                 Spacer(minLength: .zero)
             }
-            .padding(.horizontal, Style.Spacing.label)
+            .padding(.horizontal, 8)
             .frame(height: Style.Dimension.control(.regular))
             .background(
                 Style.Shape.card.fill(
@@ -91,7 +91,7 @@ struct TableCard<Rows: View>: View {
 
         VStack(spacing: .zero) {
             Button(action: onToggle) {
-                VStack(alignment: .leading, spacing: Style.Spacing.detail) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(space.descriptor.name)
                         .font(Typography.lead)
                         .foregroundStyle(selected ? Style.Foreground.primary : Style.Foreground.secondary)
@@ -103,7 +103,7 @@ struct TableCard<Rows: View>: View {
                             .foregroundStyle(Style.Foreground.secondary)
                             .lineLimit(1)
                     } else {
-                        HStack(spacing: Style.Spacing.detail) {
+                        HStack(spacing: 4) {
                             Text(intent?.forms.completed ?? "Updated")
                             Text("at")
                             Text(updated, style: .time)
@@ -114,16 +114,16 @@ struct TableCard<Rows: View>: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, Style.Spacing.label)
-                .padding(.vertical, Style.Spacing.label)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
             if expanded {
-                VStack(spacing: Style.Spacing.detail) { rows }
-                    .padding(.horizontal, Style.Spacing.label)
-                    .padding(.bottom, Style.Spacing.inset)
+                VStack(spacing: 4) { rows }
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 2)
             }
         }
         .background(Style.Shape.card.fill(selected ? Style.Background.surface : .clear))

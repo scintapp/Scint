@@ -44,6 +44,7 @@ struct NavigatorToggle: View {
         }
         .padding(.horizontal, 1)
         .labelsHidden()
+        .glassEffect(.regular.tint(Style.Background.canvas.opacity(0.4)))
     }
 }
 

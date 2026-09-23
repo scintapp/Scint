@@ -14,7 +14,7 @@ struct TranscriptHeader: View {
                 0
             }
 
-            HStack(spacing: Style.Spacing.label) {
+            HStack(spacing: 8) {
                 Text(value.origin.type is Transcript.Type ? ref.descriptor.name : "Overview Transcript")
                     .font(Typography.body.weight(.semibold))
                     .foregroundStyle(Style.Foreground.secondary)

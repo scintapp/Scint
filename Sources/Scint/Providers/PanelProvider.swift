@@ -33,7 +33,7 @@ final class FloatingPanel: NSPanel {
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         isOpaque = false
-        backgroundColor = .clear
+//        backgroundColor = .clear
         hasShadow = true
     }
 

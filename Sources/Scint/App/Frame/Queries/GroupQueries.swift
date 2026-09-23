@@ -64,7 +64,7 @@ struct DocumentsGroup: Query {
                         image: icon.symbol,
                         tint: Style.Foreground.secondary
                     )
-                case .task(let id, let title, _):
+                case .task(let id, let title, _, _):
                     return .init(
                         ref: origin,
                         origin: origin,
@@ -102,7 +102,7 @@ struct ArtifactsGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.spaces }
         }
         guard let space = focused else { return .init() }
 
@@ -165,7 +165,7 @@ struct ArtifactsGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.spaces }
         }
         guard let space = focused else { return .init() }
 
@@ -235,7 +235,7 @@ struct CommandsGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.spaces }
         }
         guard let space = focused else { return .init() }
 
@@ -297,7 +297,7 @@ struct CommandsGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.spaces }
         }
         guard let space = focused else { return .init() }
 
@@ -365,11 +365,14 @@ struct HarnessGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.spaces }
         }
 
         guard let space = focused else { return .init() }
+        return controls(for: space)
+    }
 
+    static func controls(for space: Reference) -> Controls {
         func load(_ ref: Reference) {
             Space.update(space) { $0.harness = ref }
         }
@@ -378,14 +381,21 @@ struct HarnessGroup: Query {
             Space.with(space, { $0 })?.configure(value, for: key)
         }
 
+        func hour() -> Date {
+            Calendar.current.date(bySetting: .minute, value: 0, of: .now.addingTimeInterval(3600)) ?? .now
+        }
+
+        func when(_ key: String) -> When? {
+            guard let value = Space.with(space, { $0.config[key] }) ?? nil, case .when(let when) = value else { return nil }
+            return when
+        }
+
         func gate(_ item: ItemParams, _ key: String) {
             guard !item.active else { return configure(nil, for: key) }
 
-            let opening = item.trailingKind == .time
-            ? Calendar.current.date(bySetting: .minute, value: 0, of: .now.addingTimeInterval(3600)) ?? .now
-            : Date.now
+            let opening = item.trailingKind == .date ? Date.now : hour()
 
-            configure(.string(Value.formatter.string(from: opening)), for: key)
+            configure(item.trailingKind == .moment ? .when(When(opening)) : .string(Value.formatter.string(from: opening)), for: key)
         }
 
         func choose(_ item: ItemParams, _ key: String) {
@@ -406,17 +416,24 @@ struct HarnessGroup: Query {
             onToggle: { item in
                 guard let key = item.key else { return }
                 switch item.trailingKind {
-                    case .date, .time: gate(item, key)
+                    case .date, .time, .moment: gate(item, key)
                     default: configure(.bool(!item.active), for: key)
                 }
             },
             onChange: { item, selection in
                 if let ref = selection.ref, ref.type is Harness.Type { return load(ref) }
                 guard let key = item.key else { return }
+                if key == "when", let repeats = selection.value.flatMap({ When.Repeat(rawValue: $0) }) {
+                    guard let moment = when(key)?.moment ?? (repeats == .never ? nil : hour()) else { return }
+                    return configure(.when(When(moment, repeats: repeats)), for: key)
+                }
                 configure(selection.value.map(Value.string), for: key)
             },
             onValueChange: { item, value in
                 guard let key = item.key else { return }
+                if item.trailingKind == .moment, let moment = Value.formatter.date(from: value) {
+                    return configure(.when(When(moment, repeats: when(key)?.repeats ?? .never)), for: key)
+                }
                 configure(value.isEmpty ? nil : .string(value), for: key)
             },
             onSelect: { item in
@@ -437,7 +454,7 @@ struct HarnessGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.spaces }
         }
 
         guard let space = focused else { return .init() }
@@ -453,7 +470,6 @@ struct HarnessGroup: Query {
         let harness = declaration?.ref
         let config = Space.with(space, { $0.config }) ?? [:]
 
-        /// The key of an argument that takes a command to pass through (e.g. Exec's `command`), if this is one.
         func passthroughKey(_ parameter: Parameter) -> String? {
             guard case .argument(let key, let type, _, _) = parameter else { return nil }
             func accepts(_ value: Value) -> Bool {
@@ -475,223 +491,15 @@ struct HarnessGroup: Query {
 
         let passthroughParameters = passthroughCommand.flatMap { Command.with($0, { $0.parameters }) } ?? []
 
-        // The harness's own arguments, then those of the command it was handed.
         var seen: Set<String> = []
         let parameters = ((declaration?.parameters ?? []) + passthroughParameters).filter { parameter in
             guard case .argument(let key, _, _, _) = parameter else { return false }
             return !passthroughKeys.contains(key) && seen.insert(key).inserted
         }
 
-        func setting(_ parameter: Parameter) -> ItemParams? {
-            guard case .argument(let key, let type, let required, let defaultValue) = parameter,
-                  !required
-                    else { return nil }
+        let settingItems = settings(parameters, in: space)
+        let automationItems = harness == nil ? [] : settings(Automation.parameters, in: space)
 
-            let configured = config[key]
-
-            if let references = referenceOptions(type) {
-                let selectedRef = configured?.references.first
-                let icon = selectedRef.map { Iconography.icon(for: $0) }
-
-                let items = references.map { ref in
-                    let icon = Iconography.icon(for: ref)
-                    return ItemParams(
-                        ref: ref,
-                        key: key,
-                        name: ref.descriptor.name,
-                        image: icon.symbol,
-                        tint: Style.Foreground.secondary,
-                        description: ref.descriptor.description,
-                        active: ref == selectedRef
-                    )
-                }
-
-                return .init(
-                    ref: selectedRef,
-                    key: key,
-                    name: label(key),
-                    image: icon?.symbol ?? symbol(key),
-                    tint: Style.Foreground.secondary,
-                    trailingKind: .load,
-                    description: selectedRef?.descriptor.name ?? "",
-                    items: [
-                        .init(
-                            key: key,
-                            name: "Default",
-                            image: "circle.dashed",
-                            tint: Style.Foreground.secondary,
-                            active: selectedRef == nil
-                        )
-                    ] + items
-                )
-            }
-
-            let ordered = scale(type)
-            let resting = ordered == nil ? "" : (defaultValue.map(leaf)?.rendered.last ?? "")
-            let selectedValue = configured?.rendered.last ?? resting
-            let choices = ordered ?? options(type)
-
-            if !choices.isEmpty {
-                var items = choices.compactMap { value -> ItemParams? in
-                    guard let rendered = value.rendered.last, !rendered.isEmpty else { return nil }
-                    return .init(key: key, name: label(rendered), value: rendered)
-                }
-
-                if !selectedValue.isEmpty, !items.contains(where: { $0.value == selectedValue }) {
-                    items.append(.init(key: key, name: label(selectedValue), value: selectedValue))
-                }
-
-                return .init(
-                    key: key,
-                    name: label(key),
-                    image: symbol(key),
-                    tint: Style.Foreground.secondary,
-                    trailingKind: ordered == nil ? .picker : .range,
-                    value: selectedValue,
-                    description: selectedValue.isEmpty ? "Default" : label(selectedValue),
-                    items: ordered == nil ? [.init(name: "Default")] + items : items
-                )
-            }
-
-            switch leaf(type) {
-                case .bool:
-                    let active = if case .bool(let value) = configured { value }
-                    else if let defaultValue, case .bool(let value) = leaf(defaultValue) { value }
-                    else { false }
-                    return .init(
-                        key: key,
-                        name: label(key),
-                        image: symbol(key),
-                        tint: Style.Foreground.secondary,
-                        trailingKind: .toggle,
-                        active: active
-                    )
-                case .date:
-                    return .init(
-                        key: key,
-                        name: label(key),
-                        image: symbol(key),
-                        tint: Style.Foreground.secondary,
-                        trailingKind: clock(key) ? .time : .date,
-                        value: selectedValue,
-                        active: configured != nil
-                    )
-
-                case .string where directory(key):
-                    let chosen = selectedValue.isEmpty
-                    ? (defaultValue.map(leaf)?.rendered.last ?? "")
-                    : selectedValue
-                    return .init(
-                        key: key,
-                        name: label(key),
-                        image: symbol(key),
-                        tint: Style.Foreground.secondary,
-                        trailingKind: .action,
-                        value: "Choose",
-                        description: chosen.isEmpty
-                        ? "No folder"
-                        : URL(fileURLWithPath: chosen).lastPathComponent
-                    )
-                case .string, .integer, .decimal:
-                    return .init(
-                        key: key,
-                        name: label(key),
-                        image: symbol(key),
-                        tint: Style.Foreground.secondary,
-                        trailingKind: .field,
-                        value: selectedValue
-                    )
-                case .sequence, .range, .collection, .reference:
-                    return nil
-            }
-        }
-
-        let settingItems = parameters.compactMap(setting)
-        let automationItems = harness == nil ? [] : Automation.parameters.compactMap(setting)
-
-        func label(_ value: String) -> String {
-            value.reduce(into: "") { label, character in
-                if character == "-" || character == "_" { label.append(" ") }
-                else {
-                    if character.isUppercase, !label.isEmpty { label.append(" ") }
-                    label.append(character)
-                }
-            }.capitalized
-        }
-
-        func clock(_ key: String) -> Bool { key.lowercased().contains("time") }
-
-        func directory(_ key: String) -> Bool {
-            let key = key.lowercased()
-            return key.contains("dir") || key.contains("folder") || key.contains("path")
-        }
-
-        func symbol(_ key: String) -> String {
-            if directory(key) { return "folder" }
-            if clock(key) { return "clock" }
-
-            let key = key.lowercased()
-            return switch true {
-                case key.contains("model"): "cpu"
-                case key.contains("reason"), key.contains("effort"): "lightbulb.max"
-                case key.contains("sandbox"), key.contains("permission"): "lock.shield"
-                case key.contains("command"), key == "action": "switch.2"
-                case key.contains("target"), key.contains("space"): "square.stack"
-                case key.contains("schedule"), key.contains("date"), key == "at": "calendar"
-                case key.contains("repeat"), key.contains("every"): "repeat"
-                case key.contains("url"), key.contains("endpoint"): "link"
-                case key.contains("interval"), key.contains("latency"), key.contains("timeout"): "timer"
-                case key.contains("event"): "bolt"
-                case key.contains("label"), key.contains("name"): "tag"
-                case key.contains("check"), key.contains("query"): "magnifyingglass"
-                default: "slider.horizontal.3"
-            }
-        }
-
-        func scale(_ value: Value) -> [Value]? {
-            switch value {
-                case .collection(let values) where values.count == 1: values.values.first.flatMap(scale)
-                case .range(let values): values
-                default: nil
-            }
-        }
-
-        func options(_ value: Value) -> [Value] {
-            switch value {
-                case .collection(let values) where values.count == 1: values.values.first.map(options) ?? []
-                case .sequence(let values) where values.count > 1: values
-                default: []
-            }
-        }
-
-        func leaf(_ value: Value) -> Value {
-            switch value {
-                case .collection(let values) where values.count == 1: values.values.first.map(leaf) ?? value
-                case .sequence(let values) where values.count > 1: values.first.map(leaf) ?? value
-                case .range(let values): values.first.map(leaf) ?? value
-                default: value
-            }
-        }
-
-        func referenceOptions(_ value: Value) -> [Reference]? {
-            let references: [Reference]
-            switch value {
-                case .sequence(let values) where values.isEmpty:
-                    references = Runtime.shared.all(as: Space.self).map { $0.0 }
-                case .reference(let ref) where ref.type is Command.Type:
-                    references = Runtime.shared.all(as: Command.self).map { $0.0 }
-                case .reference:
-                    return nil
-                default:
-                    return nil
-            }
-
-            return references.sorted {
-                $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
-            }
-        }
-
-        // Keyed so SpaceSettingsQuery routes it here even before a harness is set.
         let loader = ItemParams(
             ref: harness,
             key: "harness",
@@ -804,5 +612,245 @@ struct HarnessGroup: Query {
             header: false,
             sections: sections
         )
+    }
+
+    static func settings(_ parameters: [Parameter], in space: Reference) -> [ItemParams] {
+        let config = Space.with(space, { $0.config }) ?? [:]
+
+        func setting(_ parameter: Parameter) -> ItemParams? {
+            guard case .argument(let key, let type, let required, let defaultValue) = parameter,
+                  !required
+                    else { return nil }
+
+            let configured = config[key]
+
+            if let references = referenceOptions(type) {
+                let selectedRef = configured?.references.first
+                let icon = selectedRef.map { Iconography.icon(for: $0) }
+
+                let items = references.map { ref in
+                    let icon = Iconography.icon(for: ref)
+                    return ItemParams(
+                        ref: ref,
+                        key: key,
+                        name: ref.descriptor.name,
+                        image: icon.symbol,
+                        tint: Style.Foreground.secondary,
+                        description: ref.descriptor.description,
+                        active: ref == selectedRef
+                    )
+                }
+
+                return .init(
+                    ref: selectedRef,
+                    key: key,
+                    name: label(key),
+                    image: icon?.symbol ?? symbol(key),
+                    tint: Style.Foreground.secondary,
+                    trailingKind: .load,
+                    description: selectedRef?.descriptor.name ?? "",
+                    items: [
+                        .init(
+                            key: key,
+                            name: "Default",
+                            image: "circle.dashed",
+                            tint: Style.Foreground.secondary,
+                            active: selectedRef == nil
+                        )
+                    ] + items
+                )
+            }
+
+            let ordered = scale(type)
+            let resting = ordered == nil ? "" : (defaultValue.map(leaf)?.rendered.last ?? "")
+            let selectedValue = configured?.rendered.last ?? resting
+            let choices = ordered ?? options(type)
+
+            if !choices.isEmpty {
+                var items = choices.compactMap { value -> ItemParams? in
+                    guard let rendered = value.rendered.last, !rendered.isEmpty else { return nil }
+                    return .init(key: key, name: label(rendered), value: rendered)
+                }
+
+                if !selectedValue.isEmpty, !items.contains(where: { $0.value == selectedValue }) {
+                    items.append(.init(key: key, name: label(selectedValue), value: selectedValue))
+                }
+
+                return .init(
+                    key: key,
+                    name: label(key),
+                    image: symbol(key),
+                    tint: Style.Foreground.secondary,
+                    trailingKind: ordered == nil ? .picker : .range,
+                    value: selectedValue,
+                    description: selectedValue.isEmpty ? "Default" : label(selectedValue),
+                    items: ordered == nil ? [.init(name: "Default")] + items : items
+                )
+            }
+
+            switch leaf(type) {
+                case .bool:
+                    let active = if case .bool(let value) = configured { value }
+                    else if let defaultValue, case .bool(let value) = leaf(defaultValue) { value }
+                    else { false }
+                    return .init(
+                        key: key,
+                        name: label(key),
+                        image: symbol(key),
+                        tint: Style.Foreground.secondary,
+                        trailingKind: .toggle,
+                        active: active
+                    )
+                case .date:
+                    return .init(
+                        key: key,
+                        name: label(key),
+                        image: symbol(key),
+                        tint: Style.Foreground.secondary,
+                        trailingKind: clock(key) ? .time : .date,
+                        value: selectedValue,
+                        active: configured != nil
+                    )
+                case .when:
+                    let when: When? = if case .when(let value)? = configured { value } else { nil }
+                    return .init(
+                        key: key,
+                        name: label(key),
+                        image: symbol(key),
+                        tint: Style.Foreground.secondary,
+                        trailingKind: .moment,
+                        value: when.map { Value.formatter.string(from: $0.moment) },
+                        active: when != nil
+                    )
+
+                case .string where directory(key):
+                    let chosen = selectedValue.isEmpty
+                    ? (defaultValue.map(leaf)?.rendered.last ?? "")
+                    : selectedValue
+                    return .init(
+                        key: key,
+                        name: label(key),
+                        image: symbol(key),
+                        tint: Style.Foreground.secondary,
+                        trailingKind: .action,
+                        value: "Choose",
+                        description: chosen.isEmpty
+                        ? "No folder"
+                        : URL(fileURLWithPath: chosen).lastPathComponent
+                    )
+                case .string, .integer, .decimal:
+                    return .init(
+                        key: key,
+                        name: label(key),
+                        image: symbol(key),
+                        tint: Style.Foreground.secondary,
+                        trailingKind: .field,
+                        value: selectedValue
+                    )
+                case .sequence, .range, .collection, .reference:
+                    return nil
+            }
+        }
+
+        func repetition(_ key: String) -> ItemParams {
+            let repeats: When.Repeat = if case .when(let value)? = config[key] { value.repeats } else { .never }
+            return .init(
+                key: key,
+                name: "Repeat",
+                image: symbol("repeat"),
+                tint: Style.Foreground.secondary,
+                trailingKind: .picker,
+                value: repeats.rawValue,
+                description: label(repeats.rawValue),
+                items: When.Repeat.allCases.map { .init(key: key, name: label($0.rawValue), value: $0.rawValue) }
+            )
+        }
+
+
+        func label(_ value: String) -> String {
+            value.reduce(into: "") { label, character in
+                if character == "-" || character == "_" { label.append(" ") }
+                else {
+                    if character.isUppercase, !label.isEmpty { label.append(" ") }
+                    label.append(character)
+                }
+            }.capitalized
+        }
+
+        func clock(_ key: String) -> Bool { key.lowercased().contains("time") }
+
+        func directory(_ key: String) -> Bool {
+            let key = key.lowercased()
+            return key.contains("dir") || key.contains("folder") || key.contains("path")
+        }
+
+        func symbol(_ key: String) -> String {
+            if directory(key) { return "folder" }
+            if clock(key) { return "clock" }
+
+            let key = key.lowercased()
+            return switch true {
+                case key.contains("model"): "cpu"
+                case key.contains("reason"), key.contains("effort"): "lightbulb.max"
+                case key.contains("sandbox"), key.contains("permission"): "lock.shield"
+                case key.contains("command"), key == "action": "switch.2"
+                case key.contains("target"), key.contains("space"): "square.stack"
+                case key.contains("schedule"), key.contains("date"), key == "at", key == "when": "calendar"
+                case key.contains("repeat"), key.contains("every"): "repeat"
+                case key.contains("url"), key.contains("endpoint"): "link"
+                case key.contains("interval"), key.contains("latency"), key.contains("timeout"): "timer"
+                case key.contains("event"): "bolt"
+                case key.contains("label"), key.contains("name"): "tag"
+                case key.contains("check"), key.contains("query"): "magnifyingglass"
+                default: "slider.horizontal.3"
+            }
+        }
+
+        func scale(_ value: Value) -> [Value]? {
+            switch value {
+                case .collection(let values) where values.count == 1: values.values.first.flatMap(scale)
+                case .range(let values): values
+                default: nil
+            }
+        }
+
+        func options(_ value: Value) -> [Value] {
+            switch value {
+                case .collection(let values) where values.count == 1: values.values.first.map(options) ?? []
+                case .sequence(let values) where values.count > 1: values
+                default: []
+            }
+        }
+
+        func leaf(_ value: Value) -> Value {
+            switch value {
+                case .collection(let values) where values.count == 1: values.values.first.map(leaf) ?? value
+                case .sequence(let values) where values.count > 1: values.first.map(leaf) ?? value
+                case .range(let values): values.first.map(leaf) ?? value
+                default: value
+            }
+        }
+
+        func referenceOptions(_ value: Value) -> [Reference]? {
+            let references: [Reference]
+            switch value {
+                case .sequence(let values) where values.isEmpty:
+                    references = Runtime.shared.all(as: Space.self).map { $0.0 }
+                case .reference(let ref) where ref.type is Command.Type:
+                    references = Runtime.shared.all(as: Command.self).map { $0.0 }
+                case .reference:
+                    return nil
+                default:
+                    return nil
+            }
+
+            return references.sorted {
+                $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
+            }
+        }
+
+        return parameters.compactMap(setting).flatMap { item in
+            item.trailingKind == .moment ? [item, repetition(item.key ?? "")] : [item]
+        }
     }
 }

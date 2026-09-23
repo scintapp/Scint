@@ -88,7 +88,7 @@ struct ItemRangePicker: View {
     }
 
     var body: some View {
-        HStack(spacing: Style.Spacing.label) {
+        HStack(spacing: 8) {
             Spacer(minLength: 0)
 
             let step = step(for: Self.track)
@@ -151,7 +151,7 @@ struct TranscriptPicker: View {
                 }
             }) ?? []
 
-            HStack(spacing: hovered ? Style.Spacing.label : 0) {
+            HStack(spacing: hovered ? 8 : 0) {
                 if hovered || selected == context {
                     Button { model.select(context) } label: {
                         Text("Thread")
@@ -191,7 +191,7 @@ struct TranscriptPicker: View {
                     }
                 }
             }
-            .padding(.horizontal, Style.Spacing.label)
+            .padding(.horizontal, 8)
             .frame(height: 30)
             .fixedSize(horizontal: true, vertical: false)
             .background(Style.Shape.panel.fill(Style.Background.surface))
@@ -254,5 +254,6 @@ struct InspectorPicker: View {
         .controlGroupStyle(.navigation)
         .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.secondary)
         .tint(Style.Background.selection)
+        .glassEffect(.regular.tint(Style.Background.canvas.opacity(0.4)))
     }
 }

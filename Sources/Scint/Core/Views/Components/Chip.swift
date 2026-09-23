@@ -18,14 +18,14 @@ struct Chip: View {
         Button {
             CallbackRouter.open(ref)
         } label: {
-            HStack(spacing: Style.Spacing.detail) {
+            HStack(spacing: 4) {
                 icon
                 Text(label ?? ref.descriptor.name)
                     .font(Typography.body)
                     .lineLimit(1)
             }
             .foregroundStyle(icon.tint.bright)
-            .padding(.horizontal, Style.Spacing.detail)
+            .padding(.horizontal, 4)
             .frame(height: Typography.Prose.lineHeight)
             .padding(1)
             .background {

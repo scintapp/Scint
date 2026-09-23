@@ -4,25 +4,6 @@ import ScintRuntime
 import ScintComponents
 
 
-
-struct Item: Identifiable {
-    let id: String
-    let label: String
-    let image: String
-    let role: ButtonRole?
-    let enabled: @MainActor (any Model) -> Bool
-    let action: @MainActor (any Model) -> Void
-
-    init(id: String, label: String, image: String = "", role: ButtonRole? = nil, enabled: @escaping @MainActor (any Model) -> Bool = { _ in true }, action: @escaping @MainActor (any Model) -> Void) {
-        self.id = id
-        self.label = label
-        self.image = image
-        self.role = role
-        self.enabled = enabled
-        self.action = action
-    }
-}
-
 enum SearchMenu {
     static func search(for query: String, filters: [String] = [], limit: Int = 60, take: Int = 12, matching: (Reference) -> Bool = { _ in true }) -> [MenuItem] {
         Runtime.shared.search(query, filters: filters, limit: limit).all.compactMap { result in
@@ -68,7 +49,7 @@ enum Action {
     }
 
     static func remove(_ ref: Reference) {
-        Task { try await Runtime.shared.remove(ref) }
+        Task { await Runtime.shared.remove(ref) }
     }
 
     @MainActor static func createDocument(in origin: Reference, name: String = "New Document", model: any Model) {
@@ -254,10 +235,10 @@ struct TranscriptMenu: View {
                 }
             }
         } label: {
-            HStack(spacing: Style.Spacing.label) {
+            HStack(spacing: 8) {
                 Iconography.Icon(symbol: "text.bubble", tint: Style.Foreground.secondary, sizing: 16)
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: Style.Spacing.detail) {
+                    HStack(spacing: 4) {
                         Text(transcript?.descriptor.name ?? "None")
                         if let transcript = transcript {
                             let count = Transcript.with(transcript, { $0.records.count }) ?? 0
@@ -275,7 +256,7 @@ struct TranscriptMenu: View {
             }
             .font(Typography.body)
             .foregroundStyle(Style.Foreground.primary)
-            .padding(.horizontal, Style.Spacing.label)
+            .padding(.horizontal, 8)
             .frame(maxWidth: .infinity, minHeight: 32)
             .background(Style.Shape.control.fill(Style.Background.surface))
             .overlay(Style.Shape.control.strokeBorder(Style.Border.hairline, lineWidth: 1))
@@ -287,3 +268,139 @@ struct TranscriptMenu: View {
         .disabled(transcripts.isEmpty)
     }
 }
+
+struct Item: Identifiable {
+    let id: String
+    let label: String
+    let image: String
+    let role: ButtonRole?
+    let enabled: @MainActor (any Model) -> Bool
+    let action: @MainActor (any Model) -> Void
+
+    init(id: String, label: String, image: String = "", role: ButtonRole? = nil, enabled: @escaping @MainActor (any Model) -> Bool = { _ in true }, action: @escaping @MainActor (any Model) -> Void) {
+        self.id = id
+        self.label = label
+        self.image = image
+        self.role = role
+        self.enabled = enabled
+        self.action = action
+    }
+}
+
+struct ContextActionMenu: View {
+    let ref: Reference
+    let model: any Model
+    var space: Bool { ref.type is Space.Type }
+    var document: Bool { ref.type is ScintRuntime.Document.Type }
+    var folder: Bool { space && Navigation().spaces(to: ref).contains(model.session.library) }
+    var parent: Reference? { Space.with(ref, { $0.space }) ?? nil }
+    var origin: Reference? { ReferenceTransfer.origin(of: ref) }
+
+    var moveDestinations: [Reference] {
+        Runtime.shared.all(as: Space.self)
+            .map { $0.0 }
+            .filter { $0 != ref && $0 != parent && !Navigation().spaces(to: $0).contains(ref) }
+            .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
+    }
+
+    var spaceDestinations: [Reference] {
+        destinations(in: model.session.spaces)
+            .filter { destination in
+                Space.with(destination, { !$0.documents.contains(ref) }) ?? false
+            }
+    }
+
+    var folderDestinations: [Reference] {
+        ([model.session.library] + destinations(in: model.session.library)).filter { $0 != origin }
+    }
+
+    var body: some View {
+        if space {
+            Button(folder ? "New Folder…" : "New Space…") {
+                prompt(folder ? "New Folder" : "New Space") { name in Space.new(ref, name: name) }
+            }
+            if folder {
+                Button("New Document…") { prompt("New Document") { name in Document.new(ref, name: name) } }
+            }
+            Divider()
+        }
+
+        Button("Rename…") {
+            prompt("Rename", ref.descriptor.name) { name in Catalog.shared.update(ref) { $0.name = name } }
+        }
+
+        if space {
+            SwiftUI.Menu("Move To") {
+                if parent != nil {
+                    Button("Top Level") {
+                        ReferenceTransfer.detach(ref, from: nil)
+                        Task { await Runtime.shared.save() }
+                    }
+                    Divider()
+                }
+                ForEach(moveDestinations, id: \.self) { destination in
+                    Button(destination.descriptor.name) {
+                        ReferenceTransfer.paste([ref], by: nil, move: true, to: destination)
+                        Task { await Runtime.shared.save() }
+                    }
+                }
+            }
+        }
+
+        if document {
+            if !spaceDestinations.isEmpty {
+                SwiftUI.Menu("Add to Space") {
+                    ForEach(spaceDestinations, id: \.self) { destination in
+                        Button(destination.descriptor.name) {
+                            ReferenceTransfer.paste([ref], by: nil, move: false, to: destination)
+                            Task { await Runtime.shared.save() }
+                        }
+                    }
+                }
+            }
+
+            if !folderDestinations.isEmpty {
+                SwiftUI.Menu("Move to Folder") {
+                    ForEach(folderDestinations, id: \.self) { destination in
+                        Button(destination.descriptor.name) {
+                            ReferenceTransfer.paste([ref], by: nil, move: true, to: destination)
+                            Task { await Runtime.shared.save() }
+                        }
+                    }
+                }
+            }
+        }
+
+        Divider()
+        Button("Remove", role: .destructive) { Action.remove(ref) }
+    }
+
+    private func destinations(in root: Reference) -> [Reference] {
+        Runtime.shared.all(as: Space.self)
+            .map { $0.0 }
+            .filter { $0 != root && Navigation().spaces(to: $0).contains(root) }
+            .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
+    }
+
+    private func prompt(_ title: String, _ initial: String = "", _ apply: @escaping (String) -> Void) {
+        let field = NSTextField(string: initial)
+        field.placeholderString = "Name"
+        field.frame = NSRect(x: 0, y: 0, width: 260, height: 24)
+
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.accessoryView = field
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        alert.window.initialFirstResponder = field
+
+        guard let window = NSApp.keyWindow ?? NSApp.mainWindow else { return }
+        alert.beginSheetModal(for: window) { response in
+            let name = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard response == .alertFirstButtonReturn, !name.isEmpty else { return }
+            apply(name)
+            Task { await Runtime.shared.save() }
+        }
+    }
+}
+

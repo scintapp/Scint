@@ -11,7 +11,7 @@ struct DocumentRow: Surface {
 
     var body: some View {
         Button { model.open(ref) } label: {
-            HStack(spacing: Style.Spacing.label) {
+            HStack(spacing: 8) {
                 Iconography.icon(for: ref).frame(width: 18)
                 Text(Card.text(for: ref).name).lineLimit(1)
                 Spacer(minLength: 0)
@@ -31,7 +31,7 @@ struct DocumentRow: Surface {
 struct DocumentCard: View {
     let ref: Reference
     let model: any Model
-    let sizing: CGFloat = 240.0
+    let sizing: CGFloat = 224
     let scale = 0.6
 
     @State var selected: Bool
@@ -46,8 +46,8 @@ struct DocumentCard: View {
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: Style.Spacing.label) {
-            VStack(alignment: .leading, spacing: Style.Spacing.inset) {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(updated)
                     .font(Typography.detail)
                     .foregroundStyle(Style.Foreground.secondary)
@@ -57,18 +57,18 @@ struct DocumentCard: View {
                     DocumentBlock(block: $0)
                         .allowsHitTesting(false)
                         .textSelection(.disabled)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 12)
+                        .padding(.horizontal, 14)
+                        .padding(.top, 10)
                 }
             }
-            .frame(width: (sizing - Style.Spacing.tile * 2) / scale, alignment: .topLeading)
+            .frame(width: (sizing - 16 * 2) / scale, alignment: .topLeading)
             .textSelection(.disabled)
             .scaleEffect(scale, anchor: .top)
         }
         .padding(Style.Spacing.tile)
         .frame(minWidth: sizing, maxWidth: sizing, maxHeight: sizing * 1.2, alignment: .top)
         .clipShape(Style.Shape.card)
-        .background(Style.Shape.card.fill(Style.Background.surface))
+        .background(Style.Shape.card.fill(Style.Background.surface.opacity(0.7)))
         .overlay(Style.Shape.card.strokeBorder(selected ? Style.Tint.document.dull : Style.Border.card, lineWidth: 0.5))
         .contentShape(Style.Shape.card)
         .shadow(color: .black.opacity(0.2), radius: isHovered ? 3 : 1.5, y: isHovered ? 2 : 1)
@@ -87,10 +87,11 @@ struct DocumentLibrary: Surface {
     var panel: any Panel
     var model: any Model
 
+    
     var folder: Reference {
         let selected = model.session.selection.structure
-        guard let selected, selected != model.session.drafts
-        else { return model.session.drafts }
+        guard let selected, selected != model.session.docs
+        else { return model.session.docs }
         return selected
     }
 

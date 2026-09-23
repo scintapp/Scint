@@ -37,5 +37,7 @@ struct Studio: View {
         .environment(scint.app.studio)
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        .toolbarBackgroundVisibility(.hidden, for: .automatic)
+        .scrollEdgeEffectHidden(for: .bottom)
     }
 }

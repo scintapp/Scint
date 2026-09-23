@@ -21,7 +21,7 @@ struct NavigatorQuery: Query {
                 model.focus(ref)
             },
             surfaceDropTarget: {
-                let space = model.session.space
+                let space = model.session.spaces
                 return .init(ref: space, name: space.descriptor.name)
             },
             wrapLink: { view, item, _ in
@@ -30,7 +30,7 @@ struct NavigatorQuery: Query {
             },
             wrapHeader: { view, section in
                 if section.id == AnyHashable("spaces") {
-                    return AnyView(view.contextMenu { ContextActionMenu(ref: model.session.space, model: model) })
+                    return AnyView(view.contextMenu { ContextActionMenu(ref: model.session.spaces, model: model) })
                 }
                 if section.id == AnyHashable("library") {
                     return AnyView(view.contextMenu { ContextActionMenu(ref: model.session.library, model: model) })
@@ -78,7 +78,7 @@ struct NavigatorQuery: Query {
                             tint: Style.Foreground.secondary
                         ),
                         .init(
-                            ref: model.session.drafts,
+                            ref: model.session.docs,
                             name: "Documents",
                             image: "document.on.document",
                             tint: Style.Foreground.secondary
@@ -122,7 +122,7 @@ struct PathQuery: Query {
                 model.select(ref)
             },
             sectionDropTarget: { section in
-                let space = model.session.space
+                let space = model.session.spaces
                 return .init(ref: space, name: space.descriptor.name)
             },
             itemPalette: { item in
@@ -188,7 +188,7 @@ struct DocumentQuery: Query {
                 model.select(ref)
             },
             sectionDropTarget: { section in
-                let space = model.session.space
+                let space = model.session.spaces
                 return .init(ref: space, name: space.descriptor.name)
             },
             itemPalette: { item in
@@ -256,7 +256,7 @@ struct SpaceOutlineQuery: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.spaces }
         }
         guard let space = focused else { return .init() }
 
@@ -297,7 +297,7 @@ struct SpaceSettingsQuery: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.space }
+            else { return model.session.spaces }
         }
         guard let space = focused else { return .init() }
 

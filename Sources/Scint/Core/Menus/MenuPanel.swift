@@ -15,12 +15,12 @@ struct MenuPanelContent: View {
     var body: some View {
         switch controller.kind {
         case .fixed, .dynamic:
-            VStack(alignment: .leading, spacing: Style.Spacing.detail) {
+            VStack(alignment: .leading, spacing: 4) {
                 MenuList(items: controller.items, selectedID: controller.selectedID, onSelect: onSelect)
             }
             .padding(Style.Spacing.label)
-            .frame(width: controller.size.width, height: controller.size.height)
-            .glassEffect(.regular.tint(Style.Background.surface), in: Style.Shape.control)
+            .frame(width: 260, height: 360)
+            .glassEffect(.regular, in: Style.Shape.control)
         case .create, .update:
             Menu(
                 query: Binding(get: { controller.query }, set: { controller.query = $0 }),
@@ -98,7 +98,6 @@ final class MenuPanelWindow: NSPanel {
     private weak var host: NSWindow?
     private var resignObserver: NSObjectProtocol?
     private var isPresented = false
-
     var onResignKey: (() -> Void)?
     var onEscape: (() -> Void)?
 
@@ -170,8 +169,8 @@ final class MenuPanelWindow: NSPanel {
         panel.isMovable = false
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = false
-        panel.animationBehavior = .none
+        panel.hasShadow = true
+        panel.animationBehavior = .utilityWindow
         panel.collectionBehavior = [.transient, .ignoresCycle]
         return panel
     }

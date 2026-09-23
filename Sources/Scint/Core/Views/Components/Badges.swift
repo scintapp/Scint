@@ -20,7 +20,7 @@ struct ComponentCount: Sendable {
                 case .document: if countDocuments { documents += 1 }
                 case .frame(_, let series):
                     include(series, countDocuments: countDocuments)
-                case .task(_, _, let completed):
+                case .task(_, _, let completed, _):
                     totalTasks += 1
                     if completed { completedTasks += 1 }
                 case .text(_, let text):
@@ -52,7 +52,7 @@ struct Badge: View {
     var outlined: Bool = false
 
     var body: some View {
-        HStack(spacing: Style.Spacing.detail) {
+        HStack(spacing: 4) {
             if !image.isEmpty {
                 Image(systemName: image)
                     .font(Typography.body)
@@ -64,8 +64,8 @@ struct Badge: View {
                 .foregroundStyle(active ? outlined ? tint : Style.Foreground.primary : Style.Foreground.secondary)
                 .lineLimit(1)
         }
-        .padding(.horizontal, outlined ? Style.Spacing.label : .zero)
-        .padding(.vertical, outlined ? Style.Spacing.detail : .zero)
+        .padding(.horizontal, outlined ? 8 : .zero)
+        .padding(.vertical, outlined ? 4 : .zero)
         .background {
             if outlined { Capsule().fill(tint.opacity(Style.Opacity.surface)) }
         }

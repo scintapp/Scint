@@ -36,38 +36,50 @@ struct SpaceHeader: Surface {
     }
 
     var context: Composition? { ref?.context }
+    var harness: Reference? { ref.flatMap { Space.with($0, { $0.harness }) ?? nil } }
+    var working: Bool { context?.state == .working }
 
-    var state: (label: String, tint: Color) {
-        if let context {
-            switch context.state {
-                case .active: return ("Active", Style.Tint.accent.bright)
-                case .working: return ("Working", Style.Tint.accent.bright)
-                case .completed: return ("Complete", Style.Tint.space.bright)
-                case .failed: return ("Needs attention", Style.Tint.alert.bright)
-                case .inactive: return ("Ready", Style.Foreground.secondary)
-            }
-        }
-        return ("", .clear)
+    var state: (label: String, tint: Style.Tint) { context?.state.status ?? ("", .neutral) }
+
+    var run: (started: Date, stopped: Date?)? {
+        guard let transcript = model.session.transcript,
+              let entries = Transcript.with(transcript, { $0.entries }),
+              let index = entries.lastIndex(where: { if case .event(.started(_), _) = $0 { true } else { false } })
+        else { return nil }
+        return (entries[index].created, entries[index...].first(where: \.terminal)?.created ?? (working ? nil : entries.last?.created))
     }
 
     var body: some View {
         HStack(alignment: .center) {
             if let ref {
-                HStack(alignment: .center, spacing: 16) {
-                    Iconography.icon(for: ref, size: 23)
-                        .frame(maxHeight: 52)
+                HStack(alignment: .center, spacing: 12) {
+                    Group {
+                        if let harness { Iconography.icon(for: harness, size: 18) }
+                        else { Iconography.icon(for: ref, size: 18) }
+                    }
+                    .frame(maxHeight: 52)
+
+                    Text(ref.descriptor.name)
+                        .frame(alignment: .leading)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Style.Foreground.primary)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     VStack(alignment: .leading) {
-                        Text(ref.descriptor.name)
+                        if let context {
+                            HStack(spacing: 6) {
+                                Text(context.intent.forms.label)
+                                if let run {
+                                    Text("·")
+                                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                                        Text(Duration.seconds((run.stopped ?? timeline.date).timeIntervalSince(run.started).rounded()).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .narrow, maximumUnitCount: 2)))
+                                            .monospacedDigit()
+                                    }
+                                }
+                            }
                             .frame(alignment: .leading)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(Style.Foreground.primary)
-                            .lineLimit(1)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        if let context = ref.context {
-                            Text(context.intent.rawValue)
-                                .frame(alignment: .leading)
-                                .foregroundStyle(Style.Foreground.secondary)
+                            .foregroundStyle(Style.Foreground.secondary)
                         }
                     }
                     .font(Typography.detail)
@@ -77,7 +89,7 @@ struct SpaceHeader: Surface {
             }
 
             HStack(alignment: .center) {
-                if let context, context.state == .active {
+                if working {
                     Button { } label: {
                         Image(systemName: "pause.fill")
                             .frame(width: 23, height: 23)
@@ -105,20 +117,26 @@ struct SpaceContent: Surface {
 
     var ref: Reference? {
         guard let ref = model.session.selection.structure, Space.with(ref, { $0 }) != nil
-                else { return nil }
+        else { return nil }
         return ref
     }
 
     var body: some View {
-        VStack {
+        ZStack(alignment: .bottom) {
             TranscriptContent(panel: panel, model: model)
-                .background(Style.Background.canvas)
-                .safeAreaBar(edge: .top) { SpaceHeader(panel: panel, model: model) }
-                .safeAreaBar(edge: .bottom) {
-                    InputToolbar(model: model, onSend: {})
-                        .padding([.bottom, .vertical], 10)
-                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+            Rectangle()
+                .fill(Style.Background.canvas)
+                .frame(maxHeight: 64, alignment: .bottom)
+                .blur(radius: 10, opaque: false)
+                .blendMode(.darken)
+                .padding(.bottom, -32)
+            InputToolbar(model: model, onSend: {})
+                .padding([.bottom, .vertical], 10)
         }
+        .background(Style.Background.canvas)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaBar(edge: .top) { SpaceHeader(panel: panel, model: model) }
     }
 }

@@ -3,8 +3,6 @@ import ScintRuntime
 
 
 struct MCPServer {
-    let bridge: any ScintHostBridge
-
     private struct Failure: Error {
         let code: Int
         let message: String
@@ -50,9 +48,7 @@ struct MCPServer {
         }
     }
 
-    private func initialized(_ method: String, _ parameters: [String: Property],
-                             context: UUID?) async throws -> [String: Property] {
-
+    private func initialized(_ method: String, _ parameters: [String: Property], context: UUID?) async throws -> [String: Property] {
         switch method {
             case "initialize":
                 let requested = parameters["protocolVersion"]?.string ?? ""
@@ -60,22 +56,18 @@ struct MCPServer {
                     "protocolVersion": .string(
                         MCPProtocol.initializedVersions.contains(requested) ? requested : MCPProtocol.initializedVersion
                     ),
-                    "capabilities": .object([
-                        "tools": .object([:]),
-                        "resources": .object([:])
-                    ]),
+                    "capabilities": capabilities,
                     "serverInfo": serverInfo
                 ]
             case "ping":
                 return [:]
             default:
-                return try await perform(try operation(method, parameters), context: context)
+                return try await tools(method, parameters, context: context)
         }
     }
 
     private func stateless(id: Property, _ method: String, _ parameters: [String: Property],
                            metadata: [String: Property], context: UUID?) async throws -> JSONRPCMessage {
-
         guard let requestedVersion = metadata["io.modelcontextprotocol/protocolVersion"]?.string else {
             throw Failure(code: -32602, message: "Protocol version metadata is required.")
         }
@@ -96,106 +88,47 @@ struct MCPServer {
             guard case .object(let fields) = client,
                   fields["name"]?.string != nil,
                   fields["version"]?.string != nil
-                    else {
-                throw Failure(code: -32602, message: "Client information metadata is invalid.")
-            }
+            else { throw Failure(code: -32602, message: "Client information metadata is invalid.") }
         }
-
         if method == "server/discover" {
             return success(
                 id: id,
                 fields: [
                     "supportedVersions": .array([.string(MCPProtocol.version)]),
-                    "capabilities": .object([
-                        "tools": .object([:]),
-                        "resources": .object([:])
-                    ])
+                    "capabilities": capabilities
                 ],
                 cacheScope: "public"
             )
         }
 
-        let operation = try operation(method, parameters)
-        let cacheScope: String? = switch operation {
-            case .callTool: nil
-            case .listTools, .listResources, .readResource: "private"
-        }
-        return success(id: id, fields: try await perform(operation, context: context), cacheScope: cacheScope)
+        return success(id: id, fields: try await tools(method, parameters, context: context), cacheScope: method == "tools/list" ? "private" : nil)
     }
 
-    private func operation(_ method: String, _ parameters: [String: Property]) throws -> ScintHostOperation {
+    @MainActor private func tools(_ method: String, _ parameters: [String: Property], context: UUID?) async throws -> [String: Property] {
         switch method {
             case "tools/list":
-                let cursor = parameters["cursor"]
-                guard cursor == nil || cursor?.string != nil else {
-                    throw Failure(code: -32602, message: "Cursor must be a string.")
-                }
-                return .listTools(cursor: cursor?.string)
+                return ["tools": .array(ContextProvider.tools.map { $0.tool.definition })]
 
             case "tools/call":
-                guard let name = parameters["name"]?.string else {
-                    throw Failure(code: -32602, message: "Tool name is required.")
+                guard let name = parameters["name"]?.string else { throw Failure(code: -32602, message: "Tool name is required.") }
+                guard let context else { throw Failure(code: -32602, message: "Scint context is required.") }
+                do {
+                    guard let data = try await ContextProvider.call(name, parameters["arguments"]?.object ?? [:], context: context)
+                    else { throw Failure(code: -32602, message: "Unknown tool: \(name)") }
+                    let text = (try? JSONEncoder().encode(data)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+                    var result: [String: Property] = ["content": .array([["type": "text", "text": .string(text)]]), "isError": false]
+                    if case .object = data { result["structuredContent"] = data }
+                    return result
+                } catch let error as ToolError {
+                    return ["content": .array([["type": "text", "text": .string(error.message)]]), "isError": true]
                 }
-                let arguments: [String: Property]
-                if let supplied = parameters["arguments"] {
-                    guard case .object(let object) = supplied else {
-                        throw Failure(code: -32602, message: "Tool arguments must be an object.")
-                    }
-                    arguments = object
-                } else {
-                    arguments = [:]
-                }
-                return .callTool(name: name, arguments: arguments)
-
-            case "resources/list":
-                let cursor = parameters["cursor"]
-                guard cursor == nil || cursor?.string != nil else {
-                    throw Failure(code: -32602, message: "Cursor must be a string.")
-                }
-                return .listResources(cursor: cursor?.string)
-
-            case "resources/read":
-                guard let uri = parameters["uri"]?.string,
-                      let parsed = URL(string: uri),
-                      parsed.scheme != nil
-                else {
-                    throw Failure(code: -32602, message: "Resource URI is required.")
-                }
-                return .readResource(uri: uri)
 
             default:
                 throw Failure(code: -32601, message: "Method not found: \(method)")
         }
     }
 
-    private func perform(_ operation: ScintHostOperation, context: UUID?) async throws -> [String: Property] {
-        guard let context else {
-            throw Failure(code: -32602, message: "Scint context is required.")
-        }
-
-        do {
-            return try await bridge.perform(.init(context: context, operation: operation))
-        } catch let error as ScintHostBridgeError {
-            switch error {
-                case .contextNotFound(let context):
-                    throw Failure(
-                        code: -32602,
-                        message: "Scint context was not found.",
-                        data: .object(["context": .string(context.uuidString.lowercased())])
-                    )
-                case .invalidArguments(let message):
-                    throw Failure(code: -32602, message: message)
-                case .resourceNotFound(let uri):
-                    throw Failure(
-                        code: -32602,
-                        message: "Resource not found.",
-                        data: .object(["uri": .string(uri)])
-                    )
-                case .toolNotFound(let name):
-                    throw Failure(code: -32602, message: "Unknown tool: \(name)")
-            }
-        }
-    }
+    private var capabilities: Property { ["tools": .object([:])] }
 
     private var serverInfo: Property {
         .object([
@@ -213,19 +146,17 @@ struct MCPServer {
         return .response(.error(id: id, error: .object(error)))
     }
 
-    private func success(id: Property, fields supplied: [String: Property],
-                         cacheScope: String? = nil) -> JSONRPCMessage {
+    private func success(id: Property, fields supplied: [String: Property], cacheScope: String? = nil) -> JSONRPCMessage {
+        var fields = supplied
+        fields["resultType"] = .string("complete")
+        if let cacheScope {
+            fields["ttlMs"] = .integer(0)
+            fields["cacheScope"] = .string(cacheScope)
+        }
 
-    var fields = supplied
-    fields["resultType"] = .string("complete")
-    if let cacheScope {
-        fields["ttlMs"] = .integer(0)
-        fields["cacheScope"] = .string(cacheScope)
+        var metadata = fields["_meta"]?.object ?? [:]
+        metadata["io.modelcontextprotocol/serverInfo"] = serverInfo
+        fields["_meta"] = .object(metadata)
+        return .response(.result(id: id, result: .object(fields)))
     }
-
-    var metadata = fields["_meta"]?.object ?? [:]
-    metadata["io.modelcontextprotocol/serverInfo"] = serverInfo
-    fields["_meta"] = .object(metadata)
-    return .response(.result(id: id, result: .object(fields)))
-}
 }

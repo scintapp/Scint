@@ -10,11 +10,13 @@ import ScintRuntime
     private(set) var data: AppData
 
     var inbox: Reference { data.inbox }
-    var drafts: Reference { data.drafts }
+    var docs: Reference { data.drafts }
     var tasks: Reference { data.tasks }
-    var space: Reference { data.spaces }
-    var spaces: [Reference] { Array(Space.with(data.spaces, { $0.spaces }) ?? []) }
+    var spaces: Reference { data.spaces }
     var library: Reference { data.library }
+    var workspace: [Reference] {
+        Array(Space.with(data.spaces, { $0.spaces }) ?? [])
+    }
 
     init(_ data: AppData) {
         self.data = data
@@ -39,9 +41,6 @@ import ScintRuntime
         focus(ref)
         if opened.document != nil  && opened.document != ref { close(opened.document!) }
         apply(selection.selecting(ref, entry,  url))
-        let message = "Selecting \(ref.descriptor.name) of type \(String(describing: ref.type))"
-        if ref == selection.root { print(message + ", a root space.") }
-        else { print(message + ", a descendant of the root \(selection.root?.descriptor.name ?? "").")}
     }
 
     mutating func open(_ ref: Reference) {

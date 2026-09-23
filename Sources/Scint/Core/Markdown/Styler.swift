@@ -34,7 +34,7 @@ import ScintComponents
             for span in document.spans where span.kind == .inlineCode {
                 for offset in [span.range.location - 1, NSMaxRange(span.range)] where offset >= 0 && offset < storage.length {
                     let padding = NSIntersectionRange(NSRange(location: offset, length: 1), range)
-                    if padding.length > 0 { storage.addAttribute(.kern, value: Style.Spacing.detail, range: padding) }
+                    if padding.length > 0 { storage.addAttribute(.kern, value: 4, range: padding) }
                 }
             }
 
@@ -60,15 +60,17 @@ import ScintComponents
     func paragraphStyle(for block: Markdown.Block, followedBy next: Markdown.Block?, in text: NSString) -> NSParagraphStyle {
         let paragraph = NSMutableParagraphStyle()
         paragraph.setParagraphStyle(indents(for: block, in: text))
-        paragraph.paragraphSpacing = spacing(after: block, before: next)
+        paragraph.paragraphSpacing = Self.spacing(after: block, before: next)
+        if block.marker.length > 0 { paragraph.minimumLineHeight = max(paragraph.minimumLineHeight, theme.baseFont.ascender - theme.baseFont.descender + theme.baseFont.leading) }
         return paragraph
     }
 
     /// The room between a block and whatever follows it. Lines of one quote or one
     /// fenced block are a single thing to the reader, and so are items of one list.
-    private func spacing(after block: Markdown.Block, before next: Markdown.Block?) -> CGFloat {
+    static func spacing(after block: Markdown.Block, before next: Markdown.Block?) -> CGFloat {
         guard let next else { return 0 }
         if case .heading = next.kind { return Typography.Prose.headingSpacing }
+        if case .heading = block.kind { return Typography.Prose.headingPadding }
         if block.kind.isList, next.kind.isList { return Typography.Prose.listSpacing }
         // A fence and the lines it wraps are one block, though they are three kinds.
         if isCode(block.kind), isCode(next.kind) { return 0 }
@@ -76,13 +78,13 @@ import ScintComponents
         return Typography.Prose.blockSpacing
     }
 
-    private func isCode(_ kind: Markdown.BlockKind) -> Bool {
+    private static func isCode(_ kind: Markdown.BlockKind) -> Bool {
         kind == .codeFence || kind == .codeBlock
     }
 
     /// Kinds whose consecutive lines really are separate blocks, because the author
     /// wrote them as separate paragraphs rather than as one wrapped construct.
-    private func isBreaking(_ kind: Markdown.BlockKind) -> Bool {
+    private static func isBreaking(_ kind: Markdown.BlockKind) -> Bool {
         if case .paragraph = kind { return true }
         if case .heading = kind { return true }
         return false

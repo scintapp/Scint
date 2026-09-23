@@ -25,7 +25,7 @@ struct NodeHeader: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Style.Spacing.label) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 16) {
                 if let intent { Iconography.icon(for: intent, size: 24) }
 
@@ -65,7 +65,7 @@ struct NodeSection: View {
 
     var body: some View {
         if !documents.isEmpty {
-            VStack(alignment: .leading, spacing: Style.Spacing.detail) {
+            VStack(alignment: .leading, spacing: 4) {
                 NodeDivider()
 
                 ForEach(documents) { document in

@@ -40,7 +40,15 @@ struct ComposeControl: View {
     }
 
     var body: some View {
-        Button { working ? stop() : send() } label: {}
+        Button { working ? stop() : send() } label: {
+            if working {
+                Image(systemName: "stop.fill")
+                    .font(Typography.footnote)
+                    .foregroundStyle(Style.Background.canvas)
+                    .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
+                    .background(Style.Foreground.secondary, in: .circle)
+            }
+        }
             .buttonStyle(.plain)
             .keyboardShortcut(working ? nil : KeyboardShortcut(.return, modifiers: .command))
             .disabled(!composable || (!working && empty))
@@ -53,32 +61,49 @@ struct InputToolbar: View {
     var onSend: () -> Void
 
     private var input: Reference? { model.session.input }
+    private var space: Reference? { model.session.selection.structure }
+    private var context: Composition? { space?.context }
+    private var harness: Reference? { space.flatMap { Space.with($0, { $0.harness }) ?? nil } }
 
     var body: some View {
         if let input {
-            VStack(alignment: .leading) {
-                EditorView(input)
-                .id(input)
-                .padding(.horizontal, 12)
-                .padding(.top, 16)
+            VStack(alignment: .leading, spacing: 8) {
+                BlockList(document: input)
+                    .id(input)
+                    .frame(minHeight: 44, alignment: .topLeading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+
+                HStack(alignment: .center, spacing: 10) {
+                    Spacer(minLength: 0)
+
+                    if let context, context.state == .working {
+                        StatusDot(context.intent.forms.running, tint: Iconography.iconography(context.intent).tint, isActive: true, size: 6)
+                            .font(Typography.detail)
+                            .foregroundStyle(Style.Foreground.secondary)
+                    }
+
+                    ComposeControl(model: model, input: input, onSend: onSend)
+                }
+                .frame(minHeight: Style.Dimension.control(.small))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 10)
             }
-            .padding(.bottom, 8)
-            .padding(.horizontal, 8)
-            .frame(maxWidth: 660)
-            .overlay(alignment: .trailing) { ComposeControl(model: model, input: input, onSend: onSend) }
+            .frame(maxWidth: Typography.Prose.readableWidth)
             .background {
-                Style.Shape.card
-                    .fill(Style.Background.surface.opacity(0.25))
-                    .glassEffect(.clear, in: Style.Shape.card)
-                    .opacity(0.25)
-                Style.Shape.card
-                    .fill(Style.Background.surface.opacity(0.5))
+                Style.Shape.input
+                    .fill(Style.Background.canvas.opacity(0.75))
+                    .glassEffect(.regular.tint(Style.Background.canvas.opacity(0.75)), in: Style.Shape.input)
+                    .blur(radius: 3, opaque: true)
+                Style.Shape.input
+                    .blendMode(.plusDarker)
             }
+            .clipShape(Style.Shape.input)
             .overlay {
-                Style.Shape.card
-                    .strokeBorder(Style.Border.hairline, lineWidth: 1).opacity(0.35)
+                Style.Shape.input
+                    .strokeBorder(Style.Border.hairline, lineWidth: 1).opacity(0.45)
             }
-            .clipShape(Style.Shape.card)
+
         }
     }
 }

@@ -26,7 +26,7 @@ import ScintComponents
             case .artifact(let ref), .command(let ref), .document(let ref): model(for: ref)
             case .text: .text
             case .frame: .text
-            case .task(_, _, let done): .task(done: done)
+            case .task(_, _, let done, _): .task(done: done)
         }
     }
 
@@ -38,10 +38,7 @@ import ScintComponents
                 if chunk.origin.type == Command.self || chunk.origin.type == Artifact.self {
                     return model(for: chunk.origin)
                 }
-                if case .collection(let fields) = chunk.value, case .string("tool")? = fields["type"] {
-                    if case .string(let name)? = fields["name"], let op = Operation.named(name) { return .tool(op.symbol) }
-                    return .tool()
-                }
+                if case .collection(let fields) = chunk.value, case .string("tool")? = fields["type"] { return .tool() }
                 return .note
             case .space(let ref, _, _):
                 return model(for: ref)
@@ -87,10 +84,10 @@ import ScintComponents
 
     @ViewBuilder static func menuIcon(for item: MenuItem, selected: Bool) -> some View {
         let icon = item.ref.map { icon(for: $0, size: Metrics.rowIcon) }
-            ?? item.icon.map { Icon(symbol: $0, tint: menuTints(for: item), size: Metrics.rowIcon) }
+        ?? item.icon.map { Icon(symbol: $0, tint: Style.Tint.neutral, size: 16) }
         if let icon {
             icon
-                .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
+                .frame(width:24, height: 24)
                 .opacity(selected ? 1 : Style.Opacity.pressed)
         }
     }

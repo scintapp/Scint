@@ -1,4 +1,5 @@
 import OSLog
+import ServiceManagement
 import SwiftUI
 import ScintRuntime
 import ScintComponents
@@ -12,6 +13,7 @@ struct ScintApp: App {
     @State private var pending: URL?
     @State private var host = HTTPTransport()
     static let logger = Logger(subsystem: "com.kaechle.model", category: "App")
+    let agent = SMAppService.agent(plistName: "com.kaechle.scintd.plist")
 
     var body: some Scene {
         Window("Studio", id: "studio") {
@@ -42,6 +44,19 @@ struct ScintApp: App {
         guard scint == nil, !loading else { return }
         loading = true
         defer { loading = false }
+        register()
+        await runtime()
+        await serve()
+    }
+
+    func register() {
+        if agent.status != .enabled {
+            do { try agent.register() }
+            catch { Self.logger.error("Service registration failed: \(String(describing: error), privacy: .public)") }
+        }
+    }
+
+    func runtime() async {
         do {
             try await Runtime.shared.load()
             let data = await AppData()
@@ -57,8 +72,7 @@ struct ScintApp: App {
     }
 
     func serve() async {
-        do {
-            try await MCPServer(bridge: RuntimeBridge()).serve(host)
+        do { try await MCPServer().serve(host)
         } catch {
             Self.logger.error("MCP server failed to start: \(String(describing: error), privacy: .public)")
         }

@@ -10,6 +10,7 @@ extension UTType {
     nonisolated static let artifact = UTType(exportedAs: "com.kaechle.scint.artifact")
     nonisolated static let control = UTType(exportedAs: "com.kaechle.scint.control")
     nonisolated static let service = UTType(exportedAs: "com.kaechle.scint.service")
+    nonisolated static let block = UTType(filenameExtension: "scintblock", conformingTo: .data) ?? .data
     nonisolated static var scint: [UTType] { [.space, .space, .document, .artifact, .control, .service] }
 }
 

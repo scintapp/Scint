@@ -4,14 +4,12 @@
     <dict>
         <key>Label</key>
         <string>com.kaechle.scintd</string>
-        <key>ProgramArguments</key>
-        <array>
-            <string>__SCINT_DAEMON_PATH__</string>
-        </array>
+        <key>BundleProgram</key>
+        <string>Contents/XPCServices/scintd.xpc/Contents/MacOS/scintd</string>
         <key>EnvironmentVariables</key>
         <dict>
             <key>PATH</key>
-            <string>__SCINT_PATH__</string>
+            <string>/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/sbin</string>
         </dict>
         <key>MachServices</key>
         <dict>

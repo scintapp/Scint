@@ -17,6 +17,10 @@ import SwiftUI
 
     func callbacks() async {
         CallbackRouter.register(CallbackTrigger.action) { request in CallbackTrigger.handle(request) }
+        CallbackRouter.register("run") { request in
+            guard let ref = request.reference else { return false }
+            return TasksContent.run(ref)
+        }
         CallbackRouter.register(CallbackRouter.openAction) { [weak self] request in
             guard let self, let ref = request.reference else { return false }
             if ReferenceAction.open(ref) { return true }

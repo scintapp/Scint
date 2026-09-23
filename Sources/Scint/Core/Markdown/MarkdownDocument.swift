@@ -65,6 +65,26 @@ extension Markdown {
         return result
     }
 
+    public static func chunks(_ text: String) -> [String] {
+        let source = text as NSString, document = scan(text), tables = tableRanges(text, document: document)
+        var ranges: [NSRange] = [], fenced = false, joinable: BlockKind?
+        for block in document.blocks {
+            let blank = source.substring(with: block.range).trimmingCharacters(in: .whitespaces).isEmpty
+            let table = fenced ? nil : tables.first { NSLocationInRange(block.range.location, $0) }
+            if let table {
+                if ranges.last != table { ranges.append(table) }
+            } else if fenced || (joinable == block.kind && !blank), let last = ranges.popLast() {
+                ranges.append(NSUnionRange(last, block.range))
+                fenced = fenced && block.kind != .codeFence
+            } else if !blank {
+                ranges.append(block.range)
+                fenced = block.kind == .codeFence
+            }
+            joinable = table == nil && !blank && !fenced && (block.kind == .paragraph || block.kind == .quote) ? block.kind : nil
+        }
+        return ranges.map { source.substring(with: $0) }
+    }
+
     public static func tableRanges(_ text: String) -> [NSRange] { tableRanges(text, document: scan(text)) }
 
     public static func tableRanges(_ text: String, document: Document) -> [NSRange] {

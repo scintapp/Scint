@@ -4,49 +4,13 @@ import ScintRuntime
 import ScintComponents
 
 
-struct TaskCompletionIndicator: View {
-    var completed: Bool
-
-    var body: some View {
-        Iconography.Icon(
-            symbol: completed ? "checkmark.app" : "app",
-            tint: completed ? Style.Foreground.secondary : Style.Foreground.secondary,
-            sizing: 18
-        )
-        .frame(width: 14, height: 14)
-        .fontWeight(.light)
-        .accessibilityHidden(true)
-    }
-}
-
-struct TaskBlock: View {
-    let content: String
-    let completed: Bool
-    let shape = Style.Shape.panel
-
-    var body: some View {
-        HStack(alignment: .top, spacing: Style.Spacing.icon) {
-            TaskCompletionIndicator(completed: completed)
-                .padding(.top, Style.Spacing.detail)
-
-            Text(content)
-                .font(Typography.body)
-                .foregroundStyle(completed ? Style.Foreground.secondary : Style.Foreground.primary)
-                .strikethrough(completed, color: Style.Foreground.secondary)
-                .lineSpacing(Typography.Prose.lineSpacing)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, Style.Spacing.inset)
-        .padding(.vertical, Style.Spacing.detail)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 struct TextBlock: View {
     @Environment(\.lineLimit) private var lineLimit
     let content: String
     var reasoning = false
     var hugs = false
+
+    var line: CGFloat { ceil(Typography.Prose.text.ascender - Typography.Prose.text.descender + Typography.Prose.text.leading) }
 
     var body: some View {
         let elements = Markdown.elements(content)
@@ -57,7 +21,6 @@ struct TextBlock: View {
                 }
             }
             .frame(maxHeight: CGFloat(lineLimit) * (Typography.Prose.lineHeight + Typography.Prose.lineSpacing) + Typography.Prose.textInset * 2, alignment: .top)
-            .clipped()
         } else {
             render(elements)
         }
@@ -88,13 +51,16 @@ struct TextBlock: View {
                     switch kind {
                         case .bullet:
                             Circle()
-                                .fill(Style.Foreground.secondary)
+                                .fill(Color(nsColor: Theme.dark.bulletColor))
                                 .frame(width: Typography.Prose.bulletSize, height: Typography.Prose.bulletSize)
-                                .frame(width: Typography.Prose.markerWidth, height: Typography.Prose.lineHeight + Typography.Prose.textInset * 2)
+                                .frame(width: Typography.Prose.markerWidth, height: line + Typography.Prose.textInset * 2)
                         case .numbered:
                             Text(marker.trimmingCharacters(in: .whitespaces))
-                                .font(Typography.body)
-                                .foregroundStyle(Style.Foreground.secondary)
+                                .font(Font(Typography.Prose.text))
+                                .monospacedDigit()
+                                .foregroundStyle(Color(nsColor: Theme.dark.bulletColor))
+                                .fixedSize()
+                                .frame(width: Typography.Prose.markerWidth, alignment: .leading)
                         case .checklist(let checked):
                             TaskCompletionIndicator(completed: checked)
                         default: EmptyView()
@@ -110,13 +76,13 @@ struct TextBlock: View {
                         .frame(width: Typography.Prose.quoteBarWidth)
                         .frame(width: Typography.Prose.markerWidth)
                     MarkdownText(content: text, reasoning: true, hugs: hugs)
-                        .padding(.vertical, Style.Spacing.detail)
+                        .padding(.vertical, 4)
                 }
                 .padding(.leading, Typography.Prose.listInset)
                 .fixedSize(horizontal: false, vertical: true)
 
             case .code(let code, let language):
-                VStack(alignment: .leading, spacing: Style.Spacing.label) {
+                VStack(alignment: .leading, spacing: 8) {
                     if !language.isEmpty {
                         Text(language)
                             .font(Typography.footnote)
@@ -160,7 +126,7 @@ struct DocumentBlock: View {
             case .frame(_, _):
                 EmptyView()
 
-            case .task(_, let content, let completed):
+            case .task(_, let content, let completed, _):
                 TaskBlock(content: content, completed: completed)
                     .background(Style.Shape.card.fill(isSelected ? Style.Background.selection : .clear))
                     .scaleEffect(scale ?? 1.0)

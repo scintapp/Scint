@@ -153,7 +153,7 @@ enum Attribute {
         for span in document.spans {
             switch span.kind {
                 case .strong:
-                    output.addAttribute(.font, value: NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask), range: span.range)
+                    output.addAttribute(.font, value: NSFont.systemFont(ofSize: font.pointSize, weight: .semibold), range: span.range)
                 case .emphasis:
                     output.enumerateAttribute(.font, in: span.range) { value, range, _ in
                         output.addAttribute(.font, value: NSFontManager.shared.convert(value as? NSFont ?? font, toHaveTrait: .italicFontMask), range: range)

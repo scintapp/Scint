@@ -8,7 +8,7 @@ import ScintComponents
     var surface: PanelSurface = .outline
 
     enum PanelSurface: String, CaseIterable, Identifiable {
-        case context, outline, settings
+        case context, outline, settings, properties
 
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
@@ -16,8 +16,10 @@ import ScintComponents
         var symbol: String {
             switch self {
                 case .context: "text.bubble"
-                case .outline: "square.fill.text.grid.1x2"
-                case .settings: "gearshape"
+                case .outline: "text.badge.checkmark"
+                case .settings: "switch.2"
+                case .properties: "info.circle.text.page"
+
             }
         }
     }
@@ -41,6 +43,8 @@ import ScintComponents
                     SpaceOutline(panel: self, model: model)
                 case .settings:
                     SpaceSettings(panel: self, model: model)
+                case .properties:
+                    SpaceProperties(panel: self, model: model)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

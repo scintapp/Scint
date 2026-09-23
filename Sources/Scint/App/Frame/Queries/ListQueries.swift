@@ -297,7 +297,7 @@ struct MapList: Query {
                 .init(
                     id: "spaces",
                     name: "Spaces",
-                    items: sorted(model.session.spaces.map { space(for: $0, origin: $0) })
+                    items: sorted(model.session.workspace.map { space(for: $0, origin: $0) })
                 )
             ]
         )
@@ -511,7 +511,7 @@ struct SpacesList: Query {
                 .init(
                     id: "spaces",
                     name: "Spaces",
-                    items: sorted(model.session.spaces).map(root)
+                    items: sorted(model.session.workspace).map(root)
                 )
             ]
         )

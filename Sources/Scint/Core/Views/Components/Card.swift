@@ -138,7 +138,7 @@ struct Card: View {
                 Spacer()
 
                 if !badges.isEmpty {
-                    HStack(spacing: Style.Spacing.detail) {
+                    HStack(spacing: 4) {
                         ForEach(Array(badges.enumerated()), id: \.offset) { _, label in
                             Badge(label: label, tint: icon.tint.bright, outlined: true)
                         }
@@ -200,7 +200,7 @@ struct Card: View {
                     }
 
                 case .node:
-                    HStack(spacing: Style.Spacing.label) {
+                    HStack(spacing: 8) {
                         icon
                         Text(Self.text(for: ref, metadata: metadata).name)
                             .font(Typography.body)
@@ -208,7 +208,7 @@ struct Card: View {
                             .lineLimit(1)
                         Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, Style.Spacing.detail)
+                    .padding(.horizontal, 4)
                     .frame(maxWidth: .infinity, minHeight: Metrics.rowHeight, alignment: .leading)
                     .background {
                         if selected || isHovered {

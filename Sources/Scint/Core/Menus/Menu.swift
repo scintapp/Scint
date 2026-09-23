@@ -4,6 +4,10 @@ import ScintRuntime
 import ScintComponents
 
 
+final class MenuFilterTextField: NSTextField {
+    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); window?.makeFirstResponder(self) }
+}
+
 struct MenuForm: View {
     @Binding var primary: String
     let kind: MenuFormKind
@@ -28,8 +32,8 @@ struct MenuForm: View {
 
             Spacer()
         }
-        .padding(.horizontal, Style.Spacing.label)
-        .padding(.vertical, Style.Spacing.label)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
     }
 
     var fields: some View {
@@ -43,21 +47,21 @@ struct MenuForm: View {
 
             actions
         }
-        .padding(Style.Spacing.inset)
+        .padding(2)
     }
 
     var actions: some View {
-        HStack(spacing: Style.Spacing.label) {
+        HStack(spacing: 8) {
             Spacer()
             Button("Cancel", action: onCancel)
                 .buttonStyle(.plain)
                 .font(Typography.detail)
-                .foregroundStyle(Style.Foreground.tertiary)
+                .foregroundStyle(Style.Foreground.secondary)
             Button(action: onCommit) {
                 Text(updating ? "Update" : "Insert")
                     .font(Typography.detail)
                     .foregroundStyle(Style.Foreground.secondary)
-                    .padding(.horizontal, Style.Spacing.label)
+                    .padding(.horizontal, 8)
                     .frame(height: Style.Dimension.control(.small))
                     .background(Style.Background.surface)
                     .clipShape(Style.Shape.card)
@@ -78,7 +82,7 @@ struct MenuForm: View {
             .textFieldStyle(.plain)
             .font(Typography.body.weight(.medium))
             .foregroundStyle(Style.Foreground.secondary)
-            .padding(.horizontal, Style.Spacing.label)
+            .padding(.horizontal, 8)
             .frame(height: Style.Dimension.control(.small))
             .background(
                 Style.Shape.control
@@ -108,13 +112,9 @@ struct MenuForm: View {
             Divider().opacity(Style.Opacity.outline)
             fields
         }
-        .frame(width: size.width, height: size.height, alignment: .topLeading)
-        .glassEffect(.regular.tint(Style.Background.surface), in: Style.Shape.control)
+        .frame(width: 280, height: 400, alignment: .top)
+        .glassEffect(.regular, in: Style.Shape.control)
     }
-}
-
-final class MenuFilterTextField: NSTextField {
-    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); window?.makeFirstResponder(self) }
 }
 
 struct MenuFilterField: NSViewRepresentable {
@@ -170,12 +170,12 @@ struct MenuFilter: View {
 
     func handle(_ selector: Selector) -> Bool {
         switch NSStringFromSelector(selector) {
-        case "moveDown:", "insertTab:": onMoveSelection(1)
-        case "moveUp:", "insertBacktab:": onMoveSelection(-1)
-        case "insertNewline:": onCommit()
-        case "cancelOperation:": onCancel()
-        case "deleteBackward:" where text.isEmpty: onCancel()
-        default: return false
+            case "moveDown:", "insertTab:": onMoveSelection(1)
+            case "moveUp:", "insertBacktab:": onMoveSelection(-1)
+            case "insertNewline:": onCommit()
+            case "cancelOperation:": onCancel()
+            case "deleteBackward:" where text.isEmpty: onCancel()
+            default: return false
         }
         return true
     }
@@ -183,14 +183,7 @@ struct MenuFilter: View {
     var body: some View {
         HStack(alignment: .center) {
             MenuFilterField(text: $text, onCommand: handle)
-                .padding(.leading, Style.Spacing.detail)
         }
-        .padding(.horizontal, Style.Spacing.detail)
-        .padding(.vertical, Style.Spacing.detail)
-        .frame(maxWidth: .infinity, minHeight: Metrics.rowDetailHeight, alignment: .leading)
-        .background(Style.Shape.control.fill(Style.Background.surface))
-        .contentShape(Style.Shape.control)
-        .padding(.top, Style.Spacing.detail)
     }
 }
 
@@ -202,48 +195,43 @@ struct MenuList: View {
     var body: some View {
         ScrollView(.vertical) {
             ScrollViewReader { proxy in
-                VStack(alignment: .leading, spacing: Style.Spacing.detail) {
+                VStack {
                     ForEach(items) { item in
                         if case .divider = item {
                             Divider()
                                 .opacity(Style.Opacity.inactive)
-                                .padding(.horizontal, Style.Spacing.inset)
-                                .padding(.vertical, Style.Spacing.detail)
+                                .padding(.horizontal, 2)
+                                .padding(.vertical, 4)
                         } else {
                             let selected = item.id == selectedID
                             let shape = Style.Shape.control
 
+                            let title = Text(item.label)
+                                .font(.system(size: 13))
+                                .foregroundColor(Style.Foreground.primary)
+
+                            let detail = item.detail.isEmpty ? nil : Text(item.detail)
+                                .font(.system(size: 11.5))
+                                .foregroundColor(Style.Foreground.secondary)
+
                             Button { onSelect(item) } label: {
-                                GroupRow(
-                                    title: Text(item.label)
-                                        .font(Typography.body.weight(selected ? .medium : .regular))
-                                        .foregroundColor(
-                                            selected ? Style.Foreground.primary : Style.Foreground.primary
-                                        ),
-                                    detail: item.detail.isEmpty ? nil : Text(item.detail)
-                                        .font(Typography.detail.weight(.medium))
-                                        .foregroundColor(Style.Foreground.secondary),
-                                    spacerMinLength: .zero
-                                ) {
+                                GroupRow(title: title, detail: detail, spacerMinLength: .zero) {
                                     Iconography.menuIcon(for: item, selected: selected)
-                                        .padding(.leading, Style.Spacing.detail)
+                                        .saturation(selected ? 1.0 : 0.0)
+                                        .padding(.leading, 6)
                                 } trailing: {
                                     if selected {
                                         Image(systemName: "return")
-                                            .font(Typography.detail.weight(.medium))
+                                            .font(.system(size: 12, weight: .medium))
                                             .foregroundStyle(Style.Foreground.secondary)
-                                            .padding(.trailing, Style.Spacing.detail)
+                                            .padding(.trailing, 6)
                                     }
                                 }
-                                .padding(.horizontal, Style.Spacing.detail)
-                                .padding(.vertical, Style.Spacing.detail)
-                                .frame(minHeight: Style.Dimension.control(.small))
+                                .padding(.vertical, 6)
+                                .frame(minHeight: 14)
                                 .background(
-                                    shape.fill(
-                                        selected
-                                        ? Color.accentColor.opacity(Style.Opacity.outline)
-                                        : Color.clear
-                                    )
+                                    shape
+                                        .fill(selected ? Style.Background.selection : Color.clear)
                                 )
                                 .contentShape(shape)
                             }
@@ -252,7 +240,7 @@ struct MenuList: View {
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity)
                 .onChange(of: selectedID) { _, newID in
                     guard let newID else { return }
                     withAnimation(Metrics.menuSelection) {
@@ -261,6 +249,7 @@ struct MenuList: View {
                 }
             }
         }
+        .scrollIndicators(.hidden)
     }
 }
 
@@ -303,19 +292,12 @@ struct Menu: View {
             )
 
             Group {
-                if items.isEmpty {
-                    NoReference(title: emptyTitle)
-                } else {
-                    MenuList(items: items, selectedID: selectedID, onSelect: onSelect)
-                }
+                if items.isEmpty { NoReference(title: emptyTitle) }
+                else { MenuList(items: items, selectedID: selectedID, onSelect: onSelect) }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, Style.Spacing.label)
-        .padding(.vertical, Style.Spacing.detail)
-        .glassEffect(.regular.tint(Style.Background.surface), in: Style.Shape.control)
-        .frame(width: size.width, height: size.height, alignment: .topLeading)
-        .scrollIndicators(.hidden)
+        .frame(maxWidth: .infinity)
+        .frame(width: 280, alignment: .top)
     }
 
     var body: some View {
@@ -345,9 +327,9 @@ struct Menu: View {
                     )
             }
         }
-        .frame(width: size.width, height: size.height, alignment: .topLeading)
+        .frame(width: 280, alignment: .top)
         .offset(x: position.x, y: position.y)
-        .onAppear { focus.wrappedValue = initialFocus }
-        .onChange(of: kind) { _, _ in focus.wrappedValue = initialFocus }
+        .onAppear { DispatchQueue.main.async { focus.wrappedValue = initialFocus } }
+        .onChange(of: kind) { _, _ in DispatchQueue.main.async { focus.wrappedValue = initialFocus } }
     }
 }

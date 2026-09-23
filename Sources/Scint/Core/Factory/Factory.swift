@@ -43,16 +43,15 @@ import ScintComponents
 
     @ViewBuilder static func build(_ surface: some Surface, params: PanelParams, controls: Controls) -> some View {
         let panel = surface.panel
-//        let sections = (controls.results?(panel.state.query) ?? []).compactMap { group -> SectionParams? in
-//            guard !group.results.isEmpty else { return nil }
-//            return SectionParams(id: group.id.description, name: group.name, header: !group.name.isEmpty, image: group.image, items: group.results.map {
-//                let icon = Iconography.icon(for: $0.ref)
-//                return ItemParams(ref: $0.ref, name: $0.name, image: icon.symbol, tint: icon.tint.bright, description: $0.description)
-//            })
-//        }
+        let sections = (controls.results?(panel.state.query) ?? []).compactMap { group -> SectionParams? in
+            guard !group.results.isEmpty else { return nil }
+            return SectionParams(id: group.id.description, name: group.name, header: !group.name.isEmpty, image: group.image, items: group.results.map {
+                let icon = Iconography.icon(for: $0.ref)
+                return ItemParams(ref: $0.ref, name: $0.name, image: icon.symbol, tint: icon.tint.bright, description: $0.description)
+            })
+        }
 
-        let sections = params.items
-        let items = params.items.flatMap(\.items)
+        let items = sections.flatMap(\.items)
         let cursor = panel.state.cursor ?? items.first?.id
         let selection = items.first { $0.id == cursor }
         let detail = panel.state.detail ? selection.flatMap { controls.detail?($0) } : nil
@@ -112,8 +111,8 @@ import ScintComponents
                         LazyVStack(alignment: .leading, spacing: 2) {
                             ForEach(sections) { build(surface, params: $0, controls: controls) }
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.bottom, 8)
+                        .padding(.horizontal, 4)
+                        .padding(.bottom, 4)
                     }
                     .scrollEdgeEffectStyle(.soft, for: .vertical)
                     .onChange(of: cursor) { _, id in
@@ -228,10 +227,10 @@ import ScintComponents
 
                             // A date argument is absent or set, not false or true, so the switch is that
                             // distinction and the field beside it only appears once the switch is on.
-                            case .date, .time:
-                                HStack(spacing: Style.Spacing.label) {
+                            case .date, .time, .moment:
+                                HStack(spacing: 8) {
                                     if params.active {
-                                        ItemDatePicker(value: params.value ?? "", components: params.trailingKind == .time ? [.hourAndMinute] : [.date]) {
+                                        ItemDatePicker(value: params.value ?? "", components: params.trailingKind == .time ? [.hourAndMinute] : params.trailingKind == .moment ? [.date, .hourAndMinute] : [.date]) {
                                             controls.onValueChange?(params, $0)
                                         }
                                     }

@@ -35,3 +35,21 @@ import ScintComponents
         AnySurface(panel: self, model: model)
     }
 }
+
+#Preview {
+    @Previewable @State var panel = InputPanel()
+    @Previewable @State var model: StudioModel?
+
+    VStack {
+        if let model {
+            Float(content: panel.surface(model))
+                .frame(width: 640, height: 90)
+        }
+    }
+    .frame(width: 760, height: 210)
+    .background(LinearGradient(colors: [.indigo, .pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
+    .task {
+        try? await Runtime.shared.load()
+        model = StudioModel(Session(await AppData()))
+    }
+}

@@ -45,6 +45,7 @@ struct NavigationButtons: View {
             .disabled(!model.session.navigation.canGoForward)
         }
         .controlGroupStyle(.navigation)
+        .glassEffect(.regular.tint(Style.Background.canvas.opacity(0.4)))
     }
 }
 
@@ -90,7 +91,7 @@ struct CreateSpaceButton: View {
                 TextField("Name", text: $text)
                     .onSubmit { create() }
 
-                HStack(spacing: Style.Spacing.label) {
+                HStack(spacing: 8) {
                     Button("Cancel", role: .cancel) { presented = false }
                     Button("Create") { create() }
                         .keyboardShortcut(.defaultAction)
@@ -131,7 +132,7 @@ struct CreateButton: View {
                         TextField("Name", text: $text)
                             .onSubmit { create(ref) }
 
-                        HStack(spacing: Style.Spacing.label) {
+                        HStack(spacing: 8) {
                             Button("Cancel", role: .cancel) { presented = false }
                             Button("Create") { create(ref) }
                                 .keyboardShortcut(.defaultAction)

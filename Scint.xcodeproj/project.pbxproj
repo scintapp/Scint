@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7C2A947E3064343C005E45D7 /* scintd.xpc in Embed XPC Services */ = {isa = PBXBuildFile; fileRef = 7CC6DF80304243D800098CC1 /* scintd.xpc */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7C443ABD2FF956D600FD0398 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABC2FF956D600FD0398 /* Collections */; };
 		7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABE2FF956D600FD0398 /* OrderedCollections */; };
 		7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C959129300D54FB007D9E73 /* OrderedCollections */; };
@@ -15,6 +16,7 @@
 		7CB36A9D305F47EC00064C4B /* ScintRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB36A9C305F47EC00064C4B /* ScintRuntime */; };
 		7CB36A9F305F591200064C4B /* ScintRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB36A9E305F591200064C4B /* ScintRuntime */; };
 		7CBB434B3020F78300B9D4D7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7CBB434A3020F78300B9D4D7 /* README.md */; };
+		7CC0CC523063296900ADA7C7 /* ScintComponents in Frameworks */ = {isa = PBXBuildFile; productRef = 7CC0CC513063296900ADA7C7 /* ScintComponents */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,8 +59,17 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/XPCServices";
 			dstSubfolder = Product;
 			files = (
+				7C2A947E3064343C005E45D7 /* scintd.xpc in Embed XPC Services */,
 			);
 			name = "Embed XPC Services";
+		};
+		B2F82C71E0F842968B9C3377 /* Embed Launch Agents */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Library/LaunchAgents";
+			dstSubfolder = Product;
+			files = (
+			);
+			name = "Embed Launch Agents";
 		};
 /* End PBXCopyFilesBuildPhase section */
 
@@ -96,6 +107,16 @@
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		26B15E14206D494BB0DE9D70 /* Exceptions for "Resources" folder in "Embed Launch Agents" phase from "Scint" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = B2F82C71E0F842968B9C3377 /* Embed Launch Agents */;
+			membershipExceptions = (
+				com.kaechle.scintd.plist,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7C4C37A42ED17F2F00D6F1CF /* Sources */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -110,6 +131,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				7CBB4393302107E100B9D4D7 /* Exceptions for "Resources" folder in "Scint" target */,
+				26B15E14206D494BB0DE9D70 /* Exceptions for "Resources" folder in "Embed Launch Agents" phase from "Scint" target */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -129,6 +151,7 @@
 				7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */,
 				7C443ABD2FF956D600FD0398 /* Collections in Frameworks */,
 				7CB36A9D305F47EC00064C4B /* ScintRuntime in Frameworks */,
+				7CC0CC523063296900ADA7C7 /* ScintComponents in Frameworks */,
 				7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */,
 			);
 		};
@@ -177,6 +200,7 @@
 				7C5C8B222F29EDDD00A8C7A3 /* Embed Foundation Extensions */,
 				7C129FE92F7E229600189FCC /* Embed ExtensionKit Extensions */,
 				7C69AB1C2F8B4A5C0008D611 /* Embed XPC Services */,
+				B2F82C71E0F842968B9C3377 /* Embed Launch Agents */,
 			);
 			buildRules = (
 			);
@@ -195,6 +219,7 @@
 				7C443ABE2FF956D600FD0398 /* OrderedCollections */,
 				7CB368F5305DC9C700064C4B /* ScintComponents */,
 				7CB36A9C305F47EC00064C4B /* ScintRuntime */,
+				7CC0CC513063296900ADA7C7 /* ScintComponents */,
 			);
 			productName = Agency;
 			productReference = 7CC6DF7F304243D800098CC1 /* Scint.app */;
@@ -207,7 +232,6 @@
 				7C69AAEE2F8B45D90008D611 /* Sources */,
 				7C69AAEF2F8B45D90008D611 /* Frameworks */,
 				7C69AAF02F8B45D90008D611 /* Resources */,
-				7C69AB172F8B48AF0008D611 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -250,8 +274,8 @@
 			packageReferences = (
 				7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */,
 				7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */,
-				7CB368F4305DC9C700064C4B /* XCLocalSwiftPackageReference "../Components" */,
 				7CB36A9B305F47EC00064C4B /* XCLocalSwiftPackageReference "../ScintRuntime" */,
+				7CC0CC503063296900ADA7C7 /* XCLocalSwiftPackageReference "../ScintComponents" */,
 			);
 			preferredProjectObjectVersion = 110;
 			productRefGroup = 7C4C36DE2ED17D5A00D6F1CF;
@@ -287,19 +311,6 @@
 				"TAGS=\"TODO:|FIXME:\"",
 				"echo \"searching ${SRCROOT} for ${TAGS}\"",
 				"find \"${SRCROOT}\" \\( -name \"*.swift\" \\) -print0 | xargs -0 egrep --with-filename --line-number --only-matching \"($TAGS).*\\$\" | perl -p -e \"s/($TAGS)/ warning: \\$1/\"",
-				"",
-				"set -euo pipefail",
-				"$SRCROOT/Resources/serviceRegistration.sh",
-				"",
-			);
-		};
-		7C69AB172F8B48AF0008D611 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			shellPath = /bin/sh;
-			shellScript = (
-				"set -euo pipefail",
-				"$SRCROOT/Resources/serviceRegistration.sh",
 				"",
 			);
 		};
@@ -635,13 +646,13 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		7CB368F4305DC9C700064C4B /* XCLocalSwiftPackageReference "../Components" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../Components;
-		};
 		7CB36A9B305F47EC00064C4B /* XCLocalSwiftPackageReference "../ScintRuntime" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../ScintRuntime;
+		};
+		7CC0CC503063296900ADA7C7 /* XCLocalSwiftPackageReference "../ScintComponents" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../ScintComponents;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -697,6 +708,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7CB36A9B305F47EC00064C4B /* XCLocalSwiftPackageReference "../ScintRuntime" */;
 			productName = ScintRuntime;
+		};
+		7CC0CC513063296900ADA7C7 /* ScintComponents */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ScintComponents;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
