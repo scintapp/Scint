@@ -3,6 +3,29 @@ import ScintRuntime
 import ScintComponents
 
 
+
+struct NewTaskButton: View {
+    var model: any Model
+
+    var body: some View {
+        IconButton(systemImage: "plus") {
+            guard let command = Runtime.shared.all(as: Command.self)
+                .map({ $0.0 }).min(by: { $0.descriptor.name < $1.descriptor.name })
+                    else { return }
+
+            let sheet = Document.new(model.session.tasks, name: "New Task")
+            let material = Document.new(model.session.tasks, name: "Instructions")
+            Document.update(material) { $0.delete(at: 0) }
+            Document.update(sheet) { document in
+                document.delete(at: 0)
+                document.insert([.task(UUID(), "New Task", false, nil), .command(command), .document(material)], at: 0)
+            }
+            model.open(sheet)
+        }
+        .help("New Task")
+    }
+}
+
 struct TasksHeader: View {
     var completed: Int
     var showsCompleted: Bool
@@ -13,9 +36,6 @@ struct TasksHeader: View {
         VStack(spacing: 8) {
             HStack(spacing: 4 + 1) {
                 Text("\(completed) Completed")
-                    .foregroundStyle(Style.Foreground.secondary)
-
-                Text("•")
                     .foregroundStyle(Style.Foreground.secondary)
 
                 Button("Clear", action: onClearCompleted)
@@ -62,7 +82,6 @@ struct TasksSection: Surface {
             switch scope {
                 case .inbox: return !done && when == nil
                 case .today: return !done && due.map { $0 < tomorrow } == true
-                case .upcoming: return !done && due.map { $0 >= tomorrow } == true
                 case .all: return showsCompleted || !done
             }
         }
@@ -110,21 +129,20 @@ struct TasksSection: Surface {
 }
 
 struct TasksContent: Surface {
+    var panel: any Panel
+    var model: any Model
+
     @State private var showsCompleted = true
     @State private var confirmsClear = false
     @State private var scope: Scope = .all
 
-    var panel: any Panel
-    var model: any Model
-
     enum Scope: String, CaseIterable {
-        case inbox, today, upcoming, all
+        case inbox, today, all
 
         var label: String {
             switch self {
                 case .inbox: "Inbox"
                 case .today: "Today"
-                case .upcoming: "Upcoming"
                 case .all: "All Tasks"
             }
         }
@@ -141,7 +159,6 @@ struct TasksContent: Surface {
             switch scope {
                 case .inbox: return !task.done && task.when == nil
                 case .today: return !task.done && due.map { $0 < tomorrow } == true
-                case .upcoming: return !task.done && due.map { $0 >= tomorrow } == true
                 case .all: return showsCompleted || !task.done
             }
         }
@@ -213,37 +230,7 @@ struct TasksContent: Surface {
     var body: some View {
         ScrollView {
             ZStack(alignment: .top) {
-                
                 VStack(alignment: .leading, spacing: Style.Spacing.entry) {
-
-                    HStack(alignment: .center, spacing: 16) {
-                        IconButton(systemImage: "plus") {
-                            guard let command = Runtime.shared.all(as: Command.self)
-                                .map({ $0.0 }).min(by: { $0.descriptor.name < $1.descriptor.name })
-                                    else { return }
-
-                            let sheet = Document.new(model.session.tasks, name: "New Task")
-                            let material = Document.new(model.session.tasks, name: "Instructions")
-                            Document.update(material) { $0.delete(at: 0) }
-                            Document.update(sheet) { document in
-                                document.delete(at: 0)
-                                document.insert([.task(UUID(), "New Task", false, nil), .command(command), .document(material)], at: 0)
-                            }
-                            model.open(sheet)
-                        }
-                        .help("New Task")
-
-                        PageHeader("Tasks") {
-                            SegmentedTabs(selection: $scope, options: Scope.allCases, title: \.label)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: 48, alignment: .center)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 12)
-
-
-
-
 //                    TasksHeader(
 //                        completed: completed,
 //                        showsCompleted: showsCompleted,
@@ -275,6 +262,25 @@ struct TasksContent: Surface {
                 }
             }
         }
+        .background(Style.Background.canvas)
         .scrollEdgeEffectStyle(.soft, for: .vertical)
+        .safeAreaBar(edge: .top) {
+            HStack(alignment: .center, spacing: 16) {
+                NewTaskButton(model: model)
+
+                PageHeader("Tasks") {
+                    SegmentedTabs(
+                        selection: $scope,
+                        options: Scope.allCases,
+                        title: \.label
+                    )
+                }
+                
+                IconButton(systemImage: "ellipsis") { }
+            }
+            .frame(maxWidth: .infinity, maxHeight: 40, alignment: .center)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
+        }
     }
 }

@@ -40,6 +40,7 @@ struct TranscriptContent: Surface {
 
     var body: some View {
         ScrollView {
+            Color.clear.frame(height: 10)
             LazyVStack(spacing: Style.Spacing.page) {
                 ForEach(entries, id: \.id) { item in
                     item.entry
@@ -52,6 +53,7 @@ struct TranscriptContent: Surface {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            Color.clear.frame(height: 150)
         }
         .frame(maxWidth: .infinity)
         .defaultScrollAnchor(.bottom, for: .initialOffset)

@@ -80,6 +80,7 @@ struct DocumentCard: View {
         }
         .onDrag { ReferenceTransfer.provider(for: ref) ?? NSItemProvider() }
         .contextMenu { ContextActionMenu(ref: ref, model: model) }
+        
     }
 }
 

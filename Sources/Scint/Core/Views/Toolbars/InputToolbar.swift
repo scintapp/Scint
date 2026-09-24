@@ -49,10 +49,10 @@ struct ComposeControl: View {
                     .background(Style.Foreground.secondary, in: .circle)
             }
         }
-            .buttonStyle(.plain)
-            .keyboardShortcut(working ? nil : KeyboardShortcut(.return, modifiers: .command))
-            .disabled(!composable || (!working && empty))
-            .help(working ? "Pause" : "Send")
+        .buttonStyle(.plain)
+        .keyboardShortcut(working ? nil : KeyboardShortcut(.return, modifiers: .command))
+        .disabled(!composable || (!working && empty))
+        .help(working ? "Pause" : "Send")
     }
 }
 
@@ -92,18 +92,14 @@ struct InputToolbar: View {
             .frame(maxWidth: Typography.Prose.readableWidth)
             .background {
                 Style.Shape.input
-                    .fill(Style.Background.canvas.opacity(0.75))
+                    .fill(Style.Background.canvas.opacity(0.5))
                     .glassEffect(.regular.tint(Style.Background.canvas.opacity(0.75)), in: Style.Shape.input)
-                    .blur(radius: 3, opaque: true)
+                    .blur(radius: 2, opaque: true)
                 Style.Shape.input
                     .blendMode(.plusDarker)
             }
             .clipShape(Style.Shape.input)
-            .overlay {
-                Style.Shape.input
-                    .strokeBorder(Style.Border.hairline, lineWidth: 1).opacity(0.45)
-            }
-
+            .overlay { Style.Shape.input.stroke(Style.Border.hairline, lineWidth: 1).opacity(0.25) }
         }
     }
 }

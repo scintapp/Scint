@@ -20,6 +20,20 @@ extension Composition {
     var updated: Date? { Transcript.with(transcript, { $0.entries.last?.created }) ?? nil }
 }
 
+struct InboxHeader: View {
+    var body: some View {
+        HStack(alignment: .center, spacing: 16) {
+            IconButton(systemImage: "plus") { }
+            PageHeader("Inbox") { }
+            Spacer()
+            IconButton(systemImage: "ellipsis") { }
+        }
+        .frame(maxWidth: .infinity, maxHeight: 40, alignment: .center)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+    }
+}
+
 struct InboxRow: View {
     var composition: Composition
     var model: any Model
@@ -29,7 +43,7 @@ struct InboxRow: View {
     var message: String? {
         Transcript.with(composition.transcript) { (transcript: Transcript) -> String? in
             guard case .collection(let fields)? = transcript.output("message")?.value, case .string(let text)? = fields["text"]
-            else { return nil }
+                    else { return nil }
             return text
         } ?? nil
     }
@@ -52,7 +66,7 @@ struct InboxRow: View {
     }
 }
 
-struct Inbox: Surface {
+struct InboxContent: Surface {
     var panel: any Panel
     var model: any Model
 
@@ -65,29 +79,23 @@ struct Inbox: Surface {
     }
 
     var body: some View {
-        let sections = sections
-
-        if sections.isEmpty { NoReference(ref: model.session.inbox, title: "Nothing Here") }
-        else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Style.Spacing.page) {
-                    PageHeader("Inbox")
-
-                    ForEach(sections, id: \.state) { section in
-                        DisclosureSection(section.state.status.label, detail: "\(section.compositions.count)") {
-                            VStack(alignment: .leading, spacing: Style.Spacing.section) {
-                                ForEach(section.compositions, id: \.space) { composition in
-                                    InboxRow(composition: composition, model: model)
-                                }
-                            }
-                        }
-                    }
-                }
-                .font(Typography.body)
-                .frame(maxWidth: Typography.Prose.readableWidth, alignment: .leading)
-                .padding(Style.Spacing.page)
-                .frame(maxWidth: .infinity)
-            }
+        ScrollView {
+//            VStack(alignment: .leading, spacing: Style.Spacing.entry) {
+//                ForEach(sections, id: \.state) { section in
+//                    DisclosureSection(section.state.status.label, detail: "\(section.compositions.count)") {
+//                        VStack(alignment: .leading, spacing: Style.Spacing.section) {
+//                            ForEach(section.compositions, id: \.space) { composition in
+//                                InboxRow(composition: composition, model: model)
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+        }
+        .background(Style.Background.canvas)
+        .scrollEdgeEffectStyle(.soft, for: .vertical)
+        .safeAreaBar(edge: .top) {
+            InboxHeader()
         }
     }
 }

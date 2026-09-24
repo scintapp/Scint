@@ -27,5 +27,6 @@ struct NoReference: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Style.Background.canvas)
     }
 }

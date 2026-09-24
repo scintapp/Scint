@@ -6,7 +6,7 @@ import ScintComponents
 
 
 @main
-struct ScintApp: App {
+struct Scint: App {
     @Environment(\.openWindow) private var openWindow
     @State private var scint: ScintModel?
     @State private var loading = false

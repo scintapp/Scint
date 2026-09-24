@@ -396,28 +396,3 @@ enum TranscriptEntry: View {
         .contentShape(Rectangle())
     }
 }
-
-#Preview {
-    ScrollView {
-        VStack(spacing: Style.Spacing.entry) {
-            TranscriptEntry.notice(NoticeEntry(content: "Stopped with an error"))
-            TranscriptEntry.input(InputEntry(content: "What tools do you have access to?"), .now)
-            TranscriptEntry.activity(ActivityEntry(
-                thoughts: [
-                    "**Listing accessible tools excluding Scint MCP**",
-                    "**Inspecting tool registry using openai-docs skill**"
-                ],
-                tools: [
-                    ToolEntry(name: "document__read", status: "completed"),
-                    ToolEntry(name: "/bin/zsh -lc \"sed -n '1,240p' SKILL.md\"", status: "completed", kind: .command),
-                    ToolEntry(name: "rg -n Transcript Sources", status: "completed", kind: .command),
-                    ToolEntry(name: "site:developers.openai.com Codex tools", kind: .search)
-                ]
-            ))
-            TranscriptEntry.output(OutputEntry(content: "**Use any of these now:** Scint, local code/files, web research.\n\n1. **Scint — current `Engineering` space**\n   - Inspect the structure of a space.\n   - Read Scint documents as structured content.\n2. **Local code, files, and execution**"), .now)
-        }
-        .padding()
-    }
-    .frame(width: 680, height: 620)
-    .background(Style.Background.canvas)
-}

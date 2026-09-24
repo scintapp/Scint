@@ -3,7 +3,6 @@ import ScintRuntime
 import ScintComponents
 
 
-
 struct TaskCompletionIndicator: View {
     var completed: Bool
 

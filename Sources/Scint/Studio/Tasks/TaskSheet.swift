@@ -4,17 +4,15 @@ import ScintComponents
 
 
 struct TaskSheet: Surface {
-    @State private var scheduling = false
-
     var panel: any Panel
     var model: any Model
-    var surface: AnySurface { .init(panel: panel, model: model) }
+
+    @State private var scheduling = false
 
     var ref: Reference? { model.session.opened.document }
+    var surface: AnySurface { .init(panel: panel, model: model) }
 
-    var commands: [Reference] {
-        Runtime.shared.all(as: Command.self).map { $0.0 }.sorted { $0.descriptor.name < $1.descriptor.name }
-    }
+    var commands: [Reference] { Runtime.shared.all(as: Command.self).map { $0.0 }.sorted { $0.descriptor.name < $1.descriptor.name } }
 
     var body: some View {
         ScrollView {

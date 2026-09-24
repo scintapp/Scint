@@ -498,7 +498,8 @@ struct SpacesList: Query {
                 ref: ref,
                 origin: ref,
                 name: ref.descriptor.name,
-                image: "app",
+                image: Iconography.icon(for: ref).symbol,
+                tint: Iconography.icon(for: ref).tint.bright,
                 count: active > 0 ? active : nil,
                 items: below.map { item($0, origin: ref) }
             )

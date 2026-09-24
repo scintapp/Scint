@@ -45,7 +45,12 @@ struct NavigationButtons: View {
             .disabled(!model.session.navigation.canGoForward)
         }
         .controlGroupStyle(.navigation)
-        .glassEffect(.regular.tint(Style.Background.canvas.opacity(0.4)))
+        .overlay {
+            Style.Background.canvas
+                .opacity(0.4)
+                .blendMode(.overlay)
+                .allowsHitTesting(false)
+        }
     }
 }
 

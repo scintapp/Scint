@@ -18,19 +18,23 @@ import ScintComponents
             if let root = model.session.selection.root {
                 switch root {
                     case model.session.inbox:
-                        Inbox(panel: self, model: model)
-                    case model.session.tasks:
-                        if let document = model.session.opened.document, TasksContent.sheet(document) != nil { TaskSheet(panel: self, model: model) }
-                        else if let _ = model.session.opened.document { DocumentContent(panel: self, model: model) }
-                        else { TasksContent(panel: self, model: model) }
-                    case model.session.spaces:
-                        SpaceContent(panel: self, model: model)
+                        InboxContent(panel: self, model: model)
+
                     case model.session.docs:
                         if let _ = model.session.opened.document { DocumentContent(panel: self, model: model) }
                         else { Documents(panel: self, model: model) }
+
+                    case model.session.tasks:
+                        if let _ = model.session.opened.document { TaskSheet(panel: self, model: model) }
+                        else { TasksContent(panel: self, model: model) }
+
+                    case model.session.spaces:
+                        SpaceContent(panel: self, model: model)
+
                     case model.session.library:
                         if let _ = model.session.opened.document { DocumentContent(panel: self, model: model) }
                         else { DocumentLibrary(panel: self, model: model) }
+
                     default:
                         NoReference(ref: root, title: "Nothing Here")
                 }

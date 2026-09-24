@@ -51,8 +51,9 @@ import ScintComponents
         .padding([.trailing, .vertical], 9)
         .background {
             Color.clear
-                .glassEffect(.clear.tint(Style.Background.canvas.opacity(0.75)), in: hole.inset(by: -2))
-                .opacity(0.5)
+                .glassEffect(.regular, in: hole.inset(by: -2))
+                .overlay { Color.clear.blendMode(.color).opacity(0.4) }
+                .overlay { Style.Background.canvas.opacity(0.6) }
                 .ignoresSafeArea()
         }
         .overlay {
@@ -65,7 +66,6 @@ import ScintComponents
         }
         .toolbar {
             ToolbarSpacer(.fixed, placement: .primaryAction)
-            ToolbarItem(placement: .primaryAction) { }
         }
     }
 }

@@ -254,6 +254,32 @@ struct InspectorPicker: View {
         .controlGroupStyle(.navigation)
         .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.secondary)
         .tint(Style.Background.selection)
-        .glassEffect(.regular.tint(Style.Background.canvas.opacity(0.4)))
+        .overlay {
+            Style.Background.canvas
+                .opacity(0.4)
+                .blendMode(.overlay)
+                .allowsHitTesting(false)
+        }
+    }
+}
+
+struct NavigatorPicker: View {
+    @Environment(ScintModel.self) var scint
+    var navigator: NavigatorPanel { scint.app.studio.navigator }
+
+    var selection: Binding<NavigatorPanel.PanelSurface> {
+        Binding(get: { navigator.surface }, set: { navigator.surface = $0 })
+    }
+
+    var body: some View {
+        Picker("Content", selection: selection) {
+            ForEach(NavigatorPanel.PanelSurface.allCases) { surface in
+                Image(systemName: surface.image).tag(surface)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.secondary)
+        .tint(Style.Background.selection)
     }
 }

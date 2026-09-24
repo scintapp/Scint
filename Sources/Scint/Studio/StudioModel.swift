@@ -1,0 +1,17 @@
+import SwiftUI
+import ScintComponents
+
+
+@Observable @MainActor final class StudioModel: Model {
+    var content: ContentPanel
+    var inspector: InspectorPanel
+    var navigator: NavigatorPanel
+    var session: Session
+
+    init(_ session: Session) {
+        self.content = .init()
+        self.inspector = .init()
+        self.navigator = .init()
+        self.session = session
+    }
+}

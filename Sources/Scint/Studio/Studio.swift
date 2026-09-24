@@ -2,20 +2,6 @@ import SwiftUI
 import ScintComponents
 
 
-@Observable @MainActor final class StudioModel: Model {
-    var content: ContentPanel
-    var inspector: InspectorPanel
-    var navigator: NavigatorPanel
-    var session: Session
-
-    init(_ session: Session) {
-        self.content = .init()
-        self.inspector = .init()
-        self.navigator = .init()
-        self.session = session
-    }
-}
-
 struct Studio: View {
     @Environment(ScintModel.self) var scint
     @Environment(StudioModel.self) var model
@@ -28,7 +14,6 @@ struct Studio: View {
         }
         .inspector(isPresented: model.inspector.bindable.presented) {
             model.inspector.surface(model)
-                .background(Style.Background.canvas)
                 .inspectorColumnWidth(min: 240, ideal: 320, max: 480)
                 .ignoresSafeArea(.all, edges: .top)
         }

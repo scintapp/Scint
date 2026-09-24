@@ -8,8 +8,29 @@ struct Documents: Surface {
     var panel: any Panel
     var model: any Model
 
-    var library: Reference { model.session.library }
+    @State private var scope: Scope = .grid
 
+    enum Scope: String, CaseIterable {
+        case grid, list, tab
+
+        var label: String {
+            switch self {
+                case .grid: "Grid"
+                case .list: "Today"
+                case .tab: "Upcoming"
+            }
+        }
+
+        var image: String {
+            switch self {
+                case .grid: "Grid"
+                case .list: "Today"
+                case .tab: "Upcoming"
+            }
+        }
+    }
+
+    var library: Reference { model.session.library }
     var documents: [Reference] { Self.documents(under: [library]) }
 
     static func documents(under roots: [Reference]) -> [Reference] {
@@ -45,5 +66,17 @@ struct Documents: Surface {
         .onTapGesture { if let ref = model.session.selection.content { model.session.close(ref) } }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .background(Style.Background.canvas)
+        .scrollEdgeEffectStyle(.soft, for: .vertical)
+        .safeAreaBar(edge: .top) {
+            HStack(alignment: .center, spacing: 16) {
+                NewTaskButton(model: model)
+
+                PageHeader("All Documents") {
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: 40, alignment: .center)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 10)
+        }
     }
 }

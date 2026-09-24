@@ -4,24 +4,22 @@ import ScintRuntime
 import ScintComponents
 
 
-struct SpaceMenu: View {
-    @State private var hovered = false
-    let model: any Model
-    
-    var selection: Selection { model.session.selection }
-    var path: [Reference] { model.session.navigation.path(for: selection) }
+struct SpaceHeader: Surface {
+    var panel: any Panel
+    var model: any Model
+
+    var ref: Reference? { model.session.selection.structure }
 
     var body: some View {
-        if let ref = path.last {
-            Button { model.select(ref) } label: {
-                HStack(alignment: .center) {
-                    Iconography.icon(for: ref, size: 13.5)
-                    Text(ref.descriptor.name).font(.system(size: 13.5, weight: .medium))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.borderless)
+        HStack(alignment: .center, spacing: 16) {
+            IconButton(systemImage: "plus") { }
+            PageHeader("Inbox") { }
+            Spacer()
+            IconButton(systemImage: "ellipsis") { }
         }
+        .frame(maxWidth: .infinity, maxHeight: 40, alignment: .center)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
     }
 }
 
@@ -29,11 +27,7 @@ struct SpaceHeader: Surface {
     var panel: any Panel
     var model: any Model
 
-    var ref: Reference? {
-        guard let ref = model.session.selection.structure, Space.with(ref, { $0 }) != nil
-        else { return nil }
-        return ref
-    }
+    var ref: Reference? { model.session.selection.structure }
 
     var context: Composition? { ref?.context }
     var harness: Reference? { ref.flatMap { Space.with($0, { $0.harness }) ?? nil } }
@@ -45,7 +39,7 @@ struct SpaceHeader: Surface {
         guard let transcript = model.session.transcript,
               let entries = Transcript.with(transcript, { $0.entries }),
               let index = entries.lastIndex(where: { if case .event(.started(_), _) = $0 { true } else { false } })
-        else { return nil }
+                else { return nil }
         return (entries[index].created, entries[index...].first(where: \.terminal)?.created ?? (working ? nil : entries.last?.created))
     }
 
@@ -89,54 +83,12 @@ struct SpaceHeader: Surface {
             }
 
             HStack(alignment: .center) {
-                if working {
-                    Button { } label: {
-                        Image(systemName: "pause.fill")
-                            .frame(width: 23, height: 23)
-                    }
-                    .buttonStyle(.accessoryBarAction)
-                    .buttonBorderShape(.circle)
-                }
-
-                Button { } label: {
-                    Image(systemName: "ellipsis")
-                        .frame(width: 23, height: 23)
-                }
-                .buttonStyle(.accessoryBarAction)
-                .buttonBorderShape(.circle)
+                if working { IconButton(systemImage: "pause.fill") { } }
+                else { IconButton(systemImage: "play.fill") { } }
+                IconButton(systemImage: "ellipsis") { }
             }
             .frame(maxHeight: 52)
         }
         .padding(.horizontal, 10)
-    }
-}
-
-struct SpaceContent: Surface {
-    var panel: any Panel
-    var model: any Model
-
-    var ref: Reference? {
-        guard let ref = model.session.selection.structure, Space.with(ref, { $0 }) != nil
-        else { return nil }
-        return ref
-    }
-
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            TranscriptContent(panel: panel, model: model)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
-            Rectangle()
-                .fill(Style.Background.canvas)
-                .frame(maxHeight: 64, alignment: .bottom)
-                .blur(radius: 10, opaque: false)
-                .blendMode(.darken)
-                .padding(.bottom, -32)
-            InputToolbar(model: model, onSend: {})
-                .padding([.bottom, .vertical], 10)
-        }
-        .background(Style.Background.canvas)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .safeAreaBar(edge: .top) { SpaceHeader(panel: panel, model: model) }
     }
 }
