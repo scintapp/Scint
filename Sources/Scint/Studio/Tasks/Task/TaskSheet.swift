@@ -15,7 +15,6 @@ struct TaskSheet: Surface {
     var body: some View {
         ScrollView {
             if let ref, case let (command?, material?, when)? = Sheet.with(ref, { ($0.command, $0.material, $0.when) }) {
-
                 VStack(alignment: .leading, spacing: Style.Spacing.section) {
                     TaskHeader(ref: ref, onStart: { model.start(ref) }, onStop: { model.stop(ref) })
 
@@ -90,8 +89,6 @@ struct TaskSheet: Surface {
                             Factory.build(surface, params: SectionParams(id: "parameters", name: "Parameters", header: false, items: rows), controls: HarnessGroup.controls(for: space, owner: ref), layout: .group)
                         }
                     }
-
-                    Divider()
 
                     BlockList(document: material, autofocus: false)
                         .id(material)

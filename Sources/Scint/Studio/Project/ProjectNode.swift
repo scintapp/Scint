@@ -36,7 +36,6 @@ struct NodeRow: View {
 
 struct NodeHeader: View {
     let ref: Reference
-    var panel: any Panel
     var model: any Model
 
     var name: String { ref.descriptor.name }
@@ -82,7 +81,6 @@ struct NodeHeader: View {
 
 struct NodeSection: View {
     var ref: Reference
-    var panel: any Panel
     var model: any Model
 
     var documents: [Reference] { Space.with(ref, { $0.documents }) ?? [] }
@@ -106,9 +104,8 @@ struct NodeSection: View {
     }
 }
 
-struct CanvasNode: Surface {
+struct CanvasNode: View {
     var ref: Reference
-    var panel: any Panel
     var model: any Model
 
     var selected: Bool { model.session.selection.selected(ref) }
@@ -123,23 +120,23 @@ struct CanvasNode: Surface {
 
     var intent: Color {
         guard let harness = Space.with(ref, { $0 })?.harness, let intent = Harness.with(harness, { $0 })?.intent
-                else { return Iconography.accent(for: ref) }
-        return Iconography.icon(for: intent).tint.bright
+        else { return Iconography.accent(for: ref) }
+        return Iconography.icon(for: intent).tint
     }
 
     var body: some View {
         ZStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: Style.Spacing.heading) {
-                NodeHeader(ref: ref, panel: panel, model: model)
-                NodeSection(ref: ref, panel: panel, model: model)
+                NodeHeader(ref: ref, model: model)
+                NodeSection(ref: ref, model: model)
                 TranscriptMenu(ref: ref, model: model)
             }
             .frame(maxWidth: .infinity, alignment: .top)
             .padding(12)
-            .background { Style.Shape.panel.fill(Style.Background.surface) }
-            .overlay { Style.Shape.panel.stroke(border, lineWidth: 1, antialiased: true) }
-            .clipShape(Style.Shape.panel)
-            .contentShape(Style.Shape.panel)
+            .background { Style.Shape.surface.fill(Style.Background.surface) }
+            .clipShape(Style.Shape.surface)
+            .overlay { Style.Shape.surface.strokeBorder(border, lineWidth: 1) }
+            .contentShape(Style.Shape.surface)
             .onTapGesture { model.select(ref) }
         }
     }

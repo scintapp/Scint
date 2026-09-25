@@ -7,20 +7,20 @@ struct LibraryHeader: Surface {
     var panel: any Panel
     var model: any Model
 
-    var library: Reference { model.session.library }
-
-    var title: String {
-        if let _ = model.session.selection.structure { return "Documents" }
-        else { return library.descriptor.name }
-    }
+    var space: Reference? { model.session.selection.structure }
+    var title: String { if let space { return space.descriptor.name } else { return "Documents" } }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
+        HStack(alignment: .center, spacing: 12) {
             NewTaskButton(model: model)
-            PageHeader(title) { }
+                .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+            Text(title).font(Typography.pageTitle)
+            Spacer()
+            IconButton(systemImage: "ellipsis") { }
+                .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
         }
         .frame(maxWidth: .infinity, maxHeight: 40, alignment: .center)
         .padding(.horizontal, 12)
-        .padding(.bottom, 10)
+        .padding(.bottom, 8)
     }
 }

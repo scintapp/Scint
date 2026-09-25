@@ -22,9 +22,9 @@ struct Scint: App {
                 Studio()
                     .environment(scint)
                     .environment(scint.studio)
-                    .focusable(false)
                     .onAppear { ShortcutManager.shared.register(model: scint) }
                     .onOpenURL { CallbackHandler.handle($0, model: scint) }
+                    .focusable(false)
             } else {
                 ProgressView()
                     .task { await load() }

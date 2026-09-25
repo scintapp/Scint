@@ -4,16 +4,17 @@ import ScintRuntime
 
 enum InterfaceTool: Tool {
     enum Interface { case command, harness }
-    enum Verb: String, CaseIterable { case read, add }
+    enum Verb: String, CaseIterable { case read, add, run }
 
     static let method = Method(
         name: "interface",
         title: "Interface",
-        description: "Commands, harnesses, and artifacts. read resolves an interface link to its data. add makes an interface available in a space.",
+        description: "Commands, harnesses, and artifacts. read resolves an interface link to its data. add makes an interface available in a space. run starts a command with arguments.",
         schema: .schema([
             "verb": .choice(Verb.self, "What to do."),
-            "ref": .link("The interface to read or add."),
-            "space": .link("The space to add it to. Defaults to your space.")
+            "ref": .link("The interface to read, add, or run."),
+            "space": .link("The space to add it to. Defaults to your space."),
+            "arguments": ["type": "object", "description": "The command's arguments by parameter name, for run. Links become references."]
         ], required: ["verb", "ref"])
     )
 
@@ -42,6 +43,23 @@ enum InterfaceTool: Tool {
                 let target = try arguments.link("space") ?? space
                 guard update(interface, in: target) != nil else { throw ToolError(message: "space must be a space link.") }
                 return try StructureTool.read(target)
+
+            case .run:
+                func argument(_ property: Property) -> Value? {
+                    switch property {
+                        case .bool(let value): .bool(value)
+                        case .integer(let value): .integer(value)
+                        case .decimal(let value): .decimal(Decimal(value))
+                        case .string(let text): Reference.Link.reference(in: text).map { .reference($0) } ?? .string(text)
+                        case .array(let values): .sequence(values.compactMap(argument))
+                        case .object(let fields): .collection(fields.compactMapValues(argument))
+                        case .null: nil
+                    }
+                }
+                let values = (arguments["arguments"]?.object ?? [:]).compactMapValues(argument)
+                guard try Command.with(interface, { try $0.run(values) }) != nil
+                else { throw ToolError(message: "ref must be a command link to run.") }
+                return .data(value)
         }
     }
 }

@@ -3,65 +3,66 @@ import ScintRuntime
 import ScintComponents
 
 
-//struct ProjectControls: View {
-//    var input: Reference
-//    var onStart: () -> Void
-//    var onStop: () -> Void
-//
-//    @Binding var composable: Bool
+struct ProjectControls: View {
+    var panel: any Panel
+    var model: any Model
+    var input: Reference
+    var onStart: () -> Void
 
-//    var space: Reference? { model.session.selection.structure }
-//
-//    var composable: Bool {
-//        guard let space else { return false }
-//        return Space.with(space, { $0.composable }) ?? false
-//    }
-//
-//    var empty: Bool {
-//        return Document.with(input) { document in
-//            document.rendered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-//        } ?? true
-//    }
-//
-//    func send() {
-//        guard let space, composable, !empty else { return }
-//        Document.update(input) { $0.clear() }
-//        model.start(space)
-//        onSend()
-//    }
-//
-//    func stop() {
-//        guard let space else { return }
-//        model.stop(space)
-//    }
-//
-//    var working: Bool {
-//        guard let space, let composition = model.compose(space) else { return false }
-//        if case .working = composition.state { return true }
-//        return false
-//    }
+    @State var started: Bool = false
 
-//    var body: some View {
-//        Button { started ? onStop() : onStart() } label: {
-//            if started {
-//                Image(systemName: "stop.fill")
-//                    .font(Typography.footnote)
-//                    .foregroundStyle(Style.Background.canvas)
-//                    .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
-//                    .background(Style.Foreground.secondary, in: .circle)
-//            }
-//        }
-//        .buttonStyle(.plain)
-//        .keyboardShortcut(working ? nil : KeyboardShortcut(.return, modifiers: .command))
-//        .disabled(!composable || (!working && empty))
-//        .help(working ? "Pause" : "Send")
-//    }
-//}
+    var space: Reference? { model.session.selection.structure }
+
+    var composable: Bool {
+        guard let space else { return false }
+        return Space.with(space, { $0.composable }) ?? false
+    }
+
+    var empty: Bool {
+        return Document.with(input) { document in
+            document.rendered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        } ?? true
+    }
+
+    func start() {
+        guard let space, composable, !empty else { return }
+        Document.update(input) { $0.clear() }
+        model.start(space)
+        onStart()
+    }
+
+    func stop() {
+        guard let space else { return }
+        model.stop(space)
+    }
+
+    var working: Bool {
+        guard let space, let composition = model.compose(space) else { return false }
+        if case .working = composition.state { return true }
+        return false
+    }
+
+    var body: some View {
+        Button { started ? stop() : start() } label: {
+            if started {
+                Image(systemName: "stop.fill")
+                    .font(Typography.footnote)
+                    .foregroundStyle(Style.Background.canvas)
+                    .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
+                    .background(Style.Foreground.secondary, in: .circle)
+            }
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(working ? nil : KeyboardShortcut(.return, modifiers: .command))
+        .disabled(!composable || (!working && empty))
+        .help(working ? "Pause" : "Send")
+    }
+}
 
 struct ProjectToolbar: Surface {
     var panel: any Panel
     var model: any Model
-    var onSend: () -> Void
+    var onStart: () -> Void
 
     private var input: Reference? { model.session.input }
     private var space: Reference? { model.session.selection.structure }
@@ -81,11 +82,11 @@ struct ProjectToolbar: Surface {
                     Spacer(minLength: 0)
 
                     if let context, context.state == .working {
-                        StatusDot(context.intent.forms.running, tint: Iconography.iconography(context.intent).tint, isActive: true, size: 6)
+                        StatusDot(context.intent.forms.running, tint: Iconography.tint(for: context.intent), isActive: true, size: 6)
                             .font(Typography.detail)
                             .foregroundStyle(Style.Foreground.secondary)
                     }
-//                    ProjectControls(panel: panel, model: model, input: input, onSend: onSend)
+                    ProjectControls(panel: panel, model: model, input: input, onStart: onStart)
                 }
                 .frame(minHeight: Style.Dimension.control(.small))
                 .padding(.horizontal, 16)

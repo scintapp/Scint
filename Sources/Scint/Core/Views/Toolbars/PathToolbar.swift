@@ -35,15 +35,13 @@ struct PathButton: View {
     }
 }
 
-struct PathBar: View {
+struct PathToolbar: View {
     @State private var hovered = false
     let model: any Model
     var selection: Selection { model.session.selection }
     var path: [Reference] { model.session.navigation.path(for: selection) }
 
     var body: some View {
-        BackButton(model: model)
-
         HStack(alignment: .center) {
             ForEach(path, id: \.self) { ref in
                 if ref != path.last { PathButton(ref: ref, label: hovered ? true : false, model: model) }

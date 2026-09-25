@@ -8,13 +8,30 @@ struct CanvasZoom: View {
     @Binding var viewport: CanvasViewport
 
     var body: some View {
-        Group {
-            Button { viewport.zoom(-1) } label: { Image(systemName: "minus") }
-            Button { viewport.actual() } label: { Text(viewport.percentage) }
-            Button { viewport.zoom(+1) } label: { Image(systemName: "plus") }
+        HStack(spacing: 2) {
+            Button { viewport.zoom(-1) } label: {
+                Image(systemName: "minus")
+                    .padding(.horizontal, 14)
+                    .frame(height: 24)
+                    .contentShape(Style.Shape.button)
+            }
+            Button { viewport.actual() } label: {
+                Text(viewport.percentage)
+                    .padding(.horizontal, 8)
+                    .frame(height: 24)
+                    .contentShape(Style.Shape.button)
+            }
+            Button { viewport.zoom(+1) } label: {
+                Image(systemName: "plus")
+                    .padding(.horizontal, 14)
+                    .frame(height: 24)
+                    .contentShape(Style.Shape.button)
+            }
         }
-        .buttonStyle(.automatic)
-        .font(.system(size: 11, weight: .medium))
+        .buttonStyle(.borderless)
+        .foregroundStyle(Style.Foreground.primary)
+        .padding(3)
+        .surface(RoundedRectangle(cornerRadius: Style.Shape.buttonRadius + 3, style: .continuous))
     }
 }
 
@@ -22,25 +39,7 @@ struct CanvasPresentation: View {
     @Binding var axis: CanvasAxis
 
     var body: some View {
-        ForEach(CanvasAxis.allCases) { option in
-            Toggle(isOn: .init(get: { axis == option }, set: { if $0 { axis = option } })) {
-                Image(systemName: option.symbol)
-            }
-            .toggleStyle(.button)
-        }
-    }
-}
-
-struct CanvasControl<Content: View>: View {
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        ControlGroup { content }
-            .controlGroupStyle(.navigation)
-            .controlSize(.extraLarge)
-            .foregroundStyle(Style.Foreground.primary, Style.Foreground.secondary)
-            .tint(Style.Background.selection)
-            .glassEffect(.regular.tint(.black.opacity(0.2)), in: Capsule())
+        SegmentedTabs(selection: $axis, options: CanvasAxis.allCases, image: \.symbol)
     }
 }
 
@@ -60,16 +59,20 @@ struct CanvasMap: Surface {
 
     var body: some View {
         if let scope {
-            CanvasControl {
-                Button { presented.toggle() } label: {
-                    HStack(alignment: .center, spacing: Style.Spacing.icon) {
-                        Text(scope.descriptor.name)
-                            .font(.system(size: 13.5, weight: .medium))
-                            .lineLimit(1)
-                    }
-                    .padding(.horizontal, 8)
+            Button { presented.toggle() } label: {
+                HStack(alignment: .center, spacing: Style.Spacing.icon) {
+                    Text(scope.descriptor.name)
+                        .font(.system(size: 13.5, weight: .medium))
+                        .lineLimit(1)
                 }
+                .padding(.horizontal, 10)
+                .frame(height: 30)
+                .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
+            .buttonStyle(.borderless)
+            .foregroundStyle(Style.Foreground.primary)
+            .surface(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
             .popover(isPresented: $presented) {
                 VStack(spacing: 8) {
                     Filter(text: $text)
@@ -106,6 +109,26 @@ struct CanvasMap: Surface {
     }
 }
 
+struct CanvasHeader: Surface {
+    var panel: any Panel
+    var model: any Model
+
+    @Binding var viewport: CanvasViewport
+    @Binding var axis: CanvasAxis
+
+    var body: some View {
+        HStack(alignment: .center) {
+            CanvasMap(panel: panel, model: model)
+            Spacer()
+            CanvasPresentation(axis: $axis)
+            CanvasZoom(viewport: $viewport)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+    }
+}
+
 struct CanvasContent: Surface {
     var panel: any Panel
     var model: any Model
@@ -114,23 +137,15 @@ struct CanvasContent: Surface {
     @State var axis: CanvasAxis = .vertical
 
     var body: some View {
-        Canvas(refs: model.session.bridged, axis: axis, viewport: viewport, onBackground: { model.focus(nil) }) { ref in
-            CanvasNode(ref: ref, panel: panel, model: model)
+        Canvas(refs: model.session.project.map { [$0] } ?? [], axis: axis, viewport: viewport, onBackground: { model.focus(nil) }) { ref in
+            CanvasNode(ref: ref, model: model)
                 .frame(width: 320)
         }
-        .ignoresSafeArea(.container, edges: .trailing)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Style.Background.canvas)
-        .safeAreaInset(edge: .bottom) {
-            HStack(alignment: .bottom) {
-                CanvasMap(panel: panel, model: model)
-                Spacer()
-                CanvasControl { CanvasPresentation(axis: $axis) }
-                CanvasControl { CanvasZoom(viewport: $viewport) }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea(.container, edges: .trailing)
+        .safeAreaBar(edge: .bottom) {
+            CanvasHeader(panel: panel, model: model, viewport: $viewport, axis: $axis)
         }
     }
 }

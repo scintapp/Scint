@@ -25,6 +25,7 @@ import ScintComponents
                 }
             }
         }
+        .background(Style.Background.canvas)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbar {
             ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }

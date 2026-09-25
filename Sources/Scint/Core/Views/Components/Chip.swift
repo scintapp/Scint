@@ -25,18 +25,18 @@ struct Chip: View {
                     .font(Typography.body)
                     .lineLimit(1)
             }
-            .foregroundStyle(icon.tint.bright)
+            .foregroundStyle(icon.tint)
             .padding(.horizontal, 4)
             .frame(height: Typography.Prose.lineHeight)
             .padding(1)
             .background {
                 if selected || isHovered {
-                    Capsule().fill(icon.tint.bright.opacity(Style.Opacity.surface))
+                    Capsule().fill(icon.tint.opacity(Style.Opacity.surface))
                 }
             }
             .overlay {
                 Capsule().strokeBorder(
-                    icon.tint.bright.opacity(selected ? 1 : Style.Opacity.outline),
+                    icon.tint.opacity(selected ? 1 : Style.Opacity.outline),
                     lineWidth: 1
                 )
             }

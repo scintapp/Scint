@@ -125,14 +125,7 @@ struct PanelRow: View {
 
     var body: some View {
         VStack {
-            GroupRow(
-                title: Text(params.name)
-                    .font(.system(size: 16, weight: active ? .medium : .regular))
-                    .foregroundColor(Style.Foreground.primary),
-                detail: params.description.isEmpty ? nil : Text(params.description)
-                    .font(.system(size: 13))
-                    .foregroundColor(Style.Foreground.primary)
-            ) {
+            HStack(alignment: .center) {
                 Iconography.Icon(
                     symbol: params.image.isEmpty ? "square.stack.3d.up" : params.image,
                     tint: params.tint ?? Style.Foreground.primary,
@@ -140,9 +133,27 @@ struct PanelRow: View {
                     selected: active
                 )
                 .frame(width: 34, height: 34, alignment: .center)
-                .padding(.leading, 2)
-                .padding(.trailing, 6)
-            } trailing: {
+                .padding(.leading, 4)
+                .padding(.trailing, 8)
+
+                VStack(alignment: .leading, spacing: Style.Spacing.detail) {
+                    Text(params.name)
+                        .font(.system(size: 16, weight: active ? .medium : .regular))
+                        .foregroundColor(Style.Foreground.primary)
+                        .lineLimit(1)
+                        .frame(height: 12)
+
+                    if !params.description.isEmpty {
+                        Text(params.description)
+                            .font(.system(size: 12.5))
+                            .foregroundColor(Style.Foreground.subtle)
+                            .lineLimit(1)
+                            .frame(height: 10)
+                    }
+                }
+
+                Spacer()
+
                 if active {
                     Image(systemName: "return")
                         .padding(.trailing, 8)
@@ -151,7 +162,7 @@ struct PanelRow: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
             .onTapGesture(perform: onTap)
             .animation(.easeOut(duration: 0.1), value: active)

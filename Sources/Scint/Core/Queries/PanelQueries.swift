@@ -29,7 +29,7 @@ struct NavigatorQuery: Query {
                 return AnyView(view.contextMenu { ContextActionMenu(ref: ref, model: model) })
             },
             wrapHeader: { view, section in
-                if section.id == AnyHashable("spaces") {
+                if section.id == AnyHashable("projects") {
                     return AnyView(view.contextMenu { ContextActionMenu(ref: model.session.projects, model: model) })
                 }
                 if section.id == AnyHashable("library") {
@@ -92,8 +92,8 @@ struct NavigatorQuery: Query {
                     ]
                 ),
                 .init(
-                    id: "spaces",
-                    name: "Spaces",
+                    id: "projects",
+                    name: "Projects",
                     header: true,
                     items: spaceItems
                 ),

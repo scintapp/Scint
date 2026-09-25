@@ -34,7 +34,7 @@ struct ProjectContent: Surface {
                     if let space, let context = space.context, let transcript = context.transcript {
                         TranscriptContent(transcript: transcript)
                     }
-                    ProjectToolbar(panel: panel, model: model, onSend: {})
+                    ProjectToolbar(panel: panel, model: model, onStart: {})
                         .frame(alignment: .bottom)
                         .padding([.bottom, .vertical], 10)
 

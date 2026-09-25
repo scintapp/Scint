@@ -29,7 +29,7 @@ struct TaskItem: View {
                         Text(text)
                             .font(.system(size: 14, weight: .regular))
                             .foregroundStyle(completed ? Style.Foreground.secondary : Style.Foreground.primary)
-                            .strikethrough(completed, color: Style.Foreground.tertiary)
+                            .strikethrough(completed, color: Style.Foreground.subtle)
                             .lineSpacing(Typography.Prose.lineSpacing)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)

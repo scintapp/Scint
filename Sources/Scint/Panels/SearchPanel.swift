@@ -36,7 +36,7 @@ struct SearchDetail: Query {
                 name: "Contents",
                 items: refs.map { child in
                     let icon = Iconography.icon(for: child)
-                    return .init(ref: child, name: child.descriptor.name, image: icon.symbol, tint: icon.tint.bright)
+                    return .init(ref: child, name: child.descriptor.name, image: icon.symbol, tint: icon.tint)
                 }
             )
         }

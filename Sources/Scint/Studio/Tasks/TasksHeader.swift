@@ -20,7 +20,7 @@ struct TasksCompleted: View {
                     .foregroundStyle(completed > 0 ? Style.Tint.task.bright : Style.Foreground.secondary)
                     .disabled(completed == 0)
 
-                Spacer(minLength: 8)
+                Spacer()
 
                 Button(showsCompleted ? "Hide" : "Show", action: onToggleCompleted)
                     .buttonStyle(.plain)
@@ -38,21 +38,19 @@ struct TasksCompleted: View {
 struct TasksHeader: Surface {
     var panel: any Panel
     var model: any Model
+
     @Binding var scope: TasksContent.Scope
 
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            NewTaskButton(model: model)
-
-            PageHeader("Tasks") {
-                SegmentedTabs(
-                    selection: $scope,
-                    options: TasksContent.Scope.allCases,
-                    title: \.label
-                )
-            }
-
+        HStack(alignment: .center, spacing: 12) {
+            IconButton(systemImage: "plus") { }
+                .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+            Text("Tasks")
+                .font(Typography.pageTitle)
+            Spacer()
+            SegmentedTabs(selection: $scope, options: TasksContent.Scope.allCases, title: \.label)
             IconButton(systemImage: "ellipsis") { }
+                .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
         }
         .frame(maxWidth: .infinity, maxHeight: 40, alignment: .center)
         .padding(.horizontal, 12)

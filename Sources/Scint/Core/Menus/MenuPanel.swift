@@ -15,12 +15,9 @@ struct MenuPanelContent: View {
     var body: some View {
         switch controller.kind {
         case .fixed, .dynamic:
-            VStack(alignment: .leading, spacing: 4) {
-                MenuList(items: controller.items, selectedID: controller.selectedID, onSelect: onSelect)
-            }
-            .padding(Style.Spacing.label)
-            .frame(width: 260, height: 360)
-            .glassEffect(.regular, in: Style.Shape.control)
+            MenuList(items: controller.items, selectedID: controller.selectedID, onSelect: onSelect)
+                .frame(width: controller.size.width, height: controller.size.height)
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
         case .create, .update:
             Menu(
                 query: Binding(get: { controller.query }, set: { controller.query = $0 }),

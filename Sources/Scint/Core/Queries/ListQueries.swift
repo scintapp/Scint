@@ -133,36 +133,6 @@ struct ArtifactsList: Query {
     }
 }
 
-struct HarnessesList: Query {
-    static func controls(_ model: any Model) -> Controls {
-        .init()
-    }
-
-    static func parameters(_ model: any Model) -> Params {
-        .init(
-            id: "harnesses",
-            name: "Harnesses",
-            header: true,
-            sections: []
-        )
-    }
-}
-
-struct CommandsList: Query {
-    static func controls(_ model: any Model) -> Controls {
-        .init()
-    }
-
-    static func parameters(_ model: any Model) -> Params {
-        .init(
-            id: "commands",
-            name: "Commands",
-            header: true,
-            sections: []
-        )
-    }
-}
-
 struct DocumentsList: Query {
     static func controls(_ model: any Model) -> Controls {
         return .init(
@@ -254,7 +224,7 @@ struct MapList: Query {
                 model.focus(ref)
             },
             surfaceDropTarget: {
-                .init(name: "Spaces")
+                .init(name: "Projects")
             },
             wrapLink: { view, item, _ in
                 guard let ref = item.ref else { return view }
@@ -272,7 +242,7 @@ struct MapList: Query {
     static func parameters(_ model: any Model) -> Params {
         var projects: [Reference] {
             guard let projects = Space.with(model.session.projects, { $0.spaces })
-                    else { return [] }
+            else { return [] }
             return Array(projects)
         }
 
@@ -297,12 +267,12 @@ struct MapList: Query {
         }
 
         return .init(
-            id: "spaces",
+            id: "projects",
             header: false,
             sections: [
                 .init(
-                    id: "spaces",
-                    name: "Spaces",
+                    id: "projects",
+                    name: "Projects",
                     items: sorted(projects.map { space(for: $0, origin: $0) })
                 )
             ]
@@ -326,6 +296,7 @@ struct TranscriptsList: Query {
 
     static func parameters(_ model: any Model) -> Params {
         let calendar = Calendar.autoupdatingCurrent
+
         let items = Runtime.shared.all(as: Transcript.self)
             .compactMap { ref, transcript -> Reference? in
                 transcript.origin.type is Transcript.Type ? nil : ref
@@ -381,7 +352,7 @@ struct LibraryList: Query {
                 model.focus(ref)
             },
             surfaceDropTarget: {
-                .init(name: "Spaces")
+                .init(name: "Projects")
             },
             wrapLink: { view, item, _ in
                 guard let ref = item.ref else { return view }
@@ -454,7 +425,7 @@ struct SpacesList: Query {
                 model.focus(ref)
             },
             surfaceDropTarget: {
-                .init(name: "Spaces")
+                .init(name: "Projects")
             },
             wrapLink: { view, item, _ in
                 guard let ref = item.ref else { return view }
@@ -490,7 +461,7 @@ struct SpacesList: Query {
 
         func item(_ ref: Reference, origin: Reference) -> ItemParams {
             let dot = Iconography.dot(for: ref)
-            return .init(ref: ref, origin: origin, name: ref.descriptor.name, image: dot.symbol, tint: dot.tint.bright)
+            return .init(ref: ref, origin: origin, name: ref.descriptor.name, image: dot.symbol, tint: dot.tint)
         }
 
         func working(_ refs: [Reference]) -> Int {
@@ -511,7 +482,7 @@ struct SpacesList: Query {
                 origin: ref,
                 name: ref.descriptor.name,
                 image: Iconography.icon(for: ref).symbol,
-                tint: Iconography.icon(for: ref).tint.bright,
+                tint: Iconography.icon(for: ref).tint,
                 count: active > 0 ? active : nil,
                 items: below.map { item($0, origin: ref) }
             )
@@ -549,7 +520,7 @@ struct TagsList: Query {
                 model.focus(ref)
             },
             surfaceDropTarget: {
-                .init(name: "Spaces")
+                .init(name: "Projects")
             },
             wrapLink: { view, item, _ in
                 guard let ref = item.ref else { return view }
@@ -571,8 +542,8 @@ struct TagsList: Query {
             header: true,
             sections: [
                 .init(
-                    id: "spaces",
-                    name: "Spaces",
+                    id: "projects",
+                    name: "Projects",
                     items: []
                 )
             ]

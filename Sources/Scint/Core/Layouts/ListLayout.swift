@@ -149,30 +149,38 @@ struct ListRow<Content: View>: View {
     }
 
     var body: some View {
-        GroupRow(
-            title: Text(name)
-                .font(.system(size: 14))
-                .foregroundColor(.primary),
-            detail: described.map {
-                Text($0)
-                    .font(Typography.detail)
-                    .foregroundColor(Style.Foreground.secondary)
-            }
-        ) {
+        HStack(alignment: .center) {
             Color.clear.frame(width: indent)
             content
-        } trailing: {
+
+            VStack(alignment: .leading, spacing: Style.Spacing.detail) {
+                Text(name)
+                    .font(.system(size: 13))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+
+                if let described {
+                    Text(described)
+                        .font(Typography.detail)
+                        .foregroundColor(Style.Foreground.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
             if let accessory { accessory.padding(.trailing, 8) }
             if let trailingImage { Image(systemName: trailingImage).font(.system(size: 12)) }
 
             if let count {
                 Text("\(count)")
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                     .padding(.trailing, 3)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: described == nil ? Metrics.rowHeight : Metrics.rowDetailHeight)
+        .frame(maxWidth: .infinity, minHeight: 24)
+        .padding(.vertical, 2)
         .background(RoundedRectangle(cornerRadius: 7).fill(background))
         .foregroundStyle(.primary)
         .contentShape(RoundedRectangle(cornerRadius: 7))

@@ -141,7 +141,7 @@ struct Card: View {
                 if !badges.isEmpty {
                     HStack(spacing: 4) {
                         ForEach(Array(badges.enumerated()), id: \.offset) { _, label in
-                            Badge(label: label, tint: icon.tint.bright, outlined: true)
+                            Badge(label: label, tint: icon.tint, outlined: true)
                         }
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
@@ -171,11 +171,11 @@ struct Card: View {
                             .padding(.vertical, 16)
                             .frame(maxWidth: .infinity, maxHeight: 80, alignment: .leading)
                     }
-                    .background { selected ? shape.fill(icon.tint.bright.opacity(0.03)) : shape.fill(Style.Background.surface) }
+                    .background { selected ? shape.fill(icon.tint.opacity(0.03)) : shape.fill(Style.Background.surface) }
                     .overlay {
                         shape.strokeBorder(
                             selected || isHovered
-                            ? icon.tint.bright.opacity(selected ? 1 : Style.Opacity.inactive)
+                            ? icon.tint.opacity(selected ? 1 : Style.Opacity.inactive)
                             : Style.Border.hairline,
                             lineWidth: selected ? 1 : 0.5
                         )
@@ -215,7 +215,7 @@ struct Card: View {
                         if selected || isHovered {
                             Style.Shape.control.fill(
                                 selected
-                                ? icon.tint.bright.opacity(Style.Opacity.surface)
+                                ? icon.tint.opacity(Style.Opacity.surface)
                                 : Style.Foreground.primary.opacity(Style.Opacity.surface)
                             )
                         }

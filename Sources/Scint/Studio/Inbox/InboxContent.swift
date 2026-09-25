@@ -44,7 +44,7 @@ struct InboxRow: View {
         Button { model.select(context.space) } label: {
             ActivityRow(
                 context.space.descriptor.name,
-                icon: Iconography.model(for: harness ?? context.space),
+                icon: Iconography.icon(for: harness ?? context.space),
                 time: context.updated?.formatted(.relative(presentation: .named))
             ) {
                 if let message {

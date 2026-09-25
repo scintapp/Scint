@@ -2,6 +2,7 @@ import AppKit
 import Observation
 import OrderedCollections
 import SwiftUI
+import ScintComponents
 
 
 extension Notification.Name { static let scintPanelEscape = Notification.Name("scintPanelEscape") }
@@ -33,7 +34,7 @@ final class FloatingPanel: NSPanel {
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         isOpaque = false
-//        backgroundColor = .clear
+        backgroundColor = .clear
         hasShadow = true
     }
 
@@ -67,6 +68,10 @@ final class FloatingPanel: NSPanel {
         self.pinned = pinned
         self.onVisibilityChange = onVisibilityChange
         panel.contentView = hosting.view
+        hosting.view.wantsLayer = true
+        hosting.view.layer?.cornerRadius = Style.Shape.panelRadius
+        hosting.view.layer?.cornerCurve = .continuous
+        hosting.view.layer?.masksToBounds = true
         super.init()
         panel.delegate = self
         configure(params)
@@ -95,6 +100,7 @@ final class FloatingPanel: NSPanel {
         installEventMonitors()
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        panel.invalidateShadow()
         onVisibilityChange?(true)
     }
 

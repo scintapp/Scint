@@ -83,6 +83,11 @@ extension Session {
         return ref
     }
 
+    var project: Reference? {
+        guard let structure = selection.structure else { return nil }
+        return navigation.spaces(to: structure).drop { $0 != projects }.dropFirst().first
+    }
+
     var bridged: [Reference] {
         guard let ref = scope, let refs = Space.with(ref, { $0 })?.bridges else { return [] }
         var bridges =  Array(refs)

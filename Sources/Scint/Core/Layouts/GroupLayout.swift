@@ -112,6 +112,12 @@ struct GroupRow<Leading: View, Trailing: View>: View {
 struct GroupHeader: View {
     let ref: Reference
 
+    enum Field { case name, description }
+
+    @State private var name: String?
+    @State private var description: String?
+    @FocusState private var focused: Field?
+
     private var harness: Reference? {
         Space.with(ref, { $0.harness }).flatMap { $0 }
     }
@@ -119,42 +125,71 @@ struct GroupHeader: View {
     var body: some View {
         let harness = harness
         let intent = harness.flatMap { Harness.with($0, { $0.intent }) }
-        let explanation = ref.descriptor.description
 
         VStack(alignment: .leading, spacing: Style.Spacing.label) {
             HStack(alignment: .center) {
                 Iconography.icon(for: harness ?? ref, size: 18)
+                    .frame(width: 20, height: 20, alignment: .center)
+                    .padding(.trailing, 4)
 
                 VStack(alignment: .leading) {
-                    Text(ref.descriptor.name)
-                        .font(.system(size: 17, weight: .semibold))
+                    TextField("Name", text: .init(get: { name ?? ref.descriptor.name }, set: { name = $0 }))
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(Style.Foreground.primary)
                         .lineLimit(1)
+                        .focused($focused, equals: .name)
+                        .onSubmit {
+                            if let name, !name.trimmingCharacters(in: .whitespaces).isEmpty {
+                                Catalog.shared.update(ref) { $0.name = name }
+                            }
+                            name = nil
+                        }
 
                     Text(intent?.rawValue.capitalized ?? "Unassigned")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Style.Foreground.secondary)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Iconography.accent(for: harness ?? ref))
+                        .opacity(0.7)
                         .lineLimit(1)
                 }
+                .frame(alignment: .center)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
             }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 6)
 
             GroupDivider()
 
-            Text(explanation.isEmpty
-                 ? "No description."
-                 : explanation)
-            .padding(.bottom, 6)
-            .padding([.top, .horizontal], 4)
+            TextField(
+                "Description",
+                text: .init(get: { description ?? ref.descriptor.description }, set: { description = $0 }),
+                prompt: Text("Add a description...").foregroundStyle(Style.Foreground.subtle),
+                axis: .vertical
+            )
+            .textFieldStyle(.plain)
+            .foregroundStyle(Style.Foreground.secondary)
+            .focused($focused, equals: .description)
+            .onSubmit {
+                if let description { Catalog.shared.update(ref) { $0.description = description } }
+                description = nil
+            }
+            .padding(.top, 2)
+            .padding(.bottom, 8)
+            .padding(.horizontal, 6)
             .font(.system(size: 12))
-            .foregroundStyle(explanation.isEmpty ? Style.Foreground.secondary : Style.Foreground.secondary)
-            .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(Style.Shape.card.fill(Style.Background.group))
+        .onChange(of: focused) { _, field in
+            if field != .name { name = nil }
+            if field != .description { description = nil }
+        }
+        .onChange(of: ref) {
+            name = nil
+            description = nil
+        }
     }
 }
 

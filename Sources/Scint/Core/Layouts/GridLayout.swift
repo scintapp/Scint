@@ -54,7 +54,7 @@ struct DocumentGlyph: View {
             .frame(width: width, height: height, alignment: .topLeading)
             .glassEffect(.regular, in: page)
             .background(page.fill(.primary.opacity(0.9)))
-            .overlay(page.strokeBorder(icon.tint.bright.opacity(0.38), lineWidth: 0.5))
+            .overlay(page.strokeBorder(icon.tint.opacity(0.38), lineWidth: 0.5))
             .clipShape(page)
     }
 }

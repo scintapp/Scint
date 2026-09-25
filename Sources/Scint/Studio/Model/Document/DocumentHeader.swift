@@ -8,7 +8,7 @@ struct DocumentHeader: View {
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
             IconButton(systemImage: "plus") { }
-            PageHeader("Inbox") { }
+            Text("Inbox")
             Spacer()
             IconButton(systemImage: "ellipsis") { }
         }

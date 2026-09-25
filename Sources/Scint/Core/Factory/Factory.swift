@@ -16,6 +16,7 @@ import ScintComponents
                         GroupHeader(ref: ref)
                             .frame(maxWidth: .infinity, alignment: .topLeading)
                             .padding(.top, GroupMetrics.headerTop)
+                            .padding(.bottom, 12)
                     }
 
                     ForEach(params.sections) { section in
@@ -47,7 +48,7 @@ import ScintComponents
             guard !group.results.isEmpty else { return nil }
             return SectionParams(id: group.id.description, name: group.name, header: !group.name.isEmpty, image: group.image, items: group.results.map {
                 let icon = Iconography.icon(for: $0.ref)
-                return ItemParams(ref: $0.ref, name: $0.name, image: icon.symbol, tint: icon.tint.bright, description: $0.description)
+                return ItemParams(ref: $0.ref, name: $0.name, image: icon.symbol, tint: icon.tint, description: $0.description)
             })
         }
 
@@ -165,9 +166,9 @@ import ScintComponents
 
                     ForEach(params.items) {
                         build(surface, params: $0, controls: controls, layout: .list)
+                            .padding(.vertical, 1)
                     }
 
-                // No layout is panel chrome: the panel stamps nothing onto its results.
                 case .none:
                     if !params.items.isEmpty {
                         if params.header && !params.name.isEmpty { PanelHeader(name: params.name) }
@@ -188,7 +189,6 @@ import ScintComponents
         }
     }
 
-    // Item. A parent's children are a section, which is where this recurses.
     @ViewBuilder static func build(_ surface: some Surface, params: ItemParams, controls: Controls, layout: Layout? = nil, indent: CGFloat = 0) -> some View {
         let ref = params.path == nil && params.entryId == nil ? params.ref : nil
 
@@ -196,9 +196,12 @@ import ScintComponents
             case .group:
                 let row = AnyView(
                     GroupRow(label: params.name, description: params.trailingKind == .value && params.value == nil ? "" : params.description) {
-                        if let tint = params.tint, !params.image.isEmpty { Iconography.Icon(symbol: params.image, tint: tint) }
-                        else if let ref { Iconography.icon(for: ref) }
-                        else { Image(systemName: params.image).foregroundStyle(.secondary) }
+                        Group {
+                            if let tint = params.tint, !params.image.isEmpty { Iconography.Icon(symbol: params.image, tint: tint) }
+                            else if let ref { Iconography.icon(for: ref) }
+                            else { Image(systemName: params.image).foregroundStyle(.secondary) }
+                        }
+                        .frame(width: 18, height: 18, alignment: .center)
                     } trailing: {
                         switch params.trailingKind {
                             case .toggle:

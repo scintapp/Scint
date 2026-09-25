@@ -32,7 +32,7 @@ struct OutlineContext: View {
                         let preview = reference.type is ScintRuntime.Document.Type ? SpaceOutline.summary(reference) : text.description
 
                         Button { model.open(reference) } label: {
-                            FileRow(text.name, path: preview, icon: Iconography.model(for: reference))
+                            FileRow(text.name, path: preview, icon: Iconography.icon(for: reference))
                                 .lineLimit(2)
                                 .contentShape(Rectangle())
                         }
@@ -126,7 +126,7 @@ struct OutlineHeader: View {
                         .multilineTextAlignment(.leading)
                     Image(systemName: "chevron.down")
                         .font(Typography.detail.weight(.semibold))
-                        .foregroundStyle(Style.Foreground.tertiary)
+                        .foregroundStyle(Style.Foreground.subtle)
                 }
                 .contentShape(Rectangle())
             }

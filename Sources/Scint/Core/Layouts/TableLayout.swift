@@ -45,7 +45,7 @@ struct TableRow: View {
             HStack(spacing: Style.Spacing.icon) {
                 Iconography.Icon(
                     symbol: icon.symbol,
-                    tint: icon.tint.bright,
+                    tint: icon.tint,
                     sizing: Metrics.rowIcon,
                     selected: enabled
                 )

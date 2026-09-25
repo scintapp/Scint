@@ -109,7 +109,7 @@ struct ToolEntry: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Iconography.Icon(symbol: symbol, tint: failed ? .alert : .neutral, size: 12)
+            Iconography.Icon(symbol: symbol, tint: failed ? Style.Tint.alert.bright : Style.Tint.neutral.bright, sizing: 12)
                 .frame(width: Style.Dimension.icon)
 
             if let sentence { Text(sentence) }
@@ -118,7 +118,7 @@ struct ToolEntry: View {
 
             if sentence == nil, kind == .call, let detail {
                 Text(detail)
-                    .foregroundStyle(Style.Foreground.tertiary)
+                    .foregroundStyle(Style.Foreground.subtle)
                     .truncationMode(.tail)
             }
         }
@@ -144,12 +144,12 @@ struct ReasoningEntry: View {
         let index = max(0, lines.count - 1 - offset)
 
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Iconography.Icon(symbol: "brain", tint: .neutral, size: 12, selected: false)
+            Iconography.Icon(symbol: "brain", tint: Style.Tint.neutral.bright, sizing: 12, selected: false)
                 .frame(width: Style.Dimension.icon)
 
             Text(lines.indices.contains(index) ? lines[index] : "")
                 .italic()
-                .foregroundStyle(Style.Foreground.tertiary)
+                .foregroundStyle(Style.Foreground.subtle)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .id(index)
@@ -166,7 +166,7 @@ struct ReasoningEntry: View {
                 }
                 .buttonStyle(.borderless)
                 .font(Typography.footnote)
-                .foregroundStyle(Style.Foreground.tertiary)
+                .foregroundStyle(Style.Foreground.subtle)
                 .fixedSize()
             }
         }
@@ -201,13 +201,13 @@ struct ActivityEntry: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Button { withAnimation(Style.Motion.disclosure) { expanded.toggle() } } label: {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Iconography.Icon(symbol: first.symbol, tint: tools.contains(where: \.failed) ? .alert : .neutral, size: 12)
+                            Iconography.Icon(symbol: first.symbol, tint: tools.contains(where: \.failed) ? Style.Tint.alert.bright : Style.Tint.neutral.bright, sizing: 12)
                                 .frame(width: Style.Dimension.icon)
                             Text(summary)
                                 .lineLimit(1)
                             Image(systemName: "chevron.right")
                                 .font(Typography.footnote)
-                                .foregroundStyle(Style.Foreground.tertiary)
+                                .foregroundStyle(Style.Foreground.subtle)
                                 .rotationEffect(.degrees(expanded ? 90 : 0))
                         }
                         .font(Typography.detail)
@@ -259,7 +259,7 @@ struct WorkingEntry: View {
     var context: Context
 
     var body: some View {
-        StatusDot(context.intent.forms.running, tint: Iconography.iconography(context.intent).tint, isActive: true, size: 6)
+        StatusDot(context.intent.forms.running, tint: Iconography.tint(for: context.intent), isActive: true, size: 6)
             .font(Typography.detail)
             .foregroundStyle(Style.Foreground.secondary)
             .padding(.leading, (Style.Dimension.icon - 6) / 2)

@@ -591,7 +591,7 @@ struct HarnessGroup: Query {
             return .init(
                 ref: selected,
                 key: key,
-                name: selected == nil ? "Choose Command" : "Change Command",
+                name: "Command",
                 image: icon?.symbol ?? "switch.2",
                 tint: Style.Foreground.secondary,
                 trailingKind: .load,
@@ -733,7 +733,7 @@ struct HarnessGroup: Query {
                     let when: When? = if case .when(let value)? = configured { value } else { nil }
                     return .init(
                         key: key,
-                        name: label(key),
+                        name: "Date",
                         image: symbol(key),
                         tint: Style.Foreground.secondary,
                         trailingKind: .moment,
@@ -809,7 +809,7 @@ struct HarnessGroup: Query {
             let key = key.lowercased()
             return switch true {
                 case key.contains("model"): "cpu"
-                case key.contains("reason"), key.contains("effort"): "lightbulb.max"
+                case key.contains("effort"): "lightbulb.max"
                 case key.contains("sandbox"), key.contains("permission"): "lock.shield"
                 case key.contains("command"), key == "action": "switch.2"
                 case key.contains("target"), key.contains("space"): "square.stack"

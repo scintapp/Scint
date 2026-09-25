@@ -11,15 +11,17 @@ struct SpaceHeaderNew: Surface {
     var ref: Reference? { model.session.selection.structure }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            IconButton(systemImage: "plus") { }
-            PageHeader("Inbox") { }
-            Spacer()
-            IconButton(systemImage: "ellipsis") { }
+        if let ref {
+            HStack(alignment: .center, spacing: 16) {
+                IconButton(systemImage: "plus") { }
+                Text(ref.descriptor.name)
+                Spacer()
+                IconButton(systemImage: "ellipsis") { }
+            }
+            .frame(maxWidth: .infinity, maxHeight: 40, alignment: .center)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
         }
-        .frame(maxWidth: .infinity, maxHeight: 40, alignment: .center)
-        .padding(.horizontal, 12)
-        .padding(.bottom, 8)
     }
 }
 

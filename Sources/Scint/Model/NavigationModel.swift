@@ -8,8 +8,6 @@ struct Navigation: Codable, Equatable, Sendable {
     private static let maxHistory = 100
     private static let maxPathDepth = 100
 
-    
-
     var canGoBack: Bool { cursor > 0 }
     var canGoForward: Bool { cursor < history.count - 1 }
 

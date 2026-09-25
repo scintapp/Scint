@@ -7,114 +7,43 @@ import ScintComponents
     static let dotSymbol = "circlebadge.fill"
     static let dotScale: CGFloat = 0.7
 
-    static func model(for ref: Reference) -> Model {
-        switch ref.type {
-            case is Artifact.Type: .artifact(Artifact.with(ref, { handler(of: $0.handler) }))
-            case is Space.Type: .space(Space.with(ref, { $0 })?.harness.flatMap(intent(of:)))
-            case is Harness.Type: .harness(intent(of: ref))
-            case is Command.Type: .command()
-            case is Bridge.Type: .bridge
-            case is ScintRuntime.Document.Type: .document
-            case is Transcript.Type: .transcript
-            case is Closure.Type: .closure
-            default: .space()
+    static func tint(for intent: ScintRuntimeIntent) -> Style.Tint {
+        switch intent {
+            case .compose: .compose
+            case .dispatch: .dispatch
+            case .evaluate: .evaluate
+            case .observe: .observe
+            case .search: .search
         }
     }
 
-    static func model(for block: ScintRuntime.Document.Block) -> Model {
-        switch block {
-            case .artifact(let ref), .command(let ref), .document(let ref): model(for: ref)
-            case .text: .text
-            case .frame: .text
-            case .task(_, _, let done, _): .task(done: done)
-        }
-    }
-
-    static func model(for entry: Transcript.Entry) -> Model {
-        switch entry {
-            case .event: return .event
-            case .transcript(let ref, _, _): return model(for: ref)
-            case .record(let chunk, _):
-                if chunk.origin.type == Command.self || chunk.origin.type == Artifact.self {
-                    return model(for: chunk.origin)
-                }
-                if case .collection(let fields) = chunk.value, case .string("tool")? = fields["type"] { return .tool() }
-                return .note
-            case .space(let ref, _, _):
-                return model(for: ref)
-
-        }
-    }
-
-    static func icon(for ref: Reference, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: ref), size: size) }
-    static func icon(for block: ScintRuntime.Document.Block, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: block), size: size) }
-    static func icon(for entry: Transcript.Entry, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(model(for: entry), size: size) }
-    static func icon(for intent: ScintRuntimeIntent, size: CGFloat = Style.Dimension.icon) -> Icon { Icon(.harness(iconography(intent)), size: size) }
-
-    static func accent(for ref: Reference) -> Color { model(for: ref).tint.bright }
-
-    static func dot(for ref: Reference, size: CGFloat = 11) -> Icon {
-        let intent = Space.with(ref, { $0 })?.harness.flatMap(intent(of:))
-        return Icon(symbol: dotSymbol, tint: intent?.tint ?? .neutral, size: size)
-    }
-
-    static func menuTint(for item: MenuItem) -> Color { menuTints(for: item).bright }
-
-    static func menuTint(for kind: MenuFormKind) -> Color { menuTints(for: kind).bright }
-
-    private static func menuTints(for item: MenuItem) -> Style.Tint {
-        if let ref = item.ref { return model(for: ref).tint }
+    static func menuTint(for item: MenuItem) -> Color {
+        if let ref = item.ref { return accent(for: ref) }
         switch item.commandID {
-            case "new-task", "checklist": return .task
-            case "new-link", "add-files": return .artifact
-            case "heading-1", "heading-2", "heading-3", "quote": return .document
-            case "code-block": return .command
-            default: return .space
+            case "new-task", "checklist": return Style.Tint.task.bright
+            case "new-link", "add-files": return Style.Tint.artifact.bright
+            case "heading-1", "heading-2", "heading-3", "quote": return Style.Tint.document.bright
+            case "code-block": return Style.Tint.command.bright
+            default: return Style.Tint.space.bright
         }
     }
 
-    private static func menuTints(for kind: MenuFormKind) -> Style.Tint {
+    static func menuTint(for kind: MenuFormKind) -> Color {
         switch kind {
-            case .task: .task
-            case .link, .artifact: .artifact
-            case .command: .command
-            case .document: .document
+            case .task: Style.Tint.task.bright
+            case .link, .artifact: Style.Tint.artifact.bright
+            case .command: Style.Tint.command.bright
+            case .document: Style.Tint.document.bright
         }
     }
 
     @ViewBuilder static func menuIcon(for item: MenuItem, selected: Bool) -> some View {
         let icon = item.ref.map { icon(for: $0, size: Metrics.rowIcon) }
-        ?? item.icon.map { Icon(symbol: $0, tint: Style.Tint.neutral, size: 16) }
+        ?? item.icon.map { Icon(symbol: $0, tint: Style.Tint.neutral.bright, sizing: 16) }
         if let icon {
             icon
-                .frame(width:24, height: 24)
+                .frame(width: 20, height: 20)
                 .opacity(selected ? 1 : Style.Opacity.pressed)
-        }
-    }
-
-    private static func intent(of harness: Reference) -> Intent? {
-        Harness.with(harness, { iconography($0.intent) })
-    }
-
-    private static func handler(of handler: Artifact.Handler) -> Model.Handler {
-        switch handler {
-            case .app: .app
-            case .bookmark: .bookmark
-            case .directory: .directory
-            case .executable: .executable
-            case .file: .file
-            case .image: .image
-            case .script: .script
-            case .skill: .skill
-        }
-    }
-
-    static func iconography(_ intent: ScintRuntimeIntent) -> Intent {
-        switch intent {
-            case .compose: .compose
-            case .dispatch: .dispatch
-            case .evaluate: .evaluate
-            case .search: .search
         }
     }
 }
@@ -133,22 +62,6 @@ extension Context.State {
     }
 
     var running: Bool { self == .active || self == .working }
-
-    var iconography: Iconography.State {
-        switch self {
-            case .inactive: .inactive
-            case .active: .active
-            case .working: .working
-            case .completed: .completed
-            case .failed: .failed
-        }
-    }
 }
 
 typealias ScintRuntimeIntent = Intent
-
-extension Iconography.Icon {
-    init(symbol: String, tint: Color, sizing: CGFloat = Style.Dimension.icon, selected: Bool = true) {
-        self.init(symbol: symbol, tint: Style.Tint(bright: tint, dull: tint), size: sizing, selected: selected)
-    }
-}

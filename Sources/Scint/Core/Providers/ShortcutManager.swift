@@ -6,6 +6,7 @@ import ScintRuntime
 @MainActor final class ShortcutManager {
     static let shared = ShortcutManager()
     static let namespace = "scint.shortcuts"
+    static let global = false
 
     struct Binding {
         let model: ModelKey
@@ -32,6 +33,7 @@ import ScintRuntime
 
     private var model: ScintModel?
     private var registered = false
+    private var observers: [NSObjectProtocol] = []
 
     func register(model: ScintModel) {
         self.model = model
@@ -45,6 +47,23 @@ import ScintRuntime
             let (panel, source) = (binding.panel, binding.model)
             KeyboardShortcuts.onKeyDown(for: binding.name) { Task { @MainActor in self.toggle(panel, source) } }
         }
+
+        guard !Self.global else { return }
+        scope(NSApp.isActive)
+        observers = [
+            NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+                Task { @MainActor in self.scope(true) }
+            },
+            NotificationCenter.default.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { _ in
+                Task { @MainActor in self.scope(false) }
+            }
+        ]
+    }
+
+    private func scope(_ active: Bool) {
+        let names = Self.bindings.map(\.name)
+        if active { KeyboardShortcuts.enable(names) }
+        else { KeyboardShortcuts.disable(names) }
     }
 
     private func toggle(_ panel: PanelKey, _ source: ModelKey) { if let model { model.toggle(panel, source) } }
