@@ -3,22 +3,18 @@ import ScintRuntime
 
 
 @MainActor struct Session: Codable, Sendable {
+    private(set) var data: ScintData
     private(set) var focus: Focus = .nothing
     private(set) var selection: Selection = .init()
     private(set) var opened: Opened = .init()
     private(set) var navigation: Navigation = .init()
-    private(set) var data: AppData
 
     var inbox: Reference { data.inbox }
-    var docs: Reference { data.drafts }
-    var tasks: Reference { data.tasks }
-    var spaces: Reference { data.spaces }
     var library: Reference { data.library }
-    var workspace: [Reference] {
-        Array(Space.with(data.spaces, { $0.spaces }) ?? [])
-    }
+    var projects: Reference { data.projects }
+    var tasks: Reference { data.tasks }
 
-    init(_ data: AppData) {
+    init(_ data: ScintData) {
         self.data = data
         opened = .init()
         focus = .nothing

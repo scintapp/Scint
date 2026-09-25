@@ -14,6 +14,7 @@ struct Card: View {
 
     @State var isHovered: Bool = false
     @State var linkMetadata: (url: URL, value: LPLinkMetadata)?
+    @Environment(ScintModel.self) private var scint: ScintModel?
 
     var url: URL? { Self.link(for: ref) }
     var metadata: LPLinkMetadata? { linkMetadata.flatMap { $0.url == url ? $0.value : nil } }
@@ -158,7 +159,7 @@ struct Card: View {
         Button {
             if let onSelect { onSelect() }
             else {
-                CallbackRouter.open(ref)
+                CallbackHandler.handle(ref.url, model: scint)
             }
         } label: {
             switch style {

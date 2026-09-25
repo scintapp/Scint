@@ -115,8 +115,7 @@ final class MarkdownTextView: NSTextView {
     override func clicked(onLink link: Any, at charIndex: Int) {
         let url = (link as? URL) ?? (link as? String).flatMap(URL.init(string:))
         guard let url else { return }
-        if let ref = Reference.Link.reference(in: url.absoluteString) { CallbackRouter.open(ref) }
-        else { NSWorkspace.shared.open(url) }
+        NSWorkspace.shared.open(url)
     }
 }
 

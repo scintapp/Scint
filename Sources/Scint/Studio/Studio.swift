@@ -4,22 +4,21 @@ import ScintComponents
 
 struct Studio: View {
     @Environment(ScintModel.self) var scint
-    @Environment(StudioModel.self) var model
+    @Environment(StudioModel.self) var studio
 
     var body: some View {
         NavigationSplitView {
-            model.navigator.surface(model)
+            studio.navigator.surface(studio)
         } detail: {
-            model.content.surface(model)
+            studio.content.surface(studio)
         }
-        .inspector(isPresented: model.inspector.bindable.presented) {
-            model.inspector.surface(model)
+        .inspector(isPresented: studio.inspector.bindable.presented) {
+            studio.inspector.surface(studio)
                 .inspectorColumnWidth(min: 240, ideal: 320, max: 480)
                 .ignoresSafeArea(.all, edges: .top)
         }
         .environment(scint)
-        .environment(scint.app)
-        .environment(scint.app.studio)
+        .environment(scint.studio)
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .toolbarBackgroundVisibility(.hidden, for: .automatic)

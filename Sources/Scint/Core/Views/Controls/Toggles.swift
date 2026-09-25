@@ -15,19 +15,19 @@ struct ItemToggle: View {
 
 struct CanvasToggle: View {
     @Environment(ScintModel.self) var scint
-    var isOn: Bool { (scint.app.studio.content.surface == .canvas) }
+//    var isOn: Bool { (scint.studio.content.surface == .canvas) }
 
     var body: some View {
-        Toggle(
-            "",
-            systemImage: "cube.transparent",
-            isOn: Binding(get: { isOn }, set: { isOn in
-                scint.app.studio.content.surface = isOn ? .canvas : .studio
-            }))
-        .labelsHidden()
-        .tint(.clear)
-        .toggleStyle(.button)
-        .buttonStyle(.borderedProminent)
+//        Toggle(
+//            "",
+//            systemImage: "cube.transparent",
+//            isOn: Binding(get: { isOn }, set: { isOn in
+//                scint.studio.content.surface = isOn ? .canvas : .studio
+//            }))
+//        .labelsHidden()
+//        .tint(.clear)
+//        .toggleStyle(.button)
+//        .buttonStyle(.borderedProminent)
     }
 }
 

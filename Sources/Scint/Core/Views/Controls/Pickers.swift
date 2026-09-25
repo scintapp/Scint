@@ -205,8 +205,8 @@ struct TranscriptPicker: View {
 
 struct ContentPicker: View {
     @Environment(ScintModel.self) var scint
-    var content: ContentPanel { scint.app.studio.content }
-    var navigator: NavigatorPanel { scint.app.studio.navigator }
+    var content: ContentPanel { scint.studio.content }
+    var navigator: NavigatorPanel { scint.studio.navigator }
 
     var selection: Binding<ContentPanel.PanelSurface> {
         Binding(get: { content.surface }, set: { content.surface = $0 })
@@ -227,7 +227,7 @@ struct ContentPicker: View {
 
 struct InspectorPicker: View {
     @Environment(ScintModel.self) var scint
-    var panel: InspectorPanel { scint.app.studio.inspector }
+    var panel: InspectorPanel { scint.studio.inspector }
 
     private func selection(for surface: InspectorPanel.PanelSurface) -> Binding<Bool> {
         Binding(
@@ -265,7 +265,7 @@ struct InspectorPicker: View {
 
 struct NavigatorPicker: View {
     @Environment(ScintModel.self) var scint
-    var navigator: NavigatorPanel { scint.app.studio.navigator }
+    var navigator: NavigatorPanel { scint.studio.navigator }
 
     var selection: Binding<NavigatorPanel.PanelSurface> {
         Binding(get: { navigator.surface }, set: { navigator.surface = $0 })

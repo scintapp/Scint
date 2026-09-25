@@ -288,8 +288,9 @@ struct Item: Identifiable {
 }
 
 struct ContextActionMenu: View {
-    let ref: Reference
-    let model: any Model
+    var ref: Reference
+    var model: any Model
+
     var space: Bool { ref.type is Space.Type }
     var document: Bool { ref.type is ScintRuntime.Document.Type }
     var folder: Bool { space && Navigation().spaces(to: ref).contains(model.session.library) }
@@ -304,7 +305,7 @@ struct ContextActionMenu: View {
     }
 
     var spaceDestinations: [Reference] {
-        destinations(in: model.session.spaces)
+        destinations(in: model.session.projects)
             .filter { destination in
                 Space.with(destination, { !$0.documents.contains(ref) }) ?? false
             }
@@ -369,6 +370,18 @@ struct ContextActionMenu: View {
                     }
                 }
             }
+        }
+
+        Divider()
+        Button("Copy Link") {
+            guard let url = Reference.Link.url(for: ref) else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(url.absoluteString, forType: .string)
+        }
+        Button("Copy Markdown Link") {
+            guard let markdown = Reference.Link.markdown(for: ref) else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(markdown, forType: .string)
         }
 
         Divider()

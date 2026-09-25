@@ -32,11 +32,11 @@ extension Model {
         Runtime.shared.search(query, filters: filters, limit: limit)
     }
 
-    func compose(_ ref: Reference) -> Composition? { Runtime.shared.compose(ref) }
+    func compose(_ ref: Reference) -> Context? { Runtime.shared.compose(ref) }
 
     @discardableResult
-    func start(_ ref: Reference) -> Composition? { Runtime.shared.start(ref) }
+    func start(_ ref: Reference) -> Context? { Runtime.shared.start(ref) }
 
     @discardableResult
-    func stop(_ ref: Reference) -> Composition? { Runtime.shared.stop(ref) }
+    func stop(_ ref: Reference) -> Context? { Runtime.shared.stop(ref) }
 }

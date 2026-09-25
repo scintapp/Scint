@@ -177,7 +177,7 @@ Short `if`/`else` pairs go on two lines, `else` leading:
 
 ```swift
 if let _ = session.opened.document { DocumentContent(panel: self, model: model) }
-else { DocumentLibrary(panel: self, model: model) }
+else { LibraryContent(panel: self, model: model) }
 ```
 
 Access control only where it means something: `private` for genuinely internal state and

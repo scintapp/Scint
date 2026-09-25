@@ -10,13 +10,14 @@ struct Chip: View {
     var isSelected = false
 
     @State private var isHovered = false
+    @Environment(ScintModel.self) private var scint: ScintModel?
 
     var body: some View {
         let icon = Iconography.icon(for: ref, size: Style.Dimension.icon)
         let selected = isSelected
 
         Button {
-            CallbackRouter.open(ref)
+            CallbackHandler.handle(ref.url, model: scint)
         } label: {
             HStack(spacing: 4) {
                 icon
@@ -58,17 +59,6 @@ extension View {
             Button("Duplicate") { }
             Button("Rename") { }
             Button("Move") { }
-            Divider()
-            Button("Copy Link") {
-                guard let url = Reference.Link.url(for: ref) else { return }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(url.absoluteString, forType: .string)
-            }
-            Button("Copy Markdown Link") {
-                guard let markdown = Reference.Link.markdown(for: ref) else { return }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(markdown, forType: .string)
-            }
         }
     }
 }

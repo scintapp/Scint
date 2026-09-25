@@ -102,7 +102,7 @@ struct ArtifactsGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.spaces }
+            else { return model.session.projects }
         }
         guard let space = focused else { return .init() }
 
@@ -115,23 +115,7 @@ struct ArtifactsGroup: Query {
 
         }
 
-        func configure(_ value: Value?, for key: String) {
-            Space.with(space, { $0 })?.configure(value, for: key)
-        }
-
         return .init(
-            onToggle: { item in
-                guard let key = item.key else { return }
-                configure(.bool(!item.active), for: key)
-            },
-            onChange: { item, selection in
-                guard let key = item.key else { return }
-                configure(selection.value.map(Value.string), for: key)
-            },
-            onValueChange: { item, value in
-                guard let key = item.key else { return }
-                configure(value.isEmpty ? nil : .string(value), for: key)
-            },
             onSelect: { item in
                 guard let ref = item.ref, !item.active else { return }
                 add(ref)
@@ -165,7 +149,7 @@ struct ArtifactsGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.spaces }
+            else { return model.session.projects }
         }
         guard let space = focused else { return .init() }
 
@@ -235,7 +219,7 @@ struct CommandsGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.spaces }
+            else { return model.session.projects }
         }
         guard let space = focused else { return .init() }
 
@@ -247,23 +231,7 @@ struct CommandsGroup: Query {
             Space.with(space, { $0 })?.remove(ref)
         }
 
-        func configure(_ value: Value?, for key: String) {
-            Space.with(space, { $0 })?.configure(value, for: key)
-        }
-
         return .init(
-            onToggle: { item in
-                guard let key = item.key else { return }
-                configure(.bool(!item.active), for: key)
-            },
-            onChange: { item, selection in
-                guard let key = item.key else { return }
-                configure(selection.value.map(Value.string), for: key)
-            },
-            onValueChange: { item, value in
-                guard let key = item.key else { return }
-                configure(value.isEmpty ? nil : .string(value), for: key)
-            },
             onSelect: { item in
                 guard let ref = item.ref, !item.active else { return }
                 add(ref)
@@ -297,7 +265,7 @@ struct CommandsGroup: Query {
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.spaces }
+            else { return model.session.projects }
         }
         guard let space = focused else { return .init() }
 
@@ -365,20 +333,60 @@ struct HarnessGroup: Query {
     static func controls(_ model: any Model) -> Controls {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.spaces }
+            else { return model.session.projects }
         }
 
         guard let space = focused else { return .init() }
         return controls(for: space)
     }
 
-    static func controls(for space: Reference) -> Controls {
+    static func controls(for space: Reference, owner: Reference? = nil) -> Controls {
         func load(_ ref: Reference) {
             Space.update(space) { $0.harness = ref }
         }
 
+        func create(_ command: Reference) -> Reference {
+            let sheet = Document.new(space, name: "Automation")
+            let material = Document.new(space, name: "Instructions")
+            Document.update(material) { $0.delete(at: 0) }
+            Document.update(sheet) { document in
+                document.delete(at: 0)
+                document.insert([.task(UUID(), "Automation", false, nil), .command(command), .document(material)], at: 0)
+            }
+            _ = Catalog.shared.update(sheet) { $0.tags.insert("automation") }
+            _ = Catalog.shared.update(material) { $0.tags.insert("automation") }
+            Space.with(space, { $0.configure(.collection([:]), for: sheet) })
+            return sheet
+        }
+
+        func automate(_ value: Value?, for key: String) {
+            let command = key == "action" ? value?.references.first : Runtime.shared.all(as: Command.self).map { $0.0 }.min { $0.descriptor.name < $1.descriptor.name }
+            guard let sheet = automation(space) ?? command.map(create) else { return }
+            if key == "action", value == nil {
+                _ = Runtime.shared.stop(sheet)
+                let material = Sheet.with(sheet, { $0.material }) ?? nil
+                Space.with(space) { space in
+                    space.configure(nil, for: sheet)
+                    space.remove(sheet)
+                    if let material { space.remove(material) }
+                }
+                return
+            }
+            Sheet.update(sheet) { sheet in
+                if key == "when" { sheet.when = if case .when(let when)? = value { when } else { nil } }
+                else { sheet.command = command }
+            }
+            _ = Runtime.shared.start(sheet)
+        }
+
         func configure(_ value: Value?, for key: String) {
-            Space.with(space, { $0 })?.configure(value, for: key)
+            if owner == nil, key == "when" || key == "action" { return automate(value, for: key) }
+            guard let owner = owner ?? (Space.with(space, { $0.harness }) ?? nil) else { return }
+            Space.with(space) { space in
+                var values: [String: Value] = if case .collection(let values)? = space.config[owner] { values } else { [:] }
+                values[key] = value
+                space.configure(.collection(values), for: owner)
+            }
         }
 
         func hour() -> Date {
@@ -386,7 +394,11 @@ struct HarnessGroup: Query {
         }
 
         func when(_ key: String) -> When? {
-            guard let value = Space.with(space, { $0.config[key] }) ?? nil, case .when(let when) = value else { return nil }
+            if owner == nil, key == "when" { return automation(space).flatMap { Sheet.with($0, { $0.when }) ?? nil } }
+            guard let owner = owner ?? (Space.with(space, { $0.harness }) ?? nil),
+                  case .collection(let values)? = Space.with(space, { $0.config[owner] }) ?? nil,
+                  case .when(let when)? = values[key]
+            else { return nil }
             return when
         }
 
@@ -451,10 +463,14 @@ struct HarnessGroup: Query {
         )
     }
 
+    static func automation(_ space: Reference) -> Reference? {
+        (Space.with(space, { Array($0.config.keys) }) ?? []).first { Sheet.with($0, { _ in true }) != nil && $0.descriptor.tags.contains("automation") }
+    }
+
     static func parameters(_ model: any Model) -> Params {
         var focused: Reference? {
             if case .structure(let ref) = model.session.focus { return ref }
-            else { return model.session.spaces }
+            else { return model.session.projects }
         }
 
         guard let space = focused else { return .init() }
@@ -468,7 +484,7 @@ struct HarnessGroup: Query {
         }
 
         let harness = declaration?.ref
-        let config = Space.with(space, { $0.config }) ?? [:]
+        let config: [String: Value] = if let harness, case .collection(let values)? = Space.with(space, { $0.config[harness] }) ?? nil { values } else { [:] }
 
         func passthroughKey(_ parameter: Parameter) -> String? {
             guard case .argument(let key, let type, _, _) = parameter else { return nil }
@@ -497,8 +513,12 @@ struct HarnessGroup: Query {
             return !passthroughKeys.contains(key) && seen.insert(key).inserted
         }
 
-        let settingItems = settings(parameters, in: space)
-        let automationItems = harness == nil ? [] : settings(Automation.parameters, in: space)
+        let settingItems = settings(parameters, config: config)
+        let sheet = automation(space)
+        let automationItems = harness == nil ? [] : settings(
+            Automation.parameters,
+            config: sheet.flatMap { Sheet.with($0, { ["when": $0.when.map(Value.when), "action": $0.command.map(Value.reference)].compactMapValues { $0 } }) } ?? [:]
+        )
 
         let loader = ItemParams(
             ref: harness,
@@ -614,9 +634,7 @@ struct HarnessGroup: Query {
         )
     }
 
-    static func settings(_ parameters: [Parameter], in space: Reference) -> [ItemParams] {
-        let config = Space.with(space, { $0.config }) ?? [:]
-
+    static func settings(_ parameters: [Parameter], config: [String: Value]) -> [ItemParams] {
         func setting(_ parameter: Parameter) -> ItemParams? {
             guard case .argument(let key, let type, let required, let defaultValue) = parameter,
                   !required

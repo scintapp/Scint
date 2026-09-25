@@ -119,7 +119,7 @@ import ScintComponents
     }
 }
 
-extension Composition.State {
+extension Context.State {
     static let ordered: [Self] = [.failed, .working, .active, .completed, .inactive]
 
     var label: String {

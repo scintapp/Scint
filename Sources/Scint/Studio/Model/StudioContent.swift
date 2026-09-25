@@ -8,48 +8,24 @@ import ScintComponents
     var surface: PanelSurface = .studio
 
     enum PanelSurface: String, CaseIterable, Identifiable {
-        case studio, canvas
+        case studio
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
     }
 
-    @ViewBuilder private func content(_ model: any Model) -> some View {
+    func surface(_ model: any Model) -> some View {
         ZStack {
             if let root = model.session.selection.root {
                 switch root {
-                    case model.session.inbox:
-                        InboxContent(panel: self, model: model)
-
-                    case model.session.docs:
-                        if let _ = model.session.opened.document { DocumentContent(panel: self, model: model) }
-                        else { Documents(panel: self, model: model) }
-
-                    case model.session.tasks:
-                        if let _ = model.session.opened.document { TaskSheet(panel: self, model: model) }
-                        else { TasksContent(panel: self, model: model) }
-
-                    case model.session.spaces:
-                        SpaceContent(panel: self, model: model)
-
-                    case model.session.library:
-                        if let _ = model.session.opened.document { DocumentContent(panel: self, model: model) }
-                        else { DocumentLibrary(panel: self, model: model) }
-
-                    default:
-                        NoReference(ref: root, title: "Nothing Here")
+                    case model.session.inbox: InboxContent(panel: self, model: model)
+                    case model.session.library: LibraryContent(panel: self, model: model)
+                    case model.session.projects: ProjectContent(panel: self, model: model)
+                    case model.session.tasks: TasksContent(panel: self, model: model)
+                    default: NoReference(ref: root, title: "Nothing Here")
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    func surface(_ model: any Model) -> some View {
-        Group {
-            switch surface {
-                case .studio: content(model)
-                case .canvas: SpaceCanvas(panel: self, model: model)
-            }
-        }
         .toolbar {
             ToolbarItem(placement: .navigation) { NavigationButtons(model: model)  }
             ToolbarSpacer(.flexible, placement: .automatic)

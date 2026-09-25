@@ -4,7 +4,7 @@ import ScintRuntime
 import ScintComponents
 
 
-extension Composition.State {
+extension Context.State {
     var status: (label: String, tint: Style.Tint) {
         switch self {
             case .active: ("Active", Style.Tint.accent)
@@ -16,44 +16,36 @@ extension Composition.State {
     }
 }
 
-extension Composition {
-    var updated: Date? { Transcript.with(transcript, { $0.entries.last?.created }) ?? nil }
-}
-
-struct InboxHeader: View {
-    var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            IconButton(systemImage: "plus") { }
-            PageHeader("Inbox") { }
-            Spacer()
-            IconButton(systemImage: "ellipsis") { }
-        }
-        .frame(maxWidth: .infinity, maxHeight: 40, alignment: .center)
-        .padding(.horizontal, 12)
-        .padding(.bottom, 8)
+extension Context {
+    var updated: Date? {
+        guard let ref = transcript, let script = Transcript.with(ref, { $0 }) else { return nil }
+        return script.entries.last?.created
     }
 }
 
 struct InboxRow: View {
-    var composition: Composition
+    var context: Context
     var model: any Model
 
-    var harness: Reference? { Space.with(composition.space, { $0.harness }) ?? nil }
+    var harness: Reference? { Space.with(context.space, { $0.harness }) ?? nil }
 
     var message: String? {
-        Transcript.with(composition.transcript) { (transcript: Transcript) -> String? in
-            guard case .collection(let fields)? = transcript.output("message")?.value, case .string(let text)? = fields["text"]
-                    else { return nil }
-            return text
-        } ?? nil
+        if let transcript = context.transcript {
+            Transcript.with(transcript) { (transcript: Transcript) -> String? in
+                guard case .collection(let fields)? = transcript.output("message")?.value, case .string(let text)? = fields["text"]
+                        else { return nil }
+                return text
+            }
+        }
+        return nil
     }
 
     var body: some View {
-        Button { model.select(composition.space) } label: {
+        Button { model.select(context.space) } label: {
             ActivityRow(
-                composition.space.descriptor.name,
-                icon: Iconography.model(for: harness ?? composition.space),
-                time: composition.updated?.formatted(.relative(presentation: .named))
+                context.space.descriptor.name,
+                icon: Iconography.model(for: harness ?? context.space),
+                time: context.updated?.formatted(.relative(presentation: .named))
             ) {
                 if let message {
                     Text((try? AttributedString(markdown: message, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(message))
@@ -70,9 +62,9 @@ struct InboxContent: Surface {
     var panel: any Panel
     var model: any Model
 
-    var sections: [(state: Composition.State, compositions: [Composition])] {
+    var sections: [(state: Context.State, compositions: [Context])] {
         let compositions = Runtime.shared.resolve().sorted { ($0.updated ?? .distantPast) > ($1.updated ?? .distantPast) }
-        return [Composition.State.failed, .completed].compactMap { state -> (state: Composition.State, compositions: [Composition])? in
+        return [Context.State.failed, .completed].compactMap { state -> (state: Context.State, compositions: [Context])? in
             let matching = compositions.filter { $0.state == state }
             return matching.isEmpty ? nil : (state, matching)
         }
@@ -95,7 +87,7 @@ struct InboxContent: Surface {
         .background(Style.Background.canvas)
         .scrollEdgeEffectStyle(.soft, for: .vertical)
         .safeAreaBar(edge: .top) {
-            InboxHeader()
+            InboxHeader(panel: panel, model: model)
         }
     }
 }

@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""
+Fire a Scint x-callback and print what comes back.
+
+    Scripts/callback compose/start ref=scint://space/<id>
+    Scripts/callback content/write ref=scint://document/<id> 'block={"text":{"text":"hi"}}'
+    Scripts/callback 'scint://structure/read?ref=scint%3A%2F%2Fspace%2F<id>'
+
+Values are sent as typed; objects and arrays are JSON. The first run builds a small
+receiver app for the scint-callback:// scheme in ~/Library/Caches.
+"""
+
+import json
+import os
+import subprocess
+import sys
+import time
+import urllib.parse as parse
+
+home = os.path.expanduser("~/Library/Caches/com.kaechle.scint.callback")
+receiver = os.path.join(home, "Scint Callback.app")
+inbox = os.path.join(home, "inbox")
+lsregister = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+
+applet = """
+on open location u
+    set inbox to POSIX path of (path to home folder) & "Library/Caches/com.kaechle.scint.callback/inbox"
+    do shell script "printf '%s\\\\n' " & quoted form of u & " >> " & quoted form of inbox
+end open location
+"""
+
+
+def build():
+    os.makedirs(home, exist_ok=True)
+    source = os.path.join(home, "receiver.applescript")
+    with open(source, "w") as f:
+        f.write(applet)
+    plist = os.path.join(receiver, "Contents", "Info.plist")
+    types = '[{"CFBundleURLName":"com.kaechle.scint.callback","CFBundleURLSchemes":["scint-callback"]}]'
+    for command in (
+        ["osacompile", "-o", receiver, source],
+        ["plutil", "-replace", "CFBundleIdentifier", "-string", "com.kaechle.scint.callback", plist],
+        ["plutil", "-replace", "CFBundleURLTypes", "-json", types, plist],
+        ["plutil", "-replace", "LSUIElement", "-bool", "YES", plist],
+        ["codesign", "--force", "--sign", "-", receiver],
+        [lsregister, "-f", receiver],
+    ):
+        subprocess.run(command, check=True, capture_output=True)
+
+
+def url(arguments):
+    if "://" in arguments[0]:
+        base = arguments[0]
+    else:
+        pairs = [tuple(argument.split("=", 1)) for argument in arguments[1:]]
+        base = f"scint://{arguments[0]}?" + parse.urlencode(pairs, quote_via=parse.quote, safe="")
+    base = base.rstrip("?&")
+    separator = "&" if "?" in base else "?"
+    return base + separator + "x-success=scint-callback%3A%2F%2Fsuccess&x-error=scint-callback%3A%2F%2Ferror"
+
+
+def value(text):
+    if text[:1] in "{[":
+        try:
+            return json.loads(text)
+        except ValueError:
+            pass
+    return text
+
+
+def main():
+    if len(sys.argv) < 2:
+        sys.exit(__doc__.strip())
+    if not os.path.isdir(receiver):
+        build()
+
+    open(inbox, "w").close()
+    call = url(sys.argv[1:])
+    print(call, file=sys.stderr)
+    subprocess.run(["open", call], check=True)
+
+    deadline = time.time() + 15
+    while time.time() < deadline:
+        with open(inbox) as f:
+            line = f.readline().strip()
+        if line:
+            result = parse.urlsplit(line)
+            fields = {key: value(text) for key, text in parse.parse_qsl(result.query, keep_blank_values=True)}
+            print(result.netloc)
+            print(json.dumps(fields, indent=2, ensure_ascii=False))
+            sys.exit(0 if result.netloc == "success" else 1)
+        time.sleep(0.2)
+
+    sys.exit("No callback within 15s. Is Scint running this build?")
+
+
+main()

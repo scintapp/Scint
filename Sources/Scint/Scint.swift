@@ -8,10 +8,11 @@ import ScintComponents
 @main
 struct Scint: App {
     @Environment(\.openWindow) private var openWindow
+    @State private var ref: Reference = Space.sentinel()
     @State private var scint: ScintModel?
     @State private var loading = false
     @State private var pending: URL?
-    @State private var host = HTTPTransport()
+    @State private var host = NetworkTransport()
     static let logger = Logger(subsystem: "com.kaechle.model", category: "App")
     let agent = SMAppService.agent(plistName: "com.kaechle.scintd.plist")
 
@@ -20,12 +21,14 @@ struct Scint: App {
             if let scint {
                 Studio()
                     .environment(scint)
-                    .environment(scint.app.studio)
+                    .environment(scint.studio)
                     .focusable(false)
                     .onAppear { ShortcutManager.shared.register(model: scint) }
+                    .onOpenURL { CallbackHandler.handle($0, model: scint) }
             } else {
                 ProgressView()
                     .task { await load() }
+                    .onOpenURL { pending = $0 }
             }
         }
 
@@ -59,12 +62,12 @@ struct Scint: App {
     func runtime() async {
         do {
             try await Runtime.shared.load()
-            let data = await AppData()
+            let data = await ScintData()
             let model = ScintModel(data)
-            await model.load()
+            ref = data.scint
             scint = model
             await serve()
-            if let pending { CallbackRouter.handle(pending) }
+            CallbackHandler.handle(pending, model: model)
             pending = nil
         } catch {
             Self.logger.error("Runtime load failed: \(String(describing: error), privacy: .public)")
@@ -72,7 +75,7 @@ struct Scint: App {
     }
 
     func serve() async {
-        do { try await MCPServer().serve(host)
+        do { try await ContextServer().serve(host)
         } catch {
             Self.logger.error("MCP server failed to start: \(String(describing: error), privacy: .public)")
         }

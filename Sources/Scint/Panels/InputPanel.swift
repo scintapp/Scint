@@ -50,6 +50,6 @@ import ScintComponents
     .background(LinearGradient(colors: [.indigo, .pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
     .task {
         try? await Runtime.shared.load()
-        model = StudioModel(Session(await AppData()))
+        model = StudioModel(Session(await ScintData()))
     }
 }

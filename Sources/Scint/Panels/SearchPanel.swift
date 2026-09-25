@@ -84,7 +84,7 @@ struct SearchDetail: Query {
             case .open: model.open(ref)
             case .execute: _ = Runtime.shared.start(ref)
             case .insert:
-                Space.with(model.session.spaces, { $0 })?.add(ref)
+                Space.with(model.session.projects, { $0 })?.add(ref)
 
         }
     }
@@ -166,6 +166,6 @@ struct SearchDetail: Query {
     .background(LinearGradient(colors: [.indigo, .pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)).opacity(0.5)
     .task {
         try? await Runtime.shared.load()
-        model = StudioModel(Session(await AppData()))
+        model = StudioModel(Session(await ScintData()))
     }
 }

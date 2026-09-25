@@ -270,6 +270,12 @@ struct MapList: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
+        var projects: [Reference] {
+            guard let projects = Space.with(model.session.projects, { $0.spaces })
+                    else { return [] }
+            return Array(projects)
+        }
+
         func sorted(_ items: [ItemParams]) -> [ItemParams] {
             items
                 .sorted {
@@ -297,7 +303,7 @@ struct MapList: Query {
                 .init(
                     id: "spaces",
                     name: "Spaces",
-                    items: sorted(model.session.workspace.map { space(for: $0, origin: $0) })
+                    items: sorted(projects.map { space(for: $0, origin: $0) })
                 )
             ]
         )
@@ -464,6 +470,12 @@ struct SpacesList: Query {
     }
 
     static func parameters(_ model: any Model) -> Params {
+        var projects: [Reference] {
+            guard let projects = Space.with(model.session.projects, { $0.spaces })
+            else { return [] }
+            return Array(projects)
+        }
+
         func sorted(_ refs: [Reference]) -> [Reference] {
             refs.sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
         }
@@ -506,13 +518,13 @@ struct SpacesList: Query {
         }
 
         return .init(
-            id: "spaces",
+            id: "projects",
             header: false,
             sections: [
                 .init(
-                    id: "spaces",
-                    name: "Spaces",
-                    items: sorted(model.session.workspace).map(root)
+                    id: "projects",
+                    name: "Projects",
+                    items: sorted(projects).map(root)
                 )
             ]
         )

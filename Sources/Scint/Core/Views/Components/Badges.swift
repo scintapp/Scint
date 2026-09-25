@@ -97,7 +97,7 @@ struct Badges: View {
             documents = space.documents
         }
 
-        documents.removeAll { $0.descriptor.tags.contains("input") }
+        documents.removeAll { !$0.descriptor.tags.isDisjoint(with: ["input", "automation"]) }
         if scoped == nil { counts.documents = documents.count }
 
         for ref in documents {
