@@ -43,7 +43,7 @@ struct TasksHeader: Surface {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            IconButton(systemImage: "plus") { }
+            NewTaskButton(model: model)
                 .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
             Text("Tasks")
                 .font(Typography.pageTitle)

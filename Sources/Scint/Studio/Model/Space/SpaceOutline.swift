@@ -9,13 +9,13 @@ struct OutlineContext: View {
     var model: any Model
 
     var references: [Reference] {
-        let found = (Document.with(ref, { $0.blocks }) ?? []).flatMap { block -> [Reference] in
+        let found = (ScintRuntime.Document.with(ref, { $0.blocks }) ?? []).flatMap { block -> [Reference] in
             switch block {
                 case .artifact(let component), .command(let component), .document(let component): return [component]
                 case .text(_, let text):
                     let source = text as NSString
                     return Markdown.scan(text).links.compactMap { Reference.Link.reference(in: source.substring(with: $0.url)) }
-                case .frame, .task: return []
+                case .data, .frame, .task: return []
             }
         }
         return found.reduce(into: [Reference]()) { if $1 != ref, !$0.contains($1) { $0.append($1) } }

@@ -162,7 +162,7 @@ struct DocumentBlock: View {
                 Card(ref: ref, style: .group, isSelected: isSelected)
                     .scaleEffect(scale ?? 1.0)
 
-            case .frame(_, _):
+            case .data, .frame(_, _):
                 EmptyView()
 
             case .task(_, let content, let completed, _):

@@ -30,7 +30,7 @@ struct TasksContent: Surface {
         return sheets.filter { ref in
             guard case let (done, when)? = Sheet.with(ref, { ($0.done, $0.when) })
             else { return false }
-            let due = when.map { $0.next(after: today) ?? $0.moment }
+            let due = when.map { $0.next(after: today) ?? $0.date }
             switch scope {
                 case .inbox: return !done && when == nil
                 case .today: return !done && due.map { $0 < tomorrow } == true

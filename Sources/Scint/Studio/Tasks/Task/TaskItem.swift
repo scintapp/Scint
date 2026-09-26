@@ -35,7 +35,7 @@ struct TaskItem: View {
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: .zero)
                         if let when {
-                            Text(when.moment, format: .dateTime.month(.abbreviated).day().hour().minute())
+                            Text(when.date, format: .dateTime.month(.abbreviated).day().hour().minute())
                                 .font(Typography.detail)
                                 .foregroundStyle(Style.Foreground.secondary)
                         }
@@ -60,7 +60,7 @@ struct TaskItem: View {
             .popover(isPresented: $scheduling) {
                 VStack(alignment: .leading, spacing: Style.Spacing.label) {
                     let moment = Binding(
-                        get: { when?.moment ?? .now },
+                        get: { when?.date ?? .now },
                         set: { moment in
                             Sheet.update(ref) { $0.when = When(moment, repeats: $0.when?.repeats ?? .never) }
                             onStart()

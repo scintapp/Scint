@@ -18,6 +18,7 @@ struct ComponentCount: Sendable {
                 case .artifact: artifacts += 1
                 case .command: commands += 1
                 case .document: if countDocuments { documents += 1 }
+                case .data: break
                 case .frame(_, let series):
                     include(series, countDocuments: countDocuments)
                 case .task(_, _, let completed, _):

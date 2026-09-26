@@ -94,11 +94,11 @@ struct Card: View {
                 return Transcript.with(ref) { transcript in
                     for case .event(let signal, _) in transcript.entries.reversed() {
                         return switch signal {
-                            case .composed: ["composed"]
-                            case .started, .updated: ["active"]
-                            case .completed: ["completed"]
-                            case .stopped: ["stopped"]
-                            case .failed: ["failed"]
+                            case .compose: ["composed"]
+                            case .start, .update: ["active"]
+                            case .complete: ["completed"]
+                            case .stop: ["stopped"]
+                            case .fail: ["failed"]
                         }
                     }
                     return []

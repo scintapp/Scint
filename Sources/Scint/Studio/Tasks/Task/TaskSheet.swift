@@ -37,14 +37,14 @@ struct TaskSheet: Surface {
                         .fixedSize()
 
                         Button { scheduling = true } label: {
-                            Label(when.map { $0.moment.formatted(date: .abbreviated, time: .shortened) } ?? "Schedule", systemImage: "calendar")
+                            Label(when.map { $0.date.formatted(date: .abbreviated, time: .shortened) } ?? "Schedule", systemImage: "calendar")
                         }
                         .buttonStyle(.soft)
                         .controlSize(.small)
                         .popover(isPresented: $scheduling) {
                             VStack(alignment: .leading, spacing: Style.Spacing.label) {
                                 let moment = Binding(
-                                    get: { when?.moment ?? .now },
+                                    get: { when?.date ?? .now },
                                     set: { moment in
                                         Sheet.update(ref) { $0.when = When(moment, repeats: $0.when?.repeats ?? .never) }
                                         model.start(ref)
@@ -62,7 +62,7 @@ struct TaskSheet: Surface {
                                 Picker("Repeat", selection: Binding(
                                     get: { when?.repeats ?? .never },
                                     set: { repeats in
-                                        Sheet.update(ref) { $0.when = When($0.when?.moment ?? .now, repeats: repeats) }
+                                        Sheet.update(ref) { $0.when = When($0.when?.date ?? .now, repeats: repeats) }
                                         model.start(ref)
                                     }
                                 )) {
@@ -83,7 +83,7 @@ struct TaskSheet: Surface {
                     }
 
                     if let space = Sheet.with(ref, { $0.origin }) {
-                        let config: [String: Value] = if case .collection(let values)? = Space.with(space, { $0.config[ref] }) ?? nil { values } else { [:] }
+                        let config: [String: Value] = if case .collection(let values)? = Sheet.with(ref, { $0.data }) ?? nil { values } else { [:] }
                         let rows = HarnessGroup.settings(Command.with(command, { $0.parameters }) ?? [], config: config)
                         if !rows.isEmpty {
                             Factory.build(surface, params: SectionParams(id: "parameters", name: "Parameters", header: false, items: rows), controls: HarnessGroup.controls(for: space, owner: ref), layout: .group)

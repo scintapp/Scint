@@ -11,7 +11,7 @@ extension Value {
 extension Parameter {
     var name: String? {
         switch self {
-            case .argument(let name, _, _, _), .command(let name, _): name
+            case .argument(let name, _, _, _), .command(let name, _), .callback(let name, _): name
             case .fixed: nil
         }
     }
@@ -112,28 +112,37 @@ struct Argument: Identifiable {
         switch parameter {
             case .argument(let name, let type, let required, let fallback): self.init(name: name, template: type, required: required, fallback: fallback)
             case .command(let name, let ref): self.init(name: name, template: ref, required: true, fallback: ref)
+            case .callback(let name, let open): self.init(name: name, template: open, required: true, fallback: nil)
             case .fixed: return nil
         }
     }
 
     func accepts(_ value: Value) -> Bool { (try? template.construct(value, name: name)) != nil }
 
-    static func parameters(of owner: Reference) -> [Parameter] {
+    static func parameters(of owner: Reference, values: [String: Value] = [:]) -> [Parameter] {
         if let parameters = Command.with(owner, { $0.parameters }) { return parameters }
-        guard let (parameters, command) = Harness.with(owner, { ($0.parameters, $0.command) }) else { return [] }
-        return merge(parameters, into: Command.with(command, { $0.parameters }) ?? [])
+        let own = Harness.with(owner, { $0.parameters }) ?? []
+        let commands = own.compactMap { parameter -> Reference? in
+            let value: Value? = switch parameter {
+                case .argument(let name, _, _, let fallback): values[name] ?? fallback
+                case .command(let name, let ref): values[name] ?? ref
+                case .callback, .fixed: nil
+            }
+            return value?.references.first { $0.type is Command.Type }
+        }
+        return commands.reduce(own) { merged, command in merge(merged, into: Command.with(command, { $0.parameters }) ?? []) }
     }
 
     static func merge(_ own: [Parameter], into inherited: [Parameter]) -> [Parameter] {
-        let names = Set(inherited.compactMap(\.name))
-        let merged = inherited.map { parameter -> Parameter in
-            guard let name = parameter.name, let override = own.first(where: { $0.name == name }) else { return parameter }
-            guard case .argument(_, let type, let required, let fallback) = override,
-                  case .argument(_, _, let inheritedRequired, let inheritedFallback) = parameter
-            else { return override }
+        let names = Set(own.compactMap(\.name))
+        let merged = own.map { parameter -> Parameter in
+            guard let name = parameter.name,
+                  case .argument(_, let type, let required, let fallback) = parameter,
+                  case .argument(_, _, let inheritedRequired, let inheritedFallback)? = inherited.first(where: { $0.name == name })
+            else { return parameter }
             return .argument(name: name, type: type, required: required || inheritedRequired, default: fallback ?? inheritedFallback)
         }
-        return merged + own.filter { $0.name.map { !names.contains($0) } ?? false }
+        return merged + inherited.filter { $0.name.map { !names.contains($0) } ?? true }
     }
 }
 
@@ -154,17 +163,62 @@ struct TermDate: View {
 struct TermMoment: View {
     @Binding var value: Value?
 
+    @State private var timed = false
+
     var when: When? { if case .when(let when)? = value { when } else { nil } }
 
-    var body: some View {
-        HStack {
-            TermDate(date: .init(get: { when?.moment ?? .now }, set: { value = .when(When($0, repeats: when?.repeats ?? .never)) }))
+    func morning(_ date: Date) -> Date { Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: date) ?? date }
 
-            Picker("", selection: .init(get: { when?.repeats ?? .never }, set: { value = .when(When(when?.moment ?? .now, repeats: $0)) })) {
-                ForEach(When.Repeat.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+    var body: some View {
+        Group {
+            HStack {
+                Text("Date")
+                Spacer()
+
+                if let when {
+                    DatePicker("", selection: .init(get: { when.date }, set: { value = .when(When($0, repeats: when.repeats)) }), displayedComponents: .date)
+                        .labelsHidden()
+                }
+
+                Toggle("Date", isOn: .init(get: { when != nil }, set: { on in
+                    timed = false
+                    value = on ? .when(When(morning(.now))) : nil
+                }))
+                .labelsHidden()
             }
-            .labelsHidden()
+
+            if let when {
+                HStack {
+                    Text("Time")
+                    Spacer()
+
+                    if timed {
+                        DatePicker("", selection: .init(get: { when.date }, set: { value = .when(When($0, repeats: when.repeats)) }), displayedComponents: .hourAndMinute)
+                            .labelsHidden()
+                    }
+
+                    Toggle("Time", isOn: .init(get: { timed }, set: { on in
+                        timed = on
+                        let hour = (Calendar.current.component(.hour, from: .now) + 1) % 24
+                        let moment = on ? Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: when.date) ?? when.date : morning(when.date)
+                        value = .when(When(moment, repeats: when.repeats))
+                    }))
+                    .labelsHidden()
+                }
+
+                HStack {
+                    Text("Repeat")
+                    Spacer()
+
+                    Picker("Repeat", selection: .init(get: { when.repeats }, set: { value = .when(When(when.date, repeats: $0)) })) {
+                        ForEach(When.Repeat.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                }
+            }
         }
+        .onAppear { timed = when.map { morning($0.date) != $0.date } ?? false }
     }
 }
 
@@ -378,10 +432,15 @@ protocol ArgumentStyle: Sendable {
 
 struct AutomaticArgumentStyle: ArgumentStyle {
     func makeBody(configuration: Configuration) -> some View {
-        HStack {
-            configuration.label
-            Spacer(minLength: 12)
-            configuration.content
+        Group {
+            if case .moment = configuration.argument.term { configuration.content }
+            else {
+                HStack {
+                    configuration.label
+                    Spacer(minLength: 12)
+                    configuration.content
+                }
+            }
         }
         .contextMenu {
             Button("Reset to Default") { configuration.value.wrappedValue = nil }
@@ -521,7 +580,7 @@ struct Arguments: View {
     }
 
     init(for owner: Reference?, values: Binding<[String: Value]>) {
-        self.init(owner.map(Argument.parameters) ?? [], values: values)
+        self.init(owner.map { Argument.parameters(of: $0, values: values.wrappedValue) } ?? [], values: values)
     }
 
     var arguments: [Argument] { parameters.compactMap { Argument($0) } }
@@ -561,14 +620,9 @@ struct Arguments: View {
             .argument(name: "output", type: .string(""), required: true),
         ]),
         ("Observe", [
-            .argument(name: "when", type: .when(When(.distantPast)), required: true),
-        ], [
-            .fixed(.string("add")),
-            .argument(name: "name", type: .string(""), required: true),
-            .argument(name: "deadline", type: .collection(["--until": .date(.now)])),
-            .argument(name: "target", type: .sequence([])),
-            .argument(name: "note", type: .collection(["--note": .string("")])),
-        ]),
+            .argument(name: "when", type: .when(When(.distantPast))),
+            .argument(name: "note", type: .string("")),
+        ], []),
         ("Publish", [
             .argument(
                 name: "visibility",

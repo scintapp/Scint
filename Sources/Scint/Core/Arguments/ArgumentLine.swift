@@ -24,6 +24,8 @@ struct ArgumentLine: View {
                     return built.rendered.map { ($0, false) }
                 case .command(let name, let ref):
                     return [("‹\((values[name] ?? ref).references.first?.descriptor.name ?? name)›", false)]
+                case .callback(let name, _):
+                    return [("open", true), ("‹\(values[name]?.references.first?.descriptor.name ?? name)›", false)]
             }
         }
     }
