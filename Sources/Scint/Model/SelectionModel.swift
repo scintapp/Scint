@@ -2,7 +2,7 @@ import Foundation
 import ScintRuntime
 
 
-enum Focus: Codable, Equatable, Sendable {
+public enum Focus: Codable, Equatable, Sendable {
     case content(Reference)
     case structure(Reference)
     case interface(Reference)
@@ -10,7 +10,28 @@ enum Focus: Codable, Equatable, Sendable {
     case url(URL)
     case nothing
 
-    var resolved: Value {
+    public var ref: Reference? {
+        switch self {
+            case .content(let ref), .structure(let ref), .interface(let ref): ref
+            default: nil
+        }
+    }
+
+    public var entry: UUID? {
+        switch self {
+            case .entry(let id): id
+            default: nil
+        }
+    }
+
+    public var link: URL? {
+        switch self {
+            case .url(let url): url
+            default: nil
+        }
+    }
+
+    public var resolved: Value {
         switch self {
             case .content(let ref), .structure(let ref), .interface(let ref): .reference(ref)
             case .entry(let id): .string(id.uuidString)
@@ -20,37 +41,56 @@ enum Focus: Codable, Equatable, Sendable {
     }
 }
 
-struct Opened: Codable, Equatable, Sendable {
-    var document: Reference?
-    var transcript: Reference?
+public struct Opened: Codable, Equatable, Sendable {
+    public var document: Reference?
+    public var transcript: Reference?
 
-    mutating func open(_ ref: Reference) {
+    init(document: Reference? = nil, transcript: Reference? = nil) {
+        self.document = document
+        self.transcript = transcript
+    }
+
+    public mutating func open(_ ref: Reference) {
         switch ref.type {
-            case is Document.Type: document = ref
-            case is Transcript.Type: transcript = ref
+            case is ScintRuntime.Document.Type: document = ref
+            case is ScintRuntime.Transcript.Type: transcript = ref
             default: break
         }
     }
 
-    mutating func close(_ ref: Reference) {
+    public mutating func close(_ ref: Reference) {
         switch ref.type {
-            case is Document.Type: if document == ref { document = nil }
-            case is Transcript.Type: if transcript == ref { transcript = nil }
+            case is ScintRuntime.Document.Type: if document == ref { document = nil }
+            case is ScintRuntime.Transcript.Type: if transcript == ref { transcript = nil }
             default: break
         }
     }
 }
 
-struct Selection: Codable, Equatable, Sendable {
-    var structure: Reference?
-    var interface: Reference?
-    var content: Reference?
-    var entry: UUID?
-    var url: URL?
+public struct Selection: Codable, Equatable, Sendable  {
+    public var structure: Reference?
+    public var interface: Reference?
+    public var content: Reference?
+    public var entry: UUID?
+    public var url: URL?
 
-    enum Axis: Sendable { case structure, interface, content, entry, path }
+    public enum Axis: Sendable { case structure, interface, content, entry, path }
 
-    var resolved: Value {
+    init(
+        structure: Reference? = nil,
+        interface: Reference? = nil,
+        content: Reference? = nil,
+        entry: UUID? = nil,
+        url: URL? = nil
+    ) {
+        self.structure = structure
+        self.interface = interface
+        self.content = content
+        self.entry = entry
+        self.url = url
+    }
+
+    public var resolved: Value {
         var values: [String: Value] = [:]
         if let structure { values["structure"] = .reference(structure) }
         if let interface { values["interface"] = .reference(interface) }
@@ -60,7 +100,7 @@ struct Selection: Codable, Equatable, Sendable {
         return .collection(values)
     }
 
-    var root: Reference? {
+    public var root: Reference? {
         guard var cursor = structure else { return nil }
         var depth = 0
 
@@ -72,40 +112,40 @@ struct Selection: Codable, Equatable, Sendable {
     }
 
 
-    func selected(_ ref: Reference) -> Bool {
+    public func selected(_ ref: Reference) -> Bool {
         switch ref.type {
-            case is any Structural.Type: structure == ref
-            case is any Functional.Type: interface == ref && entry == nil && url == nil
-            case is any Material.Type: content == ref && entry == nil && url == nil
+            case is any ScintRuntime.Structural.Type: structure == ref
+            case is any ScintRuntime.Functional.Type: interface == ref && entry == nil && url == nil
+            case is any ScintRuntime.Material.Type: content == ref && entry == nil && url == nil
             default: false
         }
     }
 
-    func selected(_ ref: Reference, _ entry: UUID?) -> Bool {
+    public func selected(_ ref: Reference, _ entry: UUID?) -> Bool {
         guard let entry else { return selected(ref) }
         return content == ref && self.entry == entry
     }
 
-    func selected(_ ref: Reference, _ url: URL?) -> Bool {
+    public func selected(_ ref: Reference, _ url: URL?) -> Bool {
         guard let url else { return selected(ref) }
         return (content == ref || interface == ref) && self.url == url
     }
 
-    func selecting(_ ref: Reference, _ entry: UUID? = nil, _ url: URL? = nil) -> Self {
+    public func selecting(_ ref: Reference, _ entry: UUID? = nil, _ url: URL? = nil) -> Self {
         var next = self
         switch ref.type {
-            case is Space.Type:
+            case is ScintRuntime.Space.Type:
                 next.structure = ref
                 next.interface = nil
                 next.content = nil
                 next.entry = nil
                 next.url = url
-            case is any Functional.Type:
+            case is any ScintRuntime.Functional.Type:
                 next.interface = ref
                 next.content = nil
                 next.entry = nil
                 next.url = url
-            case is any Material.Type:
+            case is any ScintRuntime.Material.Type:
                 next.interface = nil
                 next.content = ref
                 next.entry = entry
@@ -115,7 +155,7 @@ struct Selection: Codable, Equatable, Sendable {
         return next
     }
 
-    func clearing(_ axis: Axis) -> Self {
+    public func clearing(_ axis: Axis) -> Self {
         var next = self
         switch axis {
             case .path:

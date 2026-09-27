@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import ScintRuntime
+import ScintComponents
 
 
 enum EditorLink: Equatable { case reference(Reference), url(URL) }

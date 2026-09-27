@@ -1,20 +1,21 @@
 import Foundation
 import ScintRuntime
+import ScintComponents
 
 
-@MainActor struct Session: Codable, Sendable {
-    private(set) var data: ScintData
-    private(set) var focus: Focus = .nothing
-    private(set) var selection: Selection = .init()
-    private(set) var opened: Opened = .init()
-    private(set) var navigation: Navigation = .init()
+@MainActor struct Session {
+    var data: DataModel
+    var focus: Focus = .nothing
+    var selection: Selection = .init()
+    var opened: Opened = .init()
+    var navigation: Navigation = .init()
 
     var inbox: Reference { data.inbox }
     var library: Reference { data.library }
     var projects: Reference { data.projects }
     var tasks: Reference { data.tasks }
 
-    init(_ data: ScintData) {
+    init(_ data: DataModel) {
         self.data = data
         opened = .init()
         focus = .nothing

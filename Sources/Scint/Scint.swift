@@ -2,6 +2,7 @@ import OSLog
 import ServiceManagement
 import SwiftUI
 import ScintRuntime
+import ScintHost
 import ScintComponents
 
 
@@ -23,7 +24,8 @@ struct Scint: App {
                     .environment(scint)
                     .environment(scint.studio)
                     .onAppear { ShortcutManager.shared.register(model: scint) }
-                    .onOpenURL { CallbackHandler.handle($0, model: scint) }
+                    .environment(\.openURL, scint.openURL)
+                    .onOpenURL { scint.open($0) }
                     .focusable(false)
             } else {
                 ProgressView()
@@ -36,6 +38,7 @@ struct Scint: App {
             if let scint {
                 Host()
                     .environment(scint)
+                    .environment(\.openURL, scint.openURL)
                     .focusable(false)
             } else {
                 Text("Scint is loading…")
@@ -62,12 +65,12 @@ struct Scint: App {
     func runtime() async {
         do {
             try await Runtime.shared.load()
-            let data = await ScintData()
+            let data = await DataModel()
             let model = ScintModel(data)
             ref = data.scint
             scint = model
             await serve()
-            CallbackHandler.handle(pending, model: model)
+            model.open(pending)
             pending = nil
         } catch {
             Self.logger.error("Runtime load failed: \(String(describing: error), privacy: .public)")
@@ -75,7 +78,7 @@ struct Scint: App {
     }
 
     func serve() async {
-        do { try await ContextServer().serve(host)
+        do { try await Server().serve(host)
         } catch {
             Self.logger.error("MCP server failed to start: \(String(describing: error), privacy: .public)")
         }

@@ -5,10 +5,14 @@ import ScintRuntime
 import ScintComponents
 
 
-struct Float<Content: View>: View {
-    let content: Content
+@Observable @MainActor final class PanelModel {
+    private(set) var coordinators: OrderedDictionary<AnyHashable, PanelCoordinator> = [:]
 
-    var body: some View {
+    let actions: ActionsPanel = .init()
+    let input: InputPanel = .init()
+    let search: SearchPanel = .init()
+
+    func makeView<Content: View>(_ content: Content) -> some View {
         content
             .clipShape(Style.Shape.panel)
             .glassEffect(.regular, in: Style.Shape.panel)
@@ -19,16 +23,9 @@ struct Float<Content: View>: View {
 
             }
     }
-}
 
-@Observable @MainActor final class PanelModel {
-    private(set) var coordinators: OrderedDictionary<AnyHashable, PanelCoordinator> = [:]
 
-    let actions: ActionsPanel = .init()
-    let input: InputPanel = .init()
-    let search: SearchPanel = .init()
-
-    func panel(for key: PanelKey) -> any Panel {
+    func getPanel(for key: PanelKey) -> any Panel {
         switch key {
             case .actions: actions
             case .input: input
@@ -56,10 +53,10 @@ struct Float<Content: View>: View {
             return existing
         }
 
-        let host = panel(for: key)
+        let host = getPanel(for: key)
         let coordinator = PanelCoordinator.load(
             params: parameters,
-            view: AnyView(Float(content: view)),
+            view: AnyView(makeView(view)),
             pinned: { [weak host] in host?.state.pinned ?? false },
             onVisibilityChange: onVisibilityChange
         )

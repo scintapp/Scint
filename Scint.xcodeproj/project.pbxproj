@@ -12,11 +12,11 @@
 		7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABE2FF956D600FD0398 /* OrderedCollections */; };
 		7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C959129300D54FB007D9E73 /* OrderedCollections */; };
 		7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */; };
-		7CB368F6305DC9C700064C4B /* ScintComponents in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB368F5305DC9C700064C4B /* ScintComponents */; };
 		7CB36A9D305F47EC00064C4B /* ScintRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB36A9C305F47EC00064C4B /* ScintRuntime */; };
 		7CB36A9F305F591200064C4B /* ScintRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB36A9E305F591200064C4B /* ScintRuntime */; };
 		7CBB434B3020F78300B9D4D7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7CBB434A3020F78300B9D4D7 /* README.md */; };
 		7CC0CC523063296900ADA7C7 /* ScintComponents in Frameworks */ = {isa = PBXBuildFile; productRef = 7CC0CC513063296900ADA7C7 /* ScintComponents */; };
+		7CD1A0052F00000000A1B001 /* ScintHost in Frameworks */ = {isa = PBXBuildFile; productRef = 7CD1A0042F00000000A1B001 /* ScintHost */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -95,6 +95,10 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				ScintService/Service.swift,
+				ScintService/ServiceDaemon.swift,
+				ScintService/ServiceProcess.swift,
+				ScintService/ServiceRegistry.swift,
+				ScintService/ServiceUtilities.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* Scint */;
 		};
@@ -147,7 +151,7 @@
 		7C4C36E42ED17D5A00D6F1CF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				7CB368F6305DC9C700064C4B /* ScintComponents in Frameworks */,
+				7CD1A0052F00000000A1B001 /* ScintHost in Frameworks */,
 				7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */,
 				7C443ABD2FF956D600FD0398 /* Collections in Frameworks */,
 				7CB36A9D305F47EC00064C4B /* ScintRuntime in Frameworks */,
@@ -217,7 +221,7 @@
 				7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */,
 				7C443ABC2FF956D600FD0398 /* Collections */,
 				7C443ABE2FF956D600FD0398 /* OrderedCollections */,
-				7CB368F5305DC9C700064C4B /* ScintComponents */,
+				7CD1A0042F00000000A1B001 /* ScintHost */,
 				7CB36A9C305F47EC00064C4B /* ScintRuntime */,
 				7CC0CC513063296900ADA7C7 /* ScintComponents */,
 			);
@@ -696,10 +700,6 @@
 			package = 7CB2E8292F99C4C100D42370 /* XCRemoteSwiftPackageReference "keyboardshortcuts" */;
 			productName = KeyboardShortcuts;
 		};
-		7CB368F5305DC9C700064C4B /* ScintComponents */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ScintComponents;
-		};
 		7CB36A9C305F47EC00064C4B /* ScintRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ScintRuntime;
@@ -712,6 +712,11 @@
 		7CC0CC513063296900ADA7C7 /* ScintComponents */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ScintComponents;
+		};
+		7CD1A0042F00000000A1B001 /* ScintHost */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CB36A9B305F47EC00064C4B /* XCLocalSwiftPackageReference "../ScintRuntime" */;
+			productName = ScintHost;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

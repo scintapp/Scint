@@ -1,14 +1,26 @@
 import Foundation
 import SwiftUI
+import ScintHost
+import ScintComponents
 import ScintRuntime
 
 
+enum PanelKey: String, Identifiable, CaseIterable {
+    case actions, input, search
+    var id: String { self.rawValue }
+}
+
+enum ModelKey: String, Identifiable, CaseIterable {
+    case studio
+    var id: String { self.rawValue }
+}
+
 @Observable @MainActor final class ScintModel {
-    var data: ScintData
-    var studio: StudioModel
+    var data: DataModel
+    var studio: AppModel
     var panels: PanelModel
 
-    init(_ data: ScintData) {
+    init(_ data: DataModel) {
         self.data = data
         self.studio = .init(Session(data))
         self.panels = .init()
@@ -24,9 +36,19 @@ import ScintRuntime
         panels.toggle(key, params, view) { presented in panel.state.presented = presented }
     }
 
-    static func write(_ session: Session, for key: ModelKey) {
-        guard let data = try? JSONEncoder().encode(session) else { return }
-        UserDefaults.standard.set(data, forKey: key.id)
+    var openURL: OpenURLAction {
+        OpenURLAction { url in
+            guard url.scheme?.lowercased() == Reference.Link.scheme else { return .systemAction }
+            self.open(url)
+            return .handled
+        }
+    }
+
+    func open(_ url: URL?) {
+        CallbackHandler.handle(url, in: data.scint) { ref in
+            guard !ReferenceAction.open(ref) else { return }
+            model(for: .studio).select(ref)
+        }
     }
 
     func model(for key: ModelKey) -> any Model {
