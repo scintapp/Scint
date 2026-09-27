@@ -12,7 +12,7 @@ struct TaskItem: View {
     @State private var scheduling = false
 
     var body: some View {
-        if case let (text, completed, when)? = Sheet.with(ref, { ($0.text, $0.done, $0.when) }) {
+        if case let (text, completed, when)? = Sheet.with(ref, { ($0.name, $0.done, $0.when) }) {
             HStack(alignment: .top, spacing: Style.Spacing.icon) {
                 Button {
                     Sheet.update(ref) { $0.done.toggle() }

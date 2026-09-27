@@ -38,5 +38,8 @@ extension Model {
     func start(_ ref: Reference) -> Context? { Runtime.shared.start(ref) }
 
     @discardableResult
+    func observe(_ ref: Reference) -> Context? { Runtime.shared.observe(ref) }
+
+    @discardableResult
     func stop(_ ref: Reference) -> Context? { Runtime.shared.stop(ref) }
 }

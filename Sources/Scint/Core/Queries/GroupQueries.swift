@@ -633,7 +633,7 @@ struct HarnessGroup: Query {
                     ref: selectedRef,
                     key: key,
                     name: label(key),
-                    image: icon?.symbol ?? symbol(key),
+                    image: icon?.symbol ?? Argument.symbol(key),
                     tint: Style.Foreground.secondary,
                     trailingKind: .load,
                     description: selectedRef?.descriptor.name ?? "",
@@ -667,7 +667,7 @@ struct HarnessGroup: Query {
                 return .init(
                     key: key,
                     name: label(key),
-                    image: symbol(key),
+                    image: Argument.symbol(key),
                     tint: Style.Foreground.secondary,
                     trailingKind: ordered == nil ? .picker : .range,
                     value: selectedValue,
@@ -684,7 +684,7 @@ struct HarnessGroup: Query {
                     return .init(
                         key: key,
                         name: label(key),
-                        image: symbol(key),
+                        image: Argument.symbol(key),
                         tint: Style.Foreground.secondary,
                         trailingKind: .toggle,
                         active: active
@@ -693,9 +693,9 @@ struct HarnessGroup: Query {
                     return .init(
                         key: key,
                         name: label(key),
-                        image: symbol(key),
+                        image: Argument.symbol(key),
                         tint: Style.Foreground.secondary,
-                        trailingKind: clock(key) ? .time : .date,
+                        trailingKind: Argument.clock(key) ? .time : .date,
                         value: selectedValue,
                         active: configured != nil
                     )
@@ -704,21 +704,21 @@ struct HarnessGroup: Query {
                     return .init(
                         key: key,
                         name: "Date",
-                        image: symbol(key),
+                        image: Argument.symbol(key),
                         tint: Style.Foreground.secondary,
                         trailingKind: .moment,
                         value: when.map { Value.formatter.string(from: $0.date) },
                         active: when != nil
                     )
 
-                case .string where directory(key):
+                case .string where Argument.directory(key):
                     let chosen = selectedValue.isEmpty
                     ? (defaultValue.map(leaf)?.rendered.last ?? "")
                     : selectedValue
                     return .init(
                         key: key,
                         name: label(key),
-                        image: symbol(key),
+                        image: Argument.symbol(key),
                         tint: Style.Foreground.secondary,
                         trailingKind: .action,
                         value: "Choose",
@@ -730,7 +730,7 @@ struct HarnessGroup: Query {
                     return .init(
                         key: key,
                         name: label(key),
-                        image: symbol(key),
+                        image: Argument.symbol(key),
                         tint: Style.Foreground.secondary,
                         trailingKind: .field,
                         value: selectedValue
@@ -745,7 +745,7 @@ struct HarnessGroup: Query {
             return .init(
                 key: key,
                 name: "Repeat",
-                image: symbol("repeat"),
+                image: Argument.symbol("repeat"),
                 tint: Style.Foreground.secondary,
                 trailingKind: .picker,
                 value: repeats.rawValue,
@@ -763,35 +763,6 @@ struct HarnessGroup: Query {
                     label.append(character)
                 }
             }.capitalized
-        }
-
-        func clock(_ key: String) -> Bool { key.lowercased().contains("time") }
-
-        func directory(_ key: String) -> Bool {
-            let key = key.lowercased()
-            return key.contains("dir") || key.contains("folder") || key.contains("path")
-        }
-
-        func symbol(_ key: String) -> String {
-            if directory(key) { return "folder" }
-            if clock(key) { return "clock" }
-
-            let key = key.lowercased()
-            return switch true {
-                case key.contains("model"): "cpu"
-                case key.contains("effort"): "lightbulb.max"
-                case key.contains("sandbox"), key.contains("permission"): "lock.shield"
-                case key.contains("command"), key == "action": "switch.2"
-                case key.contains("target"), key.contains("space"): "square.stack"
-                case key.contains("schedule"), key.contains("date"), key == "at", key == "when": "calendar"
-                case key.contains("repeat"), key.contains("every"): "repeat"
-                case key.contains("url"), key.contains("endpoint"): "link"
-                case key.contains("interval"), key.contains("latency"), key.contains("timeout"): "timer"
-                case key.contains("event"): "bolt"
-                case key.contains("label"), key.contains("name"): "tag"
-                case key.contains("check"), key.contains("query"): "magnifyingglass"
-                default: "slider.horizontal.3"
-            }
         }
 
         func scale(_ value: Value) -> [Value]? {

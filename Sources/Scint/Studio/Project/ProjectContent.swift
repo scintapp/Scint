@@ -8,7 +8,7 @@ struct ProjectContent: Surface {
     var panel: any Panel
     var model: any Model
 
-    @State private var presentation: Presentation = .canvas
+    @State private var presentation: Presentation = .process
 
     var projects: Reference { model.session.projects }
     var space: Reference? { model.session.selection.structure }

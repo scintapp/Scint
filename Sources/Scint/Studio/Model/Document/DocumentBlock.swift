@@ -7,14 +7,15 @@ internal typealias Block = ScintRuntime.Document.Block
 
 struct TaskCompletionIndicator: View {
     var completed: Bool
+    var size: CGFloat = 14
 
     var body: some View {
         Iconography.Icon(
             symbol: completed ? "checkmark.app" : "app",
             tint: completed ? Style.Foreground.secondary : Style.Foreground.secondary,
-            sizing: 18
+            sizing: size + 4
         )
-        .frame(width: 14, height: 14)
+        .frame(width: size, height: size)
         .fontWeight(.light)
         .accessibilityHidden(true)
     }

@@ -204,6 +204,97 @@ struct LoadMenu: View {
     }
 }
 
+struct LoadButton<Label: View>: View {
+    let items: [ItemParams]
+    let onPick: (ItemParams) -> Void
+    @ViewBuilder let label: () -> Label
+
+    @State private var presented = false
+    @State private var query = ""
+
+    var height: CGFloat { min(max(CGFloat(items.count) * 64 + 52, 132), 360) }
+
+    var filtered: [ItemParams] {
+        guard !query.isEmpty else { return items }
+        return items.filter {
+            $0.name.localizedCaseInsensitiveContains(query)
+            || $0.description.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    var rows: some View {
+        ForEach(filtered) { item in
+            Button {
+                onPick(item)
+                presented = false
+            } label: {
+                HStack(alignment: .center) {
+                    if let ref = item.ref { Iconography.icon(for: ref, size: 15) }
+                    else {
+                        Iconography.Icon(
+                            symbol: item.image,
+                            tint: item.tint ?? Style.Tint.space.bright,
+                            sizing: 15,
+                            selected: item.active
+                        )
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.name)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Style.Foreground.secondary)
+                            .lineLimit(1)
+                    }
+                    .frame(height: 42, alignment: .leading)
+
+                    Spacer(minLength: 0)
+
+                    if item.active {
+                        Image(systemName: "checkmark")
+                            .frame(height: 32, alignment: .leading)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Style.Foreground.secondary)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .frame(height: 42, alignment: .leading)
+                .contentShape(Style.Shape.panel)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    var menu: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Filter(text: $query).padding(.top, 8)
+            Divider().opacity(0.42)
+
+            if filtered.isEmpty {
+                VStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Style.Foreground.secondary)
+                    Text(query.isEmpty ? "Nothing in library" : "No matches")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Style.Foreground.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView { VStack(alignment: .leading, spacing: 2) { rows } }
+                    .scrollIndicators(.hidden)
+            }
+        }
+        .frame(width: 280, height: height, alignment: .topLeading)
+        .clipShape(Style.Shape.panel)
+    }
+
+    var body: some View {
+        Button { presented = true } label: { label() }
+            .popover(isPresented: $presented) { menu }
+            .onChange(of: presented) { _, presented in if !presented { query = "" } }
+    }
+}
+
 struct TranscriptMenu: View {
     var ref: Reference
     var model: any Model

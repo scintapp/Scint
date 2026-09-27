@@ -33,33 +33,21 @@ enum InterfaceTool: Tool {
 
     static func call(_ arguments: [String: Property], in space: Reference) async throws -> Property {
         let interface = try arguments.required("ref")
-        guard let value = with(interface) else { throw ToolError(message: "ref must be an interface link.") }
 
         switch try arguments.choice("verb", Verb.self) {
             case .read:
+                guard let value = with(interface) else { throw ToolError(message: "ref must be an interface link.") }
                 return .data(value)
 
             case .add:
+                guard with(interface) != nil else { throw ToolError(message: "ref must be an interface link.") }
                 let target = try arguments.link("space") ?? space
                 guard update(interface, in: target) != nil else { throw ToolError(message: "space must be a space link.") }
                 return try StructureTool.read(target)
 
             case .run:
-                func argument(_ property: Property) -> Value? {
-                    switch property {
-                        case .bool(let value): .bool(value)
-                        case .integer(let value): .integer(value)
-                        case .decimal(let value): .decimal(Decimal(value))
-                        case .string(let text): Reference.Link.reference(in: text).map { .reference($0) } ?? .string(text)
-                        case .array(let values): .sequence(values.compactMap(argument))
-                        case .object(let fields): .collection(fields.compactMapValues(argument))
-                        case .null: nil
-                    }
-                }
-                let values = (arguments["arguments"]?.object ?? [:]).compactMapValues(argument)
-                guard try Command.with(interface, { try $0.run(values) }) != nil
-                else { throw ToolError(message: "ref must be a command link to run.") }
-                return .data(value)
+                guard Runtime.shared.run(interface) != nil else { throw ToolError(message: "ref must be a task link in a running space.") }
+                return .bool(true)
         }
     }
 }

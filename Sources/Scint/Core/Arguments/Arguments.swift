@@ -64,6 +64,8 @@ indirect enum Term {
         }
     }
 
+    var leaf: Term { if case .flag(_, let inner) = self { inner.leaf } else { self } }
+
     static func peel(_ value: Value?, _ flag: String) -> Value? {
         guard case .collection(let values)? = value, values.count == 1, let inner = values[flag] else { return value }
         return inner
@@ -91,8 +93,10 @@ struct Argument: Identifiable {
         return flags
     }
 
-    var label: String {
-        name.reduce(into: "") { label, character in
+    var label: String { Self.label(name) }
+
+    static func label(_ text: String) -> String {
+        text.reduce(into: "") { label, character in
             if character == "-" || character == "_" { label.append(" ") }
             else {
                 if character.isUppercase, !label.isEmpty { label.append(" ") }
@@ -263,7 +267,9 @@ struct TermReference: View {
     let placeholder: String
     @Binding var value: Value?
 
-    var options: [Reference] {
+    var options: [Reference] { Self.options(expected) }
+
+    static func options(_ expected: Reference?) -> [Reference] {
         func all<T: Resolvable>(_ type: T.Type) -> [Reference] { Runtime.shared.all(as: type).map { $0.0 } }
         let refs = expected?.type.map { all($0) } ?? all(Space.self)
         return refs.sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
@@ -567,6 +573,98 @@ struct ArgumentConfig {
 
     func store(_ values: [String: Value]) {
         Space.with(space) { $0.configure(values.isEmpty ? nil : .collection(values), for: owner) }
+    }
+}
+
+extension Argument {
+    static func clock(_ key: String) -> Bool { key.lowercased().contains("time") }
+
+    static func directory(_ key: String) -> Bool {
+        let key = key.lowercased()
+        return key.contains("dir") || key.contains("folder") || key.contains("path")
+    }
+
+    static func symbol(_ key: String) -> String {
+        if directory(key) { return "folder" }
+        if clock(key) { return "clock" }
+
+        let key = key.lowercased()
+        return switch true {
+            case key.contains("model"): "cpu"
+            case key.contains("effort"): "lightbulb.max"
+            case key.contains("sandbox"), key.contains("permission"): "lock.shield"
+            case key.contains("command"), key == "action": "switch.2"
+            case key.contains("target"), key.contains("space"): "square.stack"
+            case key.contains("schedule"), key.contains("date"), key == "at", key == "when": "calendar"
+            case key.contains("repeat"), key.contains("every"): "repeat"
+            case key.contains("url"), key.contains("endpoint"): "link"
+            case key.contains("interval"), key.contains("latency"), key.contains("timeout"): "timer"
+            case key.contains("event"): "bolt"
+            case key.contains("label"), key.contains("name"): "tag"
+            case key.contains("check"), key.contains("query"): "magnifyingglass"
+            default: "slider.horizontal.3"
+        }
+    }
+
+    @MainActor func item(_ value: Value?) -> ItemParams? {
+        let current = flags.reduce(value) { Term.peel($0, $1) }
+        let shown = (current ?? resting)?.rendered.last ?? ""
+        let detail = current?.references.first?.descriptor.name ?? current.map { Self.label($0.title) } ?? "Default"
+        let choices: ([Value]) -> [ItemParams] = { values in
+            values.compactMap(\.rendered.last).map { ItemParams(key: name, name: Self.label($0), value: $0) }
+        }
+
+        var kind: ItemParams.TrailingKind
+        var items: [ItemParams] = []
+        var active = true
+        switch term.leaf {
+            case .toggle:
+                kind = .toggle
+                active = current == .bool(true) || current == .string("true")
+            case .integer, .decimal, .text:
+                kind = .field
+            case .date:
+                kind = .date
+                active = current != nil
+            case .moment:
+                kind = .moment
+                active = current != nil
+            case .choice(let values):
+                kind = .picker
+                items = choices(values)
+            case .scale(let values):
+                kind = .range
+                items = choices(values)
+            case .reference(let expected):
+                kind = .load
+                items = [ItemParams(key: name, name: "Default", image: "circle.dashed", tint: Style.Foreground.secondary, active: current == nil)]
+                    + TermReference.options(expected).map { ItemParams(ref: $0, key: name, name: $0.descriptor.name, active: current?.references.first == $0) }
+            case .flag, .list, .group:
+                return nil
+        }
+
+        let image = current?.references.first.map { Iconography.icon(for: $0).symbol } ?? Self.symbol(name)
+        return ItemParams(key: name, name: label, image: image, tint: Style.Foreground.secondary, trailingKind: kind, value: shown, description: detail, active: active, items: items)
+    }
+
+    static func controls(_ write: @escaping (_ key: String, _ value: Value?) -> Void) -> Controls {
+        func set(_ key: String?, _ value: Value?) { if let key { write(key, value) } }
+
+        return .init(
+            onToggle: { item in
+                switch item.trailingKind {
+                    case .moment: set(item.key, item.active ? nil : .when(When(.now)))
+                    case .date, .time: set(item.key, item.active ? nil : .date(.now))
+                    default: set(item.key, .bool(!item.active))
+                }
+            },
+            onChange: { item, selection in set(item.key, selection.value.map(Value.string)) },
+            onValueChange: { item, text in
+                if item.trailingKind == .moment, let moment = Value.formatter.date(from: text) { return set(item.key, .when(When(moment))) }
+                set(item.key, text.isEmpty ? nil : .string(text))
+            },
+            onSelect: { item in set(item.key, item.ref.map(Value.reference)) }
+        )
     }
 }
 

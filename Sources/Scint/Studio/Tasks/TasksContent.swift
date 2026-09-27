@@ -22,12 +22,15 @@ struct TasksContent: Surface {
         }
     }
 
-    var sheets: [Reference] { (Space.with(model.session.tasks, { $0 })?.documents ?? []).filter { Sheet.with($0, { _ in true }) != nil } }
+    var tasks: [Reference] {
+        guard let tasks = Space.with(model.session.tasks, { $0.documents }) else { return [] }
+        return tasks
+    }
 
     var visible: [Reference] {
         let today = Calendar.current.startOfDay(for: .now)
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? .distantFuture
-        return sheets.filter { ref in
+        return tasks.filter { ref in
             guard case let (done, when)? = Sheet.with(ref, { ($0.done, $0.when) })
             else { return false }
             let due = when.map { $0.next(after: today) ?? $0.date }
@@ -39,7 +42,7 @@ struct TasksContent: Surface {
         }
     }
 
-    var completed: [Reference] { sheets.filter { Sheet.with($0, { $0.done }) == true } }
+    var completed: [Reference] { tasks.filter { Sheet.with($0, { $0.done }) == true } }
 
     var body: some View {
         if let _ = model.session.opened.document { TaskSheet(panel: panel, model: model) }
@@ -49,7 +52,7 @@ struct TasksContent: Surface {
                     VStack(alignment: .leading, spacing: Style.Spacing.entry) {
                         LazyVStack(alignment: .leading, spacing: Style.Spacing.entry) {
                             ForEach(visible) { ref in
-                                TaskItem(ref: ref, onOpen: { model.open(ref) }, onStart: { model.start(ref) }, onStop: { model.stop(ref) })
+                                TaskItem(ref: ref, onOpen: { model.open(ref) }, onStart: { model.observe(ref) }, onStop: { model.stop(ref) })
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)

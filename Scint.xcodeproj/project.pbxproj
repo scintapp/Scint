@@ -83,18 +83,18 @@
 		7CBB43643020FFC400B9D4D7 /* Exceptions for "Sources" folder in "scintd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ScintServices/Service.swift,
-				ScintServices/ServiceDaemon.swift,
-				ScintServices/ServiceProcess.swift,
-				ScintServices/ServiceRegistry.swift,
-				ScintServices/ServiceUtilities.swift,
+				ScintService/Service.swift,
+				ScintService/ServiceDaemon.swift,
+				ScintService/ServiceProcess.swift,
+				ScintService/ServiceRegistry.swift,
+				ScintService/ServiceUtilities.swift,
 			);
 			target = 7C69AAF12F8B45D90008D611 /* scintd */;
 		};
 		7CBB43923021077200B9D4D7 /* Exceptions for "Sources" folder in "Scint" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ScintServices/Service.swift,
+				ScintService/Service.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* Scint */;
 		};

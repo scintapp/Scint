@@ -77,9 +77,7 @@ struct TasksSection: Surface {
                     }
                     .buttonStyle(.plain)
 
-                    Button {
-                        withAnimation(.smooth(duration: 0.18)) { expanded.toggle() }
-                    } label: {
+                    Button { withAnimation(.smooth(duration: 0.18)) { expanded.toggle() } } label: {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(Style.Foreground.secondary)
@@ -94,7 +92,7 @@ struct TasksSection: Surface {
                 if expanded {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(tasks) { task in
-                            TaskItem(ref: ref, onOpen: { model.open(ref) }, onStart: { model.start(ref) }, onStop: { model.stop(ref) })
+                            TaskItem(ref: ref, onOpen: { model.open(ref) }, onStart: { model.observe(ref) }, onStop: { model.stop(ref) })
                         }
                     }
                     .transition(.opacity.combined(with: .move(edge: .top)))
