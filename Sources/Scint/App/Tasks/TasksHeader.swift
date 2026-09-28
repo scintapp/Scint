@@ -8,7 +8,7 @@ struct TasksNew: View {
 
     var body: some View {
         IconButton(systemImage: "plus") {
-            let reserved = Set(Runtime.shared.all(as: Harness.self).flatMap { $0.1.commands.values })
+            let reserved = Set(Runtime.shared.all(as: Harness.self).flatMap { $0.1.commands })
             func forwards(_ parameter: Parameter) -> Bool {
                 switch parameter {
                     case .argument(_, .reference(let ref), _, _): ref.type is Command.Type

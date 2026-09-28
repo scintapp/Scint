@@ -534,7 +534,7 @@ struct HarnessGroup: Mapper {
             let choices = Runtime.shared.all(as: Command.self)
                 .map { $0.0 }
                 .filter { ref in
-                    guard declaration?.commands.values.contains(ref) != true else { return false }
+                    guard declaration?.commands.contains(ref) != true else { return false }
                     let forwards = Command.with(ref, { $0.parameters.contains { passthroughKey($0) != nil } }) ?? false
                     return !forwards
                 }
