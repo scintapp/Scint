@@ -3,19 +3,10 @@ import ScintRuntime
 import ScintComponents
 
 
-private struct PanelCursorKey: EnvironmentKey { nonisolated(unsafe) static let defaultValue: AnyHashable? = nil }
-
-extension EnvironmentValues {
-    var panelCursor: AnyHashable? {
-        get { self[PanelCursorKey.self] }
-        set { self[PanelCursorKey.self] = newValue }
-    }
-}
-
 extension PanelState {
-    var cursor: AnyHashable? {
-        get { self["cursor", as: AnyHashable.self] }
-        set { self["cursor", as: AnyHashable.self] = newValue }
+    var cursor: Reference? {
+        get { self["cursor", as: Reference.self] }
+        set { self["cursor", as: Reference.self] = newValue }
     }
 }
 
@@ -79,22 +70,23 @@ struct PanelHeader: View {
 }
 
 struct PanelModes: View {
-    let items: [ItemParams]
-    let selection: ItemParams?
-    let onSelect: (ItemParams) -> Void
+    let modes: [(label: String, image: String)]
+    let selection: Int
+    let onSelect: (Int) -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
-            ForEach(items) { item in
-                let active = item.id == selection?.id
+            ForEach(modes.indices, id: \.self) { index in
+                let mode = modes[index]
+                let active = index == selection
 
-                Button { onSelect(item) } label: {
+                Button { onSelect(index) } label: {
                     HStack(spacing: 5) {
-                        if !item.image.isEmpty {
-                            Image(systemName: item.image)
+                        if !mode.image.isEmpty {
+                            Image(systemName: mode.image)
                                 .font(.system(size: 10))
                         }
-                        Text(item.name)
+                        Text(mode.label)
                             .font(.system(size: 11, weight: active ? .medium : .regular))
                     }
                     .foregroundStyle(active ? Style.Foreground.primary : Style.Foreground.primary)
@@ -115,20 +107,19 @@ struct PanelModes: View {
 }
 
 struct PanelRow: View {
-    @Environment(\.panelCursor) private var cursor
-
-    let params: ItemParams
-    let selected: Bool
+    let name: String
+    var description: String = ""
+    var image: String = ""
+    var tint: Color? = nil
+    var active: Bool = false
     let onTap: () -> Void
-
-    private var active: Bool { cursor == params.id || selected }
 
     var body: some View {
         VStack {
             HStack(alignment: .center) {
                 Iconography.Icon(
-                    symbol: params.image.isEmpty ? "square.stack.3d.up" : params.image,
-                    tint: params.tint ?? Style.Foreground.primary,
+                    symbol: image.isEmpty ? "square.stack.3d.up" : image,
+                    tint: tint ?? Style.Foreground.primary,
                     sizing: 20,
                     selected: active
                 )
@@ -137,14 +128,14 @@ struct PanelRow: View {
                 .padding(.trailing, 8)
 
                 VStack(alignment: .leading, spacing: Style.Spacing.detail) {
-                    Text(params.name)
+                    Text(name)
                         .font(.system(size: 16, weight: active ? .medium : .regular))
                         .foregroundColor(Style.Foreground.primary)
                         .lineLimit(1)
                         .frame(height: 12)
 
-                    if !params.description.isEmpty {
-                        Text(params.description)
+                    if !description.isEmpty {
+                        Text(description)
                             .font(.system(size: 12.5))
                             .foregroundColor(Style.Foreground.subtle)
                             .lineLimit(1)
@@ -180,27 +171,27 @@ struct PanelRow: View {
 }
 
 struct PanelDetail<Content: View>: View {
-    let params: Params
+    let ref: Reference
     let content: Content
 
-    init(params: Params, @ViewBuilder content: () -> Content) {
-        self.params = params
+    init(_ ref: Reference, @ViewBuilder content: () -> Content) {
+        self.ref = ref
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
-                if let ref = params.ref { Iconography.icon(for: ref, size: 22) }
+                Iconography.icon(for: ref, size: 22)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(params.name)
+                    Text(ref.descriptor.name)
                         .font(.system(size: 20, weight: .medium))
                         .foregroundStyle(Style.Foreground.primary)
                         .lineLimit(1)
 
-                    if !params.description.isEmpty {
-                        Text(params.description)
+                    if !ref.descriptor.description.isEmpty {
+                        Text(ref.descriptor.description)
                             .font(.system(size: 13))
                             .foregroundStyle(Style.Foreground.primary)
                             .lineLimit(2)

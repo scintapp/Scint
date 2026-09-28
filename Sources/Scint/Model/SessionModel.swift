@@ -102,8 +102,8 @@ extension Session {
     }
 
     var transcript: Reference? {
-        if case .content(let ref) = focus, ref.type is Transcript.Type { return ref }
-        return transcripts.first
+        guard let space = selection.structure, let context = space.context else { return nil }
+        return context.transcript
     }
 
     var transcripts: [Reference] {

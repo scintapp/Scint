@@ -206,7 +206,7 @@ struct TranscriptPicker: View {
 struct ContentPicker: View {
     @Environment(ScintModel.self) var scint
     var content: ContentPanel { scint.studio.content }
-    var navigator: NavigatorPanel { scint.studio.navigator }
+    var navigator: StudioNavigator { scint.studio.navigator }
 
     var selection: Binding<ContentPanel.PanelSurface> {
         Binding(get: { content.surface }, set: { content.surface = $0 })
@@ -227,15 +227,15 @@ struct ContentPicker: View {
 
 struct NavigatorPicker: View {
     @Environment(ScintModel.self) var scint
-    var navigator: NavigatorPanel { scint.studio.navigator }
+    var navigator: StudioNavigator { scint.studio.navigator }
 
-    var selection: Binding<NavigatorPanel.PanelSurface> {
+    var selection: Binding<StudioNavigator.PanelSurface> {
         Binding(get: { navigator.surface }, set: { navigator.surface = $0 })
     }
 
     var body: some View {
         Picker("Content", selection: selection) {
-            ForEach(NavigatorPanel.PanelSurface.allCases) { surface in
+            ForEach(StudioNavigator.PanelSurface.allCases) { surface in
                 Image(systemName: surface.image).tag(surface)
             }
         }

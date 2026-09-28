@@ -117,9 +117,6 @@ struct PanelDismissal: OptionSet, Hashable {
 struct PanelParams: Hashable, Identifiable {
     let key: PanelKey
     let sizing: Sizing
-    let input: ItemParams?
-    let items: [ItemParams]
-    let selection: ItemParams?
     let dismissal: PanelDismissal
     let movable: Bool
     let resizable: Bool
@@ -144,9 +141,6 @@ struct PanelParams: Hashable, Identifiable {
     init(
         key: PanelKey,
         sizing: Sizing,
-        input: ItemParams? = nil,
-        items: [ItemParams] = [],
-        selection: ItemParams? = nil,
         dismissal: PanelDismissal = [.escape, .outsideClick],
         movable: Bool = true,
         resizable: Bool = false,
@@ -154,9 +148,6 @@ struct PanelParams: Hashable, Identifiable {
     ) {
         self.key = key
         self.sizing = sizing
-        self.input = input
-        self.items = items
-        self.selection = selection
         self.dismissal = dismissal
         self.movable = movable
         self.resizable = resizable

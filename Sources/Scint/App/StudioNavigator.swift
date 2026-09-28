@@ -24,8 +24,7 @@ struct NavigatorToggle: View {
     }
 }
 
-
-@Observable final class NavigatorPanel: Panel {
+@Observable final class StudioNavigator: Panel {
     var state: PanelState = .init(presented: true)
     var surface: PanelSurface = .navigator
 
@@ -37,11 +36,11 @@ struct NavigatorToggle: View {
     }
 
     func controls(_ model: any Model) -> Controls {
-        NavigatorQuery.controls(model)
+        NavigatorMapper.controls(model)
     }
 
     func parameters(_ model: any Model) -> Params {
-        NavigatorQuery.parameters(model)
+        NavigatorMapper.parameters(model)
     }
 
     @ViewBuilder

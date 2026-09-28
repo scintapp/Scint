@@ -12,136 +12,38 @@ import ScintComponents
 //
 @MainActor struct Factory {
     @ViewBuilder static func build(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
-        if let panel = params.panel { build(surface, params: panel, controls: controls) }
-        else {
-            let target = controls.surfaceDropTarget?()
-            let palette = controls.surfacePalette?() ?? []
+        let target = controls.surfaceDropTarget?()
+        let palette = controls.surfacePalette?() ?? []
 
-            let content = ScrollView {
-                VStack(alignment: .leading) {
-                    if params.header, params.layout == .group, let ref = params.ref {
-                        GroupHeader(ref: ref)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .padding(.top, GroupMetrics.headerTop)
-                            .padding(.bottom, 12)
-                    }
-
-                    ForEach(params.sections) { section in
-                        build(surface, params: section, controls: controls, layout: section.layout ?? params.layout ?? .list)
-                            .padding(.bottom, 16)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, 8)
-            }
-                .contentShape(Rectangle())
-
-            let dropped = target.map { target in
-                AnyView(
-                    content.onDrop(of: controls.dropTypes?(target) ?? ReferenceTransfer.dropTypes(for: target), isTargeted: nil) { providers in
-                        controls.onDrop?(providers, target) ?? ReferenceTransfer.handle(providers, target: target)
-                    }
-                )
-            } ?? AnyView(content)
-
-            if palette.isEmpty { dropped }
-            else { dropped.contextMenu { ActionMenu(model: surface.model, items: palette) } }
-        }
-    }
-
-    @ViewBuilder static func build(_ surface: some Surface, params: PanelParams, controls: Controls) -> some View {
-        let panel = surface.panel
-        let sections = (controls.results?(panel.state.query) ?? []).compactMap { group -> SectionParams? in
-            guard !group.results.isEmpty else { return nil }
-            return SectionParams(id: group.id.description, name: group.name, header: !group.name.isEmpty, image: group.image, items: group.results.map {
-                let icon = Iconography.icon(for: $0.ref)
-                return ItemParams(ref: $0.ref, name: $0.name, image: icon.symbol, tint: icon.tint, description: $0.description)
-            })
-        }
-
-        let items = sections.flatMap(\.items)
-        let cursor = panel.state.cursor ?? items.first?.id
-        let selection = items.first { $0.id == cursor }
-        let detail = panel.state.detail ? selection.flatMap { controls.detail?($0) } : nil
-
-        let move: (Int) -> KeyPress.Result = { delta in
-            guard !items.isEmpty else { return .handled }
-            let current = items.firstIndex { $0.id == cursor } ?? 0
-            panel.state.cursor = items[(current + delta + items.count) % items.count].id
-            return .handled
-        }
-
-        let change: (Int) -> Void = { index in
-            guard params.items.indices.contains(index) else { return }
-            let target = params.items[index]
-            if let surface = target.key { panel.state.surface = surface }
-            panel.state.query = ""
-            panel.state.cursor = nil
-            controls.onChange?(params.selection ?? target, target)
-        }
-
-        PanelView {
-            if let detail {
-                PanelDetail(params: detail) {
-                    ForEach(detail.sections) { build(surface, params: $0, controls: controls) }
-                }
-            } else {
-                if let input = params.input {
-                    PanelInput(
-                        value: Binding(
-                            get: { panel.state.query },
-                            set: { panel.state.query = $0; controls.onValueChange?(input, $0) }
-                        ),
-                        image: input.image,
-                        placeholder: input.name,
-                        onUpArrow: { move(-1) },
-                        onDownArrow: { move(+1) },
-                        onReturn: {
-                            if let selection { controls.onSelect?(selection) }
-                            return .handled
-                        },
-                        onTab: {
-                            guard selection != nil, controls.detail != nil else { return .ignored }
-                            panel.state.detail.toggle()
-                            return .handled
-                        }
-                    )
+        let content = ScrollView {
+            VStack(alignment: .leading) {
+                if params.header, params.layout == .group, let ref = params.ref {
+                    GroupHeader(ref: ref)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(.top, GroupMetrics.headerTop)
+                        .padding(.bottom, 12)
                 }
 
-                if !params.items.isEmpty {
-                    PanelModes(items: params.items, selection: params.selection) { target in
-                        change(params.items.firstIndex { $0.id == target.id } ?? 0)
-                    }
-                }
-
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 2) {
-                            ForEach(sections) { build(surface, params: $0, controls: controls) }
-                        }
-                        .padding(.horizontal, 4)
-                        .padding(.bottom, 4)
-                    }
-                    .scrollEdgeEffectStyle(.soft, for: .vertical)
-                    .onChange(of: cursor) { _, id in
-                        guard let id else { return }
-                        proxy.scrollTo(id, anchor: .center)
-                    }
+                ForEach(params.sections) { section in
+                    build(surface, params: section, controls: controls, layout: section.layout ?? params.layout ?? .list)
+                        .padding(.bottom, 16)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 8)
         }
-        .overlay(alignment: .topTrailing) {
-            if params.pinnable { PanelPin(pinned: panel.state.pinned) { panel.state.pinned.toggle() } }
-        }
-        .environment(\.panelCursor, cursor)
-        .onReceive(NotificationCenter.default.publisher(for: .scintPanelEscape)) { escape in
-            guard panel.state.detail else { return }
-            (escape.object as? PanelEscapeEvent)?.handled = true
-            panel.state.detail = false
-        }
-        .onChange(of: panel.state.query) { _, _ in panel.state.cursor = nil }
-        .onChange(of: params.selection?.id) { _, _ in panel.state.cursor = nil }
-        .background { PanelShortcuts(count: params.items.count) { change($0) } }
+            .contentShape(Rectangle())
+
+        let dropped = target.map { target in
+            AnyView(
+                content.onDrop(of: controls.dropTypes?(target) ?? ReferenceTransfer.dropTypes(for: target), isTargeted: nil) { providers in
+                    controls.onDrop?(providers, target) ?? ReferenceTransfer.handle(providers, target: target)
+                }
+            )
+        } ?? AnyView(content)
+
+        if palette.isEmpty { dropped }
+        else { dropped.contextMenu { ActionMenu(model: surface.model, items: palette) } }
     }
 
     // Section. Stamps each item with the layout, nesting and depth it was resolved with.
@@ -174,12 +76,6 @@ import ScintComponents
                     ForEach(params.items) {
                         build(surface, params: $0, controls: controls, layout: .list)
                             .padding(.vertical, 1)
-                    }
-
-                case .none:
-                    if !params.items.isEmpty {
-                        if params.header && !params.name.isEmpty { PanelHeader(name: params.name) }
-                        ForEach(params.items) { build(surface, params: $0, controls: controls) }
                     }
 
                 default:
@@ -308,16 +204,8 @@ import ScintComponents
                 )
                 build(surface, controls.wrapLink?(link, params, 0) ?? link, params: params, controls: controls)
 
-                // No layout is panel chrome, as above. Panel rows carry no transfer affordances.
             default:
-                PanelRow(params: params, selected: controls.selected?(params) ?? false) {
-                    if params.trailingKind == .button { controls.onAction?(params) }
-                    else {
-                        surface.panel.state.cursor = params.id
-                        controls.onSelect?(params)
-                    }
-                }
-                .id(params.id)
+                EmptyView()
         }
     }
 

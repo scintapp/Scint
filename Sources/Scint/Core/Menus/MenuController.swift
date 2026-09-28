@@ -109,7 +109,7 @@ import ScintComponents
         }
     }
 
-    private var normalizedQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var normalizedMapper: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     private var selectedItem: MenuItem? {
         if let selectedID, let selected = items.first(where: { $0.id == selectedID }) { return selected }
@@ -120,8 +120,8 @@ import ScintComponents
         switch kind {
             case .fixed:
                 return trimmedDividers(in: fixedItems.filter {
-                    if case .divider = $0 { return normalizedQuery.isEmpty }
-                    return $0.matches(normalizedQuery)
+                    if case .divider = $0 { return normalizedMapper.isEmpty }
+                    return $0.matches(normalizedMapper)
                 })
             case .dynamic, .update:
                 return search(query, kind)

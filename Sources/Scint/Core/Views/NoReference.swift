@@ -17,10 +17,10 @@ struct NoReference: View {
             Spacer()
             VStack(alignment: .center) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 15))
-                    .foregroundStyle(.quaternary)
+                    .font(.system(size: 24))
+                    .foregroundStyle(Style.Foreground.subtle)
                 Text(title)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 15))
                     .foregroundStyle(Style.Foreground.primary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

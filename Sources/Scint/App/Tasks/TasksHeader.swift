@@ -3,35 +3,34 @@ import ScintRuntime
 import ScintComponents
 
 
-struct TasksCompleted: View {
-    var completed: Int
-    var showsCompleted: Bool
-    var onToggleCompleted: () -> Void
-    var onClearCompleted: () -> Void
+struct TasksNew: View {
+    var model: any Model
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 4 + 1) {
-                Text("\(completed) Completed")
-                    .foregroundStyle(Style.Foreground.secondary)
-
-                Button("Clear", action: onClearCompleted)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(completed > 0 ? Style.Tint.task.bright : Style.Foreground.secondary)
-                    .disabled(completed == 0)
-
-                Spacer()
-
-                Button(showsCompleted ? "Hide" : "Show", action: onToggleCompleted)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Style.Tint.task.bright)
+        IconButton(systemImage: "plus") {
+            let reserved = Set(Runtime.shared.all(as: Harness.self).flatMap { $0.1.commands.values })
+            func forwards(_ parameter: Parameter) -> Bool {
+                switch parameter {
+                    case .argument(_, .reference(let ref), _, _): ref.type is Command.Type
+                    case .command, .callback: true
+                    default: false
+                }
             }
-            .font(.system(size: 13, weight: .regular))
+            guard let command = Runtime.shared.all(as: Command.self)
+                .filter({ !reserved.contains($0.0) && !$0.1.parameters.contains(where: forwards) })
+                .map({ $0.0 }).min(by: { $0.descriptor.name < $1.descriptor.name })
+                    else { return }
 
-            Rectangle()
-                .fill(Style.Border.hairline)
-                .frame(height: 0.5)
+            let sheet = Document.new(model.session.tasks, name: "New Task")
+            let material = Document.new(model.session.tasks, name: "Instructions")
+            Document.update(material) { $0.delete(at: 0) }
+            Document.update(sheet) { document in
+                document.delete(at: 0)
+                document.insert([.task(UUID(), "New Task", false, nil), .command(command), .document(material), .data(UUID(), .collection([:]))], at: 0)
+            }
+            model.session.open(sheet)
         }
+        .help("New Task")
     }
 }
 
@@ -43,7 +42,7 @@ struct TasksHeader: Surface {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            NewTaskButton(model: model)
+            TasksNew(model: model)
                 .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
             Text("Tasks")
                 .font(Typography.pageTitle)

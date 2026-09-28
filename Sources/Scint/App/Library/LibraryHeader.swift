@@ -8,7 +8,7 @@ struct LibraryHeader: Surface {
     var model: any Model
 
     var space: Reference? { model.session.selection.structure }
-    var title: String { if let space { return space.descriptor.name } else { return "Documents" } }
+    var title: String { if let space { return space.descriptor.name } else { return "All Documents" } }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
