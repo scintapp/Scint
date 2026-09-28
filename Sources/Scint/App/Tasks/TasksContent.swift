@@ -3,7 +3,7 @@ import ScintRuntime
 import ScintComponents
 
 
-struct TasksContent: Surface {
+struct TasksContentOld: Surface {
     var panel: any Panel
     var model: any Model
 
@@ -21,6 +21,7 @@ struct TasksContent: Surface {
             }
         }
     }
+
     var tasks: [Reference] {
         guard let tasks = Space.with(model.session.tasks, { $0.documents }) else { return [] }
         return tasks
@@ -31,7 +32,7 @@ struct TasksContent: Surface {
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? .distantFuture
         return tasks.filter { ref in
             guard case let (done, when)? = Sheet.with(ref, { ($0.done, $0.when) })
-            else { return false }
+                    else { return false }
             let due = when.map { $0.next(after: today) ?? $0.date }
             switch scope {
                 case .today: return !done && when == nil
@@ -78,5 +79,97 @@ struct TasksContent: Surface {
             .scrollEdgeEffectStyle(.soft, for: .vertical)
             .safeAreaBar(edge: .top) { TasksHeader(panel: panel, model: model, scope: $scope) }
         }
+    }
+}
+
+struct TaskListRow: View {
+    var ref: Reference
+
+    @State var hovered: Bool = false
+
+    var body: some View {
+        VStack {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: "app")
+                    .frame(maxWidth: 20, maxHeight: 20, alignment: .center)
+                    .font(.system(size: 18))
+
+                VStack(alignment: .leading) {
+                    Text("Review command runner states")
+                        .frame(alignment: .leading)
+                        .font(.title3)
+                        .foregroundStyle(.primary)
+
+                    Text("Today, 9:00 AM")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .frame(alignment: .leading)
+                }
+                .padding(.leading, 2)
+
+                Spacer()
+
+                Label("Codex", systemImage: "switch.2")
+                    .font(.callout)
+                Label("Engineering", systemImage: "app")
+                    .font(.callout)
+            }
+            .padding(.top, 8)
+            .padding(.bottom, 8)
+            .padding(.horizontal, 12)
+        }
+        .background(Style.Shape.card.fill(hovered ? Color.white.opacity(0.03) : .clear))
+        .contentShape(Style.Shape.card)
+        .onHover(perform: { _ in hovered.toggle() })
+        .padding(.top, 4)
+    }
+}
+
+struct TaskSection: View {
+    var tasks: [Reference]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SectionHeader()
+            ForEach(tasks) { task in
+                TaskListRow(ref: task)
+            }
+        }
+        .padding(.horizontal, 24)
+    }
+}
+
+struct TaskList: Surface {
+    var panel: any Panel
+    var model: any Model
+
+    var tasks: [Reference] {
+        guard let tasks = Space.with(model.session.tasks, { $0.documents }) else { return [] }
+        return tasks
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(0..<3) { _ in
+                        TaskSection()
+                    }
+                }
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(.background)
+    }
+}
+
+struct TasksContent: Surface {
+    var panel: any Panel
+    var model: any Model
+
+    var body: some View {
+        TaskList(panel: panel, model: model)
     }
 }

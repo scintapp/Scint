@@ -124,6 +124,16 @@ extension Session {
         return roots.sorted { $0.descriptor.created > $1.descriptor.created }
     }
 
+    var inspected: Reference? {
+        focus.ref
+        ?? opened.document
+        ?? opened.transcript
+        ?? selection.content
+        ?? selection.interface
+        ?? selection.structure
+        ?? selection.root
+    }
+
     var rendered: Value {
         Value.collection([
             "focused": focus.resolved,

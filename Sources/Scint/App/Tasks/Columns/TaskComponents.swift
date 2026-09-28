@@ -4,22 +4,15 @@ import SwiftUI
 struct SectionHeader: View {
     var body: some View {
         HStack(spacing: 8) {
-            Text("Morning")
+            Text("Today")
                 .font(.headline)
+            Spacer()
             Text("3")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)
                 .background(.quaternary, in: Capsule())
-            Spacer()
-            Button {} label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 26, height: 26)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 8)
     }
@@ -51,10 +44,7 @@ struct TaskQuickAdd: View {
 
 struct IconLabel: View {
     var body: some View {
-        Label("Engineering", systemImage: "folder")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
+        Label("Engineering", systemImage: "app")
     }
 }
 

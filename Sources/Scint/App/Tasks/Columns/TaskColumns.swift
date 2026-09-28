@@ -2,41 +2,65 @@ import SwiftUI
 import ScintComponents
 
 
-struct TaskTitleStack: View {
+struct TaskPreview: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Review command runner states")
-                .font(.body.weight(.medium))
-                .foregroundStyle(.primary)
-            Text("Check for failed runs and summarize flaky tests.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+        VStack(alignment: .leading) {
+            HStack {
+
+            }
+
+            VStack(alignment: .leading) {
+
+
+
+            }
+
+
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+
+
     }
 }
 
 struct StackedTaskRow: View {
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Toggle("Complete task", isOn: .constant(false))
-                .labelsHidden()
-                .toggleStyle(.checkbox)
-                .fixedSize()
-            VStack(alignment: .leading, spacing: 8) {
-                TaskTitleStack()
-                HStack {
-                    IconLabel()
-                    Spacer(minLength: 6)
-                    Text("Mon, Sep 28")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        VStack(alignment: .leading) {
+            HStack(alignment: .center) {
+                Image(systemName: "app")
+                    .font(.system(size: 18))
+                    .frame(alignment: .leading)
+
+                Text("Review command runner states")
+                    .frame(alignment: .leading)
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .padding(.bottom, 4)
+                    .padding(.leading, 4)
+
+                Spacer()
+                    Button { } label: {
+                        Label("Engineering", systemImage: "app")
+                            .font(.caption2)
+                    }
                 }
+                .frame(alignment: .trailing)
+
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Check for failed runs and summarize flaky tests.")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+                Text("Today, 9:00 AM")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
             }
+            .padding(.leading, 32)
         }
-        .padding(12)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 20))
     }
 }
 
@@ -64,7 +88,7 @@ struct TaskColumns: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Button {} label: {
+                Button { } label: {
                     Image(systemName: "rectangle.compress.vertical")
                         .frame(width: 30, height: 30)
                 }

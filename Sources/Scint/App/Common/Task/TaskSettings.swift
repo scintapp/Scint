@@ -7,7 +7,7 @@ struct TaskSettings: Surface {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            InspectorHeader()
+            TaskInspectorHeader()
             Picker("Space", selection: .constant(0)) {
                 Label("Engineering", systemImage: "folder").tag(0)
                 Label("Composition", systemImage: "folder").tag(1)
@@ -68,5 +68,60 @@ struct TaskSettings: Surface {
         .frame(width: 360, alignment: .topLeading)
         .frame(maxHeight: .infinity, alignment: .topLeading)
         .background(.background)
+    }
+}
+
+struct TaskField: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                Text("Description")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            TextEditor(text: .constant("Validate edge cases and error handling for command runner state transitions, including cancellation and timeout behavior."))
+                .font(.body)
+                .frame(height: 82)
+                .scrollContentBackground(.hidden)
+                .padding(7)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+        }
+        .padding(.vertical, 12)
+    }
+}
+
+struct TaskInspectorRow: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            Label("Model", systemImage: "gearshape")
+                .font(.subheadline)
+            Spacer()
+            Text("Default")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .overlay(alignment: .bottom) { Divider() }
+    }
+}
+
+struct TaskInspectorHeader: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Toggle("Complete task", isOn: .constant(false))
+                .labelsHidden()
+                .toggleStyle(.checkbox)
+                .fixedSize()
+            Text("Review command runner states")
+                .font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 10)
     }
 }
