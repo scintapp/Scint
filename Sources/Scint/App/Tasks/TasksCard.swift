@@ -32,10 +32,7 @@ struct TasksCard: View {
         return relative == "now" ? "Updated Just Now" : "Updated \(relative)"
     }
 
-    var document: Reference? {
-        if case .document(let ref) = Sheet.with(ref, { $0 })?.blocks.dropFirst(2).first { return ref }
-        else { return nil }
-    }
+    var document: Reference? { Sheet.with(ref, { $0.material }) ?? nil }
     var blocks: [ScintRuntime.Document.Block] {
         if let document, let blocks = ScintRuntime.Document.with(document, { $0 })?.blocks { return blocks }
         else { return [] }

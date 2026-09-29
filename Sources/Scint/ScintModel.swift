@@ -1,8 +1,8 @@
 import Foundation
 import SwiftUI
-import ScintHost
 import ScintComponents
 import ScintRuntime
+import ScintServer
 
 
 enum PanelKey: String, Identifiable, CaseIterable {

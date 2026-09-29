@@ -361,14 +361,12 @@ struct ContextActionMenu: View {
                 if parent != nil {
                     Button("Top Level") {
                         ReferenceTransfer.detach(ref, from: nil)
-                        Task { await Runtime.shared.save() }
                     }
                     Divider()
                 }
                 ForEach(moveDestinations, id: \.self) { destination in
                     Button(destination.descriptor.name) {
                         ReferenceTransfer.paste([ref], by: nil, move: true, to: destination)
-                        Task { await Runtime.shared.save() }
                     }
                 }
             }
@@ -380,7 +378,6 @@ struct ContextActionMenu: View {
                     ForEach(spaceDestinations, id: \.self) { destination in
                         Button(destination.descriptor.name) {
                             ReferenceTransfer.paste([ref], by: nil, move: false, to: destination)
-                            Task { await Runtime.shared.save() }
                         }
                     }
                 }
@@ -391,7 +388,6 @@ struct ContextActionMenu: View {
                     ForEach(folderDestinations, id: \.self) { destination in
                         Button(destination.descriptor.name) {
                             ReferenceTransfer.paste([ref], by: nil, move: true, to: destination)
-                            Task { await Runtime.shared.save() }
                         }
                     }
                 }
@@ -438,7 +434,6 @@ struct ContextActionMenu: View {
             let name = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
             guard response == .alertFirstButtonReturn, !name.isEmpty else { return }
             apply(name)
-            Task { await Runtime.shared.save() }
         }
     }
 }

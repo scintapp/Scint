@@ -11,7 +11,7 @@ extension Value {
 extension Parameter {
     var name: String? {
         switch self {
-            case .argument(let name, _, _, _), .link(let name, _, _, _), .command(let name, _), .callback(let name, _): name
+            case .argument(let name, _, _, _), .reference(let name, _, _, _): name
             case .fixed: nil
         }
     }
@@ -28,10 +28,10 @@ indirect enum Term {
 
     init(_ template: Value) {
         switch template {
-            case .bool: self = .toggle
-            case .integer: self = .integer
-            case .decimal: self = .decimal
-            case .string: self = .text
+            case .property(.bool): self = .toggle
+            case .property(.integer): self = .integer
+            case .property(.decimal): self = .decimal
+            case .property: self = .text
             case .date: self = .date
             case .when: self = .moment
             case .reference(let ref): self = .reference(ref)
@@ -48,10 +48,10 @@ indirect enum Term {
     var seed: Value? {
         switch self {
             case .flag(_, let inner): inner.seed
-            case .toggle: .bool(false)
-            case .integer: .integer(0)
-            case .decimal: .decimal(0)
-            case .text: .string("")
+            case .toggle: .property(.bool(false))
+            case .integer: .property(.integer(0))
+            case .decimal: .property(.decimal(0))
+            case .text: .property("")
             case .date: .date(.now)
             case .moment: .when(When(.now))
             case .choice(let values), .scale(let values): values.first
@@ -114,9 +114,7 @@ struct Argument: Identifiable {
 
     init?(_ parameter: Parameter) {
         switch parameter {
-            case .argument(let name, let type, let required, let fallback), .link(let name, let type, let required, let fallback): self.init(name: name, template: type, required: required, fallback: fallback)
-            case .command(let name, let ref): self.init(name: name, template: ref, required: true, fallback: ref)
-            case .callback(let name, let open): self.init(name: name, template: open, required: true, fallback: nil)
+            case .argument(let name, let type, let required, let fallback), .reference(let name, let type, let required, let fallback): self.init(name: name, template: type, required: required, fallback: fallback)
             case .fixed: return nil
         }
     }
@@ -128,9 +126,8 @@ struct Argument: Identifiable {
         let own = Harness.with(owner, { $0.parameters }) ?? []
         let commands = own.compactMap { parameter -> Reference? in
             let value: Value? = switch parameter {
-                case .argument(let name, _, _, let fallback), .link(let name, _, _, let fallback): values[name] ?? fallback
-                case .command(let name, let ref): values[name] ?? ref
-                case .callback, .fixed: nil
+                case .argument(let name, _, _, let fallback), .reference(let name, _, _, let fallback): values[name] ?? fallback
+                case .fixed: nil
             }
             return value?.references.first { $0.type is Command.Type }
         }
@@ -383,17 +380,17 @@ struct TermField: View {
                 TermField(inner, value: .init(get: { Term.peel(value, flag) }, set: { value = $0 }), placeholder: placeholder, resting: resting)
 
             case .toggle:
-                Toggle("", isOn: .init(get: { if case .bool(let on)? = value ?? resting { on } else { false } }, set: { value = .bool($0) }))
+                Toggle("", isOn: .init(get: { if case .property(.bool(let on))? = value ?? resting { on } else { false } }, set: { value = .property(.bool($0)) }))
                     .labelsHidden()
 
             case .integer:
-                TextField("", value: .init(get: { if case .integer(let number)? = value { number } else { nil } }, set: { value = $0.map(Value.integer) }), format: .number, prompt: Text(placeholder))
+                TextField("", value: .init(get: { if case .property(.integer(let number))? = value { number } else { nil } }, set: { value = $0.map { .property(.integer($0)) } }), format: .number, prompt: Text(placeholder))
 
             case .decimal:
-                TextField("", value: .init(get: { if case .decimal(let number)? = value { number } else { nil } }, set: { value = $0.map(Value.decimal) }), format: .number, prompt: Text(placeholder))
+                TextField("", value: .init(get: { if case .property(.decimal(let number))? = value { number } else { nil } }, set: { value = $0.map { .property(.decimal($0)) } }), format: .number, prompt: Text(placeholder))
 
             case .text:
-                TextField("", text: .init(get: { if case .string(let text)? = value { text } else { "" } }, set: { value = $0.isEmpty ? nil : .string($0) }), prompt: Text(placeholder))
+                TextField("", text: .init(get: { if case .property(.string(let text))? = value { text } else { "" } }, set: { value = $0.isEmpty ? nil : .property(.string($0)) }), prompt: Text(placeholder))
 
             case .date:
                 TermDate(date: .init(get: { if case .date(let date)? = value { date } else { .now } }, set: { value = .date($0) }))
@@ -620,7 +617,7 @@ extension Argument {
         switch term.leaf {
             case .toggle:
                 kind = .toggle
-                active = current == .bool(true) || current == .string("true")
+                active = current == .property(true) || current == .property("true")
             case .integer, .decimal, .text:
                 kind = .field
             case .date:
@@ -655,13 +652,13 @@ extension Argument {
                 switch item.trailingKind {
                     case .moment: set(item.key, item.active ? nil : .when(When(.now)))
                     case .date, .time: set(item.key, item.active ? nil : .date(.now))
-                    default: set(item.key, .bool(!item.active))
+                    default: set(item.key, .property(.bool(!item.active)))
                 }
             },
-            onChange: { item, selection in set(item.key, selection.value.map(Value.string)) },
+            onChange: { item, selection in set(item.key, selection.value.map { .property(.string($0)) }) },
             onValueChange: { item, text in
                 if item.trailingKind == .moment, let moment = Value.formatter.date(from: text) { return set(item.key, .when(When(moment))) }
-                set(item.key, text.isEmpty ? nil : .string(text))
+                set(item.key, text.isEmpty ? nil : .property(.string(text)))
             },
             onSelect: { item in set(item.key, item.ref.map(Value.reference)) }
         )
@@ -694,43 +691,43 @@ struct Arguments: View {
     @Previewable @State var selected: String?
     @Previewable @State var values: [String: Value] = [:]
 
-    let sandbox: Value = .collection(["--sandbox": .sequence([.string("read-only"), .string("workspace-write"), .string("danger-full-access")])])
+    let sandbox: Value = .collection(["--sandbox": .sequence([.property("read-only"), .property("workspace-write"), .property("danger-full-access")])])
 
     let harnesses: [(name: String, harness: [Parameter], command: [Parameter])] = [
         ("Agent", [
-            .argument(name: "sandbox", type: sandbox, default: .collection(["--sandbox": .string("read-only")])),
-            .argument(name: "input", type: .string(""), required: true),
-            .argument(name: "brief", type: .string("")),
+            .argument(name: "sandbox", type: sandbox, default: .collection(["--sandbox": .property("read-only")])),
+            .argument(name: "input", type: .property(""), required: true),
+            .argument(name: "brief", type: .property("")),
         ], [
-            .fixed(.string("exec")),
-            .argument(name: "model", type: .collection(["--model": .sequence([.string("gpt-6-astra"), .string("gpt-5.5")])])),
-            .argument(name: "effort", type: .collection(["-c": .collection(["model_reasoning_effort": .range([.string("low"), .string("medium"), .string("high"), .string("xhigh")])])])),
-            .argument(name: "sandbox", type: sandbox, default: .collection(["--sandbox": .string("workspace-write")])),
-            .argument(name: "maxTurns", type: .collection(["--max-turns": .integer(0)])),
-            .argument(name: "input", type: .string("")),
+            .fixed(.property("exec")),
+            .argument(name: "model", type: .collection(["--model": .sequence([.property("gpt-6-astra"), .property("gpt-5.5")])])),
+            .argument(name: "effort", type: .collection(["-c": .collection(["model_reasoning_effort": .range([.property("low"), .property("medium"), .property("high"), .property("xhigh")])])])),
+            .argument(name: "sandbox", type: sandbox, default: .collection(["--sandbox": .property("workspace-write")])),
+            .argument(name: "maxTurns", type: .collection(["--max-turns": .property(0)])),
+            .argument(name: "input", type: .property("")),
         ]),
         ("Transcode", [], [
-            .argument(name: "format", type: .collection(["--format": .sequence([.string("mp4"), .string("mov"), .string("webm")])]), required: true),
-            .argument(name: "quality", type: .collection(["--quality": .range([.string("draft"), .string("good"), .string("best")])]), default: .string("good")),
-            .argument(name: "bitrate", type: .collection(["--bitrate": .integer(0)])),
-            .argument(name: "trim", type: .collection(["start": .decimal(0), "end": .decimal(0)])),
-            .argument(name: "overwrite", type: .collection(["-y": .bool(false)])),
-            .argument(name: "output", type: .string(""), required: true),
+            .argument(name: "format", type: .collection(["--format": .sequence([.property("mp4"), .property("mov"), .property("webm")])]), required: true),
+            .argument(name: "quality", type: .collection(["--quality": .range([.property("draft"), .property("good"), .property("best")])]), default: .property("good")),
+            .argument(name: "bitrate", type: .collection(["--bitrate": .property(0)])),
+            .argument(name: "trim", type: .collection(["start": .property(0.0), "end": .property(0.0)])),
+            .argument(name: "overwrite", type: .collection(["-y": .property(false)])),
+            .argument(name: "output", type: .property(""), required: true),
         ]),
         ("Observe", [
             .argument(name: "when", type: .when(When(.distantPast))),
-            .argument(name: "note", type: .string("")),
+            .argument(name: "note", type: .property("")),
         ], []),
         ("Publish", [
             .argument(
                 name: "visibility",
-                type: .collection(["--visibility": .sequence([.string("public"), .string("unlisted"), .string("private")])]),
-                default: .collection(["--visibility": .string("unlisted")])
+                type: .collection(["--visibility": .sequence([.property("public"), .property("unlisted"), .property("private")])]),
+                default: .collection(["--visibility": .property("unlisted")])
             ),
         ], [
-            .argument(name: "channels", type: .collection(["--channel": .sequence([.string("")])]), required: true),
-            .argument(name: "visibility", type: .collection(["--visibility": .sequence([.string("public"), .string("unlisted"), .string("private")])])),
-            .argument(name: "dryRun", type: .collection(["--dry-run": .bool(false)])),
+            .argument(name: "channels", type: .collection(["--channel": .sequence([.property("")])]), required: true),
+            .argument(name: "visibility", type: .collection(["--visibility": .sequence([.property("public"), .property("unlisted"), .property("private")])])),
+            .argument(name: "dryRun", type: .collection(["--dry-run": .property(false)])),
         ]),
         ("Empty", [], []),
     ]
@@ -790,14 +787,14 @@ struct ArgumentLine: View {
             switch parameter {
                 case .fixed(let value):
                     return value.rendered.map { ($0, true) }
-                case .argument(let name, let type, let required, let fallback), .link(let name, let type, let required, let fallback):
+                case .argument(let name, let type, let required, let fallback):
                     guard let value = values[name] ?? fallback, let built = try? type.construct(value, name: name)
                             else { return required ? [("‹\(name)›", false)] : [] }
                     return built.rendered.map { ($0, false) }
-                case .command(let name, let ref):
-                    return [("‹\((values[name] ?? ref).references.first?.descriptor.name ?? name)›", false)]
-                case .callback(let name, _):
-                    return [("open", true), ("‹\(values[name]?.references.first?.descriptor.name ?? name)›", false)]
+                case .reference(let name, _, let required, let fallback):
+                    guard let value = values[name] ?? fallback
+                            else { return required ? [("‹\(name)›", false)] : [] }
+                    return [("‹\(value.references.first?.descriptor.name ?? name)›", false)]
             }
         }
     }

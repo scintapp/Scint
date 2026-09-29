@@ -389,7 +389,7 @@ struct HarnessGroup: Mapper {
 
             let opening = item.trailingKind == .date ? Date.now : hour()
 
-            configure(item.trailingKind == .moment ? .when(When(opening)) : .string(Value.formatter.string(from: opening)), for: key)
+            configure(item.trailingKind == .moment ? .when(When(opening)) : .property(.string(Value.formatter.string(from: opening))), for: key)
         }
 
         func choose(_ item: ItemParams, _ key: String) {
@@ -403,7 +403,7 @@ struct HarnessGroup: Mapper {
             panel.allowsMultipleSelection = false
             panel.directoryURL = resting.isEmpty ? nil : URL(fileURLWithPath: resting)
             guard panel.runModal() == .OK, let url = panel.url else { return }
-            configure(.string(url.path(percentEncoded: false)), for: key)
+            configure(.property(.string(url.path(percentEncoded: false))), for: key)
         }
 
         return .init(
@@ -411,7 +411,7 @@ struct HarnessGroup: Mapper {
                 guard let key = item.key else { return }
                 switch item.trailingKind {
                     case .date, .time, .moment: gate(item, key)
-                    default: configure(.bool(!item.active), for: key)
+                    default: configure(.property(.bool(!item.active)), for: key)
                 }
             },
             onChange: { item, selection in
@@ -421,14 +421,14 @@ struct HarnessGroup: Mapper {
                     guard let moment = when(key)?.date ?? (repeats == .never ? nil : hour()) else { return }
                     return configure(.when(When(moment, repeats: repeats)), for: key)
                 }
-                configure(selection.value.map(Value.string), for: key)
+                configure(selection.value.map { .property(.string($0)) }, for: key)
             },
             onValueChange: { item, value in
                 guard let key = item.key else { return }
                 if item.trailingKind == .moment, let moment = Value.formatter.date(from: value) {
                     return configure(.when(When(moment, repeats: when(key)?.repeats ?? .never)), for: key)
                 }
-                configure(value.isEmpty ? nil : .string(value), for: key)
+                configure(value.isEmpty ? nil : .property(.string(value)), for: key)
             },
             onSelect: { item in
                 if let key = item.key {
@@ -466,7 +466,7 @@ struct HarnessGroup: Mapper {
 
         func passthroughKey(_ parameter: Parameter) -> String? {
             let declared: (key: String, type: Value)? = switch parameter {
-                case .argument(let key, let type, _, _), .link(let key, let type, _, _), .callback(let key, let type): (key, type)
+                case .argument(let key, let type, _, _), .reference(let key, let type, _, _): (key, type)
                 default: nil
             }
             guard let (key, type) = declared else { return nil }
@@ -677,9 +677,9 @@ struct HarnessGroup: Mapper {
             }
 
             switch leaf(type) {
-                case .bool:
-                    let active = if case .bool(let value) = configured { value }
-                    else if let defaultValue, case .bool(let value) = leaf(defaultValue) { value }
+                case .property(.bool):
+                    let active = if case .property(.bool(let value)) = configured { value }
+                    else if let defaultValue, case .property(.bool(let value)) = leaf(defaultValue) { value }
                     else { false }
                     return .init(
                         key: key,
@@ -711,7 +711,7 @@ struct HarnessGroup: Mapper {
                         active: when != nil
                     )
 
-                case .string where Argument.directory(key):
+                case .property(.string) where Argument.directory(key):
                     let chosen = selectedValue.isEmpty
                     ? (defaultValue.map(leaf)?.rendered.last ?? "")
                     : selectedValue
@@ -726,7 +726,7 @@ struct HarnessGroup: Mapper {
                         ? "No folder"
                         : URL(fileURLWithPath: chosen).lastPathComponent
                     )
-                case .string, .integer, .decimal:
+                case .property:
                     return .init(
                         key: key,
                         name: label(key),

@@ -30,13 +30,6 @@ struct InboxRow: View {
     var harness: Reference? { Space.with(context.space, { $0.harness }) ?? nil }
 
     var message: String? {
-        if let transcript = context.transcript {
-            Transcript.with(transcript) { (transcript: Transcript) -> String? in
-                guard case .collection(let fields)? = transcript.output("message")?.value, case .string(let text)? = fields["text"]
-                        else { return nil }
-                return text
-            }
-        }
         return nil
     }
 

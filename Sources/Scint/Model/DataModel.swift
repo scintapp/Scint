@@ -13,7 +13,6 @@ final class DataModel: Codable, @unchecked Sendable {
     init() async {
         if sort() { return }
         await RuntimeModel.load()
-        await Runtime.shared.save()
         sort()
     }
 
@@ -37,14 +36,16 @@ final class DataModel: Codable, @unchecked Sendable {
 
     @discardableResult
     private func sort() -> Bool {
-        func named(_ name: String) -> Reference? { Runtime.shared.spaces.first { $0.descriptor.name == name } }
-        guard
-              let scint = named("Scint"),
-              let inbox = named("Inbox"),
-              let projects = named("Projects"),
-              let library = named("Library"),
-              let tasks = named("Tasks")
+        guard let scint = Runtime.shared.spaces.first(where: { $0.descriptor.name == "Scint" })
         else { return false }
+        let children = Space.with(scint) { $0.spaces } ?? []
+        func named(_ name: String) -> Reference? { children.first { $0.descriptor.name == name } }
+        guard
+            let inbox = named("Inbox"),
+            let projects = named("Projects"),
+            let library = named("Library"),
+            let tasks = named("Tasks")
+                else { return false }
         self.scint = scint
         self.inbox = inbox
         self.projects = projects

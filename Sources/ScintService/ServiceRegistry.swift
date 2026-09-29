@@ -26,13 +26,13 @@ struct ServiceHandler: Codable & Sendable {
                     .filter { !$0.isEmpty }
                     .map { line in
                             .collection([
-                                "type": .string("message"),
-                                "text": .string(line)
+                                "type": .property("message"),
+                                "text": .property(.string(line))
                             ])
                     }
 
             case .events:
-                return [.string(chunk)]
+                return [.property(.string(chunk))]
         }
     }
 }

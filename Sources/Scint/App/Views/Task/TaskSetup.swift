@@ -56,7 +56,7 @@ struct TaskSetup: Surface {
     var arguments: [Argument] { parameters.filter {
         switch $0 {
             case .argument(let name, _, false, _): name != "space"
-            case .link(let name, _, _, _): name != "space" && name != "document" && name != "task"
+            case .reference(let name, _, _, _): name != "space" && name != "document" && name != "task"
             default: false
         }
     }.compactMap(Argument.init) }

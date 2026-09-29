@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7C02B666306BD6F100346E90 /* ScintServer in Frameworks */ = {isa = PBXBuildFile; productRef = 7C02B665306BD6F100346E90 /* ScintServer */; };
+		7C02B668306BD72D00346E90 /* ScintServer in Frameworks */ = {isa = PBXBuildFile; productRef = 7C02B667306BD72D00346E90 /* ScintServer */; };
 		7C2A947E3064343C005E45D7 /* scintd.xpc in Embed XPC Services */ = {isa = PBXBuildFile; fileRef = 7CC6DF80304243D800098CC1 /* scintd.xpc */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7C443ABD2FF956D600FD0398 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABC2FF956D600FD0398 /* Collections */; };
 		7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 7C443ABE2FF956D600FD0398 /* OrderedCollections */; };
@@ -16,7 +18,6 @@
 		7CB36A9F305F591200064C4B /* ScintRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7CB36A9E305F591200064C4B /* ScintRuntime */; };
 		7CBB434B3020F78300B9D4D7 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7CBB434A3020F78300B9D4D7 /* README.md */; };
 		7CC0CC523063296900ADA7C7 /* ScintComponents in Frameworks */ = {isa = PBXBuildFile; productRef = 7CC0CC513063296900ADA7C7 /* ScintComponents */; };
-		7CD1A0052F00000000A1B001 /* ScintHost in Frameworks */ = {isa = PBXBuildFile; productRef = 7CD1A0042F00000000A1B001 /* ScintHost */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -151,12 +152,12 @@
 		7C4C36E42ED17D5A00D6F1CF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				7CD1A0052F00000000A1B001 /* ScintHost in Frameworks */,
 				7C443ABF2FF956D600FD0398 /* OrderedCollections in Frameworks */,
 				7C443ABD2FF956D600FD0398 /* Collections in Frameworks */,
 				7CB36A9D305F47EC00064C4B /* ScintRuntime in Frameworks */,
 				7CC0CC523063296900ADA7C7 /* ScintComponents in Frameworks */,
 				7CB2E82B2F99C4C100D42370 /* KeyboardShortcuts in Frameworks */,
+				7C02B668306BD72D00346E90 /* ScintServer in Frameworks */,
 			);
 		};
 		7C69AAEF2F8B45D90008D611 /* Frameworks */ = {
@@ -164,6 +165,7 @@
 			files = (
 				7C95912A300D54FB007D9E73 /* OrderedCollections in Frameworks */,
 				7CB36A9F305F591200064C4B /* ScintRuntime in Frameworks */,
+				7C02B666306BD6F100346E90 /* ScintServer in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -221,9 +223,9 @@
 				7CB2E82A2F99C4C100D42370 /* KeyboardShortcuts */,
 				7C443ABC2FF956D600FD0398 /* Collections */,
 				7C443ABE2FF956D600FD0398 /* OrderedCollections */,
-				7CD1A0042F00000000A1B001 /* ScintHost */,
 				7CB36A9C305F47EC00064C4B /* ScintRuntime */,
 				7CC0CC513063296900ADA7C7 /* ScintComponents */,
+				7C02B667306BD72D00346E90 /* ScintServer */,
 			);
 			productName = Agency;
 			productReference = 7CC6DF7F304243D800098CC1 /* Scint.app */;
@@ -243,6 +245,7 @@
 			packageProductDependencies = (
 				7C959129300D54FB007D9E73 /* OrderedCollections */,
 				7CB36A9E305F591200064C4B /* ScintRuntime */,
+				7C02B665306BD6F100346E90 /* ScintServer */,
 			);
 			productName = agencyd;
 			productReference = 7CC6DF80304243D800098CC1 /* scintd.xpc */;
@@ -680,6 +683,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		7C02B665306BD6F100346E90 /* ScintServer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CB36A9B305F47EC00064C4B /* XCLocalSwiftPackageReference "../ScintRuntime" */;
+			productName = ScintServer;
+		};
+		7C02B667306BD72D00346E90 /* ScintServer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7CB36A9B305F47EC00064C4B /* XCLocalSwiftPackageReference "../ScintRuntime" */;
+			productName = ScintServer;
+		};
 		7C443ABC2FF956D600FD0398 /* Collections */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7C443ABB2FF956D600FD0398 /* XCRemoteSwiftPackageReference "swift-collections" */;
@@ -712,11 +725,6 @@
 		7CC0CC513063296900ADA7C7 /* ScintComponents */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ScintComponents;
-		};
-		7CD1A0042F00000000A1B001 /* ScintHost */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7CB36A9B305F47EC00064C4B /* XCLocalSwiftPackageReference "../ScintRuntime" */;
-			productName = ScintHost;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

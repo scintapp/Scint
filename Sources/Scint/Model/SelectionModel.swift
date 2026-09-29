@@ -2,7 +2,7 @@ import Foundation
 import ScintRuntime
 
 
-public enum Focus: Codable, Equatable, Sendable {
+ enum Focus: Codable, Equatable, Sendable {
     case content(Reference)
     case structure(Reference)
     case interface(Reference)
@@ -10,47 +10,47 @@ public enum Focus: Codable, Equatable, Sendable {
     case url(URL)
     case nothing
 
-    public var ref: Reference? {
+     var ref: Reference? {
         switch self {
             case .content(let ref), .structure(let ref), .interface(let ref): ref
             default: nil
         }
     }
 
-    public var entry: UUID? {
+     var entry: UUID? {
         switch self {
             case .entry(let id): id
             default: nil
         }
     }
 
-    public var link: URL? {
+     var link: URL? {
         switch self {
             case .url(let url): url
             default: nil
         }
     }
 
-    public var resolved: Value {
+     var resolved: Value {
         switch self {
             case .content(let ref), .structure(let ref), .interface(let ref): .reference(ref)
-            case .entry(let id): .string(id.uuidString)
-            case .url(let url): .string(url.absoluteString)
-            case .nothing: .string("")
+            case .entry(let id): .property(.string(id.uuidString))
+            case .url(let url): .property(.string(url.absoluteString))
+            case .nothing: .property("")
         }
     }
 }
 
-public struct Opened: Codable, Equatable, Sendable {
-    public var document: Reference?
-    public var transcript: Reference?
+ struct Opened: Codable, Equatable, Sendable {
+     var document: Reference?
+     var transcript: Reference?
 
     init(document: Reference? = nil, transcript: Reference? = nil) {
         self.document = document
         self.transcript = transcript
     }
 
-    public mutating func open(_ ref: Reference) {
+     mutating func open(_ ref: Reference) {
         switch ref.type {
             case is ScintRuntime.Document.Type: document = ref
             case is ScintRuntime.Transcript.Type: transcript = ref
@@ -58,7 +58,7 @@ public struct Opened: Codable, Equatable, Sendable {
         }
     }
 
-    public mutating func close(_ ref: Reference) {
+     mutating func close(_ ref: Reference) {
         switch ref.type {
             case is ScintRuntime.Document.Type: if document == ref { document = nil }
             case is ScintRuntime.Transcript.Type: if transcript == ref { transcript = nil }
@@ -67,14 +67,14 @@ public struct Opened: Codable, Equatable, Sendable {
     }
 }
 
-public struct Selection: Codable, Equatable, Sendable  {
-    public var structure: Reference?
-    public var interface: Reference?
-    public var content: Reference?
-    public var entry: UUID?
-    public var url: URL?
+ struct Selection: Codable, Equatable, Sendable  {
+     var structure: Reference?
+     var interface: Reference?
+     var content: Reference?
+     var entry: UUID?
+     var url: URL?
 
-    public enum Axis: Sendable { case structure, interface, content, entry, path }
+     enum Axis: Sendable { case structure, interface, content, entry, path }
 
     init(
         structure: Reference? = nil,
@@ -90,21 +90,21 @@ public struct Selection: Codable, Equatable, Sendable  {
         self.url = url
     }
 
-    public var resolved: Value {
+     var resolved: Value {
         var values: [String: Value] = [:]
         if let structure { values["structure"] = .reference(structure) }
         if let interface { values["interface"] = .reference(interface) }
         if let content { values["content"] = .reference(content) }
-        if let entry { values["entry"] = .string(entry.uuidString) }
-        if let url { values["url"] = .string(url.absoluteString) }
+        if let entry { values["entry"] = .property(.string(entry.uuidString)) }
+        if let url { values["url"] = .property(.string(url.absoluteString)) }
         return .collection(values)
     }
 
-    public var root: Reference? {
+     var root: Reference? {
         guard var cursor = structure else { return nil }
         var depth = 0
 
-        while let parent = Space.with(cursor, { $0.space }) ?? nil, depth < 100 {
+        while let parent = Space.with(cursor, { $0.space }) ?? nil, (Space.with(parent, { $0.space }) ?? nil) != nil, depth < 100 {
             cursor = parent
             depth += 1
         }
@@ -112,7 +112,7 @@ public struct Selection: Codable, Equatable, Sendable  {
     }
 
 
-    public func selected(_ ref: Reference) -> Bool {
+     func selected(_ ref: Reference) -> Bool {
         switch ref.type {
             case is any ScintRuntime.Structural.Type: structure == ref
             case is any ScintRuntime.Functional.Type: interface == ref && entry == nil && url == nil
@@ -121,17 +121,17 @@ public struct Selection: Codable, Equatable, Sendable  {
         }
     }
 
-    public func selected(_ ref: Reference, _ entry: UUID?) -> Bool {
+     func selected(_ ref: Reference, _ entry: UUID?) -> Bool {
         guard let entry else { return selected(ref) }
         return content == ref && self.entry == entry
     }
 
-    public func selected(_ ref: Reference, _ url: URL?) -> Bool {
+     func selected(_ ref: Reference, _ url: URL?) -> Bool {
         guard let url else { return selected(ref) }
         return (content == ref || interface == ref) && self.url == url
     }
 
-    public func selecting(_ ref: Reference, _ entry: UUID? = nil, _ url: URL? = nil) -> Self {
+     func selecting(_ ref: Reference, _ entry: UUID? = nil, _ url: URL? = nil) -> Self {
         var next = self
         switch ref.type {
             case is ScintRuntime.Space.Type:
@@ -155,7 +155,7 @@ public struct Selection: Codable, Equatable, Sendable  {
         return next
     }
 
-    public func clearing(_ axis: Axis) -> Self {
+     func clearing(_ axis: Axis) -> Self {
         var next = self
         switch axis {
             case .path:

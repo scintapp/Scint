@@ -66,11 +66,10 @@ enum ReferenceTransfer {
                 provider.loadDataRepresentation(forTypeIdentifier: type.identifier) { data, _ in
                     guard let data, let payload = try? JSONDecoder().decode(Payload.self, from: data) else { return }
                     Task { @MainActor in
-                        let moved = switch payload {
+                        switch payload {
                             case .reference(let ref): apply(ref)
                             case .file(let url, let name): apply(Artifact.new(name, url))
                         }
-                        if moved { await Runtime.shared.save() }
                     }
                 }
                 break

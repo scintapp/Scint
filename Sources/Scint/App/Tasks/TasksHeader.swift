@@ -8,27 +8,7 @@ struct TasksNew: View {
 
     var body: some View {
         IconButton(systemImage: "plus") {
-            let reserved = Set(Runtime.shared.all(as: Harness.self).flatMap { $0.1.commands })
-            func forwards(_ parameter: Parameter) -> Bool {
-                switch parameter {
-                    case .argument(_, .reference(let ref), _, _): ref.type is Command.Type
-                    case .command, .callback: true
-                    default: false
-                }
-            }
-            guard let command = Runtime.shared.all(as: Command.self)
-                .filter({ !reserved.contains($0.0) && !$0.1.parameters.contains(where: forwards) })
-                .map({ $0.0 }).min(by: { $0.descriptor.name < $1.descriptor.name })
-                    else { return }
-
-            let sheet = Document.new(model.session.tasks, name: "New Task")
-            let material = Document.new(model.session.tasks, name: "Instructions")
-            Document.update(material) { $0.delete(at: 0) }
-            Document.update(sheet) { document in
-                document.delete(at: 0)
-                document.insert([.task(UUID(), "New Task", false, nil), .command(command), .document(material), .data(UUID(), .collection([:]))], at: 0)
-            }
-            model.session.open(sheet)
+            model.session.open(Sheet.new(model.session.tasks))
         }
         .help("New Task")
     }
@@ -56,3 +36,5 @@ struct TasksHeader: Surface {
         .padding(.bottom, 8)
     }
 }
+
+

@@ -1,9 +1,9 @@
 import OSLog
 import ServiceManagement
 import SwiftUI
-import ScintRuntime
-import ScintHost
 import ScintComponents
+import ScintRuntime
+import ScintServer
 
 
 @main

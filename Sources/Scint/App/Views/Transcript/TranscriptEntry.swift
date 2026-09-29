@@ -1,7 +1,7 @@
 import SwiftUI
 import ScintRuntime
 import ScintComponents
-import ScintHost
+import ScintServer
 
 
 private extension Record {
@@ -15,8 +15,8 @@ private extension Record {
         guard case .collection(let fields) = value else { return [:] }
         switch fields["arguments"] {
             case .collection(let arguments)?:
-                return arguments.compactMapValues { if case .string(let text) = $0 { text } else { nil } }
-            case .string(let json)?:
+                return arguments.compactMapValues { if case .property(.string(let text)) = $0 { text } else { nil } }
+            case .property(.string(let json))?:
                 let object = (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any]
                 return object?.compactMapValues { $0 as? String } ?? [:]
             default:
