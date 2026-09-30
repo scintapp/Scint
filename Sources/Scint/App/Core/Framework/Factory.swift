@@ -9,7 +9,7 @@ import ScintComponents
 //    func build(_ surface: some Surface, params: SectionParams, controls: Controls, layout: Layout?) -> Content
 //    func build(_ surface: some Surface, params: ItemParams, controls: Controls, layout: Layout?, indent: CGFloat) -> Content
 //}
-//
+
 @MainActor struct Factory {
     @ViewBuilder static func build(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
         let target = controls.surfaceDropTarget?()
@@ -46,7 +46,6 @@ import ScintComponents
         else { dropped.contextMenu { ActionMenu(model: surface.model, items: palette) } }
     }
 
-    // Section. Stamps each item with the layout, nesting and depth it was resolved with.
     @ViewBuilder static func build(_ surface: some Surface, params: SectionParams, controls: Controls, layout: Layout? = nil) -> some View {
         let target = controls.sectionDropTarget?(params)
         let types = target.map { controls.dropTypes?($0) ?? ReferenceTransfer.dropTypes(for: $0) } ?? []
@@ -209,8 +208,6 @@ import ScintComponents
         }
     }
 
-    // Controls. Everything Controls affords a row: drag, drop, and its context menu.
-    // Scoped to a row, never to a row plus its expanded children.
     @ViewBuilder static func build(_ surface: some Surface, _ view: some View, params: ItemParams, controls: Controls) -> some View {
         let types = controls.dropTypes?(params) ?? ReferenceTransfer.dropTypes(for: params)
         let palette = controls.itemPalette?(params) ?? []

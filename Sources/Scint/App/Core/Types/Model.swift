@@ -28,22 +28,9 @@ extension Model {
         Runtime.shared.search(query, filters: filters, limit: limit)
     }
 
+    @discardableResult
     func compose(_ ref: Reference) -> Context? { Runtime.shared.compose(ref) }
 
     @discardableResult
-    func start(_ ref: Reference) -> Context? { Runtime.shared.start(ref) }
-
-    @discardableResult
-    func observe(_ ref: Reference) -> Context? { Runtime.shared.observe(ref) }
-
-    @discardableResult
-    func stop(_ ref: Reference) -> Context? { Runtime.shared.stop(ref) }
-}
-
-protocol Selecting: Codable, Equatable, Sendable {
-    var root: Reference? { get set }
-    func selected(_ ref: Reference) -> Bool
-    func selected(_ ref: Reference, _ entry: UUID?) -> Bool
-    func selected(_ ref: Reference, _ url: URL?) -> Bool
-    func selecting(_ ref: Reference, _ entry: UUID?, _ url: URL?) -> Self
+    func cancel(_ ref: Reference) -> Context? { Runtime.shared.cancel(ref) }
 }

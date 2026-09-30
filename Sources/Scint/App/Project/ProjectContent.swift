@@ -10,7 +10,6 @@ struct ProjectContent: Surface {
 
     @State private var presentation: Presentation = .process
 
-    var projects: Reference { model.session.projects }
     var space: Reference? { model.session.selection.structure }
 
     enum Presentation: String, CaseIterable {
@@ -34,7 +33,8 @@ struct ProjectContent: Surface {
                     if let space, let context = space.context, let transcript = context.transcript {
                         TranscriptContent(transcript: transcript)
                     }
-                    ProjectToolbar(panel: panel, model: model, onStart: {})
+
+                    ProjectToolbar(panel: panel, model: model)
                         .frame(alignment: .bottom)
                         .padding([.bottom, .vertical], 10)
 

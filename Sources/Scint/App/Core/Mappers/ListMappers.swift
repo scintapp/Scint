@@ -178,7 +178,6 @@ struct DocumentsList: Mapper {
 
         let items = Runtime.shared.all(as: Document.self)
             .map { $0.0 }
-            .filter { $0.descriptor.name != "Input" }
             .compactMap { ref -> ItemParams? in
                 guard ref.type is ScintRuntime.Document.Type else { return nil }
                 return .init(
@@ -221,7 +220,6 @@ struct MapList: Mapper {
             onSelect: { item in
                 guard let ref = item.ref else { return }
                 model.select(ref, entry: item.entryId, url: item.path)
-                model.focus(ref)
             },
             surfaceDropTarget: {
                 .init(name: "Projects")
@@ -349,7 +347,6 @@ struct LibraryList: Mapper {
             onSelect: { item in
                 guard let ref = item.ref else { return }
                 model.select(ref, entry: item.entryId, url: item.path)
-                model.focus(ref)
             },
             surfaceDropTarget: {
                 .init(name: "Projects")
@@ -422,7 +419,6 @@ struct TagsList: Mapper {
             onSelect: { item in
                 guard let ref = item.ref else { return }
                 model.select(ref, entry: item.entryId, url: item.path)
-                model.focus(ref)
             },
             surfaceDropTarget: {
                 .init(name: "Projects")

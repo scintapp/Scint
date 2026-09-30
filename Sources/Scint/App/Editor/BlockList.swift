@@ -133,7 +133,7 @@ struct BlockList: View {
     private var blocks: [Block] { ScintRuntime.Document.with(document, { $0.blocks }) ?? [] }
 
     private var rows: [Block] {
-        let blocks = blocks
+        let blocks = ScintRuntime.Document.with(document, { $0.body }) ?? []
         if case .text? = blocks.last { return blocks }
         return blocks + [.text(tail, "")]
     }

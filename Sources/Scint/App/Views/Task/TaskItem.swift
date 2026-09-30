@@ -12,10 +12,10 @@ struct TaskItem: View {
     @State private var scheduling = false
 
     var body: some View {
-        if case let (text, completed, when)? = Sheet.with(ref, { ($0.name, $0.done, $0.when) }) {
+        if case .task(let id, let text, let completed, let when)? = Document.with(ref, { $0.blocks.first }) ?? nil {
             HStack(alignment: .top, spacing: Style.Spacing.icon) {
                 Button {
-                    Sheet.update(ref) { $0.done.toggle() }
+                    Document.update(ref) { $0.update(.task(id, text, !completed, when), at: 0) }
                     if completed { onStart() }
                     else { onStop() }
                 } label: {
@@ -52,7 +52,7 @@ struct TaskItem: View {
                 Button("Schedule…") { scheduling = true }
                 if when != nil {
                     Button("Clear Schedule") {
-                        Sheet.update(ref) { $0.when = nil }
+                        Document.update(ref) { $0.update(.task(id, text, completed, nil), at: 0) }
                         onStop()
                     }
                 }
@@ -62,7 +62,7 @@ struct TaskItem: View {
                     let moment = Binding(
                         get: { when?.date ?? .now },
                         set: { moment in
-                            Sheet.update(ref) { $0.when = When(moment, repeats: $0.when?.repeats ?? .never) }
+                            Document.update(ref) { $0.update(.task(id, text, completed, When(moment, repeats: when?.repeats ?? .never)), at: 0) }
                             onStart()
                         }
                     )

@@ -5,28 +5,55 @@ import ScintComponents
 
 struct TaskHeader: View {
     var ref: Reference
-    var onStart: () -> Void
-    var onStop: () -> Void
+    var onCompose: () -> Void
+    var onCancel: () -> Void
 
-    var ready: Bool { Sheet.with(ref) { $0.ready } ?? false }
-    var scheduled: Bool { Sheet.with(ref) { $0.scheduled } ?? false }
+    var task: Block? { Document.with(ref, { $0.blocks.first }) ?? nil }
+    var ready: Bool { if case .task(_, _, _, _?)? = task { true } else { false } }
+    var repeating: Bool { if case .task(_, _, _, let when?)? = task { when.repeats != .never } else { false } }
+
+    var scheduled: Bool {
+        guard
+            case .task(_, _, false, _)? = task,
+            let origin = Document.with(ref, { $0.origin }),
+            let transcript = Runtime.shared.context().first(where: { $0.space == origin })?.transcript,
+            let entries = Transcript.with(transcript, { $0.entries }),
+            let start = entries.lastIndex(where: { if case .event(.start(let input), _) = $0 { input == ref } else { false } })
+                else { return false }
+
+        let branch = entries[start...].lazy.compactMap { entry -> Reference? in if case .transcript(let branch, _, _) = entry { branch } else { nil } }.first
+        return !entries[start...].contains { entry in
+            switch entry {
+                case .event(.cancel, _): true
+                case .event(.complete(let ended), _), .event(.fail(let ended), _): ended == branch
+                case .event(.update(let input), _): input == ref && !repeating
+                default: false
+            }
+        }
+    }
 
     var completed: Binding<Bool> {
         Binding(
-            get: { Sheet.update(ref) { $0.done } ?? false },
-            set: { complete in Sheet.update(ref) { $0.done = complete } }
+            get: { if case .task(_, _, let done, _)? = task { done } else { false } },
+            set: { complete in
+                guard case .task(let id, let text, _, let when)? = task else { return }
+                Document.update(ref) { $0.update(.task(id, text, complete, when), at: 0) }
+            }
         )
     }
 
     var name: Binding<String> {
         Binding(
-            get: { Sheet.update(ref) { $0.name } ?? "" },
-            set: { text in Sheet.update(ref) { $0.name = text } }
+            get: { if case .task(_, let text, _, _)? = task { text } else { "" } },
+            set: { text in
+                guard case .task(let id, _, let done, let when)? = task else { return }
+                Document.update(ref) { $0.update(.task(id, text, done, when), at: 0) }
+            }
         )
     }
 
     var body: some View {
-        if case let (_, done)? = Sheet.with(ref, { ($0.name, $0.done) }) {
+        if case .task(_, _, let done, _)? = task {
             HStack(alignment: .center) {
                 Button {  } label: { TaskCompletionIndicator(completed: done, size: 24) }
                     .buttonStyle(.plain)
@@ -38,14 +65,16 @@ struct TaskHeader: View {
 
                 Spacer()
 
-                ZStack {
-                    IconButton(systemImage: "calendar.badge.plus", action: onStart)
-                        .opacity(scheduled ? 0 : 1)
-                        .disabled(!ready)
-
-                    IconButton(systemImage: "calendar.badge.checkmark", action: onStop)
-                        .opacity(scheduled ? 1 : 0)
-                        .disabled(!scheduled)
+                if scheduled {
+                    Button("Cancel", action: onCancel)
+                        .buttonStyle(.glass)
+                } else if ready {
+                    Button("Schedule", action: onCompose)
+                        .buttonStyle(.glassProminent)
+                } else {
+                    Button("Schedule", action: onCompose)
+                        .buttonStyle(.glass)
+                        .disabled(true)
                 }
             }
         }

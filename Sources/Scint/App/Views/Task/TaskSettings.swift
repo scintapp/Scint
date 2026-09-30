@@ -6,17 +6,22 @@ import ScintComponents
 struct TaskTitle: View {
     let ref: Reference
 
+    var task: Block? { Document.with(ref, { $0.blocks.first }) ?? nil }
+
     var name: Binding<String> {
         Binding(
-            get: { Sheet.with(ref) { $0.name } ?? "" },
-            set: { text in Sheet.update(ref) { $0.name = text } }
+            get: { if case .task(_, let text, _, _)? = task { text } else { "" } },
+            set: { text in
+                guard case .task(let id, _, let done, let when)? = task else { return }
+                Document.update(ref) { $0.update(.task(id, text, done, when), at: 0) }
+            }
         )
     }
 
     var body: some View {
-        if let done = Sheet.with(ref, { $0.done }) {
+        if case .task(let id, let text, let done, let when)? = task {
             HStack(alignment: .firstTextBaseline, spacing: Style.Spacing.label) {
-                Button { Sheet.update(ref) { $0.done = !done } } label: { TaskCompletionIndicator(completed: done, size: 18) }
+                Button { Document.update(ref) { $0.update(.task(id, text, !done, when), at: 0) } } label: { TaskCompletionIndicator(completed: done, size: 18) }
                     .buttonStyle(.plain)
 
                 TextField("Task", text: name, axis: .vertical)
@@ -35,8 +40,8 @@ struct TaskNotes: View {
     /// Appends the note to the end of the task's document.
     func append() {
         let text = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, let material = Sheet.with(ref, { $0.material }) ?? nil else { return }
-        Document.update(material) { $0.insert(.text(UUID(), text), at: nil) }
+        guard !text.isEmpty else { return }
+        Document.update(ref) { $0.insert(.text(UUID(), text), at: nil) }
         note = ""
     }
 

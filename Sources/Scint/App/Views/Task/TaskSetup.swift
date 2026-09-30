@@ -49,7 +49,7 @@ struct TaskSetup: Surface {
 
     var ref: Reference? { model.session.opened.document }
     var surface: AnySurface { .init(panel: panel, model: model) }
-    var command: Reference? { ref.flatMap { Sheet.with($0, { $0.command }) ?? nil } }
+    var command: Reference? { ref.flatMap { Document.with($0, { $0.blocks.lazy.compactMap { if case .command(let ref) = $0 { ref } else { nil } }.first }) ?? nil } }
     var parameters: [Parameter] { command.flatMap { Command.with($0, { $0.parameters }) } ?? [] }
     var rows: [ItemParams] { arguments.compactMap { $0.item(values[$0.name]) } }
 
@@ -61,9 +61,8 @@ struct TaskSetup: Surface {
         }
     }.compactMap(Argument.init) }
 
-    var values: [String: Value] { ref.flatMap { Sheet.with($0, {
-        if case .collection(let values)? = $0.data { values }
-        else { [:] } }) } ?? [:]
+    var values: [String: Value] {
+        ref.flatMap { Document.with($0, { $0.blocks.lazy.compactMap { if case .data(_, .collection(let values)) = $0 { values } else { nil } }.first }) ?? nil } ?? [:]
     }
 
     var body: some View {
@@ -74,7 +73,11 @@ struct TaskSetup: Surface {
                     let controls = Argument.controls { key, value in
                         var values = values
                         values[key] = value
-                        Sheet.update(ref) { $0.data = .collection(values) }
+                        Document.update(ref) { document in
+                            guard let index = document.blocks.firstIndex(where: { if case .data = $0 { true } else { false } }), case .data(let id, _) = document.blocks[index]
+                            else { return }
+                            document.update(.data(id, .collection(values)), at: index)
+                        }
                     }
                     ForEach(rows) { row in
                         GroupDivider()

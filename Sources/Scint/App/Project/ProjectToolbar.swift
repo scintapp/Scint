@@ -4,46 +4,26 @@ import ScintComponents
 
 
 struct ProjectControls: View {
-    var panel: any Panel
-    var model: any Model
     var input: Reference
-    var onStart: () -> Void
+    var space: Reference
+    var onCompose: () -> Void
+    var onCancel: () -> Void
 
-    @State var started: Bool = false
 
-    var space: Reference? { model.session.selection.structure }
-
-    var composable: Bool {
-        guard let space else { return false }
-        return Space.with(space, { $0.composable }) ?? false
-    }
-
-    var empty: Bool {
-        return Document.with(input) { document in
-            document.rendered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        } ?? true
-    }
-
-    func start() {
-        guard let space, composable, !empty else { return }
-        Document.update(input) { $0.clear() }
-        model.start(space)
-        onStart()
-    }
-
-    func stop() {
-        guard let space else { return }
-        model.stop(space)
-    }
+    var composable: Bool { Runtime.shared.composable(space) }
+    var context: Context? { space.context }
+    var started: Bool { context?.state == .active ? true : false  }
 
     var working: Bool {
-        guard let space, let composition = model.compose(space) else { return false }
-        if case .working = composition.state { return true }
-        return false
+        guard let context else { return false }
+        switch context.state {
+            case .active, .working: return true
+            default: return false
+        }
     }
 
     var body: some View {
-        Button { started ? stop() : start() } label: {
+        Button { !working ? onCompose() : onCancel() } label: {
             if started {
                 Image(systemName: "stop.fill")
                     .font(Typography.footnote)
@@ -54,7 +34,7 @@ struct ProjectControls: View {
         }
         .buttonStyle(.plain)
         .keyboardShortcut(working ? nil : KeyboardShortcut(.return, modifiers: .command))
-        .disabled(!composable || (!working && empty))
+        .disabled(!composable)
         .help(working ? "Pause" : "Send")
     }
 }
@@ -62,15 +42,31 @@ struct ProjectControls: View {
 struct ProjectToolbar: Surface {
     var panel: any Panel
     var model: any Model
-    var onStart: () -> Void
 
-    private var input: Reference? { model.session.input }
+    var composable: Bool {
+        guard let space else { return false }
+        return Space.with(space, { $0.composable }) ?? false
+    }
+
+    func compose() {
+        guard let space, let input, composable else { return }
+        Document.update(input) { $0.clear() }
+        Space.update(space, { $0.input(input) })
+        model.compose(space)
+    }
+
+    func cancel() {
+        guard let space else { return }
+        model.cancel(space)
+    }
+
+    private var input: Reference? { context?.input }
     private var space: Reference? { model.session.selection.structure }
     private var context: Context? { space?.context }
     private var harness: Reference? { space.flatMap { Space.with($0, { $0.harness }) ?? nil } }
 
     var body: some View {
-        if let input {
+        if let space, let input {
             VStack(alignment: .leading, spacing: 8) {
                 BlockList(document: input)
                     .id(input)
@@ -86,7 +82,7 @@ struct ProjectToolbar: Surface {
                             .font(Typography.detail)
                             .foregroundStyle(Style.Foreground.secondary)
                     }
-                    ProjectControls(panel: panel, model: model, input: input, onStart: onStart)
+                    ProjectControls(input: input, space: space, onCompose: compose, onCancel: cancel)
                 }
                 .frame(minHeight: Style.Dimension.control(.small))
                 .padding(.horizontal, 16)

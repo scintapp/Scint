@@ -18,7 +18,6 @@ struct NavigatorMapper: Mapper {
             onSelect: { item in
                 guard let ref = item.ref else { return }
                 model.select(ref, entry: item.entryId, url: item.path)
-                model.focus(ref)
             },
             surfaceDropTarget: {
                 let space = model.session.projects

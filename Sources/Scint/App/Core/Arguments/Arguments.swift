@@ -122,28 +122,7 @@ struct Argument: Identifiable {
     func accepts(_ value: Value) -> Bool { (try? template.construct(value, name: name)) != nil }
 
     static func parameters(of owner: Reference, values: [String: Value] = [:]) -> [Parameter] {
-        if let parameters = Command.with(owner, { $0.parameters }) { return parameters }
-        let own = Harness.with(owner, { $0.parameters }) ?? []
-        let commands = own.compactMap { parameter -> Reference? in
-            let value: Value? = switch parameter {
-                case .argument(let name, _, _, let fallback), .reference(let name, _, _, let fallback): values[name] ?? fallback
-                case .fixed: nil
-            }
-            return value?.references.first { $0.type is Command.Type }
-        }
-        return commands.reduce(own) { merged, command in merge(merged, into: Command.with(command, { $0.parameters }) ?? []) }
-    }
-
-    static func merge(_ own: [Parameter], into inherited: [Parameter]) -> [Parameter] {
-        let names = Set(own.compactMap(\.name))
-        let merged = own.map { parameter -> Parameter in
-            guard let name = parameter.name,
-                  case .argument(_, let type, let required, let fallback) = parameter,
-                  case .argument(_, _, let inheritedRequired, let inheritedFallback)? = inherited.first(where: { $0.name == name })
-            else { return parameter }
-            return .argument(name: name, type: type, required: required || inheritedRequired, default: fallback ?? inheritedFallback)
-        }
-        return merged + inherited.filter { $0.name.map { !names.contains($0) } ?? true }
+        Command.with(owner, { Interface($0, values).inputs }) ?? Harness.with(owner, { Interface($0, .start, values).inputs }) ?? []
     }
 }
 
@@ -569,7 +548,7 @@ struct ArgumentConfig {
     }
 
     func store(_ values: [String: Value]) {
-        Space.with(space) { $0.configure(values.isEmpty ? nil : .collection(values), for: owner) }
+        Space.with(space) { $0.config(values.isEmpty ? nil : .collection(values), for: owner) }
     }
 }
 
@@ -732,7 +711,7 @@ struct Arguments: View {
         ("Empty", [], []),
     ]
 
-    let parameters = harnesses.first { $0.name == selected }.map { Argument.merge($0.harness, into: $0.command) } ?? []
+    let parameters = harnesses.first { $0.name == selected }.map { Interface($0.command + $0.harness).parameters } ?? []
 
     VStack(alignment: .leading, spacing: 0) {
         Picker("Harness", selection: $selected) {

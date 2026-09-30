@@ -56,7 +56,7 @@ struct InboxContent: Surface {
     var model: any Model
 
     var sections: [(state: Context.State, compositions: [Context])] {
-        let compositions = Runtime.shared.resolve().sorted { ($0.updated ?? .distantPast) > ($1.updated ?? .distantPast) }
+        let compositions = Runtime.shared.context().sorted { ($0.updated ?? .distantPast) > ($1.updated ?? .distantPast) }
         return [Context.State.failed, .completed].compactMap { state -> (state: Context.State, compositions: [Context])? in
             let matching = compositions.filter { $0.state == state }
             return matching.isEmpty ? nil : (state, matching)

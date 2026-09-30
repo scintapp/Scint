@@ -13,13 +13,15 @@ struct TasksCard: View {
     @State var hovered: Bool
 
     var selected: Bool { model.session.selection.selected(ref) }
-    var title: String { Sheet.with(ref) { $0.name } ?? "" }
-    var command: Reference? { Sheet.with(ref) { $0.command } ?? nil }
-    var space: Reference? { Sheet.with(ref) { $0.arguments["space"]?.references.first } ?? nil }
-    var done: Bool { Sheet.with(ref) { $0.done } ?? false }
+    var blocks: [ScintRuntime.Document.Block] { ScintRuntime.Document.with(ref, { $0.blocks }) ?? [] }
+    var preview: [ScintRuntime.Document.Block] { ScintRuntime.Document.with(ref, { $0.body }) ?? [] }
+    var title: String { if case .task(_, let text, _, _)? = blocks.first { text } else { "" } }
+    var command: Reference? { blocks.lazy.compactMap { if case .command(let ref) = $0 { ref } else { nil } }.first }
+    var space: Reference? { blocks.lazy.compactMap { if case .data(_, .collection(let values)) = $0 { values["space"]?.references.first } else { nil } }.first }
+    var done: Bool { if case .task(_, _, let done, _)? = blocks.first { done } else { false } }
 
     var due: String? {
-        guard let when = Sheet.with(ref, { $0.when }) ?? nil else { return nil }
+        guard case .task(_, _, _, let when?)? = blocks.first else { return nil }
         let date = when.next(after: Calendar.current.startOfDay(for: .now)) ?? when.date
         let time = date.formatted(date: .omitted, time: .shortened)
         if Calendar.current.isDateInToday(date) { return "Today, \(time)" }
@@ -30,12 +32,6 @@ struct TasksCard: View {
     var updated: String {
         let relative = ref.descriptor.updated.formatted(.relative(presentation: .named))
         return relative == "now" ? "Updated Just Now" : "Updated \(relative)"
-    }
-
-    var document: Reference? { Sheet.with(ref, { $0.material }) ?? nil }
-    var blocks: [ScintRuntime.Document.Block] {
-        if let document, let blocks = ScintRuntime.Document.with(document, { $0 })?.blocks { return blocks }
-        else { return [] }
     }
 
     var body: some View {
@@ -58,7 +54,7 @@ struct TasksCard: View {
 
             GeometryReader { proxy in
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(blocks.prefix(9)) {
+                    ForEach(preview.prefix(9)) {
                         DocumentBlock(block: $0)
                             .allowsHitTesting(false)
                             .textSelection(.disabled)

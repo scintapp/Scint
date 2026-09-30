@@ -22,7 +22,6 @@ final class DataModel: Codable, @unchecked Sendable {
 
         return Runtime.shared.all(as: Document.self)
             .map { $0.0 }
-            .filter { $0.descriptor.name != "Input" }
             .compactMap { ref in
                 guard ref.type is ScintRuntime.Document.Type else { return nil }
                 return ref

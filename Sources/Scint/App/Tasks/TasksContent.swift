@@ -42,7 +42,7 @@ struct TasksContent: Surface {
     var sheets: [Reference] {
         guard let docs = Space.with(tasks, { $0 })?.documents
         else { return [] }
-        return docs.filter { Sheet.with($0, { $0 }) != nil }
+        return docs.filter { if case .task? = Document.with($0, { $0.blocks.first }) ?? nil { true } else { false } }
     }
 
     @State private var scope: Scope = .today

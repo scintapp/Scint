@@ -96,11 +96,6 @@ extension Session {
         return bridges
     }
 
-    var input: Reference? {
-        guard let structure = selection.structure else { return nil }
-        return Space.with(structure, { $0.input }).flatMap { $0 }
-    }
-
     var transcript: Reference? {
         guard let space = selection.structure, let context = space.context else { return nil }
         return context.transcript

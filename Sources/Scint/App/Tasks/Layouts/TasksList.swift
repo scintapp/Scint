@@ -9,13 +9,14 @@ struct TasksListRow: View {
 
     @State var hovered: Bool = false
 
-    var name: String { Sheet.with(ref) { $0.name } ?? "" }
-    var done: Bool { Sheet.with(ref) { $0.done } ?? false }
-    var command: Reference? { Sheet.with(ref) { $0.command } ?? nil }
-    var space: Reference? { Sheet.with(ref) { $0.arguments["space"]?.references.first } ?? nil }
+    var blocks: [Block] { Document.with(ref, { $0.blocks }) ?? [] }
+    var name: String { if case .task(_, let text, _, _)? = blocks.first { text } else { "" } }
+    var done: Bool { if case .task(_, _, let done, _)? = blocks.first { done } else { false } }
+    var command: Reference? { blocks.lazy.compactMap { if case .command(let ref) = $0 { ref } else { nil } }.first }
+    var space: Reference? { blocks.lazy.compactMap { if case .data(_, .collection(let values)) = $0 { values["space"]?.references.first } else { nil } }.first }
 
     var due: String? {
-        guard let when = Sheet.with(ref, { $0.when }) ?? nil else { return nil }
+        guard case .task(_, _, _, let when?)? = blocks.first else { return nil }
         let date = when.next(after: Calendar.current.startOfDay(for: .now)) ?? when.date
         let time = date.formatted(date: .omitted, time: .shortened)
         if Calendar.current.isDateInToday(date) { return "Today, \(time)" }
@@ -26,7 +27,10 @@ struct TasksListRow: View {
     var body: some View {
         VStack {
             HStack(alignment: .center, spacing: 12) {
-                Button { Sheet.update(ref) { $0.done = !done } } label: {
+                Button {
+                    guard case .task(let id, let text, let done, let when)? = blocks.first else { return }
+                    Document.update(ref) { $0.update(.task(id, text, !done, when), at: 0) }
+                } label: {
                     Image(systemName: done ? "checkmark.app" : "app")
                         .frame(maxWidth: 20, maxHeight: 20, alignment: .center)
                         .font(.system(size: 18))
@@ -92,11 +96,11 @@ struct TasksList: Surface {
 
     var tasks: [Reference] {
         guard let tasks = Space.with(model.session.tasks, { $0.documents }) else { return [] }
-        return tasks.filter { Sheet.with($0, { !$0.done }) == true }
+        return tasks.filter { if case .task(_, _, false, _)? = Document.with($0, { $0.blocks.first }) ?? nil { true } else { false } }
     }
 
     func date(_ ref: Reference) -> Date? {
-        guard let when = Sheet.with(ref, { $0.when }) ?? nil else { return nil }
+        guard case .task(_, _, _, let when?)? = Document.with(ref, { $0.blocks.first }) ?? nil else { return nil }
         return when.next(after: Calendar.current.startOfDay(for: .now)) ?? when.date
     }
 

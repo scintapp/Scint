@@ -17,7 +17,6 @@ struct ProjectsList: Mapper {
             onSelect: { item in
                 guard let ref = item.ref else { return }
                 model.select(ref, entry: item.entryId, url: item.path)
-                model.focus(ref)
             },
             surfaceDropTarget: {
                 .init(name: "Projects")

@@ -8,19 +8,20 @@ struct TaskContent: Surface {
     var model: any Model
 
     var ref: Reference? { model.session.opened.document }
-    var ready: Bool { ref.flatMap { Sheet.with($0, { $0.when }) ?? nil } != nil }
-    var completed: Bool? { if let ref { Sheet.with(ref) { $0.done } }; return nil }
+    var task: Block? { ref.flatMap { Document.with($0, { $0.blocks.first }) ?? nil } }
+    var ready: Bool { if case .task(_, _, _, _?)? = task { true } else { false } }
+    var completed: Bool? { if case .task(_, _, let done, _)? = task { done } else { nil } }
 
     var scheduled: Bool {
-        guard let ref, case let (origin, done)? = Sheet.with(ref, { ($0.origin, $0.done) }), !done,
-              let transcript = Runtime.shared.resolve(origin)?.transcript,
+        guard let ref, completed == false, let origin = Document.with(ref, { $0.origin }),
+              let transcript = Runtime.shared.context().first(where: { $0.space == origin })?.transcript,
               let entries = Transcript.with(transcript, { $0.entries })
         else { return false }
 
         let events = entries.compactMap { entry -> Bool? in
             switch entry {
-                case .event(.start(let value), _) where value.references.contains(ref): true
-                case .event(.stop(let value), _) where value.references.contains(ref): false
+                case .event(.start(let input), _) where input == ref: true
+                case .event(.cancel, _): false
                 default: nil
             }
         }
@@ -29,9 +30,12 @@ struct TaskContent: Surface {
 
     var body: some View {
         ScrollView {
-            if let ref, let material = Sheet.with(ref, { $0.material }) ?? nil {
+            if let ref {
                 VStack(alignment: .leading, spacing: Style.Spacing.section) {
-                    TaskHeader(ref: ref, onStart: { model.observe(ref) }, onStop: { model.stop(ref) })
+                    TaskHeader(ref: ref, onCompose: {
+                        Space.update(model.session.tasks, { $0.inputs(ref) })
+                        model.compose(model.session.tasks)
+                    }, onCancel: { model.cancel(model.session.tasks) })
 
                     Divider()
 
@@ -45,8 +49,8 @@ struct TaskContent: Surface {
 
                     TaskSetup(panel: panel, model: model)
 
-                    BlockList(document: material, autofocus: false)
-                        .id(material)
+                    BlockList(document: ref, autofocus: false)
+                        .id(ref)
                 }
                 .frame(maxWidth: Typography.Prose.readableWidth, alignment: .leading)
                 .padding(Style.Spacing.page)

@@ -40,7 +40,7 @@ struct SearchDetail: View {
                     PanelRow(name: verb.rawValue.capitalized, image: verb.image) {
                         switch verb {
                             case .open: model.open(ref)
-                            case .execute: model.start(ref)
+                            case .execute: model.compose(ref)
                             case .insert: Space.with(model.session.projects, { $0 })?.add(ref)
                         }
                     }

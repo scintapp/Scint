@@ -355,17 +355,20 @@ struct HarnessGroup: Mapper {
         }
 
         func configure(_ value: Value?, for key: String) {
-            if let owner, Sheet.with(owner, { _ in true }) != nil {
-                var values: [String: Value] = if case .collection(let values)? = Sheet.with(owner, { $0.data }) ?? nil { values } else { [:] }
-                values[key] = value
-                Sheet.with(owner) { $0.data = .collection(values) }
+            if let owner, let data = Document.with(owner, { $0.blocks.firstIndex { if case .data = $0 { true } else { false } } }) ?? nil {
+                Document.update(owner) { document in
+                    guard case .data(let id, let current) = document.blocks[data] else { return }
+                    var values: [String: Value] = if case .collection(let values) = current { values } else { [:] }
+                    values[key] = value
+                    document.update(.data(id, .collection(values)), at: data)
+                }
                 return
             }
             guard let owner = owner ?? (Space.with(space, { $0.harness }) ?? nil) else { return }
             Space.with(space) { space in
                 var values: [String: Value] = if case .collection(let values)? = space.config[owner] { values } else { [:] }
                 values[key] = value
-                space.configure(.collection(values), for: owner)
+                space.config(.collection(values), for: owner)
             }
         }
 
@@ -374,7 +377,7 @@ struct HarnessGroup: Mapper {
         }
 
         func when(_ key: String) -> When? {
-            if let owner, case .collection(let values)? = Sheet.with(owner, { $0.data }) ?? nil {
+            if let owner, case .data(_, .collection(let values))? = Document.with(owner, { $0.blocks.first { if case .data = $0 { true } else { false } } }) ?? nil {
                 return if case .when(let when)? = values[key] { when } else { nil }
             }
             guard let owner = owner ?? (Space.with(space, { $0.harness }) ?? nil),
@@ -483,16 +486,9 @@ struct HarnessGroup: Mapper {
         let passthrough = (declaration?.parameters ?? []).filter { passthroughKey($0) != nil }
         let passthroughKeys = Set(passthrough.compactMap(passthroughKey))
 
-        let passthroughCommand = passthroughKeys.sorted().lazy
-            .compactMap { config[$0]?.references.first }
-            .first
-
-        let passthroughParameters = passthroughCommand.flatMap { Command.with($0, { $0.parameters }) } ?? []
-
-        var seen: Set<String> = []
-        let parameters = ((declaration?.parameters ?? []) + passthroughParameters).filter { parameter in
+        let parameters = (harness.flatMap { Harness.with($0, { Interface($0, .start, config).inputs }) } ?? []).filter { parameter in
             guard case .argument(let key, _, _, _) = parameter else { return false }
-            return !passthroughKeys.contains(key) && seen.insert(key).inserted
+            return !passthroughKeys.contains(key)
         }
 
         let settingItems = settings(parameters, config: config)

@@ -97,7 +97,7 @@ struct Card: View {
                             case .compose: ["composed"]
                             case .start, .update: ["active"]
                             case .complete: ["completed"]
-                            case .stop: ["stopped"]
+                            case .cancel: ["stopped"]
                             case .fail: ["failed"]
                         }
                     }

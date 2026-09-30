@@ -361,8 +361,8 @@ enum TranscriptEntry: View {
                     }
                 }
 
-            case .event(.fail(let value), _):
-                guard case .collection(let fields) = value, let text = fields["text"]?.rendered.joined(separator: " ")
+            case .event(.fail(let branch), _):
+                guard let text = Transcript.with(branch, { $0.records.last?.value.rendered.joined(separator: " ") }) ?? nil, !text.isEmpty
                 else { self = .notice(NoticeEntry(content: "Stopped with an error")); return }
                 self = .notice(NoticeEntry(content: text))
 

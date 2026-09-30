@@ -143,7 +143,7 @@ struct TranscriptPicker: View {
         if let context = model.session.transcripts.first,
            let selected = model.session.transcript,
            let space = model.session.selection.structure,
-           let composition = Runtime.shared.resolve(space) {
+           let composition = model.compose(space) {
             let branches: [(ref: Reference, intent: Intent)] = Transcript.with(context, { record in
                 record.entries.compactMap { entry in
                     guard case .transcript(let ref, let intent, _) = entry else { return nil }

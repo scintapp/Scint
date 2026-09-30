@@ -8,7 +8,12 @@ struct TasksNew: View {
 
     var body: some View {
         IconButton(systemImage: "plus") {
-            model.session.open(Sheet.new(model.session.tasks))
+            let task = Document.new(model.session.tasks, name: "New Task")
+            Document.update(task) { document in
+                document.delete(at: 0)
+                document.insert([.task(UUID(), "New Task", false, nil), .data(UUID(), .collection([:]))], at: 0)
+            }
+            model.session.open(task)
         }
         .help("New Task")
     }
