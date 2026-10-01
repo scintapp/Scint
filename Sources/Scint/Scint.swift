@@ -36,7 +36,7 @@ struct Scint: App {
 
         MenuBarExtra(content: {
             if let scint {
-                Host()
+                ScintMenu()
                     .environment(scint)
                     .environment(\.openURL, scint.openURL)
                     .focusable(false)

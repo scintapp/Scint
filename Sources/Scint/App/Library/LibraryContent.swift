@@ -25,7 +25,7 @@ struct LibraryContent: Surface {
                         LibraryCard(ref: ref, model: model, hovered: false)
                             .onTapGesture { model.select(ref) }
                             .onTapGesture(count: 2) { model.open(ref) }
-                            .contextMenu { ContextActionMenu(ref: ref, model: model) }
+                            .contextMenu { ContextMenu(ref: ref, model: model) }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)

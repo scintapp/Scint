@@ -49,7 +49,7 @@ struct TaskContent: Surface {
 
                     TaskSetup(panel: panel, model: model)
 
-                    BlockList(document: ref, autofocus: false)
+                    BlockList(ref: ref, autofocus: false)
                         .id(ref)
                 }
                 .frame(maxWidth: Typography.Prose.readableWidth, alignment: .leading)

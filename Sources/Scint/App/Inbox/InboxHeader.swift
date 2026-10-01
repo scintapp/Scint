@@ -1,10 +1,10 @@
 import SwiftUI
 import ScintComponents
+import ScintRuntime
 
 
-struct InboxHeader: Surface {
-    var panel: any Panel
-    var model: any Model
+struct InboxHeader: View {
+    var ref: Reference
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {

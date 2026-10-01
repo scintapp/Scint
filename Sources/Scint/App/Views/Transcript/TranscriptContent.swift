@@ -32,7 +32,7 @@ struct TranscriptContent: View {
         ZStack(alignment: .bottom) {
             ScrollView {
                 Color.clear.frame(height: 10)
-                LazyVStack(spacing: Style.Spacing.page) {
+                LazyVStack(spacing: 24) {
                     ForEach(entries, id: \.id) { item in
                         item.entry
                             .frame(maxWidth: Typography.Prose.readableWidth)

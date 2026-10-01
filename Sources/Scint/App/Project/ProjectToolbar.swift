@@ -9,7 +9,6 @@ struct ProjectControls: View {
     var onCompose: () -> Void
     var onCancel: () -> Void
 
-
     var composable: Bool { Runtime.shared.composable(space) }
     var context: Context? { space.context }
     var started: Bool { context?.state == .active ? true : false  }
@@ -25,7 +24,7 @@ struct ProjectControls: View {
     var body: some View {
         Button { !working ? onCompose() : onCancel() } label: {
             if started {
-                Image(systemName: "stop.fill")
+                Image(systemName: "pause.fill")
                     .font(Typography.footnote)
                     .foregroundStyle(Style.Background.canvas)
                     .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
@@ -36,6 +35,14 @@ struct ProjectControls: View {
         .keyboardShortcut(working ? nil : KeyboardShortcut(.return, modifiers: .command))
         .disabled(!composable)
         .help(working ? "Pause" : "Send")
+    }
+}
+
+struct ProjectIntent<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        content
     }
 }
 
@@ -67,21 +74,21 @@ struct ProjectToolbar: Surface {
 
     var body: some View {
         if let space, let input {
-            VStack(alignment: .leading, spacing: 8) {
-                BlockList(document: input)
+            VStack(alignment: .leading, spacing: 0) {
+                if let context, context.state == .working {
+                    StatusDot(context.intent.forms.running, tint: Iconography.tint(for: context.intent), isActive: true, size: 6)
+                        .font(Typography.detail)
+                        .foregroundStyle(Style.Foreground.secondary)
+                }
+
+                BlockList(ref: input)
                     .id(input)
-                    .frame(minHeight: 44, alignment: .topLeading)
+                    .frame(minHeight: 32, alignment: .top)
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
 
-                HStack(alignment: .center, spacing: 10) {
+                HStack(alignment: .center, spacing: 0) {
                     Spacer(minLength: 0)
-
-                    if let context, context.state == .working {
-                        StatusDot(context.intent.forms.running, tint: Iconography.tint(for: context.intent), isActive: true, size: 6)
-                            .font(Typography.detail)
-                            .foregroundStyle(Style.Foreground.secondary)
-                    }
                     ProjectControls(input: input, space: space, onCompose: compose, onCancel: cancel)
                 }
                 .frame(minHeight: Style.Dimension.control(.small))
@@ -90,15 +97,19 @@ struct ProjectToolbar: Surface {
             }
             .frame(maxWidth: Typography.Prose.readableWidth)
             .background {
-                Style.Shape.input
-                    .fill(Style.Background.canvas.opacity(0.5))
-                    .glassEffect(.regular.tint(Style.Background.canvas.opacity(0.75)), in: Style.Shape.input)
-                    .blur(radius: 2, opaque: true)
-                Style.Shape.input
-                    .blendMode(.plusDarker)
+                Style.Background.canvas
+                    .blendMode(.sourceAtop)
+                    .opacity(0.5)
             }
+            .glassEffect(.regular.tint(Style.Background.canvas.opacity(0.5)), in: Style.Shape.input)
+
             .clipShape(Style.Shape.input)
-            .overlay { Style.Shape.input.stroke(Style.Border.hairline, lineWidth: 1).opacity(0.25) }
+            .overlay {
+                Style.Shape.input
+                    .stroke(Style.Border.panel, lineWidth: 1)
+                    .opacity(0.5)
+                    .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
+            }
         }
     }
 }

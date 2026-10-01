@@ -60,10 +60,15 @@ import ScintComponents
         }
 
         for span in document.spans where span.kind == .inlineCode && shows(span.range) {
-            for rect in frames(for: span.range) { MarkdownDecoration.code(rect.insetBy(dx: -4, dy: -4)) }
+            guard let range = textRange(span.range) else { continue }
+            layout.enumerateTextSegments(in: range, type: .standard, options: [.rangeNotRequired]) { _, frame, baseline, _ in
+                let run = frame.offsetBy(dx: origin.x, dy: origin.y)
+                MarkdownDecoration.inlineCode(run, baseline: run.minY + baseline); return true
+            }
         }
         for rect in runs(of: .codeBlock) {
-            MarkdownDecoration.code(CGRect(x: origin.x, y: rect.minY, width: width, height: rect.height).insetBy(dx: 0, dy: -4))
+            let padding = Typography.Prose.codeBlockPadding
+            MarkdownDecoration.codeBlock(CGRect(x: origin.x, y: rect.minY - padding.top, width: width, height: rect.height + padding.top + padding.bottom))
         }
         styler.theme.bulletColor.setFill()
         for rect in runs(of: .quote) {

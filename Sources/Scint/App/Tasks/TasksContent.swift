@@ -3,36 +3,6 @@ import ScintRuntime
 import ScintComponents
 
 
-//struct TasksContent: Surface {
-//    var panel: any Panel
-//    var model: any Model
-//
-//    @State private var scope: Scope = .today
-//
-//    enum Scope: String, CaseIterable {
-//        case today, upcoming, later, all
-//
-//        var label: String {
-//            switch self {
-//                case .today: "Today"
-//                case .upcoming: "Upcoming"
-//                case .later: "Later"
-//                case .all: "All Tasks"
-//            }
-//        }
-//    }
-//
-//    var body: some View {
-//        ScrollView {
-//            TasksList(panel: panel, model: model)
-//        }
-//        .background(Style.Background.canvas)
-//        .scrollEdgeEffectStyle(.soft, for: .vertical)
-//        .safeAreaBar(edge: .top) { TasksHeader(panel: panel, model: model, scope: $scope) }
-//    }
-//}
-
-
 struct TasksContent: Surface {
     var panel: any Panel
     var model: any Model
@@ -69,7 +39,7 @@ struct TasksContent: Surface {
                         TasksCard(ref: sheet, model: model, hovered: false)
                             .onTapGesture(count: 2) { model.open(sheet) }
                             .onTapGesture { model.select(sheet) }
-                            .contextMenu { ContextActionMenu(ref: sheet, model: model) }
+                            .contextMenu { ContextMenu(ref: sheet, model: model) }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)

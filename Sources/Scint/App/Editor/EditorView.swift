@@ -90,7 +90,7 @@ struct EditorView: NSViewRepresentable {
     var onFocus: () -> Void = {}
     var onChange: (String) -> Void = { _ in }
     var onInsert: ([ScintRuntime.Document.Block], Int) -> Void = { _, _ in }
-    var onExit: (ScintEditor.Exit) -> Bool = { _ in false }
+    var onExit: (Exit) -> Bool = { _ in false }
     var onSplit: (String, String) -> Bool = { _, _ in false }
     var onDeleteAtStart: () -> Bool = { false }
     var onEscape: (Int) -> Bool = { _ in false }

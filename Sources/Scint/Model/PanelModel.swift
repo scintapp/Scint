@@ -1,18 +1,16 @@
 import AppKit
-import OrderedCollections
 import SwiftUI
 import ScintRuntime
 import ScintComponents
 
 
 @Observable @MainActor final class PanelModel {
-    private(set) var coordinators: OrderedDictionary<AnyHashable, PanelCoordinator> = [:]
-
+    private(set) var coordinators: [AnyHashable: PanelCoordinator] = [:]
     let actions: ActionsPanel = .init()
     let input: InputPanel = .init()
     let search: SearchPanel = .init()
 
-    func makeView<Content: View>(_ content: Content) -> some View {
+    func content<Content: View>(_ content: Content) -> some View {
         content
             .clipShape(Style.Shape.panel)
             .glassEffect(.regular, in: Style.Shape.panel)
@@ -24,8 +22,7 @@ import ScintComponents
             }
     }
 
-
-    func getPanel(for key: PanelKey) -> any Panel {
+    func panel(for key: PanelKey) -> any Panel {
         switch key {
             case .actions: actions
             case .input: input
@@ -37,15 +34,15 @@ import ScintComponents
 
     func presented(_ key: PanelKey) -> Bool { coordinators[key]?.isVisible ?? false }
 
-    func toggle(_ key: PanelKey, _ params: PanelParams, _ view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) {
-        coordinator(for: key, parameters: params, view: view, onVisibilityChange: onVisibilityChange).toggle()
-    }
-
     func show(_ key: PanelKey, _ params: PanelParams, _ view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) {
         coordinator(for: key, parameters: params, view: view, onVisibilityChange: onVisibilityChange).show()
     }
 
     func hide(_ key: PanelKey) { coordinators[key]?.hide() }
+
+    func toggle(_ key: PanelKey, _ params: PanelParams, _ view: some View, onVisibilityChange: ((Bool) -> Void)? = nil) {
+        coordinator(for: key, parameters: params, view: view, onVisibilityChange: onVisibilityChange).toggle()
+    }
 
     private func coordinator(for key: PanelKey, parameters: PanelParams, view: some View, onVisibilityChange: ((Bool) -> Void)?) -> PanelCoordinator {
         if let existing = coordinators[key] {
@@ -53,10 +50,10 @@ import ScintComponents
             return existing
         }
 
-        let host = getPanel(for: key)
+        let host = panel(for: key)
         let coordinator = PanelCoordinator.load(
             params: parameters,
-            view: AnyView(makeView(view)),
+            view: AnyView(content(view)),
             pinned: { [weak host] in host?.state.pinned ?? false },
             onVisibilityChange: onVisibilityChange
         )

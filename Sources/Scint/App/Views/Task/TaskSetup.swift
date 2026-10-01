@@ -81,7 +81,7 @@ struct TaskSetup: Surface {
                     }
                     ForEach(rows) { row in
                         GroupDivider()
-                        Factory.build(surface, params: row, controls: controls, layout: .group)
+                        GroupFactory.build(surface, row, controls)
                     }
                 }
             }

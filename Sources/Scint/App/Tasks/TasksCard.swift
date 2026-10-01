@@ -16,9 +16,15 @@ struct TasksCard: View {
     var blocks: [ScintRuntime.Document.Block] { ScintRuntime.Document.with(ref, { $0.blocks }) ?? [] }
     var preview: [ScintRuntime.Document.Block] { ScintRuntime.Document.with(ref, { $0.body }) ?? [] }
     var title: String { if case .task(_, let text, _, _)? = blocks.first { text } else { "" } }
-    var command: Reference? { blocks.lazy.compactMap { if case .command(let ref) = $0 { ref } else { nil } }.first }
-    var space: Reference? { blocks.lazy.compactMap { if case .data(_, .collection(let values)) = $0 { values["space"]?.references.first } else { nil } }.first }
     var done: Bool { if case .task(_, _, let done, _)? = blocks.first { done } else { false } }
+
+    var command: Reference? { blocks.lazy.compactMap {
+        if case .command(let ref) = $0 { ref } else { nil } }.first
+    }
+
+    var space: Reference? { blocks.lazy.compactMap {
+        if case .data(_, .collection(let values)) = $0 { values["space"]?.references.first } else { nil } }.first
+    }
 
     var due: String? {
         guard case .task(_, _, _, let when?)? = blocks.first else { return nil }

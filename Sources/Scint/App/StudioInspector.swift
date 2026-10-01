@@ -81,7 +81,7 @@ struct InspectorPicker: View {
     }
 
     func surface(_ model: any Model) -> some View {
-        let hole = PanelHole(insets: EdgeInsets(top: 9, leading: 0, bottom: 9, trailing: 9), radius: Metrics.inspectorHoleRadius)
+        let hole = Cutout(insets: EdgeInsets(top: 9, leading: 0, bottom: 9, trailing: 9), radius: Metrics.inspectorHoleRadius)
         return VStack { inspector(model) }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding([.trailing, .vertical], 9)
@@ -94,7 +94,7 @@ struct InspectorPicker: View {
             }
             .overlay {
                 ZStack {
-                    PanelFrame(hole: hole).fill(Style.Background.canvas, style: FillStyle(eoFill: true))
+                    FrameShape(hole: hole).fill(Style.Background.canvas, style: FillStyle(eoFill: true))
                     hole.strokeBorder(Style.Border.hairline, lineWidth: 1).opacity(0.5)
                 }
                 .ignoresSafeArea()
@@ -105,3 +105,4 @@ struct InspectorPicker: View {
             }
     }
 }
+

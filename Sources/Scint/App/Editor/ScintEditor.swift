@@ -4,7 +4,6 @@ import ScintComponents
 
 
 final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextStorageDelegate {
-    enum Exit { case previous, next }
 
     var onFocus: () -> Void = {}
     var onChange: (String) -> Void = { _ in }
