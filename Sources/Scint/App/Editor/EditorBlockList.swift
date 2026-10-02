@@ -289,7 +289,7 @@ struct BlockList: View {
     private static func reference(in text: String) -> Reference? {
         let source = text as NSString
         guard let link = Markdown.scan(text).links.first, link.range.length == source.length else { return nil }
-        return Reference.Link.reference(in: source.substring(with: link.url))
+        return Reference.Link.resolve(in: source.substring(with: link.url))
     }
 
     private func type(_ id: AnyHashable, _ text: String) {

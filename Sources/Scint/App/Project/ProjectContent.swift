@@ -30,11 +30,9 @@ struct ProjectContent: Surface {
                     CanvasContent(panel: panel, model: model)
 
                 case .process:
-                    if let space, let context = space.context, let transcript = context.transcript {
-                        TranscriptContent(transcript: transcript)
-                    }
+                    TranscriptContent(panel: panel, model: model)
 
-                    ProjectToolbar(panel: panel, model: model)
+                    ProjectIntent(model: model) { ProjectToolbar(panel: panel, model: model) }
                         .frame(alignment: .bottom)
                         .padding([.bottom, .vertical], 10)
 

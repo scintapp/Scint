@@ -93,7 +93,7 @@ import ScintComponents
         }
         for link in document.links where shows(link.range) {
             let isSelected = selectedLink?.range == link.range
-            guard isSelected || Reference.Link.reference(in: source.substring(with: link.url)) != nil else { continue }
+            guard isSelected || Reference.Link.resolve(in: source.substring(with: link.url)) != nil else { continue }
             (isSelected ? NSColor.selectedTextBackgroundColor : styler.theme.codeBgColor).setFill()
             for rect in frames(for: link.label) { NSBezierPath(roundedRect: rect.insetBy(dx: -2, dy: -1), xRadius: 4, yRadius: 4).fill() }
         }

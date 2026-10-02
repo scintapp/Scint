@@ -3,54 +3,53 @@ import ScintRuntime
 import ScintComponents
 
 
-struct TranscriptContent: View {
-    var transcript: Reference
+struct TranscriptThread: View {
+    var ref: Reference
 
-    var entries: [(id: AnyHashable, entry: TranscriptEntry)] {
-        func thread(_ ref: Reference) -> [Transcript.Entry] {
-            let entries = Transcript.with(ref, { $0.entries }) ?? []
-            return entries + entries.flatMap { entry -> [Transcript.Entry] in
-                guard case .transcript(let branch, _, _) = entry else { return [] }
-                return thread(branch)
-            }
-        }
-
-        var entries: [(id: AnyHashable, entry: TranscriptEntry)] = []
-
-        for item in thread(transcript).enumerated().sorted(by: { ($0.element.created, $0.offset) < ($1.element.created, $1.offset) }) {
-            guard let entry = TranscriptEntry(item.element) else { continue }
-            if case .activity(let next) = entry, case .activity(let run)? = entries.last?.entry {
-                entries[entries.count - 1].entry = .activity(ActivityEntry(thoughts: run.thoughts + next.thoughts, tools: run.tools + next.tools))
-            } else {
-                entries.append((item.element.id, entry))
-            }
-        }
-        return entries
-    }
+    var entries: [Transcript.Entry] { Transcript.with(ref, { $0.entries }) ?? [] }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            ScrollView {
-                Color.clear.frame(height: 10)
-                LazyVStack(spacing: 24) {
-                    ForEach(entries, id: \.id) { item in
-                        item.entry
-                            .frame(maxWidth: Typography.Prose.readableWidth)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                Color.clear.frame(height: 150)
-            }
-            .frame(maxWidth: .infinity)
-            .defaultScrollAnchor(.bottom, for: .initialOffset)
-            .scrollEdgeEffectStyle(.hard, for: .top)
+        ForEach(entries) { entry in
+            TranscriptFactory.build(entry)
+                .frame(maxWidth: Typography.Prose.readableWidth)
+        }
+    }
+}
 
-            Rectangle()
-                .fill(Style.Background.canvas)
-                .frame(maxHeight: 64, alignment: .bottom)
-                .blur(radius: 10, opaque: false)
-                .blendMode(.darken)
-                .padding(.bottom, -32)
+struct TranscriptContent: Surface {
+    var panel: any Panel
+    var model: any Model
+
+    @State private var position = ScrollPosition(edge: .bottom)
+
+    var root: Reference? { model.session.selection.structure?.context?.transcript }
+    var last: AnyHashable? { root.flatMap { root in Transcript.with(root, { $0.entries.last?.id }) ?? nil } }
+
+    var body: some View {
+        if let root {
+            ZStack(alignment: .bottom) {
+                ScrollView {
+                    Color.clear.frame(height: 10)
+                    LazyVStack(spacing: 24) {
+                        TranscriptThread(ref: root)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    Color.clear.frame(height: 150)
+                }
+                .frame(maxWidth: .infinity)
+                .scrollPosition($position)
+                .defaultScrollAnchor(.bottom, for: .initialOffset)
+                .scrollEdgeEffectStyle(.hard, for: .top)
+                .onChange(of: root) { position.scrollTo(edge: .bottom) }
+                .onChange(of: last) { position.scrollTo(edge: .bottom) }
+
+                Rectangle()
+                    .fill(Style.Background.canvas)
+                    .frame(maxHeight: 64, alignment: .bottom)
+                    .blur(radius: 10, opaque: false)
+                    .blendMode(.darken)
+                    .padding(.bottom, -32)
+            }
         }
     }
 }

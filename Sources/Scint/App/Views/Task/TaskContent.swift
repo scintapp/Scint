@@ -20,8 +20,8 @@ struct TaskContent: Surface {
 
         let events = entries.compactMap { entry -> Bool? in
             switch entry {
-                case .event(.start(let input), _) where input == ref: true
-                case .event(.cancel, _): false
+                case .signal(_, .start(let input), _) where input == ref: true
+                case .signal(_, .cancel, _): false
                 default: nil
             }
         }

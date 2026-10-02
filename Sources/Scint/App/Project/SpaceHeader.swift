@@ -40,7 +40,7 @@ import ScintComponents
 //    var run: (started: Date, stopped: Date?)? {
 //        guard let transcript = model.session.transcript,
 //              let entries = Transcript.with(transcript, { $0.entries }),
-//              let index = entries.lastIndex(where: { if case .event(.start(_), _) = $0 { true } else { false } })
+//              let index = entries.lastIndex(where: { if case .signal(_, .start(_), _) = $0 { true } else { false } })
 //                else { return nil }
 //        return (entries[index].created, entries[index...].first(where: \.terminal)?.created ?? (working ? nil : entries.last?.created))
 //    }

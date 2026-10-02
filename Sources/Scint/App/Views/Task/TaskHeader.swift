@@ -18,15 +18,15 @@ struct TaskHeader: View {
             let origin = Document.with(ref, { $0.origin }),
             let transcript = Runtime.shared.context().first(where: { $0.space == origin })?.transcript,
             let entries = Transcript.with(transcript, { $0.entries }),
-            let start = entries.lastIndex(where: { if case .event(.start(let input), _) = $0 { input == ref } else { false } })
+            let start = entries.lastIndex(where: { if case .signal(_, .start(let input), _) = $0 { input == ref } else { false } })
                 else { return false }
 
         let branch = entries[start...].lazy.compactMap { entry -> Reference? in if case .transcript(let branch, _, _) = entry { branch } else { nil } }.first
         return !entries[start...].contains { entry in
             switch entry {
-                case .event(.cancel, _): true
-                case .event(.complete(let ended), _), .event(.fail(let ended), _): ended == branch
-                case .event(.update(let input), _): input == ref && !repeating
+                case .signal(_, .cancel, _): true
+                case .signal(_, .complete(let ended), _), .signal(_, .fail(let ended), _): ended == branch
+                case .signal(_, .update(let input), _): input == ref && !repeating
                 default: false
             }
         }
