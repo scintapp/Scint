@@ -4,19 +4,12 @@ import ScintComponents
 
 
 @MainActor struct TranscriptFactory {
-    @ViewBuilder static func build(_ entry: Transcript.Entry) -> some View {
+    @ViewBuilder static func build(_ entries: [Transcript.Entry]) -> some View {
         Group {
-            switch entry {
-                case .record(let record, let created):
-                    switch (record.fields["type"], record.fields["channel"]) {
-                        case (.string("input")?, _): EntryControls(created: created) { build(record) }
-                        case (.string("output")?, nil): EntryControls(created: created, trailing: false) { build(record) }
-                        default: build(record)
-                    }
-                case .signal(_, let signal, _):
-                    build(signal)
-                case .transcript(let ref, _, _):
-                    TranscriptActivity(ref: ref)
+            switch entries.first {
+                case .record(let record, _)? where record.fields["type"] == .string("method"): TranscriptActivity(entries: entries)
+                case let entry?: build(entry)
+                case nil: EmptyView()
             }
         }
         .font(Typography.body)
@@ -26,6 +19,21 @@ import ScintComponents
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .trailing)
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder static func build(_ entry: Transcript.Entry) -> some View {
+        switch entry {
+            case .record(let record, let created):
+                switch (record.fields["type"], record.fields["channel"]) {
+                    case (.string("input")?, _): EntryControls(created: created) { build(record) }
+                    case (.string("output")?, nil): EntryControls(created: created, trailing: false) { build(record) }
+                    default: build(record)
+                }
+            case .signal(_, let signal, _):
+                build(signal)
+            case .transcript:
+                EmptyView()
+        }
     }
 
     @ViewBuilder static func build(_ record: Record) -> some View {

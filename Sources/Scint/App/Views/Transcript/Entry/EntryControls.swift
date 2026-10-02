@@ -40,7 +40,6 @@ struct EntryControls<Content: View>: View {
                 }
             }
             .frame(maxHeight: frame, alignment: .center)
-            .padding(.horizontal, 8)
             .opacity(hovered ? 1 : 0)
         }
         .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)

@@ -86,12 +86,6 @@ struct SectionParams: Hashable, Identifiable {
     }
 }
 
-struct PanelDismissal: OptionSet, Hashable {
-    let rawValue: Int
-    static let escape = Self(rawValue: 1 << 0)
-    static let outsideClick = Self(rawValue: 1 << 1)
-}
-
 struct PanelParams: Hashable, Identifiable {
     var key: PanelKey
     var sizing: Sizing

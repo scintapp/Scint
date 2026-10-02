@@ -11,8 +11,6 @@ struct ToolEntry: View {
 
     var name: String? { if case .string(let name)? = record.fields["name"] { name } else { nil } }
     var detail: String? { record.fields["arguments"]?.stringRepresentation }
-    var result: [String: Property] { if case .object(let result)? = record.fields["result"] { result } else { [:] } }
-    var failed: Bool { result["status"] == .string("failed") }
 
     var arguments: [String: String] {
         guard case .object(let arguments)? = record.fields["arguments"] else { return [:] }
@@ -33,6 +31,7 @@ struct ToolEntry: View {
                 else { return nil }
 
         func named(_ link: String?) -> String? { link.flatMap { Reference.Link.resolve(in: $0) }.map { Card.text(for: $0).name } }
+
         func noun(_ link: String?) -> String? {
             guard let kind = link.flatMap({ URL(string: $0) })?.host, !kind.isEmpty else { return nil }
             return ("aeiou".contains(kind.prefix(1)) ? "an " : "a ") + kind
@@ -48,6 +47,7 @@ struct ToolEntry: View {
             case "stop": "Stopped"
             default: verb.capitalized
         }
+
         let object = named(arguments["ref"]) ?? arguments["name"] ?? noun(arguments["ref"]) ?? named(arguments["space"]) ?? "your space"
         if verb == "add", arguments["ref"] != nil, let space = named(arguments["space"]) { return "\(past) \(object) to \(space)" }
         return "\(past) \(object)"
@@ -72,7 +72,7 @@ struct ToolEntry: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Iconography.Icon(symbol: symbol, tint: failed ? Style.Tint.alert.bright : Style.Tint.neutral.bright, sizing: 12)
+            Iconography.Icon(symbol: symbol, tint: Style.Foreground.muted, sizing: 12)
                 .frame(width: Style.Dimension.icon)
 
             if let sentence { Text(sentence) }
@@ -81,12 +81,12 @@ struct ToolEntry: View {
 
             if sentence == nil, kind == .call, let detail {
                 Text(detail)
-                    .foregroundStyle(Style.Foreground.subtle)
+                    .foregroundStyle(Style.Foreground.muted)
                     .truncationMode(.tail)
             }
         }
         .font(Typography.detail)
         .lineLimit(1)
-        .foregroundStyle(failed ? Style.Tint.alert.bright : Style.Foreground.secondary)
+        .foregroundStyle(Style.Foreground.muted)
     }
 }

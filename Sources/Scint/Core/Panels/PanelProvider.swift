@@ -5,6 +5,12 @@ import ScintComponents
 
 extension Notification.Name { static let scintPanelEscape = Notification.Name("scintPanelEscape") }
 
+struct PanelDismissal: OptionSet, Hashable {
+    let rawValue: Int
+    static let escape = Self(rawValue: 1 << 0)
+    static let outsideClick = Self(rawValue: 1 << 1)
+}
+
 final class FloatingPanel: NSPanel {
     var onEscape: (() -> Void)?
 
