@@ -58,7 +58,12 @@ enum SearchMenu {
     }
 
     static func createSpace(in origin: Reference, name: String = "New Space", model: any Model) {
-        let ref = Space.new(origin, name: name)
+        let ref = Space.new(
+            origin,
+            name: name,
+            description: "Add a description...",
+            intent: .compose
+        )
         model.select(ref)
     }
 
@@ -344,7 +349,15 @@ struct ContextMenu: View {
     var body: some View {
         if space {
             Button(folder ? "New Folder…" : "New Project…") {
-                prompt(folder ? "New Folder" : "New Project") { name in Space.new(ref, name: name) }
+                prompt(folder ? "New Folder" : "New Project") {
+                    name in Space
+                        .new(
+                            ref,
+                            name: name,
+                            description: "Add a description...",
+                            intent: .none
+                        )
+                }
             }
             if folder {
                 Button("New Document…") { prompt("New Document") { name in Document.new(ref, name: name) } }
