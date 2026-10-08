@@ -84,9 +84,9 @@ struct BlockTextView: NSViewRepresentable {
     }
 }
 
-struct EditorView: NSViewRepresentable {
+@MainActor struct EditorView: NSViewRepresentable {
     let text: String
-    var focus: BlockList.Focus?
+    var focus: EditorDocument.Focus?
     var onFocus: () -> Void = {}
     var onChange: (String) -> Void = { _ in }
     var onInsert: ([ScintRuntime.Document.Block], Int) -> Void = { _, _ in }

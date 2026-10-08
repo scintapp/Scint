@@ -129,7 +129,7 @@ extension ScintEditor {
 
     private var placeholderOrigin: CGPoint? {
         let selection = selectedRange(), source = self.source
-        guard window?.firstResponder === self, selection.length == 0, !hasMarkedText(), !menuController.isOpen else { return nil }
+        guard window?.firstResponder === self, selection.length == 0, !hasMarkedText(), !menuProvider.isOpen else { return nil }
         guard source.substring(with: source.lineRange(for: selection)).trimmingCharacters(in: .newlines).isEmpty else { return nil }
         return prose.frames(for: selection, type: .selection).first?.origin
     }

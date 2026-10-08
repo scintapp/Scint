@@ -99,6 +99,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				LibraryDocuments.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* Scint */;
 		};

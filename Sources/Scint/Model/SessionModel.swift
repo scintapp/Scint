@@ -101,12 +101,6 @@ extension Session {
         return context.transcript
     }
 
-    var transcripts: [Reference] {
-        guard let structure = selection.structure else { return [] }
-        let roots = Space.with(structure, { $0.transcripts }) ?? []
-        return roots.sorted { $0.descriptor.created > $1.descriptor.created }
-    }
-
     var document: Reference? {
         guard let content = selection.content else { return nil }
         guard content.type is Document.Type else { return nil }
@@ -114,6 +108,24 @@ extension Session {
     }
 
     var documents: [Reference] {
+        let order: [Reference: Int] = [:]
+        func position(_ ref: Reference) -> Int { order[ref] ?? .max }
+
+        return Runtime.shared.all(as: Document.self)
+            .map { $0.0 }
+            .filter { !$0.descriptor.tags.contains("task") }
+            .compactMap { ref in
+                guard ref.type is ScintRuntime.Document.Type else { return nil }
+                return ref
+            }.sorted {
+                let lhs = position($0)
+                let rhs = position($1)
+                if lhs != rhs { return lhs < rhs }
+                return $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending
+            }
+    }
+
+    var folder: [Reference] {
         guard let structure = selection.structure else { return [] }
         let roots = Space.with(structure, { $0.documents }) ?? []
         return roots.sorted { $0.descriptor.created > $1.descriptor.created }

@@ -10,7 +10,8 @@ struct InboxHeader: View {
         HStack(alignment: .center, spacing: 12) {
             IconButton(systemImage: "plus") { }
                 .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
-            Text("Inbox").font(Typography.pageTitle)
+            Text("Inbox")
+                .font(Typography.pageTitle)
             Spacer()
             IconButton(systemImage: "ellipsis") { }
                 .shadow(color: .black.opacity(0.3), radius: 2, y: 1)

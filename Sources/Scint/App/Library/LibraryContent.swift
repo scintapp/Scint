@@ -5,19 +5,16 @@ import ScintComponents
 
 
 struct LibraryContent: Surface {
-    var panel: any Panel
+    var host: any Host
     var model: any Model
 
-    var library: Reference { model.session.library }
-
     var documents: [Reference] {
-        guard let documents = Space.with(library, { $0 })?.documents
-                else { return [] }
-        return documents
+        if model.session.selection.structure == model.session.library { return model.session.documents }
+        else { return model.session.folder }
     }
 
     var body: some View {
-        if model.session.opened.document != nil { DocumentContent(panel: panel, model: model) }
+        if model.session.opened.document != nil { DocumentContent(host: host, model: model) }
         else {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 230, maximum: 240), spacing: 20)], alignment: .leading, spacing: 20) {
@@ -37,7 +34,8 @@ struct LibraryContent: Surface {
             .onTapGesture { if let ref = model.session.selection.content { model.session.close(ref) } }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .background(Style.Background.canvas)
-            .safeAreaBar(edge: .top) { LibraryHeader(panel: panel, model: model) }
+            .scrollEdgeEffectStyle(.hard, for: .vertical)
+            .safeAreaBar(edge: .top) { LibraryHeader(model: model) }
         }
     }
 }

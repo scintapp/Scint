@@ -20,10 +20,10 @@ struct Scint: App {
     var body: some Scene {
         Window("Studio", id: "studio") {
             if let scint {
-                Studio()
+                AppView()
                     .environment(scint)
-                    .environment(scint.studio)
-                    .onAppear { ShortcutManager.shared.register(model: scint) }
+                    .environment(scint.app)
+                    .onAppear { ShortcutProvider.shared.register(model: scint) }
                     .environment(\.openURL, scint.openURL)
                     .onOpenURL { scint.open($0) }
                     .focusable(false)
@@ -65,13 +65,11 @@ struct Scint: App {
     func runtime() async {
         do {
             try await Runtime.shared.load()
-            let data = await DataModel()
-            let model = ScintModel(data)
-            ref = data.scint
-            scint = model
+            let model = ScintModel(DataModel(Runtime.shared.data))
             await serve()
             model.open(pending)
             pending = nil
+            self.scint = model
         } catch {
             Self.logger.error("Runtime load failed: \(String(describing: error), privacy: .public)")
         }

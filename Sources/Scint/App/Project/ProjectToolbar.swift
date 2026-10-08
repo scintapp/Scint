@@ -21,13 +21,270 @@ struct ContextTicker: View {
     }
 }
 
+struct CommandTrack: View {
+    var stops: Int
+    var selected: Int?
+    var onSelect: (Int) -> Void
+
+    var body: some View {
+        GeometryReader { geometry in
+            let step = (geometry.size.width - 16) / CGFloat(max(stops - 1, 1))
+            let center = geometry.size.height / 2
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Style.Background.surface)
+                    .frame(height: 10)
+
+                if let selected {
+                    Capsule()
+                        .fill(Style.Foreground.secondary)
+                        .frame(width: 16 + CGFloat(selected) * step, height: 10)
+                }
+
+                ForEach(0..<stops, id: \.self) { index in
+                    Circle()
+                        .fill(Style.Foreground.primary.opacity(0.35))
+                        .frame(width: 3, height: 3)
+                        .position(x: 8 + CGFloat(index) * step, y: center)
+                }
+
+                if let selected {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 16, height: 16)
+                        .shadow(color: .black.opacity(0.3), radius: 1.5, y: 1)
+                        .position(x: 8 + CGFloat(selected) * step, y: center)
+                }
+            }
+            .contentShape(Capsule())
+            .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                onSelect(min(max(Int(((drag.location.x - 8) / step).rounded()), 0), stops - 1))
+            })
+        }
+        .frame(height: 16)
+    }
+}
+
+struct CommandOption: View {
+    var name: String
+    var selected = false
+    var disclosure = false
+    var action: () -> Void
+
+    @State private var hovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(name)
+                    .foregroundStyle(Style.Foreground.primary)
+                Spacer(minLength: 0)
+                if selected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Style.Foreground.secondary)
+                }
+                if disclosure {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Style.Foreground.secondary)
+                }
+            }
+            .font(Typography.detail)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .frame(minHeight: 28)
+            .background(hovered ? Style.Background.surface : .clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+    }
+}
+
+struct CommandHeader: View {
+    var title: String
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 3) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 10, weight: .semibold))
+                Text(title)
+            }
+            .font(Typography.detail)
+            .foregroundStyle(Style.Foreground.secondary)
+            .padding(.horizontal, 8)
+            .frame(height: 28)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct ProjectCommand: Surface {
+    var host: any Host
+    var model: any Model
+
+    @State private var presented = false
+    @State private var hovered = false
+    @State private var page: Page = .summary
+    @State private var forward = true
+
+    enum Page: Hashable {
+        case summary, providers, models(Reference)
+
+        var depth: Int {
+            switch self {
+                case .summary: 0
+                case .providers: 1
+                case .models: 2
+            }
+        }
+    }
+
+    var space: Reference? { model.session.selection.structure }
+    var harness: Reference? { space.flatMap { Space.with($0, { $0.harness }) ?? nil } }
+    var inputs: [Parameter] { harness.flatMap { Harness.with($0, { Interface($0, .start, config).inputs }) } ?? [] }
+    var command: Reference? { slot.flatMap { config[$0]?.references.first } }
+    var settings: [ItemParams] { HarnessGroup.settings(inputs, config: config) }
+    var range: ItemParams? { settings.first { $0.trailingKind == .range } }
+    var models: ItemParams? { settings.first { $0.key == "model" } }
+
+    var config: [String: Value] {
+        guard let space, let harness, case .collection(let values)? = Space.with(space, { $0.config[harness] }) ?? nil
+        else { return [:] }
+        return values
+    }
+
+    var slot: String? {
+        inputs.compactMap { parameter -> String? in
+            guard case .reference(let key, _, _, _) = parameter else { return nil }
+            return key
+        }.first
+    }
+
+    var providers: [Reference] {
+        Runtime.shared.all(as: Command.self)
+            .map { $0.0 }
+            .filter { $0.descriptor.tags.contains("provider") }
+            .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
+    }
+
+    private func configure(_ value: Value?, for key: String) {
+        guard let space, let harness else { return }
+        Space.with(space) { space in
+            var values: [String: Value] = if case .collection(let values)? = space.config[harness] { values } else { [:] }
+            values[key] = value
+            space.config(.collection(values), for: harness)
+        }
+    }
+
+    private func go(_ next: Page) {
+        forward = next.depth > page.depth
+        DispatchQueue.main.async { withAnimation(.snappy(duration: 0.25)) { page = next } }
+    }
+
+    private func choose(_ provider: Reference, _ value: String?) {
+        if let slot { configure(.reference(provider), for: slot) }
+        configure(value.map { .property(.string($0)) }, for: "model")
+        go(.summary)
+    }
+
+    var body: some View {
+        if let _ = harness {
+            Button { presented.toggle() } label: {
+                Image(systemName: Iconography.model(.material(.command)).symbol)
+                    .font(Typography.footnote)
+                    .foregroundStyle(Style.Foreground.primary)
+                    .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
+                    .background(hovered ? Style.Foreground.primary.opacity(0.06) : .clear, in: .circle)
+                    .contentShape(.circle)
+            }
+            .buttonStyle(.plain)
+            .onHover { hovered = $0 }
+            .help("Command")
+            .popover(isPresented: $presented, arrowEdge: .top) {
+                ZStack(alignment: .top) {
+                    switch page {
+                        case .summary:
+                            VStack(spacing: 10) {
+                                VStack(spacing: 1) {
+                                    Text(range?.description ?? command?.descriptor.name ?? "Default")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(range?.value?.isEmpty == false ? Style.Foreground.primary : Style.Foreground.secondary)
+
+                                    Button { go(.providers) } label: {
+                                        HStack(spacing: 2) {
+                                            Text(models?.value?.isEmpty == false ? models?.description ?? "" : command?.descriptor.name ?? "Default")
+                                            Image(systemName: "chevron.right")
+                                                .font(.system(size: 9, weight: .semibold))
+                                        }
+                                        .font(Typography.detail)
+                                        .foregroundStyle(Style.Foreground.secondary)
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+
+                                if let range, let key = range.key {
+                                    CommandTrack(stops: range.items.count, selected: range.items.firstIndex { $0.value == range.value }) { index in
+                                        configure(range.items[index].value.map { .property(.string($0)) }, for: key)
+                                    }
+                                }
+                            }
+                            .padding(12)
+                            .transition(.push(from: forward ? .trailing : .leading))
+
+                        case .providers:
+                            VStack(alignment: .leading, spacing: 2) {
+                                CommandHeader(title: "Select model") { go(.summary) }
+
+                                ForEach(providers, id: \.self) { provider in
+                                    CommandOption(name: provider.descriptor.name, selected: provider == command, disclosure: true) {
+                                        go(.models(provider))
+                                    }
+                                }
+                            }
+                            .padding(6)
+                            .transition(.push(from: forward ? .trailing : .leading))
+
+                        case .models(let provider):
+                            VStack(alignment: .leading, spacing: 2) {
+                                CommandHeader(title: provider.descriptor.name) { go(.providers) }
+
+                                CommandOption(name: "Default", selected: provider == command && models?.value?.isEmpty != false) {
+                                    choose(provider, nil)
+                                }
+
+                                ForEach((HarnessGroup.settings(Command.with(provider, { $0.parameters }) ?? [], config: config).first { $0.key == "model" }?.items ?? []).filter { $0.value != nil }) { item in
+                                    CommandOption(name: item.name, selected: provider == command && models?.value == item.value) {
+                                        choose(provider, item.value)
+                                    }
+                                }
+                            }
+                            .padding(6)
+                            .transition(.push(from: forward ? .trailing : .leading))
+                    }
+                }
+                .frame(width: 220)
+                .fixedSize(horizontal: false, vertical: true)
+                .clipped()
+            }
+            .onChange(of: presented) { _, shown in if !shown { page = .summary } }
+        }
+    }
+}
+
 struct ProjectControls: View {
     var input: Reference
     var space: Reference
     var onCompose: () -> Void
     var onCancel: () -> Void
 
-    var composable: Bool { Runtime.shared.composable(space) }
+    var composable: Bool { Runtime.shared.resolve(space) != nil }
     var context: Context? { space.context }
     var started: Bool { context?.state == .active ? true : false  }
 
@@ -41,13 +298,11 @@ struct ProjectControls: View {
 
     var body: some View {
         Button { !working ? onCompose() : onCancel() } label: {
-            if started {
-                Image(systemName: "pause.fill")
-                    .font(Typography.footnote)
-                    .foregroundStyle(Style.Background.canvas)
-                    .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
-                    .background(Style.Foreground.secondary, in: .circle)
-            }
+            Image(systemName: working ? "pause.fill" : "arrow.up")
+                .font(Typography.footnote)
+                .foregroundStyle(Style.Background.canvas)
+                .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
+                .background(Style.Foreground.secondary, in: .circle)
         }
         .buttonStyle(.plain)
         .keyboardShortcut(working ? nil : KeyboardShortcut(.return, modifiers: .command))
@@ -158,7 +413,7 @@ struct ProjectIntent<Content: View>: View {
 }
 
 struct ProjectToolbar: Surface {
-    var panel: any Panel
+    var host: any Host
     var model: any Model
 
     var composable: Bool {
@@ -186,19 +441,20 @@ struct ProjectToolbar: Surface {
     var body: some View {
         if let space, let input {
             VStack(alignment: .leading, spacing: 0) {
-                BlockList(ref: input)
+                EditorDocument(ref: input)
                     .id(input)
                     .frame(minHeight: 32, alignment: .top)
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
 
-                HStack(alignment: .center, spacing: 0) {
+                HStack(alignment: .center, spacing: 8) {
                     Spacer(minLength: 0)
+                    ProjectCommand(host: host, model: model)
                     ProjectControls(input: input, space: space, onCompose: compose, onCancel: cancel)
                 }
-                .frame(minHeight: Style.Dimension.control(.small))
-                .padding(.horizontal, 16)
-                .padding(.bottom, 10)
+                .frame(minHeight: Style.Dimension.control(.regular))
+                .padding(.horizontal, 10)
+                .padding(.bottom, 8)
             }
             .frame(maxWidth: Typography.Prose.readableWidth)
             .background {
@@ -211,7 +467,7 @@ struct ProjectToolbar: Surface {
             .clipShape(Style.Shape.input)
             .overlay {
                 Style.Shape.input
-                    .stroke(Style.Border.panel, lineWidth: 1)
+                    .stroke(Style.Border.frame, lineWidth: 1)
                     .opacity(0.5)
                     .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
             }

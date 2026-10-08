@@ -3,19 +3,24 @@ import ScintComponents
 import ScintRuntime
 
 
-struct LibraryHeader: Surface {
-    var panel: any Panel
+struct LibraryHeader: View {
     var model: any Model
 
-    var space: Reference? { model.session.selection.structure }
-    var title: String { if let space { return space.descriptor.name } else { return "All Documents" } }
+    var ref: Reference {
+        if let folder = model.session.selection.structure { return folder }
+        else { return model.session.library }
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            IconButton(systemImage: "plus") { model.session.open(Document.new(model.session.library, name: "New Document")) }
+            IconButton(systemImage: "plus") { model.session.open(Document.new(ref, name: "New Document")) }
                 .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
-            Text(title).font(Typography.pageTitle)
+
+            Text(ref.descriptor.name)
+                .font(Typography.pageTitle)
+
             Spacer()
+
             IconButton(systemImage: "ellipsis") { }
                 .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
         }

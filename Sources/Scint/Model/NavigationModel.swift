@@ -36,7 +36,7 @@ struct Navigation: Codable, Equatable, Sendable {
     func pathable(_ ref: Reference) -> Bool {
         guard ref.type is Artifact.Type else { return true }
         return Artifact.with(ref) { artifact in
-            switch artifact.handler {
+            switch artifact.handle {
                 case .bookmark: return true
                 case .app, .directory, .executable, .file, .image, .script, .skill: return false
             }

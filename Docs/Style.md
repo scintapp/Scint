@@ -81,7 +81,7 @@ not hoisted into a shared global. Each conformer declares its own cases.
 ## Naming
 
 Domain noun first, role second: `SpaceCanvas`, `SpaceHeader`, `CanvasMap`, `CanvasZoom`,
-`DocumentContent`, `ContentPanel`, `NavigatorPicker`. The name is the concept.
+`DocumentContent`, `AppContent`, `NavigatorPicker`. The name is the concept.
 
 Banned suffixes: `Manager`, `Helper`, `Utils`, `Service`, `Provider`, `Coordinator`,
 `ViewModel`, `Wrapper`, `Impl`. If a name needs one of those, the type has no idea what

@@ -11,19 +11,19 @@ enum PanelKey: String, Identifiable, CaseIterable {
 }
 
 enum ModelKey: String, Identifiable, CaseIterable {
-    case studio
+    case app
     var id: String { self.rawValue }
 }
 
 @Observable @MainActor final class ScintModel {
-    var data: DataModel
-    var studio: AppModel
+    var app: AppModel
     var panels: PanelModel
+    var data: DataModel
 
     init(_ data: DataModel) {
-        self.data = data
-        self.studio = .init(Session(data))
+        self.app = .init(Session(data))
         self.panels = .init()
+        self.data = data
     }
 
     func toggle(_ key: PanelKey, _ source: ModelKey) {
@@ -45,15 +45,15 @@ enum ModelKey: String, Identifiable, CaseIterable {
     }
 
     func open(_ url: URL?) {
-        CallbackHandler.handle(url, in: data.scint) { ref in
+        CallbackHandler.handle(url, in: data.app) { ref in
             guard !ReferenceAction.open(ref) else { return }
-            model(for: .studio).select(ref)
+            model(for: .app).select(ref)
         }
     }
 
     func model(for key: ModelKey) -> any Model {
         switch key {
-            case .studio: studio
+            case .app: app
         }
     }
 

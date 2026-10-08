@@ -12,11 +12,11 @@ import ScintComponents
 
     func content<Content: View>(_ content: Content) -> some View {
         content
-            .clipShape(Style.Shape.panel)
-            .glassEffect(.regular, in: Style.Shape.panel)
+            .clipShape(Style.Shape.frame)
+            .glassEffect(.regular, in: Style.Shape.frame)
             .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
             .overlay {
-                Style.Shape.panel
+                Style.Shape.frame
                     .strokeBorder(.black.opacity(Style.Opacity.border), lineWidth: 0.5)
 
             }

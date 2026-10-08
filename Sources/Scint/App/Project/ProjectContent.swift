@@ -5,7 +5,7 @@ import ScintComponents
 
 
 struct ProjectContent: Surface {
-    var panel: any Panel
+    var host: any Host
     var model: any Model
 
     @State private var presentation: Presentation = .process
@@ -27,25 +27,20 @@ struct ProjectContent: Surface {
         ZStack(alignment: .bottom) {
             switch presentation {
                 case .canvas:
-                    CanvasContent(panel: panel, model: model)
+                    CanvasContent(host: host, model: model)
 
                 case .process:
-                    TranscriptContent(panel: panel, model: model)
+                    TranscriptContent(host: host, model: model)
 
-                    ProjectIntent(model: model) { ProjectToolbar(panel: panel, model: model) }
+                    ProjectIntent(model: model) { ProjectToolbar(host: host, model: model) }
                         .frame(alignment: .bottom)
                         .padding([.bottom, .vertical], 10)
 
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .safeAreaBar(edge: .top) {
-            ProjectHeader(
-                panel: panel,
-                model: model,
-                presentation: $presentation
-            )
-        }
+        .scrollEdgeEffectStyle(.hard, for: .vertical)
+        .safeAreaBar(edge: .top) { ProjectHeader(host: host, model: model, presentation: $presentation) }
     }
 }
 

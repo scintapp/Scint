@@ -5,7 +5,7 @@ import ScintRuntime
 
 
 struct ProjectHeader: Surface {
-    var panel: any Panel
+    var host: any Host
     var model: any Model
 
     var ref: Reference? { model.session.selection.structure }
