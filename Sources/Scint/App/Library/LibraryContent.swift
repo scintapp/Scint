@@ -14,8 +14,9 @@ struct LibraryContent: Surface {
     }
 
     var body: some View {
-        if model.session.opened.document != nil { DocumentContent(host: host, model: model) }
-        else {
+        if let doc = model.session.opened.document, (Document.with(doc, { $0 })?.task == nil) {
+            DocumentContent(host: host, model: model)
+        } else {
             ScrollView {
                 LibraryColumns(minimum: 230, maximum: 230, spacing: 20) {
                     ForEach(Array(documents.enumerated()), id: \.element) { index, ref in

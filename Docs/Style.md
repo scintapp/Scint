@@ -26,7 +26,7 @@ struct DocumentContent: Surface {
     var panel: any Panel
     var model: any Model
 
-    var ref: Reference? { model.session.opened.document }
+    var ref: Reference? { model.session.selection.opened.document }
 }
 ```
 
@@ -61,7 +61,7 @@ First argument is unlabeled when it is the subject: `func surface(_ model: any M
 `EditorView(ref, autofocus: true)`, `Space.with(ref, { $0.harness })`. Later arguments
 are labeled.
 
-Prefer existentials (`any Model`, `any Panel`) to generics. Flat signatures over
+Prefer existentials (`Model`, `any Panel`) to generics. Flat signatures over
 parameterized ones.
 
 ## Types and files
@@ -81,7 +81,7 @@ not hoisted into a shared global. Each conformer declares its own cases.
 ## Naming
 
 Domain noun first, role second: `SpaceCanvas`, `SpaceHeader`, `CanvasMap`, `CanvasZoom`,
-`DocumentContent`, `AppContent`, `NavigatorPicker`. The name is the concept.
+`DocumentContent`, `ContentFrame`, `NavigatorPicker`. The name is the concept.
 
 Banned suffixes: `Manager`, `Helper`, `Utils`, `Service`, `Provider`, `Coordinator`,
 `ViewModel`, `Wrapper`, `Impl`. If a name needs one of those, the type has no idea what

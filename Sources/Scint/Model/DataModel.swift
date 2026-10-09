@@ -3,7 +3,7 @@ import SwiftUI
 import ScintRuntime
 
 
-final class DataModel: @unchecked Sendable {
+@Observable final class DataModel {
     var app: Reference = Space.sentinel()
     var inbox: Reference = Space.sentinel()
     var projects: Reference = Space.sentinel()
