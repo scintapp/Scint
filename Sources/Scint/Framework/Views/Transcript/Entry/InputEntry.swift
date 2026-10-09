@@ -11,7 +11,6 @@ struct InputEntry: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .background(Style.Shape.message.fill(Style.Background.bubble))
-            .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
-            .frame(minWidth: 0, alignment: .trailing)
+            .frame(minWidth: 0, maxWidth: 480, alignment: .trailing)
     }
 }

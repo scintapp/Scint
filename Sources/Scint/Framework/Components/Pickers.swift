@@ -71,6 +71,73 @@ struct ItemDatePicker: View {
     }
 }
 
+struct MomentField: NSViewRepresentable {
+    let date: Date
+    let elements: NSDatePicker.ElementFlags
+    var onChange: (Date) -> Void
+    var onEnd: () -> Void
+
+    final class Picker: NSDatePicker {
+        var onEnd: () -> Void = {}
+        private var monitor: Any?
+
+        override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); window?.makeFirstResponder(self) }
+
+        override func becomeFirstResponder() -> Bool {
+            let became = super.becomeFirstResponder()
+            if became, monitor == nil {
+                monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+                    guard let self, event.window == self.window, !self.bounds.contains(self.convert(event.locationInWindow, from: nil))
+                            else { return event }
+                    self.window?.makeFirstResponder(nil)
+                    return event
+                }
+            }
+            return became
+        }
+
+        override func resignFirstResponder() -> Bool {
+            let resigned = super.resignFirstResponder()
+            if resigned {
+                if let monitor { NSEvent.removeMonitor(monitor) }
+                monitor = nil
+                onEnd()
+            }
+            return resigned
+        }
+
+        override func keyDown(with event: NSEvent) {
+            if event.keyCode == 36 || event.keyCode == 53 { window?.makeFirstResponder(nil) }
+            else { super.keyDown(with: event) }
+        }
+    }
+
+    @MainActor final class Coordinator: NSObject {
+        var onChange: (Date) -> Void = { _ in }
+        @objc func changed(_ picker: NSDatePicker) { onChange(picker.dateValue) }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Self.Context) -> Picker {
+        let picker = Picker()
+        picker.datePickerStyle = .textField
+        picker.isBezeled = false
+        picker.isBordered = false
+        picker.drawsBackground = false
+        picker.target = context.coordinator
+        picker.action = #selector(Coordinator.changed(_:))
+        return picker
+    }
+
+    func updateNSView(_ picker: Picker, context: Self.Context) {
+        context.coordinator.onChange = onChange
+        picker.onEnd = onEnd
+        picker.datePickerElements = elements
+        if picker.dateValue != date { picker.dateValue = date }
+    }
+}
+
 struct ItemRangePicker: View {
     let value: String
     let items: [ItemParams]

@@ -8,13 +8,14 @@ struct TaskHeader: View {
     var onCompose: () -> Void
     var onCancel: () -> Void
 
-    var task: Block? { Document.with(ref, { $0.blocks.first }) ?? nil }
-    var ready: Bool { if case .task(_, _, _, _?)? = task { true } else { false } }
-    var repeating: Bool { if case .task(_, _, _, let when?)? = task { when.repeats != .never } else { false } }
+    var task: (id: UUID, text: String, done: Bool)? { Document.with(ref, { $0.task }) ?? nil }
+    var schedule: (moment: Date?, repeats: When.Repeat)? { Document.with(ref, { $0.schedule }) }
+    var ready: Bool { schedule?.moment != nil }
+    var repeating: Bool { (schedule?.repeats ?? .never) != .never }
 
     var scheduled: Bool {
         guard
-            case .task(_, _, false, _)? = task,
+            task?.done == false,
             let origin = Document.with(ref, { $0.origin }),
             let transcript = Runtime.shared.resolve().first(where: { $0.space == origin })?.transcript,
             let entries = Transcript.with(transcript, { $0.entries }),
@@ -34,26 +35,26 @@ struct TaskHeader: View {
 
     var completed: Binding<Bool> {
         Binding(
-            get: { if case .task(_, _, let done, _)? = task { done } else { false } },
+            get: { task?.done ?? false },
             set: { complete in
-                guard case .task(let id, let text, _, let when)? = task else { return }
-                Document.update(ref) { $0.update(.task(id, text, complete, when), at: 0) }
+                guard let task else { return }
+                Document.update(ref) { $0.update(.task(task.id, task.text, complete), at: 1) }
             }
         )
     }
 
     var name: Binding<String> {
         Binding(
-            get: { if case .task(_, let text, _, _)? = task { text } else { "" } },
+            get: { task?.text ?? "" },
             set: { text in
-                guard case .task(let id, _, let done, let when)? = task else { return }
-                Document.update(ref) { $0.update(.task(id, text, done, when), at: 0) }
+                guard let task else { return }
+                Document.update(ref) { $0.update(.task(task.id, text, task.done), at: 1) }
             }
         )
     }
 
     var body: some View {
-        if case .task(_, _, let done, _)? = task {
+        if let done = task?.done {
             HStack(alignment: .center) {
                 Button {  } label: { TaskCompletionIndicator(completed: done, size: 24) }
                     .buttonStyle(.plain)

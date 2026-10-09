@@ -51,10 +51,17 @@ struct NavigatorToggle: View {
                         ToolbarItem(placement: .automatic) { }
                     }
             }
+
             Rectangle()
                 .fill(Style.Border.base)
                 .ignoresSafeArea()
-                .frame(maxWidth: 1, maxHeight: .infinity, alignment: .trailing)
+                .frame(width: 1, alignment: .trailing)
+                .frame(maxHeight: .infinity)
+            Rectangle()
+                .fill(.black)
+                .ignoresSafeArea()
+                .frame(width: 0.5, alignment: .trailing)
+                .frame(maxHeight: .infinity)
         }
     }
 }

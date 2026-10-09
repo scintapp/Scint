@@ -8,9 +8,9 @@ struct TaskContent: Surface {
     var model: any Model
 
     var ref: Reference? { model.session.opened.document }
-    var task: Block? { ref.flatMap { Document.with($0, { $0.blocks.first }) ?? nil } }
-    var ready: Bool { if case .task(_, _, _, _?)? = task { true } else { false } }
-    var completed: Bool? { if case .task(_, _, let done, _)? = task { done } else { nil } }
+    var task: (id: UUID, text: String, done: Bool)? { ref.flatMap { Document.with($0, { $0.task }) ?? nil } }
+    var ready: Bool { ref.flatMap { Document.with($0, { $0.schedule.moment }) ?? nil } != nil }
+    var completed: Bool? { task?.done }
 
     var body: some View {
         ScrollView {
@@ -30,8 +30,6 @@ struct TaskContent: Surface {
                         TaskSpace(ref: ref, scope: model.session.projects)
                         TaskCommand(ref: ref)
                     }
-
-                    TaskSetup(host: host, model: model)
 
                     EditorDocument(ref: ref, autofocus: false)
                         .id(ref)

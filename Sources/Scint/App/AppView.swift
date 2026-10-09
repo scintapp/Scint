@@ -21,8 +21,8 @@ struct AppView: View {
         .environment(scint.app)
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-        .toolbarBackgroundVisibility(.hidden, for: .automatic)
         .scrollEdgeEffectHidden(for: .bottom)
+        .background(Style.Background.canvas)
     }
 }
 

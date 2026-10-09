@@ -6,12 +6,48 @@ import ScintComponents
 
 internal typealias Block = ScintRuntime.Document.Block
 
+extension ScintRuntime.Document.Block {
+    /// One markdown chunk as a block: a heading or fenced code when it's exactly that, a paragraph otherwise.
+    init(_ id: UUID, markdown: String) {
+        let elements = Markdown.elements(markdown)
+        let parsed: Self? = switch elements.count == 1 ? elements.first : nil {
+            case .text(.heading(let level), let text, _, _)?: .heading(id, level, text)
+            case .code(let text, let language)?: .code(id, language, text)
+            default: nil
+        }
+        self = parsed.flatMap { $0.markdown == markdown ? $0 : nil } ?? .paragraph(id, markdown)
+    }
+
+    /// The markdown a prose block edits as.
+    var markdown: String? {
+        switch self {
+            case .paragraph(_, let text): text
+            case .heading(_, let level, let text): String(repeating: "#", count: level) + " " + text
+            case .code(_, let language, let text): "```\(language)\n\(text)\n```"
+            default: nil
+        }
+    }
+
+    /// What it shows as a component: a block that holds a reference, or a paragraph that's nothing but a link to one.
+    var reference: Reference? {
+        switch self {
+            case .artifact(let ref), .command(let ref), .document(let ref):
+                return ref
+            case .paragraph(_, let text):
+                let source = text as NSString
+                guard let link = Markdown.scan(text).links.first, link.range.length == source.length else { return nil }
+                return Reference.Link.resolve(in: source.substring(with: link.url))
+            default:
+                return nil
+        }
+    }
+}
+
 struct EditorDocument: View {
     @Environment(\.undoManager) private var undoManager
     @State private var focus: Focus?
     @State private var selection: AnyHashable?
     @State private var rowFrames: [AnyHashable: CGRect] = [:]
-    @State private var cardFrames: [AnyHashable: CGRect] = [:]
     @State private var indicator: CGRect?
     @State private var resume: Focus?
     @State private var dragged: AnyHashable?
@@ -29,10 +65,11 @@ struct EditorDocument: View {
 
     private var blocks: [Block] { ScintRuntime.Document.with(ref, { $0.blocks }) ?? [] }
 
+    /// Everything but the metadata and a task's header. A document's heading is its title, and edits like any other line.
     private var rows: [Block] {
-        let blocks = ScintRuntime.Document.with(ref, { $0.body }) ?? []
-        if case .text? = blocks.last { return blocks }
-        return blocks + [.text(tail, "")]
+        let blocks = ScintRuntime.Document.with(ref, { $0.task == nil ? $0.blocks.filter { if case .metadata = $0 { false } else { true } } : $0.body }) ?? []
+        if case .paragraph? = blocks.last { return blocks }
+        return blocks + [.paragraph(tail, "")]
     }
 
     struct Focus: Equatable {
@@ -59,7 +96,7 @@ struct EditorDocument: View {
                         onPerform: { point in
                             indicator = nil
                             guard let aim = aim(at: point) else { dragged = nil; return false }
-                            return drop(onto: aim.target, beside: aim.beside)
+                            return drop(onto: aim.target)
                         }
                     ))
                     .overlay(alignment: .topLeading) {
@@ -80,8 +117,6 @@ struct EditorDocument: View {
                     case #selector(NSResponder.deleteBackward(_:)), #selector(NSResponder.deleteForward(_:)): deleteSelection()
                     case #selector(NSResponder.moveUp(_:)): moveSelection(.previous)
                     case #selector(NSResponder.moveDown(_:)): moveSelection(.next)
-                    case #selector(NSResponder.moveLeft(_:)): moveSideways(-1)
-                    case #selector(NSResponder.moveRight(_:)): moveSideways(1)
                     case #selector(NSResponder.insertNewline(_:)): editSelection(opening: true)
                     case #selector(NSResponder.cancelOperation(_:)): editSelection(opening: false)
                     default: false
@@ -89,19 +124,17 @@ struct EditorDocument: View {
             }
         }
         .onAppear {
-            let split = blocks.contains { block in
-                guard case .text(_, let text) = block else { return false }
-                let chunks = Markdown.chunks(text)
-                return !chunks.isEmpty && chunks != [text]
+            let split = { (block: Block) -> [Block]? in
+                guard case .paragraph(let uuid, let text) = block, let first = Markdown.chunks(text).first else { return nil }
+                let chunked = [Block(uuid, markdown: first)] + Markdown.chunks(text).dropFirst().map { Block(UUID(), markdown: $0) }
+                return chunked == [block] ? nil : chunked
             }
-            if split {
+            if blocks.contains(where: { split($0) != nil }) {
                 ScintRuntime.Document.update(ref) { document in
                     for (index, block) in document.blocks.enumerated().reversed() {
-                        guard case .text(let uuid, let text) = block else { continue }
-                        let chunks = Markdown.chunks(text)
-                        guard let first = chunks.first, chunks != [text] else { continue }
-                        document.update(.text(uuid, first), at: index)
-                        document.insert(chunks.dropFirst().map { .text(UUID(), $0) }, at: index + 1)
+                        guard let chunked = split(block) else { continue }
+                        document.update(chunked[0], at: index)
+                        document.insert(Array(chunked.dropFirst()), at: index + 1)
                     }
                 }
             }
@@ -111,19 +144,18 @@ struct EditorDocument: View {
 
     private func row(_ block: Block, at index: Int, in rows: [Block]) -> some View {
         let above: Block? = index > 0 ? rows[index - 1] : nil
-        let first = if case .text(_, let text) = block { Markdown.scan(text).blocks.first } else { Markdown.Block?.none }
+        let first = block.markdown.flatMap { Markdown.scan($0).blocks.first }
         let gap: CGFloat = switch (above, block) {
             case (nil, _): 0
             case (.task?, .task): Typography.Prose.listItemSpacing
-            case (.text(_, let text)?, .text):
-                if let last = Markdown.scan(text).blocks.last, let first { Styler.spacing(after: last.kind, before: first.kind) }
+            default:
+                if let last = above?.markdown.flatMap({ Markdown.scan($0).blocks.last }), let first { Styler.spacing(after: last.kind, before: first.kind) }
                 else { Typography.Prose.blockSpacing }
-            default: Typography.Prose.blockSpacing
         }
         var start = 0
         if let first, first.kind == .numbered {
             scan: for row in rows[..<index].reversed() {
-                guard case .text(_, let text) = row, !text.isEmpty else { break }
+                guard case .paragraph(_, let text) = row, !text.isEmpty else { break }
                 for line in Markdown.scan(text).blocks.reversed() {
                     guard line.kind.isList, line.depth >= first.depth else { break scan }
                     guard line.depth == first.depth else { continue }
@@ -150,70 +182,68 @@ struct EditorDocument: View {
 
     @ViewBuilder private func content(_ block: Block, at index: Int, in rows: [Block], listStart start: Int) -> some View {
         switch block {
-            case .text(_, let text) where Markdown.Table(text) != nil:
+            case .paragraph(_, let text) where Markdown.Table(text) != nil:
                 TableEditor(.init(get: { self.text(of: block.id) }, set: { type(block.id, $0) }))
 
-            case .text(_, let text) where Self.reference(in: text) != nil:
+            case .paragraph where block.reference != nil:
                 component(block)
 
-
-            case .text(_, let text) where focus?.id != block.id:
-                BlockTextView(text: text, listStart: start, onClick: { select(nil); focus = Focus(id: block.id, caret: $0) })
-
-            case .text(_, let text):
-                editor(block.id, text, listStart: start, onSplit: { before, after in
-                    change("Split") {
-                        write(block.id, before)
-                        insert([.text(UUID(), after)], at: block.id, focusing: true)
-                    }
-                    return true
-                }, onDeleteAtStart: {
-                    guard index > 0 else { return false }
-                    let above = rows[index - 1]
-                    switch above {
-                        case .text(let uuid, let previous) where Self.edits(above):
-                            change("Join") {
-                                update(above.id) { _ in .text(uuid, previous + text) }
-                                delete(block.id)
-                            }
-                            focus = Focus(id: above.id, caret: (previous as NSString).length)
-                        case .task(let uuid, let previous, let completed, let when):
-                            change("Join") {
-                                update(above.id) { _ in .task(uuid, previous + text, completed, when) }
-                                delete(block.id)
-                            }
-                            focus = Focus(id: above.id, caret: (previous as NSString).length)
-                        default:
-                            if text.isEmpty { change("Delete") { remove(block.id, then: .previous) } }
-                            else { enter(above, from: .previous) }
-                    }
-                    return true
-                })
-
-            case .task(let uuid, let text, let completed, let when):
-                TaskRow(
-                    completed: completed,
-                    onToggle: { change("Check") { update(block.id) { _ in .task(uuid, text, !completed, when) } } }
-                ) {
-                    if focus?.id != block.id { BlockTextView(text: text, onClick: { select(nil); focus = Focus(id: block.id, caret: $0) }) }
-                    else { editor(block.id, text, placeholder: "Task", commands: false, onSplit: { before, after in
-                        guard case .task(_, _, let completed, let when)? = self.block(block.id) else { return false }
+            // One branch for all prose, so a paragraph that becomes a heading keeps its editor.
+            case .paragraph, .heading, .code:
+                let text = block.markdown ?? ""
+                if focus?.id != block.id {
+                    BlockTextView(text: text, listStart: start, onClick: { select(nil); focus = Focus(id: block.id, caret: $0) })
+                } else {
+                    editor(block.id, text, listStart: start, onSplit: { before, after in
                         change("Split") {
-                            if before.isEmpty, after.isEmpty { return remove(block.id, then: .next) }
-                            update(block.id) { _ in .task(uuid, before, completed, when) }
-                            insert([.task(UUID(), after, false, nil)], at: block.id, focusing: true)
+                            write(block.id, before)
+                            insert([Block(UUID(), markdown: after)], at: block.id, focusing: true)
                         }
                         return true
                     }, onDeleteAtStart: {
-                        guard case .task(_, let text, _, _)? = self.block(block.id), text.isEmpty else { return false }
+                        guard index > 0 else { return false }
+                        let above = rows[index - 1]
+                        switch above {
+                            case .task(let uuid, let previous, let completed):
+                                change("Join") {
+                                    update(above.id) { _ in .task(uuid, previous + text, completed) }
+                                    delete(block.id)
+                                }
+                                focus = Focus(id: above.id, caret: (previous as NSString).length)
+                            default:
+                                if let previous = above.markdown, Self.edits(above) {
+                                    change("Join") {
+                                        write(above.id, previous + text)
+                                        delete(block.id)
+                                    }
+                                    focus = Focus(id: above.id, caret: (previous as NSString).length)
+                                }
+                                else if text.isEmpty { change("Delete") { remove(block.id, then: .previous) } }
+                                else { enter(above, from: .previous) }
+                        }
+                        return true
+                    })
+                }
+
+            case .task(let uuid, let text, let completed):
+                TaskRow(
+                    completed: completed,
+                    onToggle: { change("Check") { update(block.id) { _ in .task(uuid, text, !completed) } } }
+                ) {
+                    if focus?.id != block.id { BlockTextView(text: text, onClick: { select(nil); focus = Focus(id: block.id, caret: $0) }) }
+                    else { editor(block.id, text, placeholder: "Task", commands: false, onSplit: { before, after in
+                        guard case .task(_, _, let completed)? = self.block(block.id) else { return false }
+                        change("Split") {
+                            if before.isEmpty, after.isEmpty { return remove(block.id, then: .next) }
+                            update(block.id) { _ in .task(uuid, before, completed) }
+                            insert([.task(UUID(), after, false)], at: block.id, focusing: true)
+                        }
+                        return true
+                    }, onDeleteAtStart: {
+                        guard case .task(_, let text, _)? = self.block(block.id), text.isEmpty else { return false }
                         change("Delete") { remove(block.id, then: .previous) }
                         return true
                     }) }
-                }
-
-            case .frame(_, let children):
-                HStack(alignment: .top, spacing: Style.Spacing.page) {
-                    ForEach(children) { child in component(child) }
                 }
 
             default:
@@ -222,18 +252,14 @@ struct EditorDocument: View {
     }
 
     private func component(_ block: Block) -> some View {
-        let ref: Reference? = switch block {
-            case .artifact(let ref), .command(let ref), .document(let ref): ref
-            case .text(_, let text): Self.reference(in: text)
-            default: nil
-        }
+        let ref = block.reference
         return BlockCard(
             onSelect: { select(block.id) },
             onOpen: { if let ref { onOpenLink(.reference(ref)) } },
             onDrag: { drag(block.id) },
-            onFrame: { cardFrames[block.id] = $0 }
+            onFrame: { _ in }
         ) {
-            if case .text = block, let ref { Card(ref: ref, style: .group, isSelected: selection == block.id) }
+            if case .paragraph = block, let ref { Card(ref: ref, style: .group, isSelected: selection == block.id) }
             else { DocumentBlock(block: block, isSelected: selection == block.id) }
         }
     }
@@ -257,39 +283,22 @@ struct EditorDocument: View {
         )
     }
 
-    private func locate(_ id: AnyHashable) -> (row: Int, child: Int?)? {
-        for (index, block) in rows.enumerated() {
-            if block.id == id { return (index, nil) }
-            if case .frame(_, let children) = block, let child = children.firstIndex(where: { $0.id == id }) { return (index, child) }
-        }
-        return nil
-    }
-
-    private func block(_ id: AnyHashable) -> Block? {
-        guard let location = locate(id) else { return nil }
-        guard let child = location.child, case .frame(_, let children) = rows[location.row] else { return rows[location.row] }
-        return children[child]
-    }
+    private func block(_ id: AnyHashable) -> Block? { rows.first { $0.id == id } }
 
     private func text(of id: AnyHashable) -> String {
         switch block(id) {
-            case .text(_, let text)?, .task(_, let text, _, _)?: text
-            default: ""
+            case .task(_, let text, _)?: text
+            case let block?: block.markdown ?? ""
+            case nil: ""
         }
     }
 
     private static func edits(_ block: Block) -> Bool {
         switch block {
-            case .task: true
-            case .text(_, let text): Markdown.Table(text) == nil && reference(in: text) == nil
+            case .task, .heading, .code: true
+            case .paragraph(_, let text): Markdown.Table(text) == nil && block.reference == nil
             default: false
         }
-    }
-
-    private static func reference(in text: String) -> Reference? {
-        let source = text as NSString
-        guard let link = Markdown.scan(text).links.first, link.range.length == source.length else { return nil }
-        return Reference.Link.resolve(in: source.substring(with: link.url))
     }
 
     private func type(_ id: AnyHashable, _ text: String) {
@@ -300,7 +309,6 @@ struct EditorDocument: View {
 
     private func enter(_ block: Block, from exit: Exit) {
         if Self.edits(block) { focus = Focus(id: block.id, entry: exit) }
-        else if case .frame(_, let children) = block, let first = children.first { select(first.id) }
         else { select(block.id) }
     }
 
@@ -319,50 +327,32 @@ struct EditorDocument: View {
     }
 
     private func moveSelection(_ exit: Exit) -> Bool {
-        guard let selection, let location = locate(selection) else { return false }
-        let rows = rows, target = location.row + (exit == .next ? 1 : -1)
+        let rows = rows
+        guard let selection, let index = rows.firstIndex(where: { $0.id == selection }) else { return false }
+        let target = index + (exit == .next ? 1 : -1)
         guard rows.indices.contains(target) else { return true }
-        if location.child == nil, Self.edits(rows[location.row]) {
-            if case .frame(_, let children) = rows[target], let first = children.first { select(first.id) }
-            else { select(rows[target].id) }
-        } else {
-            enter(rows[target], from: exit)
-        }
-        return true
-    }
-
-    private func moveSideways(_ step: Int) -> Bool {
-        guard let selection, let location = locate(selection), let child = location.child,
-              case .frame(_, let children) = rows[location.row]
-        else { return false }
-        if children.indices.contains(child + step) { select(children[child + step].id) }
+        if Self.edits(rows[index]) { select(rows[target].id) }
+        else { enter(rows[target], from: exit) }
         return true
     }
 
     private func editSelection(opening: Bool) -> Bool {
         guard let selection, let block = block(selection) else { return false }
         if Self.edits(block) { select(nil); focus = resume }
-        else if opening, let row = locate(selection).map({ rows[$0.row].id }) {
+        else if opening {
             select(nil)
-            change("Insert") { insert([.text(UUID(), "")], at: row, focusing: true) }
+            change("Insert") { insert([.paragraph(UUID(), "")], at: selection, focusing: true) }
         }
         else { select(nil) }
         return true
     }
 
     private func deleteSelection() -> Bool {
-        guard let selection, let location = locate(selection) else { return false }
         let rows = rows
-        let next: AnyHashable? = {
-            if let child = location.child, case .frame(_, let children) = rows[location.row] {
-                return children.indices.contains(child + 1) ? children[child + 1].id : children[child - 1].id
-            }
-            let row = rows.indices.contains(location.row + 1) ? location.row + 1 : location.row - 1
-            guard rows.indices.contains(row) else { return nil }
-            if case .frame(_, let children) = rows[row] { return children.first?.id }
-            return rows[row].id == AnyHashable(tail) ? nil : rows[row].id
-        }()
-        change("Delete") { Self.replace(Self.removing(selection, from: blocks), in: ref) }
+        guard let selection, let index = rows.firstIndex(where: { $0.id == selection }) else { return false }
+        let row = rows.indices.contains(index + 1) ? index + 1 : index - 1
+        let next = rows.indices.contains(row) && rows[row].id != AnyHashable(tail) ? rows[row].id : nil
+        change("Delete") { delete(selection) }
         select(next)
         return true
     }
@@ -374,53 +364,24 @@ struct EditorDocument: View {
         return provider
     }
 
-    private func aim(at point: CGPoint) -> (target: AnyHashable?, beside: Bool, line: CGRect)? {
-        if let (id, frame) = cardFrames.first(where: { $0.value.contains(point) && point.x > $0.value.maxX - $0.value.width / 4 }) {
-            return (id, true, CGRect(x: frame.maxX + 4, y: frame.minY, width: 3, height: frame.height))
-        }
+    private func aim(at point: CGPoint) -> (target: AnyHashable?, line: CGRect)? {
         let placed = rows.compactMap { row in rowFrames[row.id].map { (id: row.id, frame: $0) } }.sorted { $0.frame.minY < $1.frame.minY }
         guard let last = placed.last else { return nil }
         guard let index = placed.firstIndex(where: { point.y < $0.frame.midY }) else {
-            return (nil, false, CGRect(x: last.frame.minX, y: last.frame.maxY + 4, width: last.frame.width, height: 3))
+            return (nil, CGRect(x: last.frame.minX, y: last.frame.maxY + 4, width: last.frame.width, height: 3))
         }
         let above = index > 0 ? placed[index - 1].frame.maxY : placed[index].frame.minY - 8
         let frame = placed[index].frame
-        return (placed[index].id, false, CGRect(x: frame.minX, y: (above + frame.minY) / 2 - 1.5, width: frame.width, height: 3))
+        return (placed[index].id, CGRect(x: frame.minX, y: (above + frame.minY) / 2 - 1.5, width: frame.width, height: 3))
     }
 
-    private func drop(onto target: AnyHashable?, beside: Bool) -> Bool {
+    private func drop(onto target: AnyHashable?) -> Bool {
         guard let dragged, dragged != target, let moving = block(dragged) else { self.dragged = nil; return false }
-        let component = { (block: Block) -> Bool in
-            switch block {
-                case .artifact, .command, .document: true
-                case .text(_, let text): Self.reference(in: text) != nil
-                default: false
-            }
-        }
-        var placed = false
-        let moved = Self.removing(dragged, from: blocks).flatMap { block -> [Block] in
-            if block.id == target {
-                placed = true
-                return beside && component(moving) && component(block) ? [.frame(UUID(), [block, moving])] : [moving, block]
-            }
-            guard case .frame(let frame, var children) = block, let index = children.firstIndex(where: { $0.id == target }) else { return [block] }
-            placed = true
-            guard component(moving) else { return [moving, block] }
-            children.insert(moving, at: beside ? index + 1 : index)
-            return [.frame(frame, children)]
-        }
-        change("Move") { Self.replace(placed ? moved : moved + [moving], in: ref) }
+        let kept = blocks.filter { $0.id != dragged }
+        let moved = kept.flatMap { $0.id == target ? [moving, $0] : [$0] }
+        change("Move") { Self.replace(kept.contains { $0.id == target } ? moved : moved + [moving], in: ref) }
         self.dragged = nil
         return true
-    }
-
-    private static func removing(_ id: AnyHashable, from blocks: [Block]) -> [Block] {
-        blocks.compactMap { block in
-            guard block.id != id else { return nil }
-            guard case .frame(let frame, let children) = block else { return block }
-            let kept = children.filter { $0.id != id }
-            return kept.count > 1 ? .frame(frame, kept) : kept.first
-        }
     }
 
     private static func replace(_ blocks: [Block], in document: Reference) {
@@ -456,17 +417,18 @@ struct EditorDocument: View {
         }
     }
 
+    /// Typed text, kept as the block it now reads as: `# ` makes a paragraph a heading, and deleting it makes it a paragraph again.
     private func write(_ id: AnyHashable, _ text: String) {
         guard id == AnyHashable(tail) else {
             return update(id) { block in
                 switch block {
-                    case .text(let uuid, _): .text(uuid, text)
-                    case .task(let uuid, _, let completed, let when): .task(uuid, text, completed, when)
+                    case .paragraph(let uuid, _), .heading(let uuid, _, _), .code(let uuid, _, _): Block(uuid, markdown: text)
+                    case .task(let uuid, _, let completed): .task(uuid, text, completed)
                     default: block
                 }
             }
         }
-        ScintRuntime.Document.update(ref) { $0.insert(.text(tail, text), at: nil) }
+        ScintRuntime.Document.update(ref) { $0.insert(Block(tail, markdown: text), at: nil) }
         tail = UUID()
     }
 
@@ -485,23 +447,24 @@ struct EditorDocument: View {
         var continued = false
         ScintRuntime.Document.update(ref) { document in
             guard let index = document.blocks.firstIndex(where: { $0.id == id }) else { return document.insert(blocks, at: nil) }
-            guard let offset, case .text(let uuid, let text) = document.blocks[index] else { return document.insert(blocks, at: index + 1) }
+            guard let offset, let text = document.blocks[index].markdown, let uuid = document.blocks[index].id as? UUID
+            else { return document.insert(blocks, at: index + 1) }
             let source = text as NSString, split = min(offset, source.length)
             let before = source.substring(to: split).trimmingCharacters(in: .newlines)
             let after = source.substring(from: split).trimmingCharacters(in: .newlines)
             continued = !after.isEmpty
             document.delete(at: index)
-            document.insert((before.isEmpty ? [] : [.text(uuid, before)]) + blocks + (after.isEmpty ? [] : [.text(UUID(), after)]), at: index)
+            document.insert((before.isEmpty ? [] : [Block(uuid, markdown: before)]) + blocks + (after.isEmpty ? [] : [Block(UUID(), markdown: after)]), at: index)
         }
         if focusing, let first = blocks.first { focus = Focus(id: first.id, entry: .next); return }
         let rows = rows
         guard let last = blocks.last?.id, let index = rows.firstIndex(where: { $0.id == last }) else { return }
-        if rows.indices.contains(index + 1), case .text(_, let text) = rows[index + 1], text.isEmpty || continued {
+        if rows.indices.contains(index + 1), let text = rows[index + 1].markdown, text.isEmpty || continued {
             return enter(rows[index + 1], from: .next)
         }
         let line = UUID()
         ScintRuntime.Document.update(ref) { document in
-            document.insert(.text(line, ""), at: document.blocks.firstIndex { $0.id == last }.map { $0 + 1 })
+            document.insert(.paragraph(line, ""), at: document.blocks.firstIndex { $0.id == last }.map { $0 + 1 })
         }
         focus = Focus(id: line, entry: .next)
     }

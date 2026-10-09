@@ -13,19 +13,16 @@ struct TasksCard: View {
     @State var hovered: Bool
 
     var selected: Bool { model.session.selection.selected(ref) }
-    var blocks: [ScintRuntime.Document.Block] { ScintRuntime.Document.with(ref, { $0.blocks }) ?? [] }
-    var preview: [ScintRuntime.Document.Block] { ScintRuntime.Document.with(ref, { $0.body }) ?? [] }
-    var title: String { if case .task(_, let text, _, _)? = blocks.first { text } else { "" } }
-    var done: Bool { if case .task(_, _, let done, _)? = blocks.first { done } else { false } }
-
-    var command: Reference? { blocks.lazy.compactMap { if case .command(let ref) = $0 { ref } else { nil } }.first }
-
-    var space: Reference? { blocks.lazy.compactMap {
-        if case .data(_, .collection(let values)) = $0 { values["space"]?.references.first } else { nil } }.first
-    }
+    var document: ScintRuntime.Document? { ScintRuntime.Document.with(ref, { $0 }) }
+    var preview: [ScintRuntime.Document.Block] { document?.body ?? [] }
+    var title: String { document?.task?.text ?? "" }
+    var done: Bool { document?.task?.done ?? false }
+    var command: Reference? { document.flatMap { document in document.harness.flatMap { document.command(.update, of: $0) } } }
+    var space: Reference? { document.flatMap { document in document.metadata.flatMap { $0.space == document.origin ? nil : $0.space } } }
 
     var due: String? {
-        guard case .task(_, _, _, let when?)? = blocks.first else { return nil }
+        guard let schedule = document?.schedule, let moment = schedule.moment else { return nil }
+        let when = When(moment, repeats: schedule.repeats)
         let date = when.next(after: Calendar.current.startOfDay(for: .now)) ?? when.date
         let time = date.formatted(date: .omitted, time: .shortened)
         if Calendar.current.isDateInToday(date) { return "Today, \(time)" }

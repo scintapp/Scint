@@ -6,67 +6,21 @@ import ScintComponents
 
 extension Value { var title: String { rendered.joined(separator: " ") } }
 
-extension Parameter {
-    var name: String? {
-        switch self {
-            case .argument(let name, _, _, _), .reference(let name, _, _, _): name
-            case .fixed: nil
-        }
-    }
-}
-
-indirect enum Term {
-    case flag(String, Term)
-    case toggle, integer, decimal, text, date, moment
-    case choice([Value])
-    case scale([Value])
-    case reference(Reference?)
-    case list(Term)
-    case group([Argument])
-
-    init(_ template: Value) {
-        switch template {
-            case .property(.bool): self = .toggle
-            case .property(.integer): self = .integer
-            case .property(.decimal): self = .decimal
-            case .property: self = .text
-            case .date: self = .date
-            case .when: self = .moment
-            case .reference(let ref): self = .reference(ref)
-            case .range(let steps): self = .scale(steps)
-            case .sequence(let values) where values.isEmpty: self = .reference(nil)
-            case .sequence(let values) where values.count == 1: self = .list(Term(values[0]))
-            case .sequence(let values): self = .choice(values)
-            case .collection(let values) where values.count == 1: self = values.first.map { .flag($0.key, Term($0.value)) } ?? .group([])
-            case .collection(let values):
-                self = .group(values.sorted { $0.key < $1.key }.map { Argument(name: $0.key, template: $0.value, required: true) })
-        }
-    }
-
+extension Schema {
     var seed: Value? {
-        switch self {
-            case .flag(_, let inner): inner.seed
-            case .toggle: .property(.bool(false))
+        switch bare {
+            case .bool: .property(.bool(false))
             case .integer: .property(.integer(0))
             case .decimal: .property(.decimal(0))
-            case .text: .property("")
+            case .string: .property("")
             case .date: .date(.now)
-            case .moment: .when(When(.now))
-            case .choice(let values), .scale(let values): values.first
-            case .reference: nil
+            case .options, .range: choices.first
+            case .reference, .command: nil
             case .list: .sequence([])
-            case .group(let arguments):
-                arguments.allSatisfy { $0.term.seed != nil }
-                ? .collection(Dictionary(uniqueKeysWithValues: arguments.compactMap { argument in argument.term.seed.map { (argument.name, $0) } }))
-                : nil
+            case .dictionary(let fields):
+                fields.values.allSatisfy { $0.seed != nil } ? .collection(fields.compactMapValues(\.seed)) : nil
+            case .default, .required: nil
         }
-    }
-
-    var leaf: Term { if case .flag(_, let inner) = self { inner.leaf } else { self } }
-
-    static func peel(_ value: Value?, _ flag: String) -> Value? {
-        guard case .collection(let values)? = value, values.count == 1, let inner = values[flag] else { return value }
-        return inner
     }
 }
 
@@ -81,68 +35,6 @@ struct TermDate: View {
             DatePicker("", selection: $date, displayedComponents: .hourAndMinute)
                 .labelsHidden()
         }
-    }
-}
-
-struct TermMoment: View {
-    @Binding var value: Value?
-
-    @State private var timed = false
-
-    var when: When? { if case .when(let when)? = value { when } else { nil } }
-
-    func morning(_ date: Date) -> Date { Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: date) ?? date }
-
-    var body: some View {
-        Group {
-            HStack {
-                Text("Date")
-                Spacer()
-
-                if let when {
-                    DatePicker("", selection: .init(get: { when.date }, set: { value = .when(When($0, repeats: when.repeats)) }), displayedComponents: .date)
-                        .labelsHidden()
-                }
-
-                Toggle("Date", isOn: .init(get: { when != nil }, set: { on in
-                    timed = false
-                    value = on ? .when(When(morning(.now))) : nil
-                }))
-                .labelsHidden()
-            }
-
-            if let when {
-                HStack {
-                    Text("Time")
-                    Spacer()
-
-                    if timed {
-                        DatePicker("", selection: .init(get: { when.date }, set: { value = .when(When($0, repeats: when.repeats)) }), displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                    }
-
-                    Toggle("Time", isOn: .init(get: { timed }, set: { on in
-                        timed = on
-                        let hour = (Calendar.current.component(.hour, from: .now) + 1) % 24
-                        let moment = on ? Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: when.date) ?? when.date : morning(when.date)
-                        value = .when(When(moment, repeats: when.repeats))
-                    }))
-                    .labelsHidden()
-                }
-
-                HStack {
-                    Text("Repeat")
-                    Spacer()
-
-                    Picker("Repeat", selection: .init(get: { when.repeats }, set: { value = .when(When(when.date, repeats: $0)) })) {
-                        ForEach(When.Repeat.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
-                    }
-                    .labelsHidden()
-                    .fixedSize()
-                }
-            }
-        }
-        .onAppear { timed = when.map { morning($0.date) != $0.date } ?? false }
     }
 }
 
@@ -221,7 +113,7 @@ struct TermReference: View {
 }
 
 struct TermList: View {
-    let element: Term
+    let element: Schema
     @Binding var value: Value?
 
     var elements: [Value] { if case .sequence(let values)? = value { values } else { [] } }
@@ -273,7 +165,7 @@ struct TermGroup: View {
                     get: { fields[argument.name] },
                     set: { field in
                         var values = arguments.reduce(into: [String: Value]()) { values, argument in
-                            values[argument.name] = fields[argument.name] ?? argument.term.seed
+                            values[argument.name] = fields[argument.name] ?? argument.schema.seed
                         }
                         values[argument.name] = field
                         value = values.count == arguments.count ? .collection(values) : nil
@@ -285,24 +177,21 @@ struct TermGroup: View {
 }
 
 struct TermField: View {
-    let term: Term
+    let schema: Schema
     let placeholder: String
     let resting: Value?
     @Binding var value: Value?
 
-    init(_ term: Term, value: Binding<Value?>, placeholder: String, resting: Value?) {
-        self.term = term
+    init(_ schema: Schema, value: Binding<Value?>, placeholder: String, resting: Value?) {
+        self.schema = schema
         self.placeholder = placeholder
         self.resting = resting
         self._value = value
     }
 
     var body: some View {
-        switch term {
-            case .flag(let flag, let inner):
-                TermField(inner, value: .init(get: { Term.peel(value, flag) }, set: { value = $0 }), placeholder: placeholder, resting: resting)
-
-            case .toggle:
+        switch schema.bare {
+            case .bool:
                 Toggle("", isOn: .init(get: { if case .property(.bool(let on))? = value ?? resting { on } else { false } }, set: { value = .property(.bool($0)) }))
                     .labelsHidden()
 
@@ -312,32 +201,38 @@ struct TermField: View {
             case .decimal:
                 TextField("", value: .init(get: { if case .property(.decimal(let number))? = value { number } else { nil } }, set: { value = $0.map { .property(.decimal($0)) } }), format: .number, prompt: Text(placeholder))
 
-            case .text:
+            case .string:
                 TextField("", text: .init(get: { if case .property(.string(let text))? = value { text } else { "" } }, set: { value = $0.isEmpty ? nil : .property(.string($0)) }), prompt: Text(placeholder))
 
             case .date:
                 TermDate(date: .init(get: { if case .date(let date)? = value { date } else { .now } }, set: { value = .date($0) }))
 
-            case .moment:
-                TermMoment(value: $value)
+            case .options:
+                TermChoice(choices: schema.choices, placeholder: placeholder, value: $value)
 
-            case .choice(let choices):
-                TermChoice(choices: choices, placeholder: placeholder, value: $value)
-
-            case .scale(let steps) where steps.isEmpty:
+            case .range where schema.choices.isEmpty:
                 EmptyView()
 
-            case .scale(let steps):
-                TermScale(steps: steps, placeholder: placeholder, resting: resting, value: $value)
+            case .range:
+                TermScale(steps: schema.choices, placeholder: placeholder, resting: resting, value: $value)
 
             case .reference(let expected):
                 TermReference(expected: expected, placeholder: placeholder, value: $value)
 
+            case .command(let inner) where !inner.choices.isEmpty:
+                TermChoice(choices: inner.choices, placeholder: placeholder, value: $value)
+
+            case .command(let inner):
+                TermField(inner, value: $value, placeholder: placeholder, resting: resting)
+
             case .list(let element):
                 TermList(element: element, value: $value)
 
-            case .group(let arguments):
-                TermGroup(arguments: arguments, value: $value)
+            case .dictionary(let fields):
+                TermGroup(arguments: fields.keys.sorted().map { Argument(name: $0, schema: fields[$0]!) }, value: $value)
+
+            case .default, .required:
+                EmptyView()
         }
     }
 }

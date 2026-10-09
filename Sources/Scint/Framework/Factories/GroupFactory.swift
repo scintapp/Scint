@@ -5,10 +5,35 @@ import ScintComponents
 
 @MainActor struct GroupFactory {
     @ViewBuilder static func build(_ surface: some Surface, _ section: SectionParams, _ controls: Controls) -> some View {
-        GroupLayout(title: section.name, footer: nil) {
-            ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                if index > 0 { GroupDivider() }
-                build(surface, item, controls)
+        if section.layout == .grid {
+            GroupGrid(title: section.name) {
+                ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
+                    Group {
+                        switch item.trailingKind {
+                            case .load:
+                                LoadButton(items: item.items) { controls.onSelect?($0) } label: { GroupTile(item, disclosure: true) }
+                                    .buttonStyle(.plain)
+
+                            case .date, .time:
+                                GroupMoment(item: item, elements: item.trailingKind == .date ? .yearMonthDay : .hourMinute) { controls.onValueChange?(item, $0) }
+
+                            case .field:
+                                GroupNote(placeholder: item.name) { controls.onValueChange?(item, $0) }
+
+                            default:
+                                EmptyView()
+                        }
+                    }
+                    // The first fills the row; the rest fit what they show.
+                    .fixedSize(horizontal: index > 0, vertical: false)
+                }
+            }
+        } else {
+            GroupLayout(title: section.name, footer: nil) {
+                ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
+                    if index > 0 { GroupDivider() }
+                    build(surface, item, controls)
+                }
             }
         }
     }

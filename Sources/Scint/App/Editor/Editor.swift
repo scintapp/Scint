@@ -101,6 +101,13 @@ import ScintComponents
         onInsert(blocks, range.location)
     }
 
+    /// Pasted markdown of more than one block lands as those blocks.
+    override func paste(_ sender: Any?) {
+        let chunks = NSPasteboard.general.string(forType: .string).map(Markdown.chunks) ?? []
+        guard chunks.count > 1 else { return super.paste(sender) }
+        insert(chunks.map { Document.Block(UUID(), markdown: $0) }, replacing: selectedRange())
+    }
+
     override func insertText(_ string: Any, replacementRange: NSRange) {
         super.insertText(string, replacementRange: replacementRange)
         guard !hasMarkedText() else { return }

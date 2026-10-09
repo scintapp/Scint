@@ -7,6 +7,7 @@ enum GroupMetrics {
     static let row: CGFloat = 44
     static let detailRow: CGFloat = 48
     static let headerTop: CGFloat = 8
+    static let tile: CGFloat = 36
 
     static func height(for description: String) -> CGFloat {
         description.isEmpty ? row : detailRow
@@ -18,6 +19,97 @@ struct GroupDivider: View {
         Divider()
             .padding(.horizontal, 8)
             .opacity(0.4)
+    }
+}
+
+struct GroupTile<Label: View>: View {
+    let image: String
+    let ref: Reference?
+    let disclosure: Bool
+    @ViewBuilder let label: Label
+
+    init(image: String, ref: Reference? = nil, disclosure: Bool = false, @ViewBuilder label: () -> Label) {
+        self.image = image
+        self.ref = ref
+        self.disclosure = disclosure
+        self.label = label()
+    }
+
+    init(_ item: ItemParams, disclosure: Bool) where Label == Text? {
+        let text = item.description.isEmpty ? item.name : item.description
+        self.init(image: item.image, ref: item.ref, disclosure: disclosure) {
+            if !text.isEmpty { Text(text).foregroundStyle(item.description.isEmpty ? Style.Foreground.secondary : Style.Foreground.primary) }
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let ref { Iconography.icon(for: ref).frame(width: 18, height: 18) }
+            else if !image.isEmpty { Image(systemName: image).foregroundStyle(Style.Foreground.secondary) }
+
+            label.lineLimit(1)
+
+            Spacer(minLength: 0)
+
+            if disclosure {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Style.Foreground.secondary)
+            }
+        }
+        .font(.system(size: 13))
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: GroupMetrics.tile, alignment: .leading)
+        .background(Style.Shape.group.fill(Style.Background.group))
+        .contentShape(Style.Shape.group)
+    }
+}
+
+struct GroupMoment: View {
+    let item: ItemParams
+    let elements: NSDatePicker.ElementFlags
+    let onChange: (String) -> Void
+
+    @State private var editing = false
+
+    var body: some View {
+        if editing {
+            GroupTile(image: item.image, disclosure: item.image.isEmpty) {
+                MomentField(
+                    date: Value.formatter.date(from: item.value ?? "") ?? .now,
+                    elements: elements,
+                    onChange: { onChange(Value.formatter.string(from: $0)) },
+                    onEnd: { editing = false }
+                )
+                .fixedSize()
+            }
+        } else {
+            Button { editing = true } label: { GroupTile(item, disclosure: item.image.isEmpty) }
+                .buttonStyle(.plain)
+        }
+    }
+}
+
+struct GroupNote: View {
+    let placeholder: String
+    let onSubmit: (String) -> Void
+
+    @State private var text = ""
+
+    var body: some View {
+        TextField("Note", text: $text, prompt: Text(placeholder).foregroundStyle(Style.Foreground.subtle), axis: .vertical)
+            .textFieldStyle(.plain)
+            .font(.system(size: 13))
+            .lineLimit(1...8)
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: GroupMetrics.tile, alignment: .topLeading)
+            .background(Style.Shape.group.fill(Style.Background.group))
+            .onSubmit {
+                let note = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !note.isEmpty else { return }
+                onSubmit(note)
+                text = ""
+            }
     }
 }
 
@@ -120,6 +212,9 @@ struct GroupHeader: View {
     private var harness: Reference? { Space.with(ref, { $0.harness }).flatMap { $0 } }
 
     private var icon: Iconography.Icon {
+        if let done = Document.with(ref, { $0.task?.done }) ?? nil {
+            return Iconography.Icon(symbol: done ? "checkmark.app" : "app", tint: Style.Tint.task.bright, sizing: 18)
+        }
         guard harness != nil, let intent = Space.with(ref, { $0.intent })
         else { return Iconography.icon(for: ref, size: 18) }
         return Iconography.icon(for: intent, size: 18)
@@ -191,6 +286,25 @@ struct GroupHeader: View {
         .onChange(of: ref) {
             name = nil
             description = nil
+        }
+    }
+}
+
+struct GroupGrid<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack {
+            if !title.isEmpty {
+                Text(title)
+                    .padding(.leading, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary.opacity(0.75))
+            }
+
+            HStack(spacing: 8) { content() }
         }
     }
 }

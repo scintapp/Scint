@@ -14,8 +14,9 @@ struct ContextTicker: View {
     var body: some View {
         if let run {
             TimelineView(.periodic(from: run.start, by: 1)) { timeline in
-                Text(Duration.seconds(Int((run.stop ?? timeline.date).timeIntervalSince(run.start))).formatted(.units(width: .narrow, maximumUnitCount: 2)))
-                    .monospacedDigit()
+                Text(Duration.seconds(Int((run.stop ?? timeline.date)
+                    .timeIntervalSince(run.start)))
+                    .formatted(.units(width: .narrow, maximumUnitCount: 2)))
             }
         }
     }
@@ -147,24 +148,16 @@ struct ProjectCommand: Surface {
 
     var space: Reference? { model.session.selection.structure }
     var harness: Reference? { space.flatMap { Space.with($0, { $0.harness }) ?? nil } }
-    var inputs: [Parameter] { harness.flatMap { Harness.with($0, { Interface($0, .start, config).inputs }) } ?? [] }
+    var inputs: [(name: String, schema: Schema)] { harness.flatMap { Harness.with($0, { harness in harness.signatures[.start].map { ([$0] + harness.parameters).inputs(config) } }) ?? nil } ?? [] }
     var command: Reference? { slot.flatMap { config[$0]?.references.first } }
-    var settings: [ItemParams] { HarnessGroup.settings(inputs, config: config) }
+    var settings: [ItemParams] { SettingsGroup.parameters(model).sections.flatMap(\.items) }
     var range: ItemParams? { settings.first { $0.trailingKind == .range } }
     var models: ItemParams? { settings.first { $0.key == "model" } }
 
-    var config: [String: Value] {
-        guard let space, let harness, case .collection(let values)? = Space.with(space, { $0.config[harness] }) ?? nil
-        else { return [:] }
-        return values
-    }
+    var input: Reference? { space.flatMap { Space.with($0, { $0.input }) } }
+    var config: [String: Value] { harness.flatMap { harness in input.flatMap { Document.with($0, { $0.values(harness) }) } } ?? [:] }
 
-    var slot: String? {
-        inputs.compactMap { parameter -> String? in
-            guard case .reference(let key, _, _, _) = parameter else { return nil }
-            return key
-        }.first
-    }
+    var slot: String? { inputs.first.flatMap { if case .command = $0.schema.bare { $0.name } else { nil } } }
 
     var providers: [Reference] {
         Runtime.shared.all(as: Command.self)
@@ -173,13 +166,14 @@ struct ProjectCommand: Surface {
             .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
     }
 
-    private func configure(_ value: Value?, for key: String) {
-        guard let space, let harness else { return }
-        Space.with(space) { space in
-            var values: [String: Value] = if case .collection(let values)? = space.config[harness] { values } else { [:] }
-            values[key] = value
-            space.config(.collection(values), for: harness)
-        }
+    private func configure(_ value: Value?, for key: String, of ref: Reference?) {
+        guard let input, let ref else { return }
+        Document.update(input) { $0.metadata(value, key, for: ref) }
+    }
+
+    private func choices(_ provider: Reference) -> [String] {
+        let model = Command.with(provider, { $0.parameters.inputs().first { $0.name == "model" } }) ?? nil
+        return model?.schema.choices.compactMap(\.rendered.last) ?? []
     }
 
     private func go(_ next: Page) {
@@ -188,19 +182,19 @@ struct ProjectCommand: Surface {
     }
 
     private func choose(_ provider: Reference, _ value: String?) {
-        if let slot { configure(.reference(provider), for: slot) }
-        configure(value.map { .property(.string($0)) }, for: "model")
+        if let slot { configure(.reference(provider), for: slot, of: harness) }
+        configure(value.map { .property(.string($0)) }, for: "model", of: provider)
         go(.summary)
     }
 
     var body: some View {
         if let _ = harness {
             Button { presented.toggle() } label: {
-                Image(systemName: Iconography.model(.material(.command)).symbol)
-                    .font(Typography.footnote)
+                Image(systemName: "switch.2")
+                    .font(.system(size: 15))
                     .foregroundStyle(Style.Foreground.primary)
                     .frame(width: Style.Dimension.control(.small), height: Style.Dimension.control(.small))
-                    .background(hovered ? Style.Foreground.primary.opacity(0.06) : .clear, in: .circle)
+                    .background(hovered ? Style.Background.selection : .clear, in: .circle)
                     .contentShape(.circle)
             }
             .buttonStyle(.plain)
@@ -231,7 +225,7 @@ struct ProjectCommand: Surface {
 
                                 if let range, let key = range.key {
                                     CommandTrack(stops: range.items.count, selected: range.items.firstIndex { $0.value == range.value }) { index in
-                                        configure(range.items[index].value.map { .property(.string($0)) }, for: key)
+                                        configure(range.items[index].value.map { .property(.string($0)) }, for: key, of: range.origin)
                                     }
                                 }
                             }
@@ -259,9 +253,9 @@ struct ProjectCommand: Surface {
                                     choose(provider, nil)
                                 }
 
-                                ForEach((HarnessGroup.settings(Command.with(provider, { $0.parameters }) ?? [], config: config).first { $0.key == "model" }?.items ?? []).filter { $0.value != nil }) { item in
-                                    CommandOption(name: item.name, selected: provider == command && models?.value == item.value) {
-                                        choose(provider, item.value)
+                                ForEach(choices(provider), id: \.self) { value in
+                                    CommandOption(name: Argument.label(value), selected: provider == command && models?.value == value) {
+                                        choose(provider, value)
                                     }
                                 }
                             }
@@ -344,9 +338,8 @@ struct ProjectFocus: NSViewRepresentable {
 
 struct ProjectIntent<Content: View>: View {
     var model: any Model
-    @ViewBuilder var content: Content
-
     @State private var focused = false
+    @ViewBuilder var content: Content
 
     var context: Context? { model.session.selection.structure?.context }
 
@@ -368,12 +361,13 @@ struct ProjectIntent<Content: View>: View {
         VStack(alignment: .leading, spacing: 10) {
             if let context, context.state == .working {
                 HStack(spacing: 8) {
-                    StatusDot(thought ?? context.intent.forms.running, tint: Iconography.tint(for: context.intent), isActive: true, size: 6)
+                    StatusDot(thought ?? context.intent.forms.running, tint: Iconography.tint(for: context.intent), isActive: true, size: 8)
                     ContextTicker(context: context)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Style.Foreground.subtle)
+                        .lineLimit(1)
                 }
-                .font(Typography.detail)
-                .foregroundStyle(Style.Foreground.secondary)
-                .lineLimit(1)
+
             }
 
             content
@@ -402,10 +396,6 @@ struct ProjectIntent<Content: View>: View {
                                 }
                             }
                         }
-                    }
-                    else if focused {
-                        Style.Shape.input
-                            .stroke(Style.Border.surface, lineWidth: 1)
                     }
                 }
         }

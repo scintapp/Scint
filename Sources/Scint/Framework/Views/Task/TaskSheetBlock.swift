@@ -10,25 +10,14 @@ struct TaskSheetBlock: View {
 
     var body: some View {
         switch block {
-            case .task(_, let content, let completed, let when):
-                VStack {
-                    HStack(alignment: .center) {
-                        TaskCompletionIndicator(completed: completed, size: 20)
-                            .padding(.leading, 6)
+            case .task(_, let content, let completed):
+                HStack(alignment: .center) {
+                    TaskCompletionIndicator(completed: completed, size: 20)
+                        .padding(.leading, 6)
 
-                        Text(content)
-                            .font(Typography.heading(1))
-                            .foregroundStyle(Style.Foreground.primary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if let when {
-                        VStack {
-                            let relative = when.date.formatted(.relative(presentation: .named))
-                            Text(relative == "now" ? "Updated Just Now" : "Updated \(relative)")
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    Text(content)
+                        .font(Typography.heading(1))
+                        .foregroundStyle(Style.Foreground.primary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -41,9 +30,6 @@ struct TaskSheetBlock: View {
             case .command(let ref):
                 Card(ref: ref, style: .group, isSelected: isSelected)
                     .scaleEffect(scale ?? 1.0)
-
-            case .data:
-                EmptyView()
 
             default:
                 EmptyView()

@@ -6,26 +6,37 @@ import ScintComponents
 
 struct Argument: Identifiable {
     let name: String
-    let template: Value
-    let required: Bool
-    let fallback: Value?
+    let schema: Schema
 
     var id: String { name }
-    var term: Term { Term(template) }
-    var resting: Value? { flags.reduce(fallback) { Term.peel($0, $1) } }
+    var required: Bool { schema.required }
+    var resting: Value? { schema.fallback }
     var placeholder: String { resting.map { "Default (\($0.title))" } ?? (required ? "Required" : "Default") }
-
-    var flags: [String] {
-        var flags: [String] = []
-        var current = template
-        while case .collection(let values) = current, values.count == 1, let entry = values.first {
-            flags.append(entry.key)
-            current = entry.value
-        }
-        return flags
-    }
-
     var label: String { Self.label(name) }
+
+    static func clock(_ key: String) -> Bool { key.lowercased().contains("time") }
+
+    static func symbol(_ key: String) -> String {
+        label(key).lowercased().split(separator: " ").reversed().lazy.compactMap { word -> String? in
+            switch true {
+                case word.hasPrefix("dir"), word.hasPrefix("folder"), word.hasPrefix("path"): "folder"
+                case word.hasPrefix("timeout"), word.hasPrefix("interval"), word.hasPrefix("latency"): "timer"
+                case word.hasPrefix("time"): "clock"
+                case word.hasPrefix("model"): "cpu"
+                case word.hasPrefix("effort"): "lightbulb.max"
+                case word.hasPrefix("sandbox"), word.hasPrefix("permission"): "lock.shield"
+                case word.hasPrefix("command"), word == "action": "switch.2"
+                case word.hasPrefix("target"), word.hasPrefix("space"): "square.stack"
+                case word.hasPrefix("schedule"), word.hasPrefix("date"), word == "at", word == "when": "calendar"
+                case word.hasPrefix("repeat"), word.hasPrefix("every"): "repeat"
+                case word.hasPrefix("url"), word.hasPrefix("endpoint"): "link"
+                case word.hasPrefix("event"): "bolt"
+                case word.hasPrefix("label"), word.hasPrefix("name"): "tag"
+                case word.hasPrefix("check"), word.hasPrefix("query"): "magnifyingglass"
+                default: nil
+            }
+        }.first ?? "slider.horizontal.3"
+    }
 
     static func label(_ text: String) -> String {
         text.reduce(into: "") { label, character in
@@ -37,24 +48,21 @@ struct Argument: Identifiable {
         }.capitalized
     }
 
-    init(name: String, template: Value, required: Bool = false, fallback: Value? = nil) {
+    init(name: String, schema: Schema) {
         self.name = name
-        self.template = template
-        self.required = required
-        self.fallback = fallback
+        self.schema = schema
     }
 
-    init?(_ parameter: Parameter) {
-        switch parameter {
-            case .argument(let name, let type, let required, let fallback), .reference(let name, let type, let required, let fallback): self.init(name: name, template: type, required: required, fallback: fallback)
-            case .fixed: return nil
-        }
+    init(_ input: (name: String, schema: Schema)) {
+        self.init(name: input.name, schema: input.schema)
     }
 
-    func accepts(_ value: Value) -> Bool { (try? template.construct(value, name: name)) != nil }
+    func accepts(_ value: Value) -> Bool { (try? schema.construct(value, name: name)) != nil }
 
-    static func parameters(of owner: Reference, values: [String: Value] = [:]) -> [Parameter] {
-        Command.with(owner, { Interface($0, values).inputs }) ?? Harness.with(owner, { Interface($0, .start, values).inputs }) ?? []
+    static func inputs(of owner: Reference, values: [String: Value] = [:]) -> [(name: String, schema: Schema)] {
+        if let inputs = Command.with(owner, { $0.parameters.inputs(values) }) { return inputs }
+        guard let harness = Harness.with(owner, { $0 }), let slot = harness.signatures[.start] else { return [] }
+        return ([slot] + harness.parameters).inputs(values)
     }
 }
 
@@ -74,15 +82,10 @@ protocol ArgumentStyle: Sendable {
 
 struct AutomaticArgumentStyle: ArgumentStyle {
     func makeBody(configuration: Configuration) -> some View {
-        Group {
-            if case .moment = configuration.argument.term { configuration.content }
-            else {
-                HStack {
-                    configuration.label
-                    Spacer(minLength: 12)
-                    configuration.content
-                }
-            }
+        HStack {
+            configuration.label
+            Spacer(minLength: 12)
+            configuration.content
         }
         .contextMenu {
             Button("Reset to Default") { configuration.value.wrappedValue = nil }
@@ -99,7 +102,7 @@ struct ArgumentToken: View {
 
     @State private var presented = false
 
-    var value: Value? { configuration.argument.flags.reduce(configuration.value.wrappedValue) { Term.peel($0, $1) } }
+    var value: Value? { configuration.value.wrappedValue }
     var title: String { (value ?? configuration.argument.resting)?.title ?? configuration.argument.label }
 
     var body: some View {
@@ -157,7 +160,7 @@ struct ArgumentControl<Label: View>: View {
 
     var body: some View {
         let accepted = Binding<Value?>(get: { value }, set: { if $0.map(argument.accepts) ?? true { value = $0 } })
-        let content = TermField(argument.term, value: accepted, placeholder: argument.placeholder, resting: argument.resting)
+        let content = TermField(argument.schema, value: accepted, placeholder: argument.placeholder, resting: argument.resting)
         AnyView(style.makeBody(configuration: .init(argument: argument, label: AnyView(label), content: AnyView(content), value: accepted)))
     }
 }
@@ -201,123 +204,31 @@ struct ArgumentConfig {
     let space: Reference
     let owner: Reference
 
-    var parameters: [Parameter] { Argument.parameters(of: owner) }
+    var inputs: [(name: String, schema: Schema)] { Argument.inputs(of: owner) }
 
-    var values: [String: Value] {
-        if case .collection(let values)? = Space.with(space, { $0.config[owner] }) ?? nil { values } else { [:] }
-    }
+    var input: Reference? { Space.with(space, { $0.input }) }
+    var values: [String: Value] { input.flatMap { Document.with($0, { $0.values(owner) }) } ?? [:] }
 
     func store(_ values: [String: Value]) {
-        Space.with(space) { $0.config(values.isEmpty ? nil : .collection(values), for: owner) }
-    }
-}
-
-extension Argument {
-    static func clock(_ key: String) -> Bool { key.lowercased().contains("time") }
-
-    static func directory(_ key: String) -> Bool {
-        let key = key.lowercased()
-        return key.contains("dir") || key.contains("folder") || key.contains("path")
-    }
-
-    static func symbol(_ key: String) -> String {
-        if directory(key) { return "folder" }
-        if clock(key) { return "clock" }
-
-        let key = key.lowercased()
-        return switch true {
-            case key.contains("model"): "cpu"
-            case key.contains("effort"): "lightbulb.max"
-            case key.contains("sandbox"), key.contains("permission"): "lock.shield"
-            case key.contains("command"), key == "action": "switch.2"
-            case key.contains("target"), key.contains("space"): "square.stack"
-            case key.contains("schedule"), key.contains("date"), key == "at", key == "when": "calendar"
-            case key.contains("repeat"), key.contains("every"): "repeat"
-            case key.contains("url"), key.contains("endpoint"): "link"
-            case key.contains("interval"), key.contains("latency"), key.contains("timeout"): "timer"
-            case key.contains("event"): "bolt"
-            case key.contains("label"), key.contains("name"): "tag"
-            case key.contains("check"), key.contains("query"): "magnifyingglass"
-            default: "slider.horizontal.3"
-        }
-    }
-
-    @MainActor func item(_ value: Value?) -> ItemParams? {
-        let current = flags.reduce(value) { Term.peel($0, $1) }
-        let shown = (current ?? resting)?.rendered.last ?? ""
-        let detail = current?.references.first?.descriptor.name ?? current.map { Self.label($0.title) } ?? "Default"
-        let choices: ([Value]) -> [ItemParams] = { values in
-            values.compactMap(\.rendered.last).map { ItemParams(key: name, name: Self.label($0), value: $0) }
-        }
-
-        var kind: ItemParams.TrailingKind
-        var items: [ItemParams] = []
-        var active = true
-        switch term.leaf {
-            case .toggle:
-                kind = .toggle
-                active = current == .property(true) || current == .property("true")
-            case .integer, .decimal, .text:
-                kind = .field
-            case .date:
-                kind = .date
-                active = current != nil
-            case .moment:
-                kind = .moment
-                active = current != nil
-            case .choice(let values):
-                kind = .picker
-                items = choices(values)
-            case .scale(let values):
-                kind = .range
-                items = choices(values)
-            case .reference(let expected):
-                kind = .load
-                items = [ItemParams(key: name, name: "Default", image: "circle.dashed", tint: Style.Foreground.secondary, active: current == nil)]
-                    + TermReference.options(expected).map { ItemParams(ref: $0, key: name, name: $0.descriptor.name, active: current?.references.first == $0) }
-            case .flag, .list, .group:
-                return nil
-        }
-
-        let image = current?.references.first.map { Iconography.icon(for: $0).symbol } ?? Self.symbol(name)
-        return ItemParams(key: name, name: label, image: image, tint: Style.Foreground.secondary, trailingKind: kind, value: shown, description: detail, active: active, items: items)
-    }
-
-    static func controls(_ write: @escaping (_ key: String, _ value: Value?) -> Void) -> Controls {
-        func set(_ key: String?, _ value: Value?) { if let key { write(key, value) } }
-
-        return .init(
-            onToggle: { item in
-                switch item.trailingKind {
-                    case .moment: set(item.key, item.active ? nil : .when(When(.now)))
-                    case .date, .time: set(item.key, item.active ? nil : .date(.now))
-                    default: set(item.key, .property(.bool(!item.active)))
-                }
-            },
-            onChange: { item, selection in set(item.key, selection.value.map { .property(.string($0)) }) },
-            onValueChange: { item, text in
-                if item.trailingKind == .moment, let moment = Value.formatter.date(from: text) { return set(item.key, .when(When(moment))) }
-                set(item.key, text.isEmpty ? nil : .property(.string(text)))
-            },
-            onSelect: { item in set(item.key, item.ref.map(Value.reference)) }
-        )
+        guard let input else { return }
+        Document.update(input) { $0.metadata(values.isEmpty ? nil : .collection(values), for: owner) }
     }
 }
 
 struct Arguments: View {
-    let parameters: [Parameter]
+    let inputs: [(name: String, schema: Schema)]
     @Binding var values: [String: Value]
 
-    init(_ parameters: [Parameter], values: Binding<[String: Value]>) {
-        self.parameters = parameters
+    init(_ inputs: [(name: String, schema: Schema)], values: Binding<[String: Value]>) {
+        self.inputs = inputs
         self._values = values
     }
 
     init(for owner: Reference?, values: Binding<[String: Value]>) {
-        self.init(owner.map { Argument.parameters(of: $0, values: values.wrappedValue) } ?? [], values: values)
+        self.init(owner.map { Argument.inputs(of: $0, values: values.wrappedValue) } ?? [], values: values)
     }
 
-    var arguments: [Argument] { parameters.compactMap { Argument($0) } }
+    var arguments: [Argument] { inputs.map(Argument.init) }
 
     var body: some View {
         ForEach(arguments) { argument in
@@ -335,20 +246,20 @@ struct ArgumentLine: View {
         self.values = values
     }
 
+    /// The compiled line as it reads to a person: references by name, holes where a required input is missing.
     var tokens: [(text: String, literal: Bool)] {
-        parameters.flatMap { parameter -> [(text: String, literal: Bool)] in
-            switch parameter {
-                case .fixed(let value):
-                    return value.rendered.map { ($0, true) }
-                case .argument(let name, let type, let required, let fallback):
-                    guard let value = values[name] ?? fallback, let built = try? type.construct(value, name: name)
-                            else { return required ? [("‹\(name)›", false)] : [] }
-                    return built.rendered.map { ($0, false) }
-                case .reference(let name, _, let required, let fallback):
-                    guard let value = values[name] ?? fallback
-                            else { return required ? [("‹\(name)›", false)] : [] }
-                    return [("‹\(value.references.first?.descriptor.name ?? name)›", false)]
+        func words(_ argument: ScintRuntime.Argument) -> [String] {
+            switch argument {
+                case .literal(let text): [text]
+                case .reference(let ref), .command(let ref, _): ["‹\(ref.descriptor.name)›"]
+                case .joined(let parts), .shell(let parts): [parts.flatMap(words).joined()]
             }
+        }
+
+        return parameters.flatMap { parameter -> [(text: String, literal: Bool)] in
+            guard let arguments = try? parameter.arguments(values)
+            else { return parameter.inputs.map { ("‹\($0.name)›", false) } }
+            return arguments.flatMap(words).map { ($0, parameter.inputs.isEmpty) }
         }
     }
 
@@ -365,48 +276,45 @@ struct ArgumentLine: View {
     @Previewable @State var selected: String?
     @Previewable @State var values: [String: Value] = [:]
 
-    let sandbox: Value = .collection(["--sandbox": .sequence([.property("read-only"), .property("workspace-write"), .property("danger-full-access")])])
+    let sandbox: [Schema] = [.string("read-only"), .string("workspace-write"), .string("danger-full-access")]
 
     let harnesses: [(name: String, harness: [Parameter], command: [Parameter])] = [
         ("Agent", [
-            .argument(name: "sandbox", type: sandbox, default: .collection(["--sandbox": .property("read-only")])),
-            .argument(name: "input", type: .property(""), required: true),
-            .argument(name: "brief", type: .property("")),
+            .flag("--sandbox", .options([.default(.string("read-only"))] + sandbox.dropFirst())),
+            .subcommand("input", .required(.string)),
+            .flag("--brief", .string),
         ], [
-            .fixed(.property("exec")),
-            .argument(name: "model", type: .collection(["--model": .sequence([.property("gpt-6-astra"), .property("gpt-5.5")])])),
-            .argument(name: "effort", type: .collection(["-c": .collection(["model_reasoning_effort": .range([.property("low"), .property("medium"), .property("high"), .property("xhigh")])])])),
-            .argument(name: "sandbox", type: sandbox, default: .collection(["--sandbox": .property("workspace-write")])),
-            .argument(name: "maxTurns", type: .collection(["--max-turns": .property(0)])),
-            .argument(name: "input", type: .property("")),
+            .subcommand("exec"),
+            .flag("--model", .options([.string("gpt-6-astra"), .string("gpt-5.5")])),
+            .flag("--config", .dictionary(["model_reasoning_effort": .range([.string("low"), .string("medium"), .string("high"), .string("xhigh")])])),
+            .flag("--sandbox", .options([sandbox[0], .default(sandbox[1]), sandbox[2]])),
+            .flag("--max-turns", .integer),
+            .subcommand("input", .string),
         ]),
         ("Transcode", [], [
-            .argument(name: "format", type: .collection(["--format": .sequence([.property("mp4"), .property("mov"), .property("webm")])]), required: true),
-            .argument(name: "quality", type: .collection(["--quality": .range([.property("draft"), .property("good"), .property("best")])]), default: .property("good")),
-            .argument(name: "bitrate", type: .collection(["--bitrate": .property(0)])),
-            .argument(name: "trim", type: .collection(["start": .property(0.0), "end": .property(0.0)])),
-            .argument(name: "overwrite", type: .collection(["-y": .property(false)])),
-            .argument(name: "output", type: .property(""), required: true),
+            .flag("--format", .required(.options([.string("mp4"), .string("mov"), .string("webm")]))),
+            .flag("--quality", .range([.string("draft"), .default(.string("good")), .string("best")])),
+            .flag("--bitrate", .integer),
+            .flag("--trim", .dictionary(["start": .decimal, "end": .decimal])),
+            .switch("-y", .bool),
+            .subcommand("output", .required(.string)),
         ]),
         ("Observe", [
-            .argument(name: "when", type: .when(When(.distantPast))),
-            .argument(name: "note", type: .property("")),
+            .flag("--date", .date),
+            .flag("--repeat", .options(When.Repeat.allCases.map { .string($0.rawValue) })),
+            .flag("--note", .string),
         ], []),
         ("Publish", [
-            .argument(
-                name: "visibility",
-                type: .collection(["--visibility": .sequence([.property("public"), .property("unlisted"), .property("private")])]),
-                default: .collection(["--visibility": .property("unlisted")])
-            ),
+            .flag("--visibility", .options([.string("public"), .default(.string("unlisted")), .string("private")])),
         ], [
-            .argument(name: "channels", type: .collection(["--channel": .sequence([.property("")])]), required: true),
-            .argument(name: "visibility", type: .collection(["--visibility": .sequence([.property("public"), .property("unlisted"), .property("private")])])),
-            .argument(name: "dryRun", type: .collection(["--dry-run": .property(false)])),
+            .flag("--channel", .required(.list(.string)), as: "channels"),
+            .flag("--visibility", .options([.string("public"), .string("unlisted"), .string("private")])),
+            .switch("--dry-run", .bool),
         ]),
         ("Empty", [], []),
     ]
 
-    let parameters = harnesses.first { $0.name == selected }.map { Interface($0.command + $0.harness).parameters } ?? []
+    let parameters = harnesses.first { $0.name == selected }.map { $0.command.overlaid(by: $0.harness) } ?? []
 
     VStack(alignment: .leading, spacing: 0) {
         Picker("Harness", selection: $selected) {
@@ -419,7 +327,7 @@ struct ArgumentLine: View {
         if let selected {
             ArgumentDraft(values: $values) { draft, apply in
                 Form {
-                    Arguments(parameters, values: draft)
+                    Arguments(parameters.inputs(), values: draft)
 
                     Button("Apply") { apply() }
                         .disabled(!apply.pending)
@@ -432,7 +340,7 @@ struct ArgumentLine: View {
 
             HStack {
                 Text(selected)
-                Arguments(parameters, values: $values)
+                Arguments(parameters.inputs(), values: $values)
             }
             .argumentStyle(.token)
             .padding()

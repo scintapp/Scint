@@ -7,19 +7,18 @@ import ScintComponents
 struct LibraryCard: View {
     let ref: Reference
     let model: any Model
-    let sizing: CGFloat = 230
+    let weight: CGFloat
     let scale = 0.33
+    let minimum: CGFloat = 160
+    let maximum: CGFloat = 240
 
     @State var hovered: Bool
+    @State var content: CGFloat = 0
 
+    var height: CGFloat { minimum + (maximum - minimum) * weight * min(content / maximum, 1) }
     var selected: Bool { model.session.selection.selected(ref) }
     var title: String { Card.text(for: ref).name }
-
-    var blocks: [ScintRuntime.Document.Block] {
-        let blocks = Document.with(ref, { $0.blocks }) ?? []
-        guard case .text(_, let first)? = blocks.first, first.hasPrefix("# ") else { return blocks }
-        return Array(blocks.dropFirst())
-    }
+    var blocks: [ScintRuntime.Document.Block] { Document.with(ref, { $0.body }) ?? [] }
 
     var updated: String {
         let relative = ref.descriptor.updated.formatted(.relative(presentation: .named))
@@ -54,12 +53,14 @@ struct LibraryCard: View {
                     }
                 }
                 .frame(width: proxy.size.width / scale, alignment: .topLeading)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height * scale } action: { content = $0 }
                 .textSelection(.disabled)
                 .scaleEffect(scale, anchor: .topLeading)
             }
         }
         .padding(Style.Spacing.tile)
-        .frame(minWidth: sizing, maxWidth: .infinity, minHeight: sizing * 1.2, maxHeight: sizing * 1.2, alignment: .top)
+        .frame(minWidth: 230, maxWidth: .infinity, alignment: .top)
+        .frame(height: height)
         .clipShape(Style.Shape.card)
         .background(Style.Shape.card.fill(Style.Background.surface.opacity(0.7)))
         .overlay(Style.Shape.card.strokeBorder(selected ? Style.Tint.document.dull : Style.Border.hairline))

@@ -83,15 +83,14 @@ struct InspectorPicker: View {
             .padding([.trailing, .vertical], 9)
             .background {
                 Color.clear
-                    .glassEffect(.regular, in: hole.inset(by: -2))
-                    .overlay { Color.clear.blendMode(.color).opacity(0.4) }
-                    .overlay { Style.Background.canvas.opacity(0.6) }
-                    .ignoresSafeArea()
+                    .glassEffect(.clear, in: hole.inset(by: -2))
+                    .blendMode(.color)
             }
             .overlay {
                 ZStack {
                     HostShape(hole: hole).fill(Style.Background.canvas, style: FillStyle(eoFill: true))
                     hole.strokeBorder(Style.Border.base, lineWidth: 1)
+                    hole.stroke(.black, lineWidth: 0.5)
                 }
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
