@@ -12,7 +12,7 @@ import ScintComponents
     var opened: Opened { selection.opened }
     var inbox: Reference { data.inbox }
     var library: Reference { data.library }
-    var projects: Reference { data.projects }
+    var spaces: Reference { data.spaces }
     var tasks: Reference { data.tasks }
 
     init(_ data: DataModel) {
@@ -79,9 +79,9 @@ extension Session {
         return ref
     }
 
-    var project: Reference? {
+    var space: Reference? {
         guard let structure = selection.structure else { return nil }
-        return navigation.spaces(to: structure).drop { $0 != projects }.dropFirst().first
+        return navigation.spaces(to: structure).drop { $0 != spaces }.dropFirst().first
     }
 
     var bridged: [Reference] {

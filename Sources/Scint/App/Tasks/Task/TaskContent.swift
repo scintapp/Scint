@@ -8,8 +8,8 @@ struct TaskContent: Surface {
     var model: any Model
 
     var ref: Reference? { model.session.selection.opened.document }
-    var task: (id: UUID, text: String, done: Bool)? { ref.flatMap { Document.with($0, { $0.task }) ?? nil } }
-    var ready: Bool { ref.flatMap { Document.with($0, { $0.schedule.moment }) ?? nil } != nil }
+    var task: (id: UUID, text: String, done: Bool)? { ref.flatMap { Document.with($0, { TaskHeader.task($0) }) ?? nil } }
+    var ready: Bool { ref.flatMap { Document.with($0, { TaskHeader.schedule($0).moment }) ?? nil } != nil }
     var completed: Bool? { task?.done }
 
     var body: some View {
@@ -17,18 +17,19 @@ struct TaskContent: Surface {
             if let ref {
                 VStack(alignment: .leading, spacing: Style.Spacing.section) {
                     TaskHeader(ref: ref, onCompose: {
-                        Space.update(model.session.tasks, { $0.inputs(ref) })
-                        model.compose(model.session.tasks)
-                    }, onCancel: { model.cancel(model.session.tasks) })
+                        Space.update(model.session.tasks, { $0.input(ref) })
+                        let _ = model.compose(model.session.tasks)
+                    }, onCancel: { let _ = model.cancel(ref) })
 
                     Divider()
 
                     HStack {
-                        TaskTime(ref: ref)
+                        TaskDate(ref: ref, placeholder: "Date", symbol: "calendar", components: [.date])
+                        TaskDate(ref: ref, placeholder: "Time", symbol: "clock", components: [.hourAndMinute])
                         TaskRepeat(ref: ref)
                         Spacer()
-                        TaskSpace(ref: ref, scope: model.session.projects)
-                        TaskCommand(ref: ref)
+                        TaskTarget(ref: ref, scope: model.session.spaces)
+                        TaskAction(ref: ref)
                     }
 
                     EditorDocument(ref: ref, autofocus: false)

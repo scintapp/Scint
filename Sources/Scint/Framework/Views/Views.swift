@@ -1,0 +1,203 @@
+import SwiftUI
+import UniformTypeIdentifiers
+import ScintRuntime
+import ScintComponents
+
+
+struct ItemPicker: View {
+    let value: String
+    let items: [ItemParams]
+    let onChange: (ItemParams) -> Void
+
+    var body: some View {
+        let selected = items.first { ($0.value ?? "") == value }
+
+        SwiftUI.Menu {
+            ForEach(items) { item in
+                if let tint = item.tint, !item.image.isEmpty {
+                    Toggle(isOn: Binding(get: { item == selected }, set: { _ in onChange(item) })) {
+                        Label { Text(item.name) } icon: { Image(nsImage: Self.tinted(item.image, tint)) }
+                    }
+                } else {
+                    Button { onChange(item) } label: {
+                        Text(item.name)
+                        if item == selected { Image(systemName: "checkmark") }
+                    }
+                }
+            }
+        } label: {
+            HStack(alignment: .center) {
+                Spacer()
+            }
+            .frame(maxWidth: 24, maxHeight: 24, alignment: .center)
+            .overlay {
+                Image(systemName: "chevron.up.chevron.down")
+                    .frame(maxWidth: 24, maxHeight: 24, alignment: .center)
+            }
+        }
+        .frame(maxWidth: 24, maxHeight: 24, alignment: .center)
+        .menuStyle(.button)
+        .buttonStyle(.borderless)
+        .menuIndicator(.hidden)
+    }
+
+    private static func tinted(_ symbol: String, _ tint: Color) -> NSImage {
+        let configuration = NSImage.SymbolConfiguration(paletteColors: [NSColor(tint)])
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+            .withSymbolConfiguration(configuration) ?? NSImage()
+        image.isTemplate = false
+        return image
+    }
+}
+
+struct ItemRangePicker: View {
+    let value: String
+    let items: [ItemParams]
+    let onChange: (ItemParams) -> Void
+
+    private static let track: CGFloat = 84
+    private static let height: CGFloat = 16
+    private static let notch: CGFloat = 3
+
+    private var index: Int {
+        let found = items.firstIndex { ($0.value ?? "") == value } ?? 0
+        return min(max(found, 0), max(items.count - 1, 0))
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Spacer(minLength: 0)
+
+            let step = step(for: Self.track)
+
+            ZStack(alignment: .leading) {
+                Capsule().fill(Style.Background.selection)
+
+                ForEach(Array(items.indices), id: \.self) { notch in
+                    Circle()
+                        .fill(Style.Foreground.secondary)
+                        .frame(width: Self.notch, height: Self.notch)
+                        .offset(x: Self.height / 2 + step * CGFloat(notch) - Self.notch / 2)
+                }
+
+                Circle()
+                    .fill(Style.Foreground.primary)
+                    .frame(width: Self.height, height: Self.height)
+                    .offset(x: step * CGFloat(index))
+            }
+            .frame(width: Self.track, height: Self.height)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { drag in select(at: drag.location.x) }
+            )
+            .animation(.smooth(duration: 0.15), value: index)
+        }
+        .frame(width: 132, alignment: .trailing)
+    }
+
+    private func step(for width: CGFloat) -> CGFloat {
+        guard items.count > 1 else { return 0 }
+        return (width - Self.height) / CGFloat(items.count - 1)
+    }
+
+    private func select(at x: CGFloat) {
+        let step = step(for: Self.track)
+        guard step > 0 else { return }
+        let position = (x - Self.height / 2) / step
+        let target = min(max(Int(position.rounded()), 0), items.count - 1)
+        guard target != index else { return }
+        onChange(items[target])
+    }
+}
+
+struct InspectorPicker: View {
+    @Environment(ScintModel.self) var scint
+    var frame: InspectorFrame { scint.app.inspector }
+
+    private func selection(for surface: InspectorFrame.HostSurface) -> Binding<Bool> {
+        Binding(
+            get: { frame.state.presented && frame.surface == surface },
+            set: { selected in
+                if selected {
+                    frame.surface = surface
+                    frame.state.presented = true
+                } else if frame.surface == surface {
+                    frame.state.presented = false
+                }
+            }
+        )
+    }
+
+    var body: some View {
+        ControlGroup {
+            ForEach(InspectorFrame.HostSurface.allCases) { surface in
+                Toggle(isOn: selection(for: surface)) {
+                    Image(systemName: surface.symbol)
+                }
+            }
+        }
+        .controlGroupStyle(.navigation)
+        .foregroundStyle(Style.Foreground.primary, Style.Foreground.primary, Style.Foreground.secondary)
+        .tint(Style.Background.selection)
+        .overlay {
+            Style.Background.canvas
+                .opacity(0.4)
+                .blendMode(.overlay)
+                .allowsHitTesting(false)
+        }
+    }
+}
+
+struct NavigationButtons: View {
+    let model: any Model
+
+    var body: some View {
+        ControlGroup {
+            Button { model.session.back() } label: {
+                Image(systemName: "chevron.backward")
+            }
+            .disabled(!model.session.navigation.canGoBack)
+
+            Button { model.session.forward() } label: {
+                Image(systemName: "chevron.forward")
+            }
+            .disabled(!model.session.navigation.canGoForward)
+        }
+        .controlGroupStyle(.navigation)
+        .overlay {
+            Style.Background.canvas
+                .opacity(0.4)
+                .blendMode(.overlay)
+                .allowsHitTesting(false)
+        }
+    }
+}
+
+struct ViewContainer<Content: View>: View {
+    var item: ItemParams
+    var controls: Controls
+    var model: any Model
+    @ViewBuilder var content: Content
+
+    var types: [UTType] { controls.dropTypes?(item) ?? ReferenceTransfer.dropTypes(for: item) }
+
+    @ViewBuilder var dropped: some View {
+        if types.isEmpty { content.contentShape(Rectangle()) }
+        else {
+            content
+                .contentShape(Rectangle())
+                .onDrop(of: types, isTargeted: nil) { controls.onDrop?($0, item) ?? ReferenceTransfer.handle($0, target: item) }
+        }
+    }
+
+    @ViewBuilder var dragged: some View {
+        if ReferenceTransfer.canDrag(item) { dropped.onDrag { ReferenceTransfer.provider(for: item) ?? NSItemProvider() } }
+        else { dropped }
+    }
+
+    var body: some View {
+        if let palette = controls.itemPalette?(item) { dragged.contextMenu { ActionMenu(model: model, items: palette) } }
+        else { dragged }
+    }
+}

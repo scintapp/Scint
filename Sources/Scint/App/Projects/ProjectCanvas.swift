@@ -75,7 +75,7 @@ struct CanvasMap: Surface {
             .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
             .popover(isPresented: $presented) {
                 VStack(spacing: 8) {
-                    Filter(text: $text)
+                    FilterField(text: $text)
 
                     if text.isEmpty {
                         surface.render(surface, ProjectsList.parameters(model), ProjectsList.controls(model))
@@ -137,7 +137,7 @@ struct CanvasContent: Surface {
     @State var axis: CanvasAxis = .vertical
 
     var body: some View {
-        Canvas(refs: model.session.project.map { [$0] } ?? [], axis: axis, viewport: viewport, onBackground: { model.focus(nil) }) { ref in
+        Canvas(refs: model.session.space.map { [$0] } ?? [], axis: axis, viewport: viewport, onBackground: { model.focus(nil) }) { ref in
             CanvasNode(host: host, model: model, ref: ref)
                 .frame(width: 320)
         }

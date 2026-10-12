@@ -128,7 +128,7 @@ enum ReferenceTransfer {
             case is Transcript.Type: Transcript.with(ref, { _ in true }) == true
             case is Artifact.Type: Artifact.with(ref, { _ in true }) == true
             case is Command.Type: Command.with(ref, { _ in true }) == true
-            case is Harness.Type: Harness.with(ref, { _ in true }) == true
+            case is Interface.Type: Interface.with(ref, { _ in true }) == true
             default: false
         }
     }
@@ -223,7 +223,7 @@ enum ReferenceTransfer {
             case is ScintRuntime.Document.Type: .document
             case is Artifact.Type: .artifact
             case is Command.Type: .control
-            case is Harness.Type: .service
+            case is Interface.Type: .service
             default: nil
         }
     }

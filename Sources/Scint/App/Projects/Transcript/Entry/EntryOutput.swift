@@ -2,7 +2,7 @@ import SwiftUI
 import ScintComponents
 
 
-struct OutputEntry: View {
+struct EntryOutput: View {
     var content: String
 
     var body: some View {

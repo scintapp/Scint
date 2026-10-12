@@ -6,7 +6,7 @@ import ScintRuntime
 @Observable final class DataModel {
     var app: Reference = Space.sentinel()
     var inbox: Reference = Space.sentinel()
-    var projects: Reference = Space.sentinel()
+    var spaces: Reference = Space.sentinel()
     var library: Reference = Space.sentinel()
     var tasks: Reference = Space.sentinel()
 
@@ -14,7 +14,7 @@ import ScintRuntime
         self.app = app
         self.inbox = scope("Inbox")
         self.library = scope("Library")
-        self.projects = scope("Projects")
+        self.spaces = scope("Spaces")
         self.tasks = scope("Tasks")
     }
 

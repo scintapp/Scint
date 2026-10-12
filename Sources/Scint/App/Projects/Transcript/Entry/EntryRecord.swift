@@ -3,7 +3,7 @@ import ScintRuntime
 import ScintComponents
 
 
-struct RecordEntry: View {
+struct EntryRecord: View {
     var cards: [Reference]
     var content: String?
 

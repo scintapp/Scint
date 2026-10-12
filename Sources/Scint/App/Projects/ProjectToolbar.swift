@@ -148,7 +148,7 @@ struct ProjectCommand: Surface {
 
     var space: Reference? { model.session.selection.structure }
     var harness: Reference? { space.flatMap { Space.with($0, { $0.harness }) ?? nil } }
-    var inputs: [(name: String, schema: Schema)] { harness.flatMap { Harness.with($0, { harness in harness.signatures[.start].map { ([$0] + harness.parameters).inputs(config) } }) ?? nil } ?? [] }
+    var inputs: [(name: String, schema: Schema)] { harness.flatMap { Interface.with($0, { harness in harness.signatures[.start].map { ([$0] + harness.parameters).inputs(config) } }) ?? nil } ?? [] }
     var command: Reference? { slot.flatMap { config[$0]?.references.first } }
     var settings: [ItemParams] { SettingsGroup.parameters(model).sections.flatMap(\.items) }
     var range: ItemParams? { settings.first { $0.trailingKind == .range } }
@@ -351,10 +351,10 @@ struct ProjectIntent<Content: View>: View {
     }
 
     var thought: String? {
-        let branch = context?.transcript.flatMap { root in Transcript.with(root, { $0.branches.last }) ?? nil }
+        let branch = context.flatMap { Transcript.with($0.transcript, { $0.branches.last }) ?? nil }
         let reasoning = branch.flatMap { branch in Transcript.with(branch, { transcript in transcript.records.last { $0.fields["channel"] == .string("reasoning") } }) ?? nil }
         guard case .string(let text)? = reasoning?.fields["content"] else { return nil }
-        return ReasoningEntry(thoughts: [text]).lines.last
+        return EntryReasoning(thoughts: [text]).lines.last
     }
 
     var body: some View {
@@ -406,24 +406,19 @@ struct ProjectToolbar: Surface {
     var host: any Host
     var model: any Model
 
-    var composable: Bool {
-        guard let space else { return false }
-        return Space.with(space, { $0.composable }) ?? false
-    }
-
     func compose() {
-        guard let space, let input, composable else { return }
-        Document.update(input) { $0.clear() }
+        guard let space, let input else { return }
         Space.update(space, { $0.input(input) })
-        model.compose(space)
+        let _ = model.compose(space)
     }
 
     func cancel() {
-        guard let space else { return }
-        model.cancel(space)
+        guard let active else { return }
+        let _ = model.cancel(active)
     }
 
     private var input: Reference? { context?.input }
+    private var active: Reference? { space.flatMap { Space.with($0, { $0.queue.active.last }) ?? nil } }
     private var space: Reference? { model.session.selection.structure }
     private var context: Context? { space?.context }
     private var harness: Reference? { space.flatMap { Space.with($0, { $0.harness }) ?? nil } }

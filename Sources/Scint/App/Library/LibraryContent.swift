@@ -14,7 +14,7 @@ struct LibraryContent: Surface {
     }
 
     var body: some View {
-        if let doc = model.session.opened.document, (Document.with(doc, { $0 })?.task == nil) {
+        if let doc = model.session.opened.document, Document.with(doc, { $0.header }) != .task {
             DocumentContent(host: host, model: model)
         } else {
             ScrollView {

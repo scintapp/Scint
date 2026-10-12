@@ -15,13 +15,13 @@ struct TasksCard: View {
     var selected: Bool { model.session.selection.selected(ref) }
     var document: ScintRuntime.Document? { ScintRuntime.Document.with(ref, { $0 }) }
     var preview: [ScintRuntime.Document.Block] { document?.body ?? [] }
-    var title: String { document?.task?.text ?? "" }
-    var done: Bool { document?.task?.done ?? false }
-    var command: Reference? { document.flatMap { document in document.harness.flatMap { document.command(.update, of: $0) } } }
+    var title: String { document.flatMap(TaskHeader.task)?.text ?? "" }
+    var done: Bool { document.flatMap(TaskHeader.task)?.done ?? false }
+    var command: Reference? { document.flatMap { document in (Space.with(document.origin, { $0.harness }) ?? nil).flatMap { document.command(.update, of: $0) } } }
     var space: Reference? { document.flatMap { document in document.metadata.flatMap { $0.space == document.origin ? nil : $0.space } } }
 
     var due: String? {
-        guard let schedule = document?.schedule, let moment = schedule.moment else { return nil }
+        guard let schedule = document.map(TaskHeader.schedule), let moment = schedule.moment else { return nil }
         let when = When(moment, repeats: schedule.repeats)
         let date = when.next(after: Calendar.current.startOfDay(for: .now)) ?? when.date
         let time = date.formatted(date: .omitted, time: .shortened)

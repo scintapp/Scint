@@ -11,8 +11,10 @@ struct TasksHeader: Surface {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            IconButton(systemImage: "plus") { model.session.open(Document.new(model.session.tasks, title: "New Task")) }
-                .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+            IconButton(systemImage: "plus") {
+                model.session.open(Document.new(from: .init(name: "New Task", origin: model.session.tasks, header: .task)))
+            }
+            .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
 
             Text("Tasks")
                 .font(Typography.pageTitle)

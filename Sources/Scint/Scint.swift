@@ -65,7 +65,8 @@ struct Scint: App {
     func runtime() async {
         do {
             try await Runtime.shared.load()
-            let model = ScintModel(DataModel(Runtime.shared.data))
+            let data = DataModel(Runtime.shared.model)
+            let model = ScintModel(data)
             await serve()
             model.open(pending)
             pending = nil

@@ -29,8 +29,8 @@ struct TasksContent: Surface {
     }
 
     var body: some View {
-        if let task = model.session.opened.document, (Document.with(task, { $0 })?.task != nil) {
-            DocumentContent(host: host, model: model)
+        if let task = model.session.opened.document, Document.with(task, { $0.header }) == .task {
+            TaskContent(host: host, model: model)
         } else {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 230, maximum: 240), spacing: 20)], alignment: .leading, spacing: 20) {

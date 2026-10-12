@@ -13,7 +13,10 @@ struct LibraryHeader: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            IconButton(systemImage: "plus") { model.session.open(Document.new(ref, name: "New Document")) }
+            IconButton(systemImage: "plus") {
+                model.session
+                    .open(Document.new(from: .init(name: "New Document", origin: ref, header: .document)))
+            }
                 .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
 
             Text(ref.descriptor.name)

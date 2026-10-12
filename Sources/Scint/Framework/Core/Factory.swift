@@ -1,0 +1,66 @@
+import Foundation
+import SwiftUI
+import UniformTypeIdentifiers
+import ScintRuntime
+import ScintComponents
+
+
+@MainActor struct Factory {
+    @ViewBuilder static func build(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
+        if params.panel == nil {
+            let state = surface.host.state
+            let tab = params.sections.first { $0.id == AnyHashable(state.surface) } ?? params.sections.first
+            let shown = params.tabbed ? tab?.sections ?? [] : params.sections
+
+            let content = ScrollView {
+                VStack(alignment: .leading) {
+                    if params.header, params.layout == .group, let ref = params.ref {
+                        GroupHeader(
+                            ref: ref,
+                            subtitle: params.name,
+                            described: params.described,
+                            tabs: params.tabbed ? params.sections.filter(\.header) : [],
+                            active: tab?.id,
+                            onSelect: { state.surface = $0.id == tab?.id ? "" : $0.id.base as? String ?? "" }
+                        )
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(.top, GroupMetrics.headerTop)
+                        .padding(.bottom, 12)
+                    }
+
+                    ForEach(shown) { section in
+                        let target = controls.sectionDropTarget?(section)
+                        let types = target.map { controls.dropTypes?($0) ?? ReferenceTransfer.dropTypes(for: $0) } ?? []
+                        let stack = VStack(spacing: 0) {
+                            switch params.layout ?? .list {
+                                case .group: GroupFactory.build(surface, section, controls)
+                                case .list: ListFactory.build(surface, section, controls)
+                                default: EmptyView()
+                            }
+                        }
+
+                        Group {
+                            if let target, !types.isEmpty { stack.onDrop(of: types, isTargeted: nil) { controls.onDrop?($0, target) ?? ReferenceTransfer.handle($0, target: target) } }
+                            else { stack }
+                        }
+                        .padding(.bottom, 16)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 8)
+            }
+
+            if let target = controls.surfaceDropTarget?() {
+                content
+                    .contentShape(Rectangle())
+                    .onDrop(of: controls.dropTypes?(target) ?? ReferenceTransfer.dropTypes(for: target), isTargeted: nil) {
+                        controls.onDrop?($0, target) ?? ReferenceTransfer.handle($0, target: target)
+                    }
+            } else {
+                content.contentShape(Rectangle())
+            }
+        } else {
+            PanelFactory.build(surface, params, controls)
+        }
+    }
+}

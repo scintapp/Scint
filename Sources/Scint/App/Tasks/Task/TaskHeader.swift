@@ -8,8 +8,31 @@ struct TaskHeader: View {
     var onCompose: () -> Void
     var onCancel: () -> Void
 
-    var task: (id: UUID, text: String, done: Bool)? { Document.with(ref, { $0.task }) ?? nil }
-    var schedule: (moment: Date?, repeats: When.Repeat)? { Document.with(ref, { $0.schedule }) }
+    static func task(_ document: ScintRuntime.Document) -> (id: UUID, text: String, done: Bool)? {
+        if case .task(let id, let text, let done)? = document.blocks.dropFirst().first { (id, text, done) } else { nil }
+    }
+
+    static func schedule(_ document: ScintRuntime.Document) -> (moment: Date?, repeats: When.Repeat) {
+        let harness = Space.with(document.origin, { $0.harness }) ?? nil
+        let values = harness.flatMap { document.command(.start, of: $0) }.map(document.values) ?? [:]
+        let moment: Date? = switch values["date"] {
+            case .date(let date)?: date
+            case .property(.string(let text))?: Value.formatter.date(from: text)
+            default: nil
+        }
+        let repeats: When.Repeat = if case .property(.string(let raw))? = values["repeat"] { When.Repeat(rawValue: raw) ?? .never } else { .never }
+        return (moment, repeats)
+    }
+
+    static func schedule(_ document: inout ScintRuntime.Document, _ moment: Date, repeats: When.Repeat) {
+        guard let harness = Space.with(document.origin, { $0.harness }) ?? nil, let command = document.command(.start, of: harness) else { return }
+        document.metadata(.date(moment), "date", for: command)
+        document.metadata(.date(moment), "time", for: command)
+        document.metadata(.property(.string(repeats.rawValue)), "repeat", for: command)
+    }
+
+    var task: (id: UUID, text: String, done: Bool)? { Document.with(ref, { Self.task($0) }) ?? nil }
+    var schedule: (moment: Date?, repeats: When.Repeat)? { Document.with(ref, { Self.schedule($0) }) }
     var ready: Bool { schedule?.moment != nil }
     var repeating: Bool { (schedule?.repeats ?? .never) != .never }
 
@@ -17,7 +40,7 @@ struct TaskHeader: View {
         guard
             task?.done == false,
             let origin = Document.with(ref, { $0.origin }),
-            let transcript = Runtime.shared.resolve().first(where: { $0.space == origin })?.transcript,
+            let transcript = Runtime.shared.resolve().first(where: { $0.origin == origin })?.transcript,
             let entries = Transcript.with(transcript, { $0.entries }),
             let start = entries.lastIndex(where: { if case .signal(_, .start(let input), _) = $0 { input == ref } else { false } })
                 else { return false }

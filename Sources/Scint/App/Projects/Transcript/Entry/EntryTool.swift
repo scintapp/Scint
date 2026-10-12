@@ -4,7 +4,7 @@ import ScintComponents
 import ScintServer
 
 
-struct ToolEntry: View {
+struct EntryTool: View {
     var record: Record
 
     enum Kind { case call, command, search }

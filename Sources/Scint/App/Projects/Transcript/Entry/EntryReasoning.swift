@@ -2,7 +2,7 @@ import SwiftUI
 import ScintComponents
 
 
-struct ReasoningEntry: View {
+struct EntryReasoning: View {
     var thoughts: [String]
     @State private var offset = 0
 

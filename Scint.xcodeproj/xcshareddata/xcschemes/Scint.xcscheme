@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "2700"
+   LastUpgradeVersion = "2710"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -17,7 +17,6 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "7C4C36E62ED17D5A00D6F1CF"
                BuildableName = "Scint.app"
-               BlueprintName = "Scint"
                ReferencedContainer = "container:Scint.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -47,10 +46,16 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "7C4C36E62ED17D5A00D6F1CF"
             BuildableName = "Scint.app"
-            BlueprintName = "Scint"
             ReferencedContainer = "container:Scint.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "TYPESAFE_API_KEY"
+            value = "apikey_2139b77c35ccf15b45719f84062eb5ec11d0_6608be649ab4611b16d5bf5ee0766fff1d7883c263cdbac737daf0426890d0ba"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -64,7 +69,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "7C4C36E62ED17D5A00D6F1CF"
             BuildableName = "Scint.app"
-            BlueprintName = "Scint"
             ReferencedContainer = "container:Scint.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

@@ -39,11 +39,11 @@ import ScintComponents
     }
 
     static func operations(on ref: Reference) -> [ActionParams] {
-        let composable = Space.with(ref, { $0.composable }) ?? false
         let items: [ActionParams?] = [
-            ref.type is any ScintRuntime.Material.Type ? ActionParams(id: "open", label: "Open", image: "arrow.up.forward.square", keywords: ["show", "view", "launch"]) { $0.open(ref) } : nil,
-            composable ? ActionParams(id: "compose", label: "Compose", image: "play", keywords: ["run", "start", "execute", "play"]) { $0.compose(ref) } : nil,
-            composable ? ActionParams(id: "cancel", label: "Cancel", image: "stop", keywords: ["stop", "halt", "abort"]) { $0.cancel(ref) } : nil,
+            ref.type is any ScintRuntime.Material.Type ?
+            ActionParams(id: "open", label: "Open", image: "arrow.up.forward.square", keywords: ["show", "view", "launch"]) { $0.open(ref) } :
+            ActionParams(id: "compose", label: "Compose", image: "play", keywords: ["run", "start", "execute", "play"]) { $0.compose(ref) },
+            ActionParams(id: "cancel", label: "Cancel", image: "stop", keywords: ["stop", "halt", "abort"]) { $0.cancel(ref) },
             ActionParams(id: "rename", label: "Rename…", image: "pencil", keywords: ["name", "title", "edit"]) { _ in rename(ref) },
             ActionParams(id: "copy-link", label: "Copy Link", image: "link", keywords: ["url", "share", "clipboard"]) { _ in copy(Reference.Link.url(for: ref)?.absoluteString) },
             ActionParams(id: "copy-markdown", label: "Copy Markdown Link", image: "text.badge.plus", keywords: ["url", "share", "clipboard", "md"]) { _ in copy(Reference.Link.markdown(for: ref)) },
@@ -56,7 +56,7 @@ import ScintComponents
         guard ref.type is Space.Type else { return [] }
         let folder = Navigation().spaces(to: ref).contains(model.session.library)
         let items: [ActionParams?] = [
-            ActionParams(id: "new-space", label: folder ? "New Folder…" : "New Project…", image: "folder.badge.plus", keywords: ["create"]) { _ in newSpace(in: ref, named: folder ? "New Folder" : "New Project") },
+            ActionParams(id: "new-space", label: folder ? "New Folder…" : "New Space…", image: "folder.badge.plus", keywords: ["create"]) { _ in newSpace(in: ref, named: folder ? "New Folder" : "New Space", intent: folder ? .none : .compose) },
             folder ? ActionParams(id: "new-document", label: "New Document…", image: "doc.badge.plus", keywords: ["create"]) { _ in newDocument(in: ref) } : nil
         ]
         return items.compactMap { $0 }
@@ -66,12 +66,12 @@ import ScintComponents
         let session = model.session
         let space = session.focus.ref.flatMap { $0.type is Space.Type ? $0 : nil }
         let within = { (root: Reference) in space.flatMap { $0 == root || Navigation().spaces(to: $0).contains(root) ? $0 : nil } ?? root }
-        let folder = within(session.library), project = within(session.projects)
+        let folder = within(session.library), project = within(session.spaces)
         return [
-            ActionParams(id: "new-document", label: "New Document", image: "doc.badge.plus", keywords: ["create", "doc", "note", "page", "write"]) { $0.open(Document.new(folder, name: "New Document")) },
-            ActionParams(id: "new-task", label: "New Task", image: "checkmark.app", keywords: ["create", "todo", "reminder"]) { $0.open(Document.new($0.session.tasks, title: "New Task")) },
-            ActionParams(id: "new-folder", label: "New Folder…", image: "folder.badge.plus", keywords: ["create", "directory", "group"]) { _ in newSpace(in: folder, named: "New Folder") },
-            ActionParams(id: "new-project", label: "New Project…", image: "square.stack.3d.up", keywords: ["create", "space", "workspace"]) { _ in newSpace(in: project, named: "New Project") }
+            ActionParams(id: "new-document", label: "New Document", image: "doc.badge.plus", keywords: ["create", "doc", "note", "page", "write"]) { $0.open(Document.new(from: .init(name: "New Document", origin: folder))) },
+            ActionParams(id: "new-task", label: "New Task", image: "checkmark.app", keywords: ["create", "todo", "reminder"]) { $0.open(Document.new(from: .init(name: "New Task", origin: $0.session.tasks, header: .task))) },
+            ActionParams(id: "new-folder", label: "New Folder…", image: "folder.badge.plus", keywords: ["create", "directory", "group"]) { _ in newSpace(in: folder, named: "New Folder", intent: .none) },
+            ActionParams(id: "new-project", label: "New Space…", image: "square.stack.3d.up", keywords: ["create", "space", "workspace"]) { _ in newSpace(in: project, named: "New Space", intent: .compose) }
         ]
     }
 
@@ -80,7 +80,7 @@ import ScintComponents
         ActionParams(id: "forward", label: "Forward", image: "chevron.forward", keywords: ["next", "history"], enabled: { $0.session.navigation.canGoForward }) { $0.session.forward() },
         ActionParams(id: "inbox", label: "Inbox", image: "tray", keywords: ["open", "show", "messages"]) { $0.select($0.session.inbox) },
         ActionParams(id: "library", label: "Library", image: "books.vertical", keywords: ["open", "show", "documents", "folders"]) { $0.select($0.session.library) },
-        ActionParams(id: "projects", label: "Projects", image: "square.stack", keywords: ["open", "show", "spaces", "workspaces"]) { $0.select($0.session.projects) },
+        ActionParams(id: "spaces", label: "Spaces", image: "app", keywords: ["open", "show", "spaces", "workspaces"]) { $0.select($0.session.spaces) },
         ActionParams(id: "tasks", label: "Tasks", image: "checklist", keywords: ["open", "show", "todos", "reminders"]) { $0.select($0.session.tasks) }
     ]
 
@@ -103,12 +103,12 @@ import ScintComponents
         prompt("Rename", ref.descriptor.name) { name in Catalog.shared.update(ref) { $0.name = name } }
     }
 
-    static func newSpace(in origin: Reference, named name: String) {
-        prompt(name) { name in Space.new(origin, name: name, description: "Add a description...", intent: .none) }
+    static func newSpace(in origin: Reference, named name: String, intent: Intent) {
+        prompt(name) { name in Space.new(from: .init(name: name, space: origin, intent: intent)) }
     }
 
     static func newDocument(in origin: Reference) {
-        prompt("New Document") { name in Document.new(origin, name: name) }
+        prompt("New Document") { name in Document.new(from: .init(name: "Input", origin: origin)) }
     }
 
     static func remove(_ ref: Reference) {
