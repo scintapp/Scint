@@ -28,7 +28,7 @@ enum ModelKey: String, Identifiable, CaseIterable {
 
     var openURL: OpenURLAction {
         OpenURLAction { url in
-            guard url.scheme?.lowercased() == Reference.Link.scheme else { return .systemAction }
+            guard url.scheme?.lowercased() == ScintRuntime.Link.scheme else { return .systemAction }
             self.open(url)
             return .handled
         }

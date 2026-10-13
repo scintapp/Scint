@@ -22,7 +22,7 @@ import Foundation
         let catalog = ToolCatalog()
         let server = ContextServer()
 
-        func address(_ ref: Reference) -> Property { .string(Reference.Link.url(for: ref)!.absoluteString) }
+        func address(_ ref: Reference) -> Property { .string(ref.url!.absoluteString) }
         func call(_ domain: String, _ action: String, _ arguments: [String: Property]) async -> ToolResult {
             await catalog.resolve("scint.domain", arguments: .object([
                 "domain": .string(domain), "action": .string(action), "arguments": .object(arguments)
@@ -100,7 +100,7 @@ import Foundation
         expect(await call("material", "create", ["space": address(artifact), "name": "Forbidden"]), error: true, "Wrong target type")
         expect(await call("interface", "create", ["kind": "command", "name": "Forbidden", "source": address(secret)]), error: true, "Wrong source type")
         expect(await call("material", "insert", ["ref": address(document), "member": address(secret)]), error: true, "Foreign secondary reference")
-        let spoof = Reference.Link.url(for: document)!.absoluteString.replacingOccurrences(of: "://material/", with: "://space/")
+        let spoof = document.url!.absoluteString.replacingOccurrences(of: "://material/", with: "://space/")
         expect(await call("material", "insert", ["ref": .string(spoof), "text": "Forbidden"]), error: true, "Forged address kind")
         Space.with(foreign) { $0.add(document) }
         expect(await call("material", "insert", ["ref": address(document), "text": "Forbidden"]), error: true, "Shared content is read-only")

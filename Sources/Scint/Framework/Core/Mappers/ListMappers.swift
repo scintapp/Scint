@@ -145,7 +145,7 @@ struct DocumentsList: Mapper {
             let source = text as NSString
             let stripped = NSMutableString(string: text)
             for link in Markdown.scan(text).links.reversed() {
-                let label = Reference.Link.isReference(source.substring(with: link.url)) ? "" : source.substring(with: link.label)
+                let label = Runtime.shared.resolve(source.substring(with: link.url)) != nil ? "" : source.substring(with: link.label)
                 stripped.replaceCharacters(in: link.range, with: label)
             }
             return stripped as String

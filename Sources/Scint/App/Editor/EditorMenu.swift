@@ -130,7 +130,7 @@ enum MenuSurface: String, CaseIterable {
             case (.references, _):
                 guard let ref = item.ref else { return }
                 if let block = Self.block(ref) { editor.insert([block], replacing: range) }
-                else { editor.replace(range, with: Reference.Link.markdown(for: ref, name: item.name) ?? "") }
+                else { editor.replace(range, with: ScintRuntime.Link.markdown(for: ref, name: item.name) ?? "") }
 
             default:
                 guard let marker = item.value else { return }

@@ -17,14 +17,15 @@ import ScintComponents
         ) {
             if params.header, let ref = params.ref { PanelReference(ref) }
 
+            ForEach(fields) { field in
+                PanelField(text: surface.host.bindable.query, field: field, compact: compact, onKey: onKey)
+            }
+
             if params.tabbed {
                 PanelModes(tabs: params.sections, active: shown.first?.id) { select($0, state) }
                     .background { PanelShortcuts(count: params.sections.count) { select(params.sections[$0], state) } }
             }
 
-            ForEach(fields) { field in
-                PanelField(text: surface.host.bindable.query, field: field, compact: compact, onKey: onKey)
-            }
         } content: {
             if rows.isEmpty, !shown.contains(where: { $0.layout == .group }) { NoReference(title: params.description) }
 

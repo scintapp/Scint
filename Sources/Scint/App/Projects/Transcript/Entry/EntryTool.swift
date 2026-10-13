@@ -30,7 +30,7 @@ struct EntryTool: View {
               ToolHandler.tools.contains(where: { $0.tool.name == tool })
                 else { return nil }
 
-        func named(_ link: String?) -> String? { link.flatMap { Reference.Link.resolve(in: $0) }.map { Card.text(for: $0).name } }
+        func named(_ link: String?) -> String? { link.flatMap { Runtime.shared.resolve($0) }.map { Card.text(for: $0).name } }
 
         func noun(_ link: String?) -> String? {
             guard let kind = link.flatMap({ URL(string: $0) })?.host, !kind.isEmpty else { return nil }

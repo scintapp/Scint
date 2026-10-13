@@ -23,14 +23,14 @@ import ScintRuntime
         }
     }
 
-    func controls(_ model: AppModel) -> Controls {
+    func controls(_ model: any Model) -> Controls {
         switch surface {
             case .outline: InspectorOutline.controls(model)
             case .settings: InspectorSettings.controls(model)
         }
     }
 
-    func parameters(_ model: AppModel) -> Params {
+    func parameters(_ model: any Model) -> Params {
         switch surface {
             case .outline: InspectorOutline.parameters(model)
             case .settings: InspectorSettings.parameters(model)

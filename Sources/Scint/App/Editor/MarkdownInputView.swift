@@ -214,7 +214,7 @@ enum Exit { case previous, next }
 
     private func target(of link: Markdown.Link) -> EditorLink? {
         let url = source.substring(with: link.url)
-        if let reference = Reference.Link.resolve(in: url) { return .reference(reference) }
+        if let reference = Runtime.shared.resolve(url) { return .reference(reference) }
         return URL(string: url).map(EditorLink.url)
     }
 

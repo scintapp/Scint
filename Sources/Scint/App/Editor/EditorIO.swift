@@ -32,7 +32,7 @@ import ScintComponents
             case .paragraph(_, let text):
                 let source = text as NSString
                 guard let link = Markdown.scan(text).links.first, link.range.length == source.length else { return nil }
-                return Reference.Link.resolve(in: source.substring(with: link.url))
+                return Runtime.shared.resolve(source.substring(with: link.url))
             default:
                 return nil
         }

@@ -45,8 +45,8 @@ import ScintComponents
             ActionParams(id: "compose", label: "Compose", image: "play", keywords: ["run", "start", "execute", "play"]) { $0.compose(ref) },
             ActionParams(id: "cancel", label: "Cancel", image: "stop", keywords: ["stop", "halt", "abort"]) { $0.cancel(ref) },
             ActionParams(id: "rename", label: "Rename…", image: "pencil", keywords: ["name", "title", "edit"]) { _ in rename(ref) },
-            ActionParams(id: "copy-link", label: "Copy Link", image: "link", keywords: ["url", "share", "clipboard"]) { _ in copy(Reference.Link.url(for: ref)?.absoluteString) },
-            ActionParams(id: "copy-markdown", label: "Copy Markdown Link", image: "text.badge.plus", keywords: ["url", "share", "clipboard", "md"]) { _ in copy(Reference.Link.markdown(for: ref)) },
+            ActionParams(id: "copy-link", label: "Copy Link", image: "link", keywords: ["url", "share", "clipboard"]) { _ in copy(ref.url?.absoluteString) },
+            ActionParams(id: "copy-markdown", label: "Copy Markdown Link", image: "text.badge.plus", keywords: ["url", "share", "clipboard", "md"]) { _ in copy(ScintRuntime.Link.markdown(for: ref)) },
             ActionParams(id: "remove", label: "Remove", image: "trash", keywords: ["delete", "trash", "discard"], role: .destructive) { _ in remove(ref) }
         ]
         return items.compactMap { $0 }
