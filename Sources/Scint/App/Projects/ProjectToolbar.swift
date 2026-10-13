@@ -147,7 +147,7 @@ struct ProjectCommand: Surface {
     }
 
     var space: Reference? { model.session.selection.structure }
-    var harness: Reference? { space.flatMap { Space.with($0, { $0.harness }) ?? nil } }
+    var harness: Reference? { space.flatMap { Space.with($0, { $0.interface }) ?? nil } }
     var inputs: [(name: String, schema: Schema)] { harness.flatMap { Interface.with($0, { harness in harness.signatures[.start].map { ([$0] + harness.parameters).inputs(config) } }) ?? nil } ?? [] }
     var command: Reference? { slot.flatMap { config[$0]?.references.first } }
     var settings: [ItemParams] { SettingsGroup.parameters(model).sections.flatMap(\.items) }
@@ -186,6 +186,17 @@ struct ProjectCommand: Surface {
         configure(value.map { .property(.string($0)) }, for: "model", of: provider)
         go(.summary)
     }
+
+    func label(_ text: String) -> String {
+        text.reduce(into: "") { label, character in
+            if character == "-" || character == "_" { label.append(" ") }
+            else {
+                if character.isUppercase, !label.isEmpty { label.append(" ") }
+                label.append(character)
+            }
+        }.capitalized
+    }
+
 
     var body: some View {
         if let _ = harness {
@@ -246,6 +257,7 @@ struct ProjectCommand: Surface {
                             .transition(.push(from: forward ? .trailing : .leading))
 
                         case .models(let provider):
+
                             VStack(alignment: .leading, spacing: 2) {
                                 CommandHeader(title: provider.descriptor.name) { go(.providers) }
 
@@ -254,7 +266,7 @@ struct ProjectCommand: Surface {
                                 }
 
                                 ForEach(choices(provider), id: \.self) { value in
-                                    CommandOption(name: Argument.label(value), selected: provider == command && models?.value == value) {
+                                    CommandOption(name: label(value), selected: provider == command && models?.value == value) {
                                         choose(provider, value)
                                     }
                                 }
@@ -421,12 +433,12 @@ struct ProjectToolbar: Surface {
     private var active: Reference? { space.flatMap { Space.with($0, { $0.queue.active.last }) ?? nil } }
     private var space: Reference? { model.session.selection.structure }
     private var context: Context? { space?.context }
-    private var harness: Reference? { space.flatMap { Space.with($0, { $0.harness }) ?? nil } }
+    private var harness: Reference? { space.flatMap { Space.with($0, { $0.interface }) ?? nil } }
 
     var body: some View {
         if let space, let input {
             VStack(alignment: .leading, spacing: 0) {
-                EditorDocument(ref: input)
+                EditorView(ref: input)
                     .id(input)
                     .frame(minHeight: 32, alignment: .top)
                     .padding(.horizontal, 20)

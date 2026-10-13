@@ -17,7 +17,7 @@ struct TasksCard: View {
     var preview: [ScintRuntime.Document.Block] { document?.body ?? [] }
     var title: String { document.flatMap(TaskHeader.task)?.text ?? "" }
     var done: Bool { document.flatMap(TaskHeader.task)?.done ?? false }
-    var command: Reference? { document.flatMap { document in (Space.with(document.origin, { $0.harness }) ?? nil).flatMap { document.command(.update, of: $0) } } }
+    var command: Reference? { document.flatMap { document in (Space.with(document.origin, { $0.interface }) ?? nil).flatMap { document.command(.update, of: $0) } } }
     var space: Reference? { document.flatMap { document in document.metadata.flatMap { $0.space == document.origin ? nil : $0.space } } }
 
     var due: String? {

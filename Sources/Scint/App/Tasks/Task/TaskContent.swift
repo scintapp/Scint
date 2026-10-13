@@ -28,11 +28,11 @@ struct TaskContent: Surface {
                         TaskDate(ref: ref, placeholder: "Time", symbol: "clock", components: [.hourAndMinute])
                         TaskRepeat(ref: ref)
                         Spacer()
-                        TaskTarget(ref: ref, scope: model.session.spaces)
-                        TaskAction(ref: ref)
+//                        TaskTarget(ref: ref, scope: model.session.spaces)
+//                        TaskAction(ref: ref)
                     }
 
-                    EditorDocument(ref: ref, autofocus: false)
+                    EditorView(ref: ref, autofocus: false)
                         .id(ref)
                 }
                 .frame(maxWidth: Typography.Prose.readableWidth, alignment: .leading)

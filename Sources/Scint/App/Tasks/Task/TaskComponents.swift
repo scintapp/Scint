@@ -109,7 +109,7 @@ struct TaskTarget: View {
 struct TaskAction: View {
     let ref: Reference
 
-    var harness: Reference? { Document.with(ref, { $0.origin }).flatMap { Space.with($0, { $0.harness }) ?? nil } }
+    var harness: Reference? { Document.with(ref, { $0.origin }).flatMap { Space.with($0, { $0.interface }) ?? nil } }
     var selected: Reference? { harness.flatMap { harness in Document.with(ref, { $0.command(.update, of: harness) }) ?? nil } }
 
     var library: [Reference] {

@@ -13,12 +13,7 @@ import ScintComponents
         let cursor = rows.isEmpty ? nil : rows[min(state.index, rows.count - 1)]
         let onKey = { (press: KeyPress) in handle(press.key, surface) }
 
-        PanelLayout(
-            size: params.panel?.size ?? CGSize(width: Metrics.menuWidth, height: Metrics.menuListHeight),
-            compact: compact,
-            focusable: fields.isEmpty,
-            current: cursor?.id,
-            onKey: onKey
+        PanelLayout(size: params.panel?.size ?? CGSize(width: Metrics.menuWidth, height: Metrics.menuListHeight), compact: compact, focusable: fields.isEmpty, current: cursor?.id, onKey: onKey
         ) {
             if params.header, let ref = params.ref { PanelReference(ref) }
 

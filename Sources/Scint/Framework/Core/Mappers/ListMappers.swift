@@ -30,7 +30,7 @@ struct FoldersList: Mapper {
             }
         }
 
-        func file(for entry: Resource, root: Reference, in model: some Model) -> ItemParams? {
+        func file(for entry: Artifact.Handle, root: Reference, in model: some Model) -> ItemParams? {
             guard let url = entry.url else { return nil }
             let children: [ItemParams] = entry.directory && expanded.contains(AnyHashable(url))
             ? sortFileItems(entry.children.compactMap { file(for: $0, root: root, in: model) })
@@ -47,7 +47,7 @@ struct FoldersList: Mapper {
         }
 
         func folder(for ref: Reference, in model: some Model) -> ItemParams? {
-            guard let entry = Artifact.with(ref, { $0.resource }), let url = entry.url else { return nil }
+            guard let entry = Artifact.with(ref, { $0.handle }), let url = entry.url else { return nil }
             let isDirectory = entry.directory
             let isExpanded = expanded.contains(AnyHashable(url))
             let children: [ItemParams] = isDirectory && isExpanded
@@ -68,7 +68,7 @@ struct FoldersList: Mapper {
             Space.with(space) { space in
                 space.artifacts.filter { ref in
                     Artifact.with(ref) {
-                        switch $0.resource {
+                        switch $0.handle {
                             case .directory, .file: true
                             default: false
                         }

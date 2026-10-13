@@ -215,7 +215,7 @@ struct SettingsGroup: Mapper {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        guard let ref = document(model), let document = Document.with(ref, { $0 }), let harness = Space.with(document.origin, { $0.harness }) ?? nil
+        guard let ref = document(model), let document = Document.with(ref, { $0 }), let harness = Space.with(document.origin, { $0.interface }) ?? nil
         else { return .init() }
 
         func all<T: Resolvable>(_ type: T.Type) -> [Reference] { Runtime.shared.all(as: type).map { $0.0 } }
@@ -303,7 +303,7 @@ struct HarnessGroup: Mapper {
         }
 
         func configure(_ value: Value?, for key: String) {
-            guard let harness = Space.with(space, { $0.harness }) ?? nil, let input = Space.with(space, { $0.input }) else { return }
+            guard let harness = Space.with(space, { $0.interface }) ?? nil, let input = Space.with(space, { $0.input }) else { return }
             Document.update(input) { $0.metadata(value, key, for: harness) }
         }
 
@@ -323,7 +323,7 @@ struct HarnessGroup: Mapper {
     static func parameters(_ model: any Model) -> Params {
         guard case .structure(let space) = model.session.focus else { return .init() }
 
-        let harness = Space.with(space, { $0.harness }) ?? nil
+        let harness = Space.with(space, { $0.interface }) ?? nil
         let intent = Space.with(space, { $0.intent }) ?? .none
         let signatures = harness.flatMap { Interface.with($0, { $0.signatures }) } ?? [:]
         let config: [String: Value] = harness.flatMap { harness in Space.with(space, { $0.input }).flatMap { Document.with($0, { $0.values(harness) }) } } ?? [:]

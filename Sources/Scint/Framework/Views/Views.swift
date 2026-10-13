@@ -173,31 +173,3 @@ struct NavigationButtons: View {
         }
     }
 }
-
-struct ViewContainer<Content: View>: View {
-    var item: ItemParams
-    var controls: Controls
-    var model: any Model
-    @ViewBuilder var content: Content
-
-    var types: [UTType] { controls.dropTypes?(item) ?? ReferenceTransfer.dropTypes(for: item) }
-
-    @ViewBuilder var dropped: some View {
-        if types.isEmpty { content.contentShape(Rectangle()) }
-        else {
-            content
-                .contentShape(Rectangle())
-                .onDrop(of: types, isTargeted: nil) { controls.onDrop?($0, item) ?? ReferenceTransfer.handle($0, target: item) }
-        }
-    }
-
-    @ViewBuilder var dragged: some View {
-        if ReferenceTransfer.canDrag(item) { dropped.onDrag { ReferenceTransfer.provider(for: item) ?? NSItemProvider() } }
-        else { dropped }
-    }
-
-    var body: some View {
-        if let palette = controls.itemPalette?(item) { dragged.contextMenu { ActionMenu(model: model, items: palette) } }
-        else { dragged }
-    }
-}

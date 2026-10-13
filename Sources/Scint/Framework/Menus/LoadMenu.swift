@@ -9,7 +9,7 @@ struct LoadMenu<Label: View>: View {
     @State private var anchor = PanelAnchor.Box()
     let items: [ItemParams]
     let onPick: (ItemParams) -> Void
-    let label: () -> Label
+    @ViewBuilder let label: () -> Label
 
     private func open() {
         guard let view = anchor.view, let window = view.window else { return }

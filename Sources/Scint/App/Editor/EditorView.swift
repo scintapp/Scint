@@ -1,134 +1,120 @@
-import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 import ScintRuntime
 import ScintComponents
 
 
-enum EditorLink: Equatable { case reference(Reference), url(URL) }
+internal typealias Block = ScintRuntime.Document.Block
 
-final class BlockText: NSView {
-    let styler = Styler()
-    let content = NSTextContentStorage()
-    let layout = NSTextLayoutManager()
-    let container = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
-    var document: Markdown.Document = .empty
-    var listStart = 0 { didSet { if listStart != oldValue { needsDisplay = true } } }
-    var onClick: (Int) -> Void = { _ in }
+struct EditorView: View {
+    @State var focus: EditorFocus
+    @State private var frames: [Int: CGRect] = [:]
+    @State private var indicator: CGRect?
+    @State private var dragged: Int?
 
-    override var isFlipped: Bool { true }
+    let ref: Reference
+    let autofocus: Bool
 
-    init() {
-        content.addTextLayoutManager(layout); layout.textContainer = container; container.lineFragmentPadding = 0
-        super.init(frame: .zero)
+    init(ref: Reference, autofocus: Bool = true) {
+        self.ref = ref
+        self.autofocus = autofocus
+        _focus = State(initialValue: EditorFocus(ref))
     }
 
-    required init?(coder: NSCoder) { nil }
+    var io: EditorIO { EditorIO(ref: ref) }
+    private var content: EditorContent { EditorContent(editor: self) }
 
-    var source: NSString { content.textStorage?.mutableString ?? NSString() }
+    func drag(_ index: Int) -> NSItemProvider {
+        dragged = index
+        let provider = NSItemProvider()
+        provider.registerDataRepresentation(forTypeIdentifier: UTType.block.identifier, visibility: .ownProcess) { $0(Data(), nil); return nil }
+        return provider
+    }
 
-    func load(_ text: String) {
-        guard let storage = content.textStorage, !source.isEqual(to: text) else { return }
-        document = Markdown.scan(text)
-        content.performEditingTransaction {
-            storage.setAttributedString(NSAttributedString(string: text, attributes: styler.baseAttributes))
-            styler.apply(to: storage, document: document, scope: [NSRange(location: 0, length: storage.length)])
+    private func aim(at point: CGPoint) -> (target: Int?, line: CGRect)? {
+        let placed = io.body.indices.compactMap { index in frames[index].map { (index: index, frame: $0) } }.sorted { $0.frame.minY < $1.frame.minY }
+        guard let last = placed.last else { return nil }
+        guard let index = placed.firstIndex(where: { point.y < $0.frame.midY }) else {
+            return (nil, CGRect(x: last.frame.minX, y: last.frame.maxY + 4, width: last.frame.width, height: 3))
         }
-        needsDisplay = true
-        invalidateIntrinsicContentSize()
+        let above = index > 0 ? placed[index - 1].frame.maxY : placed[index].frame.minY - 8
+        let frame = placed[index].frame
+        return (placed[index].index, CGRect(x: frame.minX, y: (above + frame.minY) / 2 - 1.5, width: frame.width, height: 3))
     }
 
-    func height(for width: CGFloat) -> CGFloat {
-        ProseDrawing.height(of: layout, in: container, width: width, font: styler.theme.baseFont)
-    }
-
-    override func setFrameSize(_ newSize: NSSize) {
-        super.setFrameSize(newSize)
-        if abs(container.size.width - newSize.width) > 0.5 { _ = height(for: newSize.width); needsDisplay = true }
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        ProseDrawing(layout: layout, content: content, origin: .zero, width: container.size.width, document: document, styler: styler, source: source, listStart: listStart)
-            .draw(dirtyRect, selectedLink: nil)
-        guard let context = NSGraphicsContext.current?.cgContext else { return }
-        layout.enumerateTextLayoutFragments(from: layout.documentRange.location, options: [.ensuresLayout]) { fragment in
-            let frame = fragment.layoutFragmentFrame
-            if frame.intersects(dirtyRect) { fragment.draw(at: frame.origin, in: context) }
-            return frame.minY < dirtyRect.maxY
+    private func drop(at point: CGPoint) -> Bool {
+        defer { dragged = nil }
+        guard let aim = aim(at: point), let index = dragged, index != aim.target, io.position(index) < io.blocks.count else { return false }
+        let from = io.position(index), to = aim.target.map(io.position) ?? io.blocks.count
+        ScintRuntime.Document.update(ref) { document in
+            let moving = document.blocks[from]
+            document.delete(at: from)
+            document.insert(moving, at: min(to > from ? to - 1 : to, document.blocks.count))
         }
+        return true
     }
 
-    override func mouseDown(with event: NSEvent) {
-        let point = convert(event.locationInWindow, from: nil)
-        let selection = layout.textSelectionNavigation.textSelections(
-            interactingAt: point, inContainerAt: layout.documentRange.location, anchors: [], modifiers: [], selecting: false, bounds: .zero
-        ).first
-        onClick(selection?.textRanges.first.map { content.offset(from: content.documentRange.location, to: $0.location) } ?? source.length)
-    }
-}
-
-struct BlockTextView: NSViewRepresentable {
-    let text: String
-    var listStart = 0
-    var onClick: (Int) -> Void = { _ in }
-
-    func makeNSView(context: Self.Context) -> BlockText { BlockText() }
-
-    func updateNSView(_ view: BlockText, context: Self.Context) {
-        view.onClick = onClick; view.listStart = listStart
-        view.load(text)
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, nsView view: BlockText, context: Self.Context) -> CGSize? {
-        guard let width = proposal.width, width.isFinite, width > 0 else { return nil }
-        return CGSize(width: width, height: view.height(for: width))
-    }
-}
-
-@MainActor struct EditorView: NSViewRepresentable {
-    let text: String
-    var focus: EditorDocument.Focus?
-    var onFocus: () -> Void = {}
-    var onChange: (String) -> Void = { _ in }
-    var onInsert: ([ScintRuntime.Document.Block], Int) -> Void = { _, _ in }
-    var onExit: (Exit) -> Bool = { _ in false }
-    var onSplit: (String, String) -> Bool = { _, _ in false }
-    var onDeleteAtStart: () -> Bool = { false }
-    var onEscape: (Int) -> Bool = { _ in false }
-    var listStart = 0
-    var onOpenLink: (EditorLink) -> Void = { _ in }
-    var placeholder = "Press ‘/’ for commands"
-    var commands = true
-
-    @Environment(ScintModel.self) private var scint
-
-    final class Coordinator { var handled: UUID? }
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeNSView(context: Self.Context) -> ScintEditor {
-        ScintEditor(text, panels: scint.panels)
-    }
-
-    func updateNSView(_ editor: ScintEditor, context: Self.Context) {
-        editor.onFocus = onFocus; editor.onChange = onChange; editor.onInsert = onInsert
-        editor.onExit = onExit; editor.onOpenLink = onOpenLink
-        editor.onSplit = onSplit; editor.onDeleteAtStart = onDeleteAtStart; editor.onEscape = onEscape; editor.listStart = listStart
-        editor.placeholder = placeholder; editor.commands = commands
-        editor.load(text)
-        guard let focus, focus.request != context.coordinator.handled else { return }
-        context.coordinator.handled = focus.request
-        guard editor.window?.firstResponder !== editor else { return }
-        let take = {
-            editor.window?.makeFirstResponder(editor)
-            let end = editor.source.length
-            if let caret = focus.caret { editor.setSelectedRange(NSRange(location: min(caret, end), length: 0)) }
-            else if let entry = focus.entry { editor.setSelectedRange(NSRange(location: entry == .next ? 0 : end, length: 0)) }
+    var body: some View {
+        let blocks = io.body, targets = focus.targets
+        LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
+                let layout = content.spacing(block, at: index, in: blocks)
+                content.view(block, targets[index], at: index, listStart: layout.start)
+                    .background { if focus.selected == targets[index] && EditorIO.edits(block) { Style.Shape.card.fill(Style.Background.selection).padding(-4) } }
+                    .padding(.leading, 20)
+                    .overlay(alignment: .topLeading) {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Style.Foreground.secondary)
+                            .frame(width: 16, height: Typography.Prose.lineHeight)
+                            .contentShape(Rectangle())
+                            .opacity(focus.target == targets[index] ? 1 : 0)
+                            .onTapGesture { focus.select(targets[index]) }
+                            .onDrag { drag(index) }
+                            .opacity(0.0)
+                    }
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("blocks")) } action: { frames[index] = $0 }
+                    .padding(.top, layout.gap)
+                    .contentShape(Rectangle())
+                    .onTapGesture(coordinateSpace: .local) { location in focus.enter(location.y < layout.gap / 2 && index > 0 ? targets[index - 1] : targets[index], from: .previous) }
+            }
+            switch blocks.last {
+                case .paragraph?: EmptyView()
+                default:
+                    BlockTextView(text: "", onClick: { _ in focus.append() })
+                        .padding(.leading, 20)
+                        .padding(.top, blocks.isEmpty ? 0 : Typography.Prose.blockSpacing)
+                        .contentShape(Rectangle())
+                        .onTapGesture { focus.append() }
+            }
         }
-        if editor.window == nil { editor.pending = take }
-        else { DispatchQueue.main.async(execute: take) }
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, nsView editor: ScintEditor, context: Self.Context) -> CGSize? {
-        guard let width = proposal.width, width.isFinite, width > 0 else { return nil }
-        return CGSize(width: width, height: editor.height(for: width))
+        .coordinateSpace(.named("blocks"))
+        .overlay {
+            if dragged != nil {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { dragged = nil; indicator = nil }
+                    .onDrop(of: [.block], delegate: BlockDrop(
+                        onUpdate: { indicator = aim(at: $0)?.line },
+                        onExit: { indicator = nil },
+                        onPerform: { point in
+                            indicator = nil
+                            return drop(at: point)
+                        }
+                    ))
+                    .overlay(alignment: .topLeading) {
+                        if let indicator {
+                            Capsule()
+                                .fill(Style.Tint.accent.bright)
+                                .frame(width: indicator.width, height: indicator.height)
+                                .offset(x: indicator.minX, y: indicator.minY)
+                                .allowsHitTesting(false)
+                        }
+                    }
+            }
+        }
+        .padding(.leading, -20)
+        .background { BlockKeys(active: focus.selected != nil) { focus.key($0) } }
+        .onAppear { if autofocus, focus.target == nil, !focus.append(), let last = focus.targets.last { focus.edit(last, entry: .previous) } }
     }
 }

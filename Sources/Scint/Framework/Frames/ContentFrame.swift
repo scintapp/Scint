@@ -28,9 +28,7 @@ import ScintComponents
         .background(Style.Background.canvas)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                NavigationButtons(model: model)
-            }
+            ToolbarItem(placement: .navigation) { NavigationButtons(model: model) }
             ToolbarSpacer(.flexible, placement: .automatic)
             ToolbarSpacer(.flexible, placement: .primaryAction)
             ToolbarItem(placement: .primaryAction) { InspectorPicker() }

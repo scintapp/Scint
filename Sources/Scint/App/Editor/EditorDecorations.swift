@@ -10,7 +10,6 @@ import ScintComponents
     let origin: CGPoint
     let width: CGFloat
     let document: Markdown.Document
-    let styler: Styler
     let source: NSString
     let listStart: Int
 
@@ -27,7 +26,7 @@ import ScintComponents
         return max(font.ascender - font.descender, layout.usageBoundsForTextContainer.maxY, bottom)
     }
 
-    func textRange(_ range: NSRange) -> NSTextRange? {
+    private func textRange(_ range: NSRange) -> NSTextRange? {
         guard let start = content.location(content.documentRange.location, offsetBy: range.location),
               let end = content.location(start, offsetBy: range.length) else { return nil }
         return NSTextRange(location: start, end: end)
@@ -70,13 +69,13 @@ import ScintComponents
             let padding = Typography.Prose.codeBlockPadding
             MarkdownDecoration.codeBlock(CGRect(x: origin.x, y: rect.minY - padding.top, width: width, height: rect.height + padding.top + padding.bottom))
         }
-        styler.theme.bulletColor.setFill()
+        NSColor(Style.Foreground.secondary).setFill()
         for rect in runs(of: .quote) {
             CGRect(x: origin.x, y: rect.minY, width: Typography.Prose.quoteBarWidth, height: rect.height).fill()
         }
         for (index, block) in document.blocks.enumerated() where (block.kind == .bullet || block.kind == .numbered) && shows(block.range) {
             guard let line = frames(for: block.range).first else { continue }
-            let gutter = CGRect(x: origin.x + styler.listIndent(for: block), y: line.minY, width: styler.gutter(for: block, in: source), height: line.height)
+            let gutter = CGRect(x: origin.x + Styler.listIndent(for: block), y: line.minY, width: Styler.gutter(for: block, in: source), height: line.height)
             if block.kind == .bullet {
                 let size = Typography.Prose.bulletSize
                 NSBezierPath(ovalIn: CGRect(x: gutter.midX - size / 2, y: gutter.midY - size / 2, width: size, height: size)).fill()
@@ -88,23 +87,23 @@ import ScintComponents
                     guard previous.kind == .numbered else { continued = false; break }
                     ordinal += 1
                 }
-                ("\(ordinal + (continued ? listStart : 0))." as NSString).draw(at: gutter.origin, withAttributes: [.font: styler.theme.baseFont, .foregroundColor: styler.theme.bulletColor])
+                ("\(ordinal + (continued ? listStart : 0))." as NSString).draw(at: gutter.origin, withAttributes: [.font: Typography.Prose.text, .foregroundColor: NSColor(Style.Foreground.secondary)])
             }
         }
         for link in document.links where shows(link.range) {
             let isSelected = selectedLink?.range == link.range
             guard isSelected || Reference.Link.resolve(in: source.substring(with: link.url)) != nil else { continue }
-            (isSelected ? NSColor.selectedTextBackgroundColor : styler.theme.codeBgColor).setFill()
+            (isSelected ? NSColor.selectedTextBackgroundColor : NSColor(Style.Background.surface)).setFill()
             for rect in frames(for: link.label) { NSBezierPath(roundedRect: rect.insetBy(dx: -2, dy: -1), xRadius: 4, yRadius: 4).fill() }
         }
     }
 }
 
-extension ScintEditor {
-    var prose: ProseDrawing {
+extension MarkdownInputView {
+    private var prose: ProseDrawing {
         ProseDrawing(
             layout: textLayout, content: content, origin: textContainerOrigin, width: container.size.width,
-            document: document, styler: styler, source: source, listStart: listStart
+            document: document, source: source, listStart: listStart
         )
     }
 
@@ -119,7 +118,7 @@ extension ScintEditor {
             (placeholder as NSString).draw(
                 at: origin,
                 withAttributes: [
-                    .font: styler.theme.baseFont,
+                    .font: Typography.Prose.text,
                     .foregroundColor: NSColor(Color(red: 0.2902, green: 0.29804, blue: 0.31765))
                 ]
             )

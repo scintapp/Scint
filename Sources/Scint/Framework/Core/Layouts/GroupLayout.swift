@@ -306,7 +306,7 @@ struct GroupHeader: View {
 
     enum Field { case name, description }
 
-    private var harness: Reference? { Space.with(ref, { $0.harness }).flatMap { $0 } }
+    private var harness: Reference? { Space.with(ref, { $0.interface }).flatMap { $0 } }
 
     private var updated: String {
         let relative = ref.descriptor.updated.formatted(.relative(presentation: .named))

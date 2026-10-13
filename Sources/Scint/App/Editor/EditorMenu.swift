@@ -5,8 +5,8 @@ import ScintRuntime
 import ScintComponents
 
 
-struct CommandsList: Mapper {
-    static var commands: [ItemParams] {
+private struct CommandsList: Mapper {
+    private static var commands: [ItemParams] {
         [
             ItemParams(key: "insert", name: "", items: [
                 ItemParams(key: "task", name: "Task", image: "checkmark.app", keywords: ["task", "todo"]),
@@ -37,25 +37,27 @@ struct CommandsList: Mapper {
     }
 }
 
+
+enum MenuSurface: String, CaseIterable {
+    case commands, references, task, link
+
+    var form: Bool { self == .task || self == .link }
+
+    var field: (placeholder: String, image: String, tint: Color, commit: String) {
+        switch self {
+            case .link: ("URL", "bookmark", Style.Tint.artifact.bright, "Insert Link")
+            default: ("Task", "checkmark.app", Style.Tint.task.bright, "Insert Task")
+        }
+    }
+}
+
 @Observable final class EditorMenu: Menu {
     var state: StateContainer = .init()
     var surface: MenuSurface = .commands
-    var editor: ScintEditor?
-    var range = NSRange(location: 0, length: 0)
-    var anchor: CGRect = .zero
+    var editor: MarkdownInputView?
 
-    enum MenuSurface: String, CaseIterable {
-        case commands, references, task, link
-
-        var form: Bool { self == .task || self == .link }
-
-        var field: (placeholder: String, image: String, tint: Color, commit: String) {
-            switch self {
-                case .link: ("URL", "bookmark", Style.Tint.artifact.bright, "Insert Link")
-                default: ("Task", "checkmark.app", Style.Tint.task.bright, "Insert Task")
-            }
-        }
-    }
+    private var range = NSRange(location: 0, length: 0)
+    private var anchor: CGRect = .zero
 
     func controls(_ model: any Model) -> Controls {
         var controls = switch surface {
@@ -86,13 +88,15 @@ struct CommandsList: Mapper {
         return params
     }
 
-    func open(_ surface: MenuSurface, in editor: ScintEditor, query: String, range: NSRange, anchor: CGRect) {
+    func open(_ surface: MenuSurface, in editor: MarkdownInputView, query: String, range: NSRange, anchor: CGRect) {
         if self.surface != surface { self.surface = surface; state.index = 0 }
         state.query = query
         self.editor = editor
         self.range = range
         self.anchor = anchor
     }
+
+    func surface(_ model: PanelModel) -> some Surface { AnySurface(host: self, model: model) }
 
     private func choose(_ item: ItemParams) {
         guard let editor else { return }
@@ -119,14 +123,14 @@ struct CommandsList: Mapper {
                 editor.insert([.task(UUID(), text.isEmpty ? "Task" : text, false)], replacing: range)
 
             case (.link, _):
-                guard let url = URL(string: text).flatMap({ $0.scheme == nil ? nil : $0 }) ?? URL(string: "https://\(text)"), !text.isEmpty,
-                      let link = Reference.Link.markdown(for: Artifact.new(url.host(percentEncoded: false) ?? url.absoluteString, url))
-                else { return }
-                editor.replace(range, with: link)
+                guard let url = URL(string: text).flatMap({ $0.scheme == nil ? nil : $0 }) ?? URL(string: "https://\(text)"), !text.isEmpty
+                        else { return }
+                editor.insert([.artifact(Artifact.new(url.host(percentEncoded: false) ?? url.absoluteString, url))], replacing: range)
 
             case (.references, _):
                 guard let ref = item.ref else { return }
-                editor.replace(range, with: Reference.Link.markdown(for: ref, name: item.name) ?? "")
+                if let block = Self.block(ref) { editor.insert([block], replacing: range) }
+                else { editor.replace(range, with: Reference.Link.markdown(for: ref, name: item.name) ?? "") }
 
             default:
                 guard let marker = item.value else { return }
@@ -139,5 +143,12 @@ struct CommandsList: Mapper {
         self.editor = nil
     }
 
-    func surface(_ model: PanelModel) -> some Surface { AnySurface(host: self, model: model) }
+    private static func block(_ ref: Reference) -> Block? {
+        switch ref.type {
+            case is Artifact.Type: .artifact(ref)
+            case is Command.Type: .command(ref)
+            case is ScintRuntime.Document.Type: .document(ref)
+            default: nil
+        }
+    }
 }

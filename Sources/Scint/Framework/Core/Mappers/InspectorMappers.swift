@@ -212,7 +212,7 @@ struct DocumentOutline: Mapper {
                 let line = text.split(separator: "\n").first.map(String.init) ?? ""
                 return ItemParams(ref: doc, entryId: id, name: language.isEmpty ? line : "\(language) · \(line)", image: "chevron.left.forwardslash.chevron.right", tint: Style.Foreground.secondary, description: "Code")
             }
-            guard let ref = EditorDocument.reference(block) else { return nil }
+            guard let ref = EditorIO.reference(block) else { return nil }
             let icon = Iconography.icon(for: ref)
             let kind = Artifact.with(ref, { String("\($0.handle)".prefix { $0 != "(" }).capitalized }) ?? ref.type.map { "\($0)" } ?? "Reference"
             return ItemParams(ref: doc, entryId: block.id as? UUID, name: ref.descriptor.name, image: icon.symbol, tint: icon.tint, description: kind)
@@ -323,7 +323,7 @@ struct TaskSettings: Mapper {
                         Document.update(task) { TaskHeader.schedule(&$0, TaskHeader.schedule($0).moment ?? .now, repeats: item.value.flatMap(When.Repeat.init(rawValue:)) ?? .never) }
                     case let slot?:
                         Document.update(task) { document in
-                            guard let harness = Space.with(document.origin, { $0.harness }) ?? nil, let ref = item.ref else { return }
+                            guard let harness = Space.with(document.origin, { $0.interface }) ?? nil, let ref = item.ref else { return }
                             document.metadata(.reference(ref), slot, for: harness)
                         }
                     default:
@@ -346,7 +346,7 @@ struct TaskSettings: Mapper {
         guard let task = model.session.document, let document = Document.with(task, { $0 }), document.header == .task
         else { return .init() }
 
-        let harness = Space.with(document.origin, { $0.harness }) ?? nil
+        let harness = Space.with(document.origin, { $0.interface }) ?? nil
         let command = harness.flatMap { document.command(.update, of: $0) }
         let slot = harness.flatMap { harness in Interface.with(harness, { $0.signatures[.update]?.inputs.first?.name }) ?? nil }
         let space = document.metadata.flatMap { $0.space == document.origin ? nil : $0.space }

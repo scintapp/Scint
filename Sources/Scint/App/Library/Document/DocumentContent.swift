@@ -13,7 +13,7 @@ struct DocumentContent: Surface {
     var body: some View {
         ScrollView {
             if let ref {
-                EditorDocument(ref: ref)
+                EditorView(ref: ref)
                     .id(ref)
                     .frame(maxWidth: Typography.Prose.readableWidth, maxHeight: .infinity, alignment: .center)
                     .padding(.horizontal, Style.Spacing.page)

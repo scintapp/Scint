@@ -3,22 +3,17 @@ import ScintRuntime
 import ScintComponents
 
 
-public enum Exit { case previous, next }
+enum Exit { case previous, next }
 
-@MainActor final class ScintEditor: NSTextView, NSTextViewDelegate, @preconcurrency NSTextStorageDelegate {
-    var onFocus: () -> Void = {}
-    var onChange: (String) -> Void = { _ in }
-    var onInsert: ([Document.Block], Int) -> Void = { _, _ in }
-    var onExit: (Exit) -> Bool = { _ in false }
-    var onSplit: (String, String) -> Bool = { _, _ in false }
-    var onDeleteAtStart: () -> Bool = { false }
-    var onEscape: (Int) -> Bool = { _ in false }
+@MainActor final class MarkdownInputView: NSTextView, NSTextViewDelegate, @preconcurrency NSTextStorageDelegate {
+    let ref: Reference
+    var target: EditorFocus.Target
+    let focus: EditorFocus
     var listStart = 0 { didSet { if listStart != oldValue { needsDisplay = true } } }
     var onOpenLink: (EditorLink) -> Void = { _ in }
     var placeholder = "Press ‘/’ for commands"
     var commands = true
     var pending: (() -> Void)?
-    let styler = Styler()
     let content = NSTextContentStorage()
     let textLayout = NSTextLayoutManager()
     let container = NSTextContainer(size: CGSize(width: 500, height: CGFloat.greatestFiniteMagnitude))
@@ -27,7 +22,10 @@ public enum Exit { case previous, next }
     private var restyling: NSRange?
     private var trigger: Int?
 
-    init(_ text: String, panels: PanelModel) {
+    init(_ ref: Reference, _ target: EditorFocus.Target, focus: EditorFocus, panels: PanelModel) {
+        self.ref = ref
+        self.target = target
+        self.focus = focus
         self.panels = panels
         content.addTextLayoutManager(textLayout); textLayout.textContainer = container
         super.init(frame: .zero, textContainer: container)
@@ -35,10 +33,10 @@ public enum Exit { case previous, next }
         isRichText = false; allowsUndo = false; usesFindBar = true; isIncrementalSearchingEnabled = true
         isVerticallyResizable = false; isHorizontallyResizable = false
         drawsBackground = false; textContainerInset = .zero
-        font = styler.theme.baseFont; insertionPointColor = styler.theme.caretColor; typingAttributes = styler.baseAttributes
+        font = Typography.Prose.text; insertionPointColor = NSColor(Style.Tint.space.dull); typingAttributes = Styler.baseAttributes
         selectedTextAttributes = [.backgroundColor: NSColor.clear]
         delegate = self; textStorage?.delegate = self
-        load(text)
+        load(EditorIO(ref: ref).text(of: target.id))
     }
 
     required init?(coder: NSCoder) { nil }
@@ -72,7 +70,7 @@ public enum Exit { case previous, next }
         guard let storage = textStorage, let scope = restyling else { return }
         restyling = nil
         storage.beginEditing()
-        styler.apply(to: storage, document: document, scope: [scope])
+        Styler.apply(to: storage, document: document, scope: [scope])
         storage.endEditing()
         needsDisplay = true; needsLayout = true
         guard abs(height(for: container.size.width) - frame.height) > 0.5 else { return }
@@ -82,12 +80,12 @@ public enum Exit { case previous, next }
 
     func textDidChange(_ notification: Notification) {
         restyle()
-        onChange(string)
+        EditorIO(ref: ref).write(target.id, string)
         updateTrigger()
     }
 
     func height(for width: CGFloat) -> CGFloat {
-        ProseDrawing.height(of: textLayout, in: container, width: width, font: styler.theme.baseFont)
+        ProseDrawing.height(of: textLayout, in: container, width: width, font: Typography.Prose.text)
     }
 
     func replace(_ range: NSRange, with text: String) {
@@ -100,13 +98,13 @@ public enum Exit { case previous, next }
 
     func insert(_ blocks: [Document.Block], replacing range: NSRange) {
         replace(range, with: "")
-        onInsert(blocks, range.location)
+        focus.insert(blocks, into: target, at: range.location)
     }
 
     override func paste(_ sender: Any?) {
         let chunks = NSPasteboard.general.string(forType: .string).map(Markdown.chunks) ?? []
         guard chunks.count > 1 else { return super.paste(sender) }
-        insert(chunks.map { EditorDocument.block(UUID(), markdown: $0) }, replacing: selectedRange())
+        insert(chunks.map { EditorIO.block(UUID(), markdown: $0) }, replacing: selectedRange())
     }
 
     override func insertText(_ string: Any, replacementRange: NSRange) {
@@ -149,8 +147,8 @@ public enum Exit { case previous, next }
             }
         }
         switch selector {
-        case #selector(moveUp(_:)): return atEdge(.previous) && onExit(.previous)
-        case #selector(moveDown(_:)): return atEdge(.next) && onExit(.next)
+        case #selector(moveUp(_:)): return atEdge(.previous) && focus.move(from: target, .previous)
+        case #selector(moveDown(_:)): return atEdge(.next) && focus.move(from: target, .next)
         case #selector(insertNewline(_:)):
             let selection = selectedRange(), source = self.source
             let line = document.blocks.first { NSLocationInRange(selection.location, $0.range) || NSMaxRange($0.range) == selection.location }
@@ -164,16 +162,16 @@ public enum Exit { case previous, next }
                 case .bullet: indent + marker
                 default: ""
             }
-            return onSplit(source.substring(to: selection.location).trimmingCharacters(in: .newlines),
-                           continued + source.substring(from: NSMaxRange(selection)).trimmingCharacters(in: .newlines))
+            return focus.split(target, source.substring(to: selection.location).trimmingCharacters(in: .newlines),
+                               continued + source.substring(from: NSMaxRange(selection)).trimmingCharacters(in: .newlines))
         case #selector(insertLineBreak(_:)): insertText("\n", replacementRange: selectedRange()); return true
         case #selector(deleteBackward(_:)) where selectedRange().length == 0:
             let caret = selectedRange().location
             if let line = document.blocks.first(where: { $0.marker.length > 0 && NSMaxRange($0.prefix) == caret }) { replace(line.prefix, with: ""); return true }
-            return caret == 0 && onDeleteAtStart()
+            return caret == 0 && focus.join(target)
         case #selector(insertTab(_:)): return indent(by: 1)
         case #selector(insertBacktab(_:)): _ = indent(by: -1); return true
-        case #selector(cancelOperation(_:)): if !onEscape(selectedRange().location) { window?.makeFirstResponder(nil) }; return true
+        case #selector(cancelOperation(_:)): focus.select(target, caret: selectedRange().location); return true
         default: return false
         }
     }
@@ -214,13 +212,13 @@ public enum Exit { case previous, next }
         needsDisplay = true
     }
 
-    func target(of link: Markdown.Link) -> EditorLink? {
+    private func target(of link: Markdown.Link) -> EditorLink? {
         let url = source.substring(with: link.url)
         if let reference = Reference.Link.resolve(in: url) { return .reference(reference) }
         return URL(string: url).map(EditorLink.url)
     }
 
-    func link(at offset: Int) -> (range: NSRange, link: EditorLink)? {
+    private func link(at offset: Int) -> (range: NSRange, link: EditorLink)? {
         guard let match = document.links.first(where: { NSLocationInRange(offset, $0.range) }), let target = target(of: match) else { return nil }
         return (match.range, target)
     }
@@ -244,7 +242,7 @@ public enum Exit { case previous, next }
     }
 
     override func becomeFirstResponder() -> Bool {
-        let result = super.becomeFirstResponder(); if result { needsDisplay = true; onFocus() }; return result
+        let result = super.becomeFirstResponder(); if result { needsDisplay = true; if focus.editing != target { focus.edit(target) } }; return result
     }
 
     override func resignFirstResponder() -> Bool {
@@ -255,8 +253,8 @@ public enum Exit { case previous, next }
 
     override func drawInsertionPoint(in rect: NSRect, color: NSColor, turnedOn flag: Bool) {
         guard flag, selectedLink == nil else { return }
-        styler.theme.caretColor.setFill()
-        NSBezierPath(roundedRect: CGRect(x: rect.minX, y: rect.minY, width: styler.theme.caretWidth, height: rect.height), xRadius: 1, yRadius: 1).fill()
+        NSColor(Style.Tint.space.dull).setFill()
+        NSBezierPath(roundedRect: CGRect(x: rect.minX, y: rect.minY, width: 4, height: rect.height), xRadius: 1, yRadius: 1).fill()
     }
 
     override func setFrameSize(_ newSize: NSSize) {
