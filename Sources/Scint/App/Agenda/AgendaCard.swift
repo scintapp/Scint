@@ -4,7 +4,7 @@ import ScintRuntime
 import ScintComponents
 
 
-struct TasksCard: View {
+struct AgendaCard: View {
     let ref: Reference
     let model: any Model
     let sizing: CGFloat = 130

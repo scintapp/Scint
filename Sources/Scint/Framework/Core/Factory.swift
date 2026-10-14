@@ -36,11 +36,38 @@ struct ViewContainer<Content: View>: View {
 
 @MainActor struct Factory {
     @ViewBuilder static func build(_ surface: some Surface, _ params: Params, _ controls: Controls) -> some View {
-        if params.panel == nil {
-            let state = surface.host.state
-            let tab = params.sections.first { $0.id == AnyHashable(state.surface) } ?? params.sections.first
-            let shown = params.tabbed ? tab?.sections ?? [] : params.sections
+        let state = surface.host.state
+        let tab = params.tab(state.surface)
+        let shown = params.shown(state.surface)
 
+        if let panel = params.panel {
+            let compact = if case .anchored = panel.placement { true } else { false }
+            let scoped = { var scoped = controls; scoped.focused = { $0.id == params.cursor }; return scoped }()
+
+            PanelLayout(size: panel.size, focusable: params.input == nil, current: params.cursor, onInput: controls.onInput) {
+                if params.header, let ref = params.ref { PanelReference(ref) }
+
+                if let input = params.input {
+                    PanelField(text: .init(get: { input.value ?? "" }, set: { controls.onValueChange?(input, $0) }), field: input, onInput: controls.onInput)
+                }
+
+                if params.tabbed {
+                    let select = controls.onTabSelect ?? { state.surface = $0.id.base as? String ?? "" }
+                    PanelModes(tabs: params.sections, active: tab?.id, onSelect: select)
+                        .background { PanelShortcuts(count: params.sections.count) { select(params.sections[$0]) } }
+                }
+            } content: {
+                if shown.allSatisfy(\.items.isEmpty) { NoReference(title: params.description) }
+
+                ForEach(Array(shown.enumerated()), id: \.element.id) { index, section in
+                    if index > 0, section.name.isEmpty { Divider().opacity(Style.Opacity.inactive).padding(.horizontal, 6) }
+
+                    if section.layout == .group { GroupFactory.build(surface, section, controls) }
+                    else { PanelFactory.build(surface, section, scoped) }
+                }
+            }
+            .controlSize(compact ? .small : .regular)
+        } else {
             let content = ScrollView {
                 VStack(alignment: .leading) {
                     if params.header, params.layout == .group, let ref = params.ref {
@@ -88,8 +115,6 @@ struct ViewContainer<Content: View>: View {
             } else {
                 content.contentShape(Rectangle())
             }
-        } else {
-            PanelFactory.build(surface, params, controls)
         }
     }
 }

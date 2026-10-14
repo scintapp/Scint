@@ -104,7 +104,7 @@ import ScintComponents
 //        return when.next(after: Calendar.current.startOfDay(for: .now)) ?? when.date
 //    }
 //
-//    func scope(_ ref: Reference) -> TasksContent.Scope {
+//    func scope(_ ref: Reference) -> AgendaContent.Scope {
 //        let today = Calendar.current.startOfDay(for: .now)
 //        guard let date = self.date(ref),
 //              let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today),
@@ -113,14 +113,14 @@ import ScintComponents
 //        return date < tomorrow ? .today : date < week ? .upcoming : .later
 //    }
 //
-//    func tasks(_ scope: TasksContent.Scope) -> [Reference] {
+//    func tasks(_ scope: AgendaContent.Scope) -> [Reference] {
 //        tasks.filter { self.scope($0) == scope }.sorted { (date($0) ?? .distantFuture) < (date($1) ?? .distantFuture) }
 //    }
 //
 //    var body: some View {
 //
 //        VStack(spacing: 16) {
-//            ForEach(TasksContent.Scope.allCases, id: \.self) { scope in
+//            ForEach(AgendaContent.Scope.allCases, id: \.self) { scope in
 //                TasksListSection(
 //                    title: scope.label,
 //                    tasks: tasks(scope),

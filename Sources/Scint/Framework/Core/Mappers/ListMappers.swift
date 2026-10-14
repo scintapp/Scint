@@ -424,7 +424,7 @@ struct LibraryList: Mapper {
     }
 }
 
-struct ProjectsList: Mapper {
+struct SpacesList: Mapper {
     static func controls(_ model: any Model) -> Controls {
         .init(
             focused: { item in
@@ -457,10 +457,10 @@ struct ProjectsList: Mapper {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        var projects: [Reference] {
-            guard let projects = Space.with(model.session.spaces, { $0.spaces })
-                    else { return [] }
-            return Array(projects)
+        var spaces: [Reference] {
+            guard let spaces = Space.with(model.session.spaces, { $0.spaces })
+            else { return [] }
+            return Array(spaces)
         }
 
         func sorted(_ refs: [Reference]) -> [Reference] {
@@ -511,7 +511,8 @@ struct ProjectsList: Mapper {
                 .init(
                     id: "spaces",
                     name: "Spaces",
-                    items: sorted(projects).map(root)
+                    layout: .list,
+                    items: sorted(spaces).map(root)
                 )
             ]
         )

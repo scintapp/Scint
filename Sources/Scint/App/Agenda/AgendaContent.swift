@@ -3,7 +3,7 @@ import ScintRuntime
 import ScintComponents
 
 
-struct TasksContent: Surface {
+struct AgendaContent: Surface {
     var host: any Host
     var model: any Model
 
@@ -35,7 +35,7 @@ struct TasksContent: Surface {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 230, maximum: 240), spacing: 20)], alignment: .leading, spacing: 20) {
                     ForEach(tasks) { task in
-                        TasksCard(ref: task, model: model, hovered: false)
+                        AgendaCard(ref: task, model: model, hovered: false)
                             .onTapGesture(count: 2) { model.open(task) }
                             .onTapGesture { model.select(task) }
                             .contextMenu { ContextMenu(ref: task, model: model) }
@@ -50,7 +50,7 @@ struct TasksContent: Surface {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .background(Style.Background.canvas)
             .scrollEdgeEffectStyle(.hard, for: .vertical)
-            .safeAreaBar(edge: .top) { TasksHeader(host: host, model: model, scope: $scope) }
+            .safeAreaBar(edge: .top) { AgendaHeader(host: host, model: model, scope: $scope) }
         }
     }
 }

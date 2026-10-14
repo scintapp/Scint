@@ -6,13 +6,13 @@ import ScintComponents
 
 
 private struct CommandsList: Mapper {
-    private static var commands: [ItemParams] {
+    private static var commands: [SectionParams] {
         [
-            ItemParams(key: "insert", name: "", items: [
+            SectionParams(id: "insert", layout: .list, items: [
                 ItemParams(key: "task", name: "Task", image: "checkmark.app", keywords: ["task", "todo"]),
                 ItemParams(key: "link", name: "Link", image: "bookmark", keywords: ["link", "web", "url", "bookmark"])
-            ], isParent: true),
-            ItemParams(key: "format", name: "", items: [
+            ]),
+            SectionParams(id: "format", layout: .list, items: [
                 ItemParams(key: "title", name: "Title", image: "textformat", value: "# ", keywords: ["h1", "title"]),
                 ItemParams(key: "subtitle", name: "Subtitle", image: "textformat.size", value: "## ", keywords: ["h2", "subtitle"]),
                 ItemParams(key: "heading", name: "Heading", image: "textformat.size.smaller", value: "### ", keywords: ["h3", "heading"]),
@@ -21,10 +21,10 @@ private struct CommandsList: Mapper {
                 ItemParams(key: "checklist", name: "Checklist", image: "text.badge.checkmark", value: "- [ ] ", keywords: ["todo", "checkbox"]),
                 ItemParams(key: "quote", name: "Quote", image: "quote.opening", value: "> ", keywords: ["blockquote"]),
                 ItemParams(key: "code-block", name: "Code Block", image: "curlybraces", value: "```\n", keywords: ["code", "fence"])
-            ], isParent: true),
-            ItemParams(key: "add", name: "", items: [
+            ]),
+            SectionParams(id: "add", layout: .list, items: [
                 ItemParams(key: "files", name: "Files or Folders...", image: "folder.badge.plus", keywords: ["file", "folder", "directory", "artifact", "open"])
-            ], isParent: true)
+            ])
         ]
     }
 
@@ -60,25 +60,33 @@ enum MenuSurface: String, CaseIterable {
     private var anchor: CGRect = .zero
 
     func controls(_ model: any Model) -> Controls {
-        var controls = switch surface {
-            case .commands: CommandsList.controls(model)
-            case .references: ReferenceList.controls(model)
-            case .task, .link: Controls()
-        }
-        controls.onSelect = { item in self.choose(item) }
-        return controls
+        .init(
+            onValueChange: { item, query in
+                guard item.key == "query", query != self.state.query else { return }
+                self.state.query = query
+                self.state.index = 0
+            },
+            onSelect: self.choose,
+            onInput: { input in
+                PanelNavigation.handle(input, rows: { self.parameters(model).rows(self.state.surface) }, index: self.bindable.index, onSelect: self.choose, onSecondary: nil, onCancel: nil)
+            }
+        )
     }
 
     func parameters(_ model: any Model) -> Params {
-        var params = switch surface {
-            case .commands: CommandsList.parameters(model)
-            case .references: ReferenceList.parameters(model)
+        let mapped: (params: Params, results: ((SectionParams, String) -> [SectionParams])?) = switch surface {
+            case .commands: (CommandsList.parameters(model), CommandsList.controls(model).results)
+            case .references: (ReferenceList.parameters(model), ReferenceList.controls(model).results)
             case .task, .link:
-                Params(sections: [.init(id: surface.rawValue, header: false, layout: .list, items: [
-                    ItemParams(key: "query", name: surface.field.placeholder, image: surface.field.image, tint: surface.field.tint, trailingKind: .field),
-                    ItemParams(key: surface.rawValue, name: surface.field.commit, image: "return")
-                ])])
+                (Params(
+                    input: ItemParams(key: "query", name: surface.field.placeholder, image: surface.field.image, tint: surface.field.tint, trailingKind: .field, value: state.query),
+                    sections: [.init(id: surface.rawValue, header: false, layout: .list, items: [ItemParams(key: surface.rawValue, name: surface.field.commit, image: "return")])]
+                ), nil)
         }
+        var params = mapped.params
+
+        params.sections = params.sections.flatMap { mapped.results?($0, state.query) ?? [$0] }
+        params.cursor = PanelNavigation.current(params.rows(state.surface), at: state.index)?.id
         params.panel = PanelParams(
             size: CGSize(width: Metrics.menuWidth, height: surface.form ? Metrics.menuFormHeight : Metrics.menuListHeight),
             placement: .anchored(anchor),
@@ -90,7 +98,7 @@ enum MenuSurface: String, CaseIterable {
 
     func open(_ surface: MenuSurface, in editor: MarkdownInputView, query: String, range: NSRange, anchor: CGRect) {
         if self.surface != surface { self.surface = surface; state.index = 0 }
-        state.query = query
+        if state.query != query { state.query = query; state.index = 0 }
         self.editor = editor
         self.range = range
         self.anchor = anchor

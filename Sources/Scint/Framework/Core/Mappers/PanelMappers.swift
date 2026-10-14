@@ -19,14 +19,28 @@ struct PanelList {
             .sorted { $0.score == $1.score ? $0.place < $1.place : $0.score > $1.score }
             .map(\.item)
     }
+
+    static func narrowed(_ sections: [SectionParams], by query: String) -> [SectionParams] {
+        sections.enumerated()
+            .compactMap { place, section -> (section: SectionParams, place: Int, score: Double)? in
+                var section = section
+                section.items = narrowed(section.items, by: query)
+                guard let best = section.items.first else { return nil }
+                return (section, place, Search.score(query, name: best.name, description: best.description, terms: best.keywords))
+            }
+            .sorted { $0.score == $1.score ? $0.place < $1.place : $0.score > $1.score }
+            .map(\.section)
+    }
 }
 
 struct ReferenceList: Mapper {
     static func controls(_ model: any Model) -> Controls {
         .init(results: { section, query in
-            model.search(query, filters: [section.id.base as? String ?? ""], limit: 24).all.map {
+            var section = section
+            section.items = model.search(query, filters: [section.id.base as? String ?? ""], limit: 24).all.map {
                 ItemParams(ref: $0.ref, name: $0.ref.descriptor.name, description: $0.ref.descriptor.description)
             }
+            return [section]
         })
     }
 
@@ -53,7 +67,7 @@ struct ReferenceDetail: Mapper {
             (name: "Tags", value: ref.descriptor.tags.sorted().joined(separator: ", "))
         ]
         .filter { !$0.value.isEmpty }
-        .map { ItemParams(key: $0.name.lowercased(), name: $0.name, description: $0.value) }
+        .map { ItemParams(key: $0.name.lowercased(), name: $0.name, description: $0.value, actionable: false) }
 
         return .init(
             ref: ref,
@@ -75,47 +89,26 @@ struct ActionsList: Mapper {
             onSelect: { item in sections.first { $0.name == item.key }?.items.first { $0.id == item.value }?.action(app) },
             results: { _, query in
                 PanelList.narrowed(sections.map { section in
-                    ItemParams(key: section.name, name: section.name, items: section.items.filter { $0.enabled(app) }.map {
+                    SectionParams(id: section.name, name: section.name, layout: .list, items: section.items.filter { $0.enabled(app) }.map {
                         ItemParams(key: section.name, name: $0.label, image: $0.image, value: $0.id, keywords: $0.keywords + [section.name])
-                    }, isParent: true)
+                    })
                 }, by: query)
             }
         )
     }
 
     static func parameters(_ model: any Model) -> Params {
-        .init(description: "No matches", sections: [
-            .init(id: "actions", header: false, layout: .list, items: [ItemParams(key: "query", name: "Actions", image: "command", trailingKind: .field)])
-        ])
+        .init(
+            description: "No matches",
+            input: ItemParams(key: "query", name: "Actions", image: "command", trailingKind: .field),
+            sections: [.init(id: "actions", header: false, layout: .list)]
+        )
     }
 }
 
 struct SearchList: Mapper {
-    enum Tab: String, CaseIterable {
-        case everything, content, interfaces, projects
-
-        var image: String {
-            switch self {
-                case .everything: "magnifyingglass"
-                case .content: "command"
-                case .interfaces: "switch.2"
-                case .projects: "cube.transparent"
-            }
-        }
-
-        var groups: [(name: String, filter: String)] {
-            switch self {
-                case .everything: [("Content", "document"), ("Interfaces", "interface"), ("Workspace", "structure")]
-                case .content: [("", "document")]
-                case .interfaces: [("Artifacts", "artifact"), ("Commands", "command"), ("Harnesses", "harness")]
-                case .projects: [("", "structure")]
-            }
-        }
-    }
-
     static func controls(_ model: any Model) -> Controls {
         let app: Model = (model as? PanelModel)?.app ?? model
-        let references = ReferenceList.controls(model)
 
         return .init(
             selected: { item in item.ref.map { model.session.selection.selected($0) } ?? false },
@@ -125,19 +118,28 @@ struct SearchList: Mapper {
                 else { app.select(ref) }
             },
             onAction: { item in if let ref = item.ref { model.focus(ref) } },
-            results: { tab, query in
-                (Tab(rawValue: tab.id.base as? String ?? "") ?? .everything).groups
-                    .map { ItemParams(key: $0.filter, name: $0.name, items: references.results?(.init(id: $0.filter), query) ?? [], isParent: true) }
-                    .filter { !$0.items.isEmpty }
-            }
+            results: ReferenceList.controls(model).results
         )
     }
 
     static func parameters(_ model: any Model) -> Params {
-        .init(description: "No matches", tabbed: true, sections: Tab.allCases.map { tab in
-            .init(id: tab.rawValue, name: tab.rawValue.capitalized, header: false, image: tab.image, layout: .list, items: [
-                ItemParams(key: "query", name: tab.rawValue.capitalized, image: tab.image, trailingKind: .field)
+        .init(description: "No matches", tabbed: true, sections: [
+            .init(id: "everything", name: "Everything", header: false, image: "magnifyingglass", layout: .list, sections: [
+                .init(id: "document", name: "Content", layout: .list),
+                .init(id: "interface", name: "Interfaces", layout: .list),
+                .init(id: "structure", name: "Workspace", layout: .list)
+            ]),
+            .init(id: "content", name: "Content", header: false, image: "command", layout: .list, sections: [
+                .init(id: "document", layout: .list)
+            ]),
+            .init(id: "interfaces", name: "Interfaces", header: false, image: "switch.2", layout: .list, sections: [
+                .init(id: "artifact", name: "Artifacts", layout: .list),
+                .init(id: "command", name: "Commands", layout: .list),
+                .init(id: "harness", name: "Harnesses", layout: .list)
+            ]),
+            .init(id: "projects", name: "Projects", header: false, image: "cube.transparent", layout: .list, sections: [
+                .init(id: "structure", layout: .list)
             ])
-        })
+        ])
     }
 }

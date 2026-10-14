@@ -14,10 +14,11 @@ public struct ItemParams: Hashable, Identifiable {
     public let tint: Color?
     public let trailingKind: TrailingKind?
     public let count: Int?
-    public let value: String?
+    public var value: String?
     public var active: Bool
     public let items: [ItemParams]
     public let keywords: [String]
+    public let actionable: Bool
     public var indent: CGFloat = 0
     public let _isParent: Bool?
     public var isParent: Bool { _isParent ?? !items.isEmpty }
@@ -40,7 +41,8 @@ public struct ItemParams: Hashable, Identifiable {
         active: Bool = true,
         items: [ItemParams] = [],
         keywords: [String] = [],
-        isParent: Bool? = nil
+        isParent: Bool? = nil,
+        actionable: Bool? = nil
     ) {
         self.ref = ref
         self.key = key
@@ -58,6 +60,7 @@ public struct ItemParams: Hashable, Identifiable {
         self.items = items
         self.keywords = keywords
         self._isParent = isParent
+        self.actionable = actionable ?? (trailingKind != .field)
     }
 
     public var id: AnyHashable {

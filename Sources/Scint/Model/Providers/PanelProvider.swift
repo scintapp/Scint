@@ -25,6 +25,36 @@ final class FloatingPanel: NSPanel {
     }
 }
 
+@MainActor struct PanelNavigation {
+    static func current(_ rows: [ItemParams], at index: Int) -> ItemParams? {
+        rows.isEmpty ? nil : rows[min(index, rows.count - 1)]
+    }
+
+    static func handle(
+        _ input: Controls.Input,
+        rows: () -> [ItemParams],
+        index: Binding<Int>,
+        onSelect: ((ItemParams) -> Void)?,
+        onSecondary: ((ItemParams) -> Void)?,
+        onCancel: (() -> Bool)?
+    ) -> Bool {
+        if case .cancel = input { return onCancel?() ?? false }
+
+        let items = rows()
+        guard let item = current(items, at: index.wrappedValue) else { return true }
+        let move = { (delta: Int) in index.wrappedValue = (min(index.wrappedValue, items.count - 1) + delta + items.count) % items.count }
+
+        switch (input, onSecondary) {
+            case (.move(let delta), _): move(delta)
+            case (.secondary, let onSecondary?): onSecondary(item)
+            case (.secondary, nil): move(1)
+            case (.submit, _): onSelect?(item)
+            case (.cancel, _): break
+        }
+        return true
+    }
+}
+
 @MainActor final class PanelProvider {
     private let panel = FloatingPanel()
     private let hosting = NSHostingView(rootView: AnyView(EmptyView()))
@@ -33,13 +63,14 @@ final class FloatingPanel: NSPanel {
     private var observer: NSObjectProtocol?
     private var positioned = false
     var onVisibility: (Bool) -> Void = { _ in }
+    var onCancel: () -> Bool = { false }
 
     init() {
         hosting.wantsLayer = true
         hosting.layer?.cornerCurve = .continuous
         hosting.layer?.masksToBounds = true
         panel.contentView = hosting
-        panel.onEscape = { if self.params.dismissal.contains(.escape) { self.hide() } }
+        panel.onEscape = { if !self.onCancel(), self.params.dismissal.contains(.escape) { self.hide() } }
     }
 
     var visible: Bool { panel.isVisible }

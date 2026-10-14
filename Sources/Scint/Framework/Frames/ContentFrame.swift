@@ -20,7 +20,7 @@ import ScintComponents
                     case model.session.inbox: InboxContent(host: self, model: model)
                     case model.session.library: LibraryContent(host: self, model: model)
                     case model.session.spaces: ProjectContent(host: self, model: model)
-                    case model.session.tasks: TasksContent(host: self, model: model)
+                    case model.session.tasks: AgendaContent(host: self, model: model)
                     default: NoReference(ref: root, title: "Nothing Here")
                 }
             }

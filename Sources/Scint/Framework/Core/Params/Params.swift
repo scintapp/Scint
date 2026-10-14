@@ -6,6 +6,8 @@ import ScintRuntime
 enum Layout: CaseIterable { case grid, group, list, table }
 
 struct Controls {
+    enum Input { case move(Int), submit, secondary, cancel }
+
     var onToggle: ((ItemParams) -> Void)?
     var onChange: ((_ item: ItemParams, _ selection: ItemParams) -> Void)?
     var onValueChange: ((_ item: ItemParams, _ value: String) -> Void)?
@@ -13,7 +15,9 @@ struct Controls {
     var selected: ((_ item: ItemParams) -> Bool)?
     var onSelect: ((_ item: ItemParams) -> Void)?
     var onAction: ((_ item: ItemParams) -> Void)?
-    var results: ((_ section: SectionParams, _ query: String) -> [ItemParams])?
+    var onInput: ((_ input: Input) -> Bool)?
+    var onTabSelect: ((_ tab: SectionParams) -> Void)?
+    var results: ((_ section: SectionParams, _ query: String) -> [SectionParams])?
     var surfaceDropTarget: (() -> ItemParams?)?
     var sectionDropTarget: ((_ section: SectionParams) -> ItemParams?)?
     var itemPalette: ((_ item: ItemParams) -> [ActionParams])?
@@ -33,7 +37,15 @@ struct Params: Hashable, Identifiable {
     var header = false
     var described = true
     var tabbed = false
+    var input: ItemParams?
+    var cursor: AnyHashable?
     var panel: PanelParams?
     var sections: [SectionParams] = []
+
+    func tab(_ id: AnyHashable) -> SectionParams? { sections.first { $0.id == id } ?? sections.first }
+
+    func shown(_ tab: AnyHashable) -> [SectionParams] { tabbed ? self.tab(tab)?.sections ?? [] : sections }
+
+    func rows(_ tab: AnyHashable) -> [ItemParams] { shown(tab).flatMap(\.items).flatMap { $0.isParent ? $0.items : [$0] }.filter(\.actionable) }
 }
 

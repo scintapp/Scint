@@ -8,7 +8,7 @@ import ScintComponents
 //    var model: any Model
 //    var ref: Reference
 //    var showsCompleted: Bool
-//    var scope: TasksContent.Scope = .today
+//    var scope: AgendaContent.Scope = .today
 //
 //    @State private var expanded = true
 //

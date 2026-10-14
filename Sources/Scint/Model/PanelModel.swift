@@ -47,6 +47,7 @@ import ScintComponents
             host.state.presented = visible
             if !visible { onDismiss() }
         }
+        provider.onCancel = { host.controls(self).onInput?(.cancel) ?? false }
         provider.show(params, view, in: window)
     }
 }

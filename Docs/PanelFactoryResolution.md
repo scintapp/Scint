@@ -1,3 +1,5 @@
+Follow the current [mapper correction and implementation guidance](/Users/kaechle/Developer/Scint/Docs/PanelFactoryFeedback.md) for the next patch. Preserve the completed shared navigation work and the user's placement of PanelNavigation outside Core. This original plan is historical where it conflicts with that guidance, including per-host input dispatch and construction of the section hierarchy through Controls.results.
+
 Restore the panel rendering pipeline to the architectural boundary established by ListFactory and GroupFactory. Implement this as a behavior-preserving repair across the factory and all of its consumers. The work is complete only when panel interaction no longer depends on a factory.
 
 The repository is `/Users/kaechle/Developer/Scint`. Read `AGENTS.md` and `Docs/Style.md` before changing Swift. Inspect the current working tree and preserve existing user changes, including visual changes made since this plan was written.

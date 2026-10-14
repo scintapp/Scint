@@ -3,6 +3,18 @@ import ScintRuntime
 import ScintComponents
 
 
+private func handled(_ press: KeyPress, _ onInput: ((Controls.Input) -> Bool)?) -> KeyPress.Result {
+    let input: Controls.Input? = switch press.key {
+        case .upArrow: .move(-1)
+        case .downArrow: .move(1)
+        case .return: .submit
+        case .tab: .secondary
+        case .escape: .cancel
+        default: nil
+    }
+    return input.flatMap { onInput?($0) } == true ? .handled : .ignored
+}
+
 struct PanelAnchor: NSViewRepresentable {
     final class Box { var view: NSView? }
     let box: Box
@@ -47,11 +59,13 @@ struct PanelHeader: View {
 }
 
 struct PanelField: View {
+    @Environment(\.controlSize) private var controlSize
     @Binding var text: String
     @FocusState private var focused: Bool
     let field: ItemParams
-    let compact: Bool
-    let onKey: (KeyPress) -> KeyPress.Result
+    let onInput: ((Controls.Input) -> Bool)?
+
+    var compact: Bool { controlSize == .small }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -66,7 +80,7 @@ struct PanelField: View {
                     .font(.system(size: compact ? 13 : 28, weight: compact ? .regular : .light))
                     .padding(.bottom, compact ? 0 : 2)
                     .focused($focused)
-                    .onKeyPress(keys: [.upArrow, .downArrow, .return, .tab, .escape], action: onKey)
+                    .onKeyPress(keys: [.upArrow, .downArrow, .return, .tab, .escape]) { handled($0, onInput) }
             }
             .frame(height: compact ? 30 : 48)
 
@@ -78,7 +92,7 @@ struct PanelField: View {
         .padding(.horizontal, compact ? 12 : 22)
         .padding(.vertical, compact ? 2 : 8)
         .onAppear { DispatchQueue.main.async { focused = true } }
-        .onChange(of: field) { _, _ in DispatchQueue.main.async { focused = true } }
+        .onChange(of: field.name) { _, _ in DispatchQueue.main.async { focused = true } }
     }
 }
 
@@ -154,11 +168,13 @@ struct PanelModes: View {
 }
 
 struct PanelRow: View {
+    @Environment(\.controlSize) private var controlSize
     let item: ItemParams
     let active: Bool
     let selected: Bool
-    let compact: Bool
     let onTap: () -> Void
+
+    var compact: Bool { controlSize == .small }
 
     var body: some View {
         let size = compact ? Metrics.rowIcon : 20
@@ -215,14 +231,16 @@ struct PanelRow: View {
 }
 
 struct PanelLayout<Header: View, Content: View>: View {
+    @Environment(\.controlSize) private var controlSize
     @FocusState private var focused: Bool
     let size: CGSize
-    let compact: Bool
     let focusable: Bool
     let current: AnyHashable?
-    let onKey: (KeyPress) -> KeyPress.Result
+    let onInput: ((Controls.Input) -> Bool)?
     @ViewBuilder let header: () -> Header
     @ViewBuilder let content: () -> Content
+
+    var compact: Bool { controlSize == .small }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: compact ? 13 : Style.Shape.frameRadius, style: .continuous)
@@ -247,7 +265,7 @@ struct PanelLayout<Header: View, Content: View>: View {
         .focusable(focusable)
         .focused($focused)
         .focusEffectDisabled()
-        .onKeyPress(keys: [.upArrow, .downArrow, .return, .tab, .escape], action: onKey)
+        .onKeyPress(keys: [.upArrow, .downArrow, .return, .tab, .escape]) { handled($0, onInput) }
         .onAppear { DispatchQueue.main.async { focused = focusable } }
         .clipShape(shape)
         .glassEffect(.regular, in: shape)

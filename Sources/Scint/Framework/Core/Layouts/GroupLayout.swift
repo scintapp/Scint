@@ -35,10 +35,10 @@ struct GroupTile<Label: View>: View {
         self.label = label()
     }
 
-    init(_ item: ItemParams, disclosure: Bool) where Label == Text? {
+    init(_ item: ItemParams, disclosure: Bool) where Label == SwiftUI.Text? {
         let text = item.description.isEmpty ? item.name : item.description
         self.init(image: item.image, ref: item.ref, disclosure: disclosure) {
-            if !text.isEmpty { Text(text).foregroundStyle(item.description.isEmpty ? Style.Foreground.secondary : Style.Foreground.primary) }
+            if !text.isEmpty { SwiftUI.Text(text).foregroundStyle(item.description.isEmpty ? Style.Foreground.secondary : Style.Foreground.primary) }
         }
     }
 
@@ -97,7 +97,7 @@ struct GroupNote: View {
     @State private var text = ""
 
     var body: some View {
-        TextField("Note", text: $text, prompt: Text(placeholder).foregroundStyle(Style.Foreground.subtle), axis: .vertical)
+        SwiftUI.TextField("Note", text: $text, prompt: SwiftUI.Text(placeholder).foregroundStyle(Style.Foreground.subtle), axis: .vertical)
             .textFieldStyle(.plain)
             .font(.system(size: 13))
             .lineLimit(1...8)
@@ -123,7 +123,7 @@ struct GroupCheck: View {
             Button(action: onToggle) { TaskCompletionIndicator(completed: item.active, size: 14) }
                 .buttonStyle(.plain)
 
-            Text(item.name)
+            SwiftUI.Text(item.name)
                 .font(.system(size: 13))
                 .foregroundStyle(item.active ? Style.Foreground.secondary : Style.Foreground.primary)
                 .strikethrough(item.active, color: Style.Foreground.subtle)
@@ -180,8 +180,8 @@ struct GroupOutline: View {
 }
 
 struct GroupRow<Leading: View, Trailing: View>: View {
-    let title: Text
-    let detail: Text?
+    let title: SwiftUI.Text
+    let detail: SwiftUI.Text?
     let detailLineLimit: Int
     let spacing: CGFloat?
     let spacerMinLength: CGFloat?
@@ -190,8 +190,8 @@ struct GroupRow<Leading: View, Trailing: View>: View {
     @ViewBuilder let trailing: Trailing
 
     init(
-        title: Text,
-        detail: Text? = nil,
+        title: SwiftUI.Text,
+        detail: SwiftUI.Text? = nil,
         detailLineLimit: Int = 1,
         spacing: CGFloat? = nil,
         spacerMinLength: CGFloat? = nil,
@@ -216,10 +216,10 @@ struct GroupRow<Leading: View, Trailing: View>: View {
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.init(
-            title: Text(label)
+            title: SwiftUI.Text(label)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.primary.opacity(0.88)),
-            detail: description.isEmpty ? nil : Text(description)
+            detail: description.isEmpty ? nil : SwiftUI.Text(description)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.secondary.opacity(0.72)),
             groupHeight: description.isEmpty ? 44 : 48,
@@ -338,7 +338,7 @@ struct GroupHeader: View {
                     .padding(.trailing, 4)
 
                 VStack(alignment: .leading) {
-                    TextField("Name", text: .init(get: { name ?? heading?.text ?? ref.descriptor.name }, set: { name = $0 }))
+                    SwiftUI.TextField("Name", text: .init(get: { name ?? heading?.text ?? ref.descriptor.name }, set: { name = $0 }))
                         .textFieldStyle(.plain)
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(Style.Foreground.primary)
@@ -352,7 +352,7 @@ struct GroupHeader: View {
                             name = nil
                         }
 
-                    Text(subtitle.isEmpty ? intent?.rawValue.capitalized ?? updated : subtitle)
+                    SwiftUI.Text(subtitle.isEmpty ? intent?.rawValue.capitalized ?? updated : subtitle)
                         .font(.system(size: 12))
                         .foregroundStyle(intent == nil ? Style.Foreground.subtle : icon.tint)
                         .opacity(0.7)
@@ -367,10 +367,10 @@ struct GroupHeader: View {
             if described {
                 GroupDivider()
 
-                TextField(
+                SwiftUI.TextField(
                     "Description",
                     text: .init(get: { description ?? ref.descriptor.description }, set: { description = $0 }),
-                    prompt: Text("Add a description...").foregroundStyle(Style.Foreground.subtle),
+                    prompt: SwiftUI.Text("Add a description...").foregroundStyle(Style.Foreground.subtle),
                     axis: .vertical
                 )
                 .textFieldStyle(.plain)
@@ -413,7 +413,7 @@ struct GroupGrid<Content: View>: View {
     var body: some View {
         VStack {
             if !title.isEmpty {
-                Text(title)
+                SwiftUI.Text(title)
                     .padding(.leading, 4)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .font(.system(size: 11, weight: .semibold))
@@ -438,7 +438,7 @@ struct GroupLayout<Content: View>: View {
 
     var body: some View {
         VStack {
-            Text(title)
+            SwiftUI.Text(title)
                 .padding(.leading, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .font(.system(size: 11, weight: .semibold))
@@ -449,7 +449,7 @@ struct GroupLayout<Content: View>: View {
                 .background(Style.Shape.group.fill(Style.Background.group))
 
             if let footer {
-                Text(footer)
+                SwiftUI.Text(footer)
                     .padding(.leading, 4)
                     .font(.system(size: 11, weight: .light))
                     .foregroundStyle(.secondary.opacity(0.75))

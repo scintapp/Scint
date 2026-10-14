@@ -139,10 +139,10 @@ enum Exit { case previous, next }
     func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
         if panels.editor.state.presented, panels.editor.editor === self, !panels.editor.surface.form {
             switch selector {
-            case #selector(moveDown(_:)), #selector(insertTab(_:)): PanelFactory.move(panels.editor.surface(panels), by: 1); return true
-            case #selector(moveUp(_:)), #selector(insertBacktab(_:)): PanelFactory.move(panels.editor.surface(panels), by: -1); return true
-            case #selector(insertNewline(_:)): PanelFactory.choose(panels.editor.surface(panels)); return true
-            case #selector(cancelOperation(_:)): closeMenu(); return true
+            case #selector(moveDown(_:)), #selector(insertTab(_:)): return panels.editor.controls(panels).onInput?(.move(1)) ?? false
+            case #selector(moveUp(_:)), #selector(insertBacktab(_:)): return panels.editor.controls(panels).onInput?(.move(-1)) ?? false
+            case #selector(insertNewline(_:)): return panels.editor.controls(panels).onInput?(.submit) ?? false
+            case #selector(cancelOperation(_:)): if panels.editor.controls(panels).onInput?(.cancel) != true { closeMenu() }; return true
             default: break
             }
         }

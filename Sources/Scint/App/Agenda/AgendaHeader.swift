@@ -3,11 +3,11 @@ import ScintRuntime
 import ScintComponents
 
 
-struct TasksHeader: Surface {
+struct AgendaHeader: Surface {
     var host: any Host
     var model: any Model
 
-    @Binding var scope: TasksContent.Scope
+    @Binding var scope: AgendaContent.Scope
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -21,7 +21,7 @@ struct TasksHeader: Surface {
 
             Spacer()
 
-            SegmentedTabs(selection: $scope, options: TasksContent.Scope.allCases, title: \.label)
+            SegmentedTabs(selection: $scope, options: AgendaContent.Scope.allCases, title: \.label)
 
             IconButton(systemImage: "ellipsis") { }
                 .shadow(color: .black.opacity(0.3), radius: 2, y: 1)

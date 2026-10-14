@@ -56,7 +56,7 @@ struct NavigatorMapper: Mapper {
             .sections
             .flatMap { $0.items }
 
-        let spaceItems = ProjectsList
+        let spaceItems = SpacesList
             .parameters(model)
             .sections
             .flatMap { $0.items }
@@ -74,9 +74,9 @@ struct NavigatorMapper: Mapper {
                     header: false,
                     items: [
                         .init(
-                            ref: model.session.inbox,
-                            name: "Inbox",
-                            image: "tray",
+                            ref: model.session.tasks,
+                            name: "Agenda",
+                            image: "calendar",
                             tint: Style.Foreground.secondary
                         ),
                         .init(
@@ -86,11 +86,11 @@ struct NavigatorMapper: Mapper {
                             tint: Style.Foreground.secondary
                         ),
                         .init(
-                            ref: model.session.tasks,
-                            name: "Tasks",
-                            image: "checkmark.app",
+                            ref: model.session.inbox,
+                            name: "Spaces",
+                            image: "cube.transparent",
                             tint: Style.Foreground.secondary
-                        )
+                        ),
                     ]
                 ),
                 .init(

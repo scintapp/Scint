@@ -78,7 +78,7 @@ struct CanvasMap: Surface {
                     FilterField(text: $text)
 
                     if text.isEmpty {
-                        surface.render(surface, ProjectsList.parameters(model), ProjectsList.controls(model))
+                        surface.render(surface, SpacesList.parameters(model), SpacesList.controls(model))
                     } else if matches.isEmpty {
                         Text("No Matches")
                     } else {
