@@ -14,11 +14,17 @@ struct AgendaCard: View {
 
     var selected: Bool { model.session.selection.selected(ref) }
     var document: ScintRuntime.Document? { ScintRuntime.Document.with(ref, { $0 }) }
-    var preview: [ScintRuntime.Document.Block] { document?.body ?? [] }
+    var preview: [Block] { document?.blocks ?? [] }
     var title: String { document.flatMap(TaskHeader.task)?.text ?? "" }
     var done: Bool { document.flatMap(TaskHeader.task)?.done ?? false }
-    var command: Reference? { document.flatMap { document in (Space.with(document.origin, { $0.interface }) ?? nil).flatMap { document.command(.update, of: $0) } } }
-    var space: Reference? { document.flatMap { document in document.metadata.flatMap { $0.space == document.origin ? nil : $0.space } } }
+    var command: Reference? {
+        document
+            .flatMap {
+                document in (Space.with(document.origin, { $0.interface }) ?? nil)
+                    .flatMap { document.command(.compose, of: $0) }
+            }
+    }
+    var space: Reference? { document.flatMap { document in if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil } } }
 
     var due: String? {
         guard let schedule = document.map(TaskHeader.schedule), let moment = schedule.moment else { return nil }

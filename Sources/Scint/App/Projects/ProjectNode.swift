@@ -42,9 +42,9 @@ struct NodeHeader: View {
     var description: String { ref.descriptor.description }
 
     var intent: Intent? {
-        guard let intent = Space.with(ref, { $0 })?.intent
+        guard let interface = Space.with(ref, { $0.interface })
         else { return nil }
-        return intent
+        return Intent(rawValue: interface.descriptor.name.lowercased()) ?? .none
     }
 
     var body: some View {
@@ -115,9 +115,9 @@ struct CanvasNode: Surface {
     var transcripts: [Reference] { Space.with(ref, { $0.transcripts }) ?? [] }
 
     var intent: Color {
-        guard let intent = Space.with(ref, { $0 })?.intent
+        guard let interface = Space.with(ref, { $0.interface })
         else { return Iconography.accent(for: ref) }
-        return Iconography.icon(for: intent).tint
+        return Iconography.icon(for: Intent(rawValue: interface.descriptor.name.lowercased()) ?? .none).tint
     }
 
     var border: Color {

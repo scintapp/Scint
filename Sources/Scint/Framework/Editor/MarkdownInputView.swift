@@ -96,7 +96,7 @@ enum Exit { case previous, next }
         didChangeText()
     }
 
-    func insert(_ blocks: [Document.Block], replacing range: NSRange) {
+    func insert(_ blocks: [Block], replacing range: NSRange) {
         replace(range, with: "")
         focus.insert(blocks, into: target, at: range.location)
     }

@@ -29,9 +29,9 @@ struct AgendaContent: Surface {
     }
 
     var body: some View {
-        if let task = model.session.opened.document, Document.with(task, { $0.header }) == .task {
-            TaskContent(host: host, model: model)
-        } else {
+//        if let task = model.session.opened.document, Document.with(task, { $0 }) == .task {
+//            TaskContent(host: host, model: model)
+//        } else {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 230, maximum: 240), spacing: 20)], alignment: .leading, spacing: 20) {
                     ForEach(tasks) { task in
@@ -52,5 +52,5 @@ struct AgendaContent: Surface {
             .scrollEdgeEffectStyle(.hard, for: .vertical)
             .safeAreaBar(edge: .top) { AgendaHeader(host: host, model: model, scope: $scope) }
         }
-    }
+//    }
 }

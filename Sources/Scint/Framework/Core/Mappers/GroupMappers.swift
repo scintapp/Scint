@@ -10,7 +10,7 @@ struct FilesGroup: Mapper {
         return .init(
             onAction: { item in
                 if let ref = item.ref, ref.type is Command.Type || ref.type is Artifact.Type {
-                    Space.with(space, { $0 })?.remove(ref)
+                    Space.update(space) { $0.remove(ref) }
                     return
                 }
 
@@ -23,7 +23,7 @@ struct FilesGroup: Mapper {
                 guard panel.runModal() == .OK else { return }
                 for url in panel.urls {
                     let artifact = Artifact.new(url.lastPathComponent, url)
-                    Space.with(space, { $0 })?.add(artifact)
+                    Space.update(space) { $0.add(artifact) }
                 }
             }
         )
@@ -93,11 +93,11 @@ struct CommandsGroup: Mapper {
             },
             onSelect: { item in
                 guard let ref = item.ref, !item.active else { return }
-                Space.with(space, { $0 })?.add(ref)
+                Space.update(space) { $0.add(ref) }
             },
             onAction: { item in
                 if let ref = item.ref, ref.type is Command.Type || ref.type is Artifact.Type {
-                    Space.with(space, { $0 })?.remove(ref)
+                    Space.update(space) { $0.remove(ref) }
                     return
                 }
 
@@ -110,7 +110,7 @@ struct CommandsGroup: Mapper {
                 guard panel.runModal() == .OK else { return }
                 for url in panel.urls {
                     let artifact = Artifact.new(url.lastPathComponent, url)
-                    Space.with(space, { $0 })?.add(artifact)
+                    Space.update(space) { $0.add(artifact) }
                 }
             }
         )
@@ -197,7 +197,7 @@ struct SettingsGroup: Mapper {
 
         func configure(_ value: Value?, for item: ItemParams) {
             guard let key = item.key, let command = item.origin else { return }
-            Document.update(ref) { $0.metadata(value, key, for: command) }
+            Document.update(ref) { $0.header.argument(value, key, for: command) }
         }
 
         return .init(
@@ -215,7 +215,7 @@ struct SettingsGroup: Mapper {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        guard let ref = document(model), let document = Document.with(ref, { $0 }), let harness = Space.with(document.origin, { $0.interface }) ?? nil
+        guard let ref = document(model), let document = Document.with(ref, { $0 }), let harness = Space.with(document.origin, { $0.interface })
         else { return .init() }
 
         func all<T: Resolvable>(_ type: T.Type) -> [Reference] { Runtime.shared.all(as: type).map { $0.0 } }
@@ -265,7 +265,7 @@ struct SettingsGroup: Mapper {
         }
 
         var items: [ItemParams] {
-            [Interface.Signature.start, .update, .stop]
+            Interface.Method.allCases
                 .compactMap { document.command($0, of: harness) }
                 .flatMap { command in
                     (Command.with(command, { $0.parameters.inputs(document.values(command)) }) ?? [])
@@ -298,22 +298,22 @@ struct HarnessGroup: Mapper {
     static func controls(_ model: any Model) -> Controls {
         guard case .structure(let space) = model.session.focus else { return .init() }
 
-        func load(_ intent: Intent) {
-            Space.update(space) { $0.intent = intent }
+        func load(_ interface: Reference) {
+            Space.update(space) { $0.interface = interface }
         }
 
         func configure(_ value: Value?, for key: String) {
-            guard let harness = Space.with(space, { $0.interface }) ?? nil, let input = Space.with(space, { $0.input }) else { return }
-            Document.update(input) { $0.metadata(value, key, for: harness) }
+            guard let harness = Space.with(space, { $0.interface }), let input = Space.with(space, { $0.input }) else { return }
+            Document.update(input) { $0.header.argument(value, key, for: harness) }
         }
 
         return .init(
             onChange: { item, selection in
-                guard item.key == "intent", let intent = selection.value.flatMap(Intent.init(rawValue:)) else { return }
-                load(intent)
+                guard item.key == "intent", let interface = selection.ref else { return }
+                load(interface)
             },
             onSelect: { item in
-                if item.key == "intent", let intent = item.value.flatMap(Intent.init(rawValue:)), !item.active { return load(intent) }
+                if item.key == "intent", let interface = item.ref, !item.active { return load(interface) }
                 guard let key = item.key else { return }
                 configure(item.ref.map(Value.reference), for: key)
             }
@@ -323,18 +323,24 @@ struct HarnessGroup: Mapper {
     static func parameters(_ model: any Model) -> Params {
         guard case .structure(let space) = model.session.focus else { return .init() }
 
-        let harness = Space.with(space, { $0.interface }) ?? nil
-        let intent = Space.with(space, { $0.intent }) ?? .none
-        let signatures = harness.flatMap { Interface.with($0, { $0.signatures }) } ?? [:]
+        let harness = Space.with(space, { $0.interface })
+        let methods = harness.flatMap { Interface.with($0, { $0.methods }) } ?? [:]
         let config: [String: Value] = harness.flatMap { harness in Space.with(space, { $0.input }).flatMap { Document.with($0, { $0.values(harness) }) } } ?? [:]
+
+        func intent(_ interface: Reference) -> Intent { Intent(rawValue: interface.descriptor.name.lowercased()) ?? .none }
+        func position(_ interface: Reference) -> Int { Intent.allCases.firstIndex(of: intent(interface)) ?? 0 }
+
+        let interfaces = (Space.with(space, { $0.closure.interfaces }) ?? [])
+            .filter { $0.type is Interface.Type }
+            .sorted { (position($0), $0.descriptor.name) < (position($1), $1.descriptor.name) }
 
         let commands = Runtime.shared.all(as: Command.self)
             .map { $0.0 }
             .filter { $0.descriptor.tags.contains("provider") }
             .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
 
-        let slots = [Interface.Signature.start, .update, .stop]
-            .compactMap { signatures[$0]?.inputs.first }
+        let slots = Interface.Method.allCases
+            .compactMap { methods[$0]?.inputs.first }
             .reduce(into: [(name: String, schema: Schema)]()) { slots, slot in
                 if !slots.contains(where: { $0.name == slot.name }) { slots.append(slot) }
             }
@@ -371,16 +377,17 @@ struct HarnessGroup: Mapper {
             image: "gearshape",
             tint: Style.Foreground.secondary,
             trailingKind: .picker,
-            value: intent.rawValue,
-            description: intent.rawValue.capitalized,
-            items: Intent.allCases.map { option in
+            value: harness?.handle,
+            description: harness?.descriptor.name ?? "",
+            items: interfaces.map { option in
                 ItemParams(
+                    ref: option,
                     key: "intent",
-                    name: option.rawValue.capitalized,
+                    name: option.descriptor.name,
                     image: Iconography.dotSymbol,
-                    tint: Iconography.icon(for: option).tint,
-                    value: option.rawValue,
-                    active: option == intent
+                    tint: Iconography.icon(for: intent(option)).tint,
+                    value: option.handle,
+                    active: option == harness
                 )
             }
         )

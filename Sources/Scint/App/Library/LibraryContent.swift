@@ -14,9 +14,9 @@ struct LibraryContent: Surface {
     }
 
     var body: some View {
-        if let doc = model.session.opened.document, Document.with(doc, { $0.header }) != .task {
-            DocumentContent(host: host, model: model)
-        } else {
+//        if let doc = model.session.opened.document, Document.with(doc, { $0.header }) != .task {
+//            DocumentContent(host: host, model: model)
+//        } else {
             ScrollView {
                 LibraryColumns(minimum: 230, maximum: 230, spacing: 20) {
                     ForEach(Array(documents.enumerated()), id: \.element) { index, ref in
@@ -43,7 +43,7 @@ struct LibraryContent: Surface {
             .scrollEdgeEffectStyle(.hard, for: .vertical)
             .safeAreaBar(edge: .top) { LibraryHeader(model: model) }
         }
-    }
+//    }
 }
 
 struct LibraryColumns: SwiftUI.Layout {

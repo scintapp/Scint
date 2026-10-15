@@ -12,7 +12,7 @@ struct AgendaHeader: Surface {
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             IconButton(systemImage: "plus") {
-                model.session.open(Document.new(from: .init(name: "New Task", origin: model.session.tasks, header: .task)))
+//                model.session.open(Document.new(from: .init(name: "New Task", origin: model.session.tasks, header: .task)))
             }
             .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
 

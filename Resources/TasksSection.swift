@@ -12,13 +12,13 @@ import ScintComponents
 //
 //    @State private var expanded = true
 //
-//    var allTasks: [ScintRuntime.Document.Block] {
+//    var allTasks: [Block] {
 //        Document.with(ref) { document in
 //            document.blocks.filter { if case .task = $0 { true } else { false } }
 //        } ?? []
 //    }
 //
-//    var tasks: [ScintRuntime.Document.Block] {
+//    var tasks: [Block] {
 //        let today = Calendar.current.startOfDay(for: .now)
 //        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? .distantFuture
 //        return allTasks.filter { block in

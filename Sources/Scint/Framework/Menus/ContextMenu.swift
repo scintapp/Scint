@@ -10,7 +10,7 @@ struct ContextMenu: View {
 
     var space: Bool { ref.type is Space.Type }
     var document: Bool { ref.type is ScintRuntime.Document.Type }
-    var parent: Reference? { Space.with(ref, { $0.space }) ?? nil }
+    var parent: Reference? { Space.with(ref, { $0.origin }) ?? nil }
     var origin: Reference? { ReferenceTransfer.origin(of: ref) }
     var items: [ActionParams] { ActionProvider.items(for: ref, in: model) }
 

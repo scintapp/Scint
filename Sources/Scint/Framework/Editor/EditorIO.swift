@@ -51,7 +51,10 @@ import ScintComponents
     var body: [Block] { Array(blocks.dropFirst(header)) }
 
     private var header: Int {
-        ScintRuntime.Document.with(ref, { $0.header != .task ? ($0.metadata == nil ? 0 : 1) : $0.blocks.count - $0.body.count }) ?? 0
+        ScintRuntime.Document.with(ref, { document in
+            let metadata = if case .metadata? = document.blocks.first { 1 } else { 0 }
+            return document.header.content == .task ? metadata + 1 : metadata
+        }) ?? 0
     }
 
     func position(_ index: Int) -> Int { header + index }

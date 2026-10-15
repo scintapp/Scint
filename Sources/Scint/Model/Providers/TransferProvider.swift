@@ -20,7 +20,7 @@ enum ReferenceTransfer {
     }
 
     static func origin(of ref: Reference) -> Reference? {
-        if ref.type is Space.Type { return Space.with(ref, { $0.space }) ?? nil }
+        if ref.type is Space.Type { return Space.with(ref, { $0.origin }) ?? nil }
         if let origin = Document.with(ref, { $0.origin }) { return origin }
         return nil
     }
@@ -157,7 +157,7 @@ enum ReferenceTransfer {
     @discardableResult
     static func detach(_ ref: Reference, from origin: Reference?) -> Bool {
         if ref.type is Space.Type {
-            guard let parent = origin ?? (Space.with(ref, { $0.space }) ?? nil) else { return false }
+            guard let parent = origin ?? (Space.with(ref, { $0.origin }) ?? nil) else { return false }
             if Space.with(parent, { _ in true }) == true {
                 Space.update(parent) { $0.detach(child: ref) }
                 return true
@@ -171,7 +171,7 @@ enum ReferenceTransfer {
         }
 
         guard let origin else { return false }
-        if let space = Space.with(origin, { $0 }) { space.remove(ref); return true }
+        if Space.update(origin, { $0.remove(ref) }) != nil { return true }
         return false
     }
 
@@ -192,9 +192,9 @@ enum ReferenceTransfer {
             detach(ref, from: source)
         }
 
-        if let space = Space.with(destination, { $0 }) {
+        if Space.with(destination, { _ in true }) == true {
             let origin = Self.origin(of: ref)
-            space.add(ref)
+            Space.update(destination) { $0.add(ref) }
             if sharing, let origin, ref.type is ScintRuntime.Document.Type {
                 Document.update(ref) { $0.origin = origin }
             }
@@ -212,7 +212,7 @@ enum ReferenceTransfer {
         var cursor: Reference? = parent
         while let current = cursor {
             if current == child { return true }
-            cursor = Space.with(current) { $0.space } ?? nil
+            cursor = Space.with(current) { $0.origin } ?? nil
         }
         return false
     }

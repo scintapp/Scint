@@ -18,7 +18,7 @@ struct LibraryCard: View {
     var height: CGFloat { minimum + (maximum - minimum) * weight * min(content / maximum, 1) }
     var selected: Bool { model.session.selection.selected(ref) }
     var title: String { Card.text(for: ref).name }
-    var blocks: [ScintRuntime.Document.Block] { Document.with(ref, { $0.body }) ?? [] }
+    var blocks: [Block] { Document.with(ref, { $0.blocks }) ?? [] }
 
     var updated: String {
         let relative = ref.descriptor.updated.formatted(.relative(presentation: .named))

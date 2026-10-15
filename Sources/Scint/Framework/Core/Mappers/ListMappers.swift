@@ -136,7 +136,7 @@ struct ArtifactsList: Mapper {
 struct DocumentsList: Mapper {
     static func summary(_ ref: Reference) -> String {
         let texts: [String] = Document.with(ref) { document in
-            document.body.compactMap { block -> String? in
+            document.blocks.compactMap { block -> String? in
                 guard case .paragraph(_, let text) = block else { return nil }
                 return text
             }

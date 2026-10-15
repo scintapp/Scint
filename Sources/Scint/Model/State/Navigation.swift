@@ -26,7 +26,7 @@ struct Navigation: Codable, Equatable, Sendable {
 
         while let current = cursor, depth < Self.maxPathDepth {
             chain.append(current)
-            cursor = Space.with(current, { $0.space }) ?? nil
+            cursor = Space.with(current, { $0.origin }) ?? nil
             depth += 1
         }
 

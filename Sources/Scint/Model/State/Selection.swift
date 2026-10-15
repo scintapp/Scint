@@ -111,7 +111,7 @@ import ScintRuntime
         guard var cursor = structure else { return nil }
         var depth = 0
 
-        while let parent = Space.with(cursor, { $0.space }) ?? nil, (Space.with(parent, { $0.space }) ?? nil) != nil, depth < 100 {
+        while let parent = Space.with(cursor, { $0.origin }) ?? nil, (Space.with(parent, { $0.origin }) ?? nil) != nil, depth < 100 {
             cursor = parent
             depth += 1
         }

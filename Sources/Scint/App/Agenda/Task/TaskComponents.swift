@@ -79,7 +79,7 @@ struct TaskTarget: View {
     let ref: Reference
     let scope: Reference
 
-    var space: Reference? { Document.with(ref, { document in document.metadata.flatMap { $0.space == document.origin ? nil : $0.space } }) ?? nil }
+    var space: Reference? { Document.with(ref, { document in if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil } }) ?? nil }
 
     var spaces: [Reference] {
         var spaces: [Reference] = []
@@ -95,8 +95,8 @@ struct TaskTarget: View {
     var body: some View {
         LoadMenu(items: items) { item in
             Document.update(ref) { document in
-                guard let metadata = document.metadata else { return }
-                document.update(.metadata(item.ref ?? document.origin, metadata.values), at: 0)
+                guard case .metadata(_, let values)? = document.blocks.first else { return }
+                document.update(.metadata(item.ref ?? document.origin, values), at: 0)
             }
         } label: {
             if let space { Label { Text(space.descriptor.name) } icon: { Iconography.icon(for: space) } }
@@ -110,7 +110,13 @@ struct TaskAction: View {
     let ref: Reference
 
     var harness: Reference? { Document.with(ref, { $0.origin }).flatMap { Space.with($0, { $0.interface }) ?? nil } }
-    var selected: Reference? { harness.flatMap { harness in Document.with(ref, { $0.command(.update, of: harness) }) ?? nil } }
+    var selected: Reference? {
+        harness
+            .flatMap {
+                harness in Document
+                    .with(ref, { $0.command(.compose, of: harness) }) ?? nil
+            }
+    }
 
     var library: [Reference] {
         Runtime.shared.all(as: Command.self).map { $0.0 }.sorted { $0.descriptor.name < $1.descriptor.name }
@@ -118,9 +124,9 @@ struct TaskAction: View {
 
     var body: some View {
         LoadMenu(items: library.map { ItemParams(ref: $0, name: $0.descriptor.name, active: $0 == selected) }) { item in
-            guard let option = item.ref, option != selected, let harness, let slot = Interface.with(harness, { $0.signatures[.update]?.inputs.first?.name }) ?? nil
+            guard let option = item.ref, option != selected, let harness, let slot = Interface.with(harness, { $0.methods[.compose]?.inputs.first?.name }) ?? nil
                     else { return }
-            Document.update(ref) { $0.metadata(.reference(option), slot, for: harness) }
+            Document.update(ref) { $0.header.argument(.reference(option), slot, for: harness) }
         } label: {
             if let selected { Label { Text(selected.descriptor.name) } icon: { Iconography.icon(for: selected) } }
             else { Label("Command", systemImage: "switch.2") }

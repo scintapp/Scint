@@ -147,15 +147,23 @@ struct ProjectCommand: Surface {
     }
 
     var space: Reference? { model.session.selection.structure }
-    var harness: Reference? { space.flatMap { Space.with($0, { $0.interface }) ?? nil } }
-    var inputs: [(name: String, schema: Schema)] { harness.flatMap { Interface.with($0, { harness in harness.signatures[.start].map { ([$0] + harness.parameters).inputs(config) } }) ?? nil } ?? [] }
+    var interface: Reference? { space.flatMap { Space.with($0, { $0.interface }) ?? nil } }
+
+    var inputs: [(name: String, schema: Schema)] {
+        if let interface {
+            return Interface
+                .with(interface, { $0 })?.methods
+                .flatMap { $0.value.inputs } ?? []
+        } else { return [] }
+    }
+    
     var command: Reference? { slot.flatMap { config[$0]?.references.first } }
     var settings: [ItemParams] { SettingsGroup.parameters(model).sections.flatMap(\.items) }
     var range: ItemParams? { settings.first { $0.trailingKind == .range } }
     var models: ItemParams? { settings.first { $0.key == "model" } }
 
     var input: Reference? { space.flatMap { Space.with($0, { $0.input }) } }
-    var config: [String: Value] { harness.flatMap { harness in input.flatMap { Document.with($0, { $0.values(harness) }) } } ?? [:] }
+    var config: [String: Value] { interface.flatMap { interface in input.flatMap { Document.with($0, { $0.values(interface) }) } } ?? [:] }
 
     var slot: String? { inputs.first.flatMap { if case .command = $0.schema.bare { $0.name } else { nil } } }
 
@@ -168,7 +176,7 @@ struct ProjectCommand: Surface {
 
     private func configure(_ value: Value?, for key: String, of ref: Reference?) {
         guard let input, let ref else { return }
-        Document.update(input) { $0.metadata(value, key, for: ref) }
+        Document.update(input) { $0.header.argument(value, key, for: ref) }
     }
 
     private func choices(_ provider: Reference) -> [String] {
@@ -182,7 +190,7 @@ struct ProjectCommand: Surface {
     }
 
     private func choose(_ provider: Reference, _ value: String?) {
-        if let slot { configure(.reference(provider), for: slot, of: harness) }
+        if let slot { configure(.reference(provider), for: slot, of: interface) }
         configure(value.map { .property(.string($0)) }, for: "model", of: provider)
         go(.summary)
     }
@@ -199,7 +207,7 @@ struct ProjectCommand: Surface {
 
 
     var body: some View {
-        if let _ = harness {
+        if let _ = interface {
             Button { presented.toggle() } label: {
                 Image(systemName: "switch.2")
                     .font(.system(size: 15))
@@ -430,10 +438,10 @@ struct ProjectToolbar: Surface {
     }
 
     private var input: Reference? { context?.input }
-    private var active: Reference? { space.flatMap { Space.with($0, { $0.queue.active.last }) ?? nil } }
+    private var active: Reference? { space.flatMap { Space.with($0, { $0.broker.active.last }) ?? nil } }
     private var space: Reference? { model.session.selection.structure }
     private var context: Context? { space?.context }
-    private var harness: Reference? { space.flatMap { Space.with($0, { $0.interface }) ?? nil } }
+    private var interface: Reference? { space.flatMap { Space.with($0, { $0.interface }) ?? nil } }
 
     var body: some View {
         if let space, let input {

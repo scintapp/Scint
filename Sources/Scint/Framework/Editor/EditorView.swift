@@ -4,7 +4,7 @@ import ScintRuntime
 import ScintComponents
 
 
-internal typealias Block = ScintRuntime.Document.Block
+internal typealias Block = ScintRuntime.Block
 
 struct EditorView: View {
     @State var focus: EditorFocus

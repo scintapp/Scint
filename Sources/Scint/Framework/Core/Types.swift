@@ -72,7 +72,10 @@ extension Model {
     func resolve(_ ref: Reference) -> Context? { Runtime.shared.resolve(ref) }
 
     @discardableResult
-    func compose(_ ref: Reference) -> Context? { Runtime.shared.compose(ref) }
+    func compose(_ ref: Reference) -> Context? {
+        Runtime.shared.compose(ref)
+        return Runtime.shared.resolve(ref)
+    }
 
     func cancel(_ ref: Reference) { Runtime.shared.cancel(ref) }
 

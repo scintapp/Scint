@@ -307,6 +307,7 @@ struct GroupHeader: View {
     enum Field { case name, description }
 
     private var harness: Reference? { Space.with(ref, { $0.interface }).flatMap { $0 } }
+    private var intent: Intent? { harness.map { Intent(rawValue: $0.descriptor.name.lowercased()) ?? .none } }
 
     private var updated: String {
         let relative = ref.descriptor.updated.formatted(.relative(presentation: .named))
@@ -323,14 +324,12 @@ struct GroupHeader: View {
         if let done = Document.with(ref, { TaskHeader.task($0)?.done }) ?? nil {
             return Iconography.Icon(symbol: done ? "checkmark.app" : "app", tint: Style.Tint.task.bright, sizing: 18)
         }
-        guard harness != nil, let intent = Space.with(ref, { $0.intent })
+        guard let intent
         else { return Iconography.icon(for: ref, size: 18) }
         return Iconography.icon(for: intent, size: 18)
     }
 
     var body: some View {
-        let intent = Space.with(ref, { $0 })?.intent
-
         VStack(alignment: .leading, spacing: Style.Spacing.label) {
             HStack(alignment: .center) {
                 icon

@@ -203,11 +203,11 @@ struct DocumentOutline: Mapper {
             return [ItemParams(ref: doc, entryId: heading.id, name: heading.text, items: outline(rest[..<end]))] + outline(rest[end...])
         }
 
-        let checklist = document.body.compactMap { block -> ItemParams? in
+        let checklist = document.blocks.compactMap { block -> ItemParams? in
             if case .task(let id, let text, let done) = block { ItemParams(ref: doc, entryId: id, name: text, trailingKind: .toggle, active: done) } else { nil }
         }
 
-        let objects = document.body.compactMap { block -> ItemParams? in
+        let objects = document.blocks.compactMap { block -> ItemParams? in
             if case .code(let id, let language, let text) = block {
                 let line = text.split(separator: "\n").first.map(String.init) ?? ""
                 return ItemParams(ref: doc, entryId: id, name: language.isEmpty ? line : "\(language) · \(line)", image: "chevron.left.forwardslash.chevron.right", tint: Style.Foreground.secondary, description: "Code")
@@ -316,15 +316,15 @@ struct TaskSettings: Mapper {
                 switch item.key {
                     case "space":
                         Document.update(task) { document in
-                            guard let metadata = document.metadata else { return }
-                            document.update(.metadata(item.ref ?? document.origin, metadata.values), at: 0)
+                            guard case .metadata(_, let values)? = document.blocks.first else { return }
+                            document.update(.metadata(item.ref ?? document.origin, values), at: 0)
                         }
                     case "repeat":
                         Document.update(task) { TaskHeader.schedule(&$0, TaskHeader.schedule($0).moment ?? .now, repeats: item.value.flatMap(When.Repeat.init(rawValue:)) ?? .never) }
                     case let slot?:
                         Document.update(task) { document in
                             guard let harness = Space.with(document.origin, { $0.interface }) ?? nil, let ref = item.ref else { return }
-                            document.metadata(.reference(ref), slot, for: harness)
+                            document.header.argument(.reference(ref), slot, for: harness)
                         }
                     default:
                         break
@@ -343,13 +343,16 @@ struct TaskSettings: Mapper {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        guard let task = model.session.document, let document = Document.with(task, { $0 }), document.header == .task
+        guard let task = model.session.document, let document = Document.with(task, { $0 }), document.header.content == .task
         else { return .init() }
 
         let harness = Space.with(document.origin, { $0.interface }) ?? nil
-        let command = harness.flatMap { document.command(.update, of: $0) }
-        let slot = harness.flatMap { harness in Interface.with(harness, { $0.signatures[.update]?.inputs.first?.name }) ?? nil }
-        let space = document.metadata.flatMap { $0.space == document.origin ? nil : $0.space }
+        let command = harness.flatMap { document.command(.compose, of: $0) }
+        let slot = harness.flatMap {
+            harness in Interface
+                .with(harness, { $0.methods[.compose]?.inputs.first?.name }) ?? nil
+        }
+        let space: Reference? = if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil }
         let schedule = TaskHeader.schedule(document)
         let moment = schedule.moment.map(Value.formatter.string(from:))
 
