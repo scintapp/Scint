@@ -97,12 +97,14 @@ struct NavigatorMapper: Mapper {
                     id: "spaces",
                     name: "Spaces",
                     header: true,
+                    disclosable: true,
                     items: spaceItems
                 ),
                 .init(
                     id: "library",
                     name: "Library",
                     header: true,
+                    disclosable: true,
                     items: libraryItems
                 )
             ]

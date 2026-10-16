@@ -149,13 +149,7 @@ struct ProjectCommand: Surface {
     var space: Reference? { model.session.selection.structure }
     var interface: Reference? { space.flatMap { Space.with($0, { $0.interface }) ?? nil } }
 
-    var inputs: [(name: String, schema: Schema)] {
-        if let interface {
-            return Interface
-                .with(interface, { $0 })?.methods
-                .flatMap { $0.value.inputs } ?? []
-        } else { return [] }
-    }
+    var inputs: [Input] { interface.flatMap { Interface.with($0, { $0.inputs }) } ?? [] }
     
     var command: Reference? { slot.flatMap { config[$0]?.references.first } }
     var settings: [ItemParams] { SettingsGroup.parameters(model).sections.flatMap(\.items) }
@@ -180,7 +174,7 @@ struct ProjectCommand: Surface {
     }
 
     private func choices(_ provider: Reference) -> [String] {
-        let model = Command.with(provider, { $0.parameters.inputs().first { $0.name == "model" } }) ?? nil
+        let model = Command.with(provider, { $0.inputs.first { $0.name == "model" } }) ?? nil
         return model?.schema.choices.compactMap(\.rendered.last) ?? []
     }
 
@@ -298,7 +292,6 @@ struct ProjectControls: View {
     var onCompose: () -> Void
     var onCancel: () -> Void
 
-    var composable: Bool { Runtime.shared.resolve(space) != nil }
     var context: Context? { space.context }
     var started: Bool { context?.state == .active ? true : false  }
 
@@ -320,7 +313,6 @@ struct ProjectControls: View {
         }
         .buttonStyle(.plain)
         .keyboardShortcut(working ? nil : KeyboardShortcut(.return, modifiers: .command))
-        .disabled(!composable)
         .help(working ? "Pause" : "Send")
     }
 }
@@ -437,7 +429,7 @@ struct ProjectToolbar: Surface {
         let _ = model.cancel(active)
     }
 
-    private var input: Reference? { context?.input }
+    private var input: Reference? { space.flatMap { Space.with($0, { $0.input }) } }
     private var active: Reference? { space.flatMap { Space.with($0, { $0.broker.active.last }) ?? nil } }
     private var space: Reference? { model.session.selection.structure }
     private var context: Context? { space?.context }

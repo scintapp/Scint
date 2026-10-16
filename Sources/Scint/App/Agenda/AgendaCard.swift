@@ -21,7 +21,7 @@ struct AgendaCard: View {
         document
             .flatMap {
                 document in (Space.with(document.origin, { $0.interface }) ?? nil)
-                    .flatMap { document.command(.compose, of: $0) }
+                    .flatMap { document.command("start", of: $0) }
             }
     }
     var space: Reference? { document.flatMap { document in if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil } } }

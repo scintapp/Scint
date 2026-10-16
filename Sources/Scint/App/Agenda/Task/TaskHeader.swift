@@ -14,7 +14,7 @@ struct TaskHeader: View {
 
     static func schedule(_ document: ScintRuntime.Document) -> (moment: Date?, repeats: When.Repeat) {
         let harness = Space.with(document.origin, { $0.interface }) ?? nil
-        let values = harness.flatMap { document.command(.compose, of: $0) }.map(document.values) ?? [:]
+        let values = harness.flatMap { document.command("start", of: $0) }.map(document.values) ?? [:]
         let moment: Date? = switch values["date"] {
             case .date(let date)?: date
             case .property(.string(let text))?: Value.formatter.date(from: text)
@@ -25,7 +25,7 @@ struct TaskHeader: View {
     }
 
     static func schedule(_ document: inout ScintRuntime.Document, _ moment: Date, repeats: When.Repeat) {
-        guard let harness = Space.with(document.origin, { $0.interface }) ?? nil, let command = document.command(.compose, of: harness) else { return }
+        guard let harness = Space.with(document.origin, { $0.interface }) ?? nil, let command = document.command("start", of: harness) else { return }
         document.header.argument(.date(moment), "date", for: command)
         document.header.argument(.date(moment), "time", for: command)
         document.header.argument(.property(.string(repeats.rawValue)), "repeat", for: command)

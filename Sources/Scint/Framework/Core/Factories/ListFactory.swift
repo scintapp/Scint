@@ -5,14 +5,19 @@ import ScintComponents
 
 @MainActor struct ListFactory {
     @ViewBuilder static func build(_ surface: some Surface, _ section: SectionParams, _ controls: Controls) -> some View {
+        let key: [AnyHashable] = ["section", section.id]
+        let expanded = !section.disclosable || surface.isExpanded(key, initially: true)
+
         if section.header {
-            let header = AnyView(ListHeader(name: section.name))
+            let header = AnyView(ListHeader(name: section.name, expanded: expanded, onToggle: section.disclosable ? { surface.setExpanded(key, initially: true) } : nil))
             controls.wrapHeader?(header, section) ?? header
         }
-        
-        ForEach(section.items) {
-            build(surface, $0, controls)
-                .padding(.vertical, 1)
+
+        if expanded {
+            ForEach(section.items) {
+                build(surface, $0, controls)
+                    .padding(.vertical, 1)
+            }
         }
     }
 

@@ -347,10 +347,10 @@ struct TaskSettings: Mapper {
         else { return .init() }
 
         let harness = Space.with(document.origin, { $0.interface }) ?? nil
-        let command = harness.flatMap { document.command(.compose, of: $0) }
+        let command = harness.flatMap { document.command("start", of: $0) }
         let slot = harness.flatMap {
             harness in Interface
-                .with(harness, { $0.methods[.compose]?.inputs.first?.name }) ?? nil
+                .with(harness, { $0.method("start")?.name }) ?? nil
         }
         let space: Reference? = if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil }
         let schedule = TaskHeader.schedule(document)

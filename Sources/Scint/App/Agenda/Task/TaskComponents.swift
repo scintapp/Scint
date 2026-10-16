@@ -114,7 +114,7 @@ struct TaskAction: View {
         harness
             .flatMap {
                 harness in Document
-                    .with(ref, { $0.command(.compose, of: harness) }) ?? nil
+                    .with(ref, { $0.command("start", of: harness) }) ?? nil
             }
     }
 
@@ -124,7 +124,7 @@ struct TaskAction: View {
 
     var body: some View {
         LoadMenu(items: library.map { ItemParams(ref: $0, name: $0.descriptor.name, active: $0 == selected) }) { item in
-            guard let option = item.ref, option != selected, let harness, let slot = Interface.with(harness, { $0.methods[.compose]?.inputs.first?.name }) ?? nil
+            guard let option = item.ref, option != selected, let harness, let slot = Interface.with(harness, { $0.method("start")?.name }) ?? nil
                     else { return }
             Document.update(ref) { $0.header.argument(.reference(option), slot, for: harness) }
         } label: {

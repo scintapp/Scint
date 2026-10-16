@@ -10,6 +10,7 @@ import ScintComponents
     let actions = ActionsPanel()
     let editor = EditorMenu()
     let choices = ChoiceMenu()
+    let settings = SettingsMenu()
     let floating = PanelProvider()
     let anchored = PanelProvider()
     var session: Session

@@ -5,10 +5,12 @@ import ScintComponents
 
 
 struct ContextMenu: View {
+    @Environment(ScintModel.self) private var scint: ScintModel?
     var ref: Reference
     var model: any Model
 
     var space: Bool { ref.type is Space.Type }
+    var topLevel: Bool { Space.with(model.session.spaces, { $0.spaces.contains(ref) }) ?? false }
     var document: Bool { ref.type is ScintRuntime.Document.Type }
     var parent: Reference? { Space.with(ref, { $0.origin }) ?? nil }
     var origin: Reference? { ReferenceTransfer.origin(of: ref) }
@@ -32,8 +34,21 @@ struct ContextMenu: View {
         ([model.session.library] + destinations(in: model.session.library)).filter { $0 != origin }
     }
 
+    var settings: [ActionParams] {
+        guard topLevel, let panels = scint?.panels else { return [] }
+        return [
+            ActionParams(id: "settings", label: "Settings…", image: "slider.horizontal.3", keywords: ["icon", "color", "customize"]) { _ in
+                guard let window = NSApp.keyWindow ?? NSApp.mainWindow else { return }
+                panels.settings.ref = ref
+                panels.settings.anchor = CGRect(origin: NSEvent.mouseLocation, size: .zero)
+                panels.present(panels.settings, in: window)
+            }
+        ]
+    }
+
     var body: some View {
         ActionMenu(model: model, items: items.filter { $0.role == nil })
+        ActionMenu(model: model, items: settings)
 
         if space {
             SwiftUI.Menu("Move To") {

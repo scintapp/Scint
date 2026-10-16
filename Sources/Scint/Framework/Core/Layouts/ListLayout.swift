@@ -188,13 +188,18 @@ struct ListRow<Content: View>: View {
 }
 
 struct ListHeader: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovered = false
     let name: String
+    let expanded: Bool
     let onAdd: (() -> Void)?
+    let onToggle: (() -> Void)?
 
-    init(name: String, onAdd: (() -> Void)? = nil) {
+    init(name: String, expanded: Bool = true, onAdd: (() -> Void)? = nil, onToggle: (() -> Void)? = nil) {
         self.name = name
+        self.expanded = expanded
         self.onAdd = onAdd
+        self.onToggle = onToggle
     }
 
     var body: some View {
@@ -203,6 +208,22 @@ struct ListHeader: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary.opacity(0.7))
                 .padding(.bottom, 6)
+
+            if let onToggle {
+                Spacer()
+
+                Button { withAnimation(reduceMotion ? nil : .default, onToggle) } label: {
+                    Image(systemName: expanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary.opacity(0.7))
+                        .contentTransition(.symbolEffect(.replace))
+                        .frame(width: 12, height: 12)
+                        .padding(.bottom, 6)
+                }
+                .buttonStyle(.plain)
+                .opacity(isHovered ? 1 : 0)
+                .allowsHitTesting(isHovered)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(.horizontal, 4)
@@ -213,6 +234,7 @@ struct ListHeader: View {
 
 struct ListLayout<Content: View>: View {
     @ViewBuilder let content: () -> Content
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovered = false
     private let iconSize: CGFloat = 16
     let ref: Reference?
@@ -280,7 +302,7 @@ struct ListLayout<Content: View>: View {
         if let leadingAccessory {
             leadingAccessory
         } else {
-            Button(role: nil, action: onToggleExpanded) {
+            Button(role: nil, action: { withAnimation(reduceMotion ? nil : .default, onToggleExpanded) }) {
                 let size = iconSize * 1.25
                 ZStack {
                     RoundedRectangle(cornerRadius: 6)
@@ -291,6 +313,7 @@ struct ListLayout<Content: View>: View {
                         .frame(width: size, height: size, alignment: .center)
                         .font(.system(size: 8, weight: .heavy))
                         .foregroundStyle(.secondary.opacity(0.8))
+                        .contentTransition(.symbolEffect(.replace))
                 }
                 .frame(width: size, height: size, alignment: .center)
                 .padding(.trailing, 4)

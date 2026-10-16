@@ -220,7 +220,7 @@ struct SettingsGroup: Mapper {
 
         func all<T: Resolvable>(_ type: T.Type) -> [Reference] { Runtime.shared.all(as: type).map { $0.0 } }
 
-        func item(_ input: (name: String, schema: Schema), of command: Reference) -> ItemParams? {
+        func item(_ input: Input, of command: Reference) -> ItemParams? {
             let value = document.values(command)[input.name]
             let resting = value ?? input.schema.fallback
 
@@ -253,7 +253,7 @@ struct SettingsGroup: Mapper {
             return .init(
                 key: input.name,
                 origin: command,
-                name: Argument.label(input.name),
+                name: input.title,
                 image: value?.references.first.map { Iconography.icon(for: $0).symbol } ?? Argument.symbol(input.name),
                 tint: Style.Foreground.secondary,
                 trailingKind: trailing.kind,
@@ -265,11 +265,11 @@ struct SettingsGroup: Mapper {
         }
 
         var items: [ItemParams] {
-            Interface.Method.allCases
+            (Interface.with(harness, { $0.methods.map(\.name) }) ?? [])
                 .compactMap { document.command($0, of: harness) }
                 .flatMap { command in
-                    (Command.with(command, { $0.parameters.inputs(document.values(command)) }) ?? [])
-                        .filter { !$0.schema.required }
+                    (Command.with(command, { $0.inputs }) ?? [])
+                        .filter { $0.supply == .user }
                         .compactMap { item($0, of: command) }
                 }
                 .reduce(into: [ItemParams]()) { items, item in
@@ -324,7 +324,6 @@ struct HarnessGroup: Mapper {
         guard case .structure(let space) = model.session.focus else { return .init() }
 
         let harness = Space.with(space, { $0.interface })
-        let methods = harness.flatMap { Interface.with($0, { $0.methods }) } ?? [:]
         let config: [String: Value] = harness.flatMap { harness in Space.with(space, { $0.input }).flatMap { Document.with($0, { $0.values(harness) }) } } ?? [:]
 
         func intent(_ interface: Reference) -> Intent { Intent(rawValue: interface.descriptor.name.lowercased()) ?? .none }
@@ -339,18 +338,17 @@ struct HarnessGroup: Mapper {
             .filter { $0.descriptor.tags.contains("provider") }
             .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
 
-        let slots = Interface.Method.allCases
-            .compactMap { methods[$0]?.inputs.first }
-            .reduce(into: [(name: String, schema: Schema)]()) { slots, slot in
+        let slots = (harness.flatMap { Interface.with($0, { $0.methods.filter { $0.schema.literal == nil } }) } ?? [])
+            .reduce(into: [Input]()) { slots, slot in
                 if !slots.contains(where: { $0.name == slot.name }) { slots.append(slot) }
             }
 
-        func slot(_ input: (name: String, schema: Schema)) -> ItemParams {
+        func slot(_ input: Input) -> ItemParams {
             let selected = config[input.name]?.references.first
             return .init(
                 ref: selected,
                 key: input.name,
-                name: Argument.label(input.name),
+                name: input.title,
                 image: selected.map { Iconography.icon(for: $0).symbol } ?? "switch.2",
                 tint: Style.Foreground.secondary,
                 trailingKind: .load,

@@ -55,12 +55,16 @@ protocol Menu: Host {
     var model: any Model { get set }
     func isExpanded(_ id: AnyHashable) -> Bool
     func setExpanded(_ id: AnyHashable)
+    func isExpanded(_ id: AnyHashable, initially: Bool) -> Bool
+    func setExpanded(_ id: AnyHashable, initially: Bool)
 }
 
 extension Surface {
     var render: (Self, Params, Controls) -> any View { Factory.build(_ :_ :_ :) }
     func isExpanded(_ id: AnyHashable) -> Bool { host.state.isExpanded(id) }
     func setExpanded(_ id: AnyHashable) { host.state.setExpanded(id) }
+    func isExpanded(_ id: AnyHashable, initially: Bool) -> Bool { host.state.isExpanded(id, initially: initially) }
+    func setExpanded(_ id: AnyHashable, initially: Bool) { host.state.setExpanded(id, initially: initially) }
 }
 
 extension Model {
@@ -124,6 +128,10 @@ struct AnySurface: Surface {
         if expanded.contains(id) { expanded.remove(id) }
         else { expanded.insert(id) }
     }
+
+    func isExpanded(_ id: AnyHashable, initially: Bool) -> Bool { self[id, as: Bool.self] ?? initially }
+
+    func setExpanded(_ id: AnyHashable, initially: Bool) { self[id, as: Bool.self] = !isExpanded(id, initially: initially) }
 
     subscript<Value: Hashable>(_ key: AnyHashable, as type: Value.Type) -> Value? {
         get { values[key]?.base as? Value }
