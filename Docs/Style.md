@@ -58,7 +58,7 @@ Never extract: a wrapper that renames one call; a "configure" step; a `makeX`/`b
 that returns a literal; a validation pass over data that cannot be invalid here.
 
 First argument is unlabeled when it is the subject: `func surface(_ model: any Model)`,
-`EditorView(ref, autofocus: true)`, `Space.with(ref, { $0.harness })`. Later arguments
+`EditorView(ref, autofocus: true)`, `Space.with(ref, { $0.interface })`. Later arguments
 are labeled.
 
 Prefer existentials (`Model`, `any Panel`) to generics. Flat signatures over

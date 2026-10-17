@@ -113,9 +113,9 @@ struct ItemRangePicker: View {
 
 struct InspectorPicker: View {
     @Environment(ScintModel.self) var scint
-    var frame: InspectorFrame { scint.app.inspector }
+    var frame: Inspector { scint.app.inspector }
 
-    private func selection(for surface: InspectorFrame.HostSurface) -> Binding<Bool> {
+    private func selection(for surface: Inspector.HostSurface) -> Binding<Bool> {
         Binding(
             get: { frame.state.presented && frame.surface == surface },
             set: { selected in
@@ -131,7 +131,7 @@ struct InspectorPicker: View {
 
     var body: some View {
         ControlGroup {
-            ForEach(InspectorFrame.HostSurface.allCases) { surface in
+            ForEach(Inspector.HostSurface.allCases) { surface in
                 Toggle(isOn: selection(for: surface)) {
                     Image(systemName: surface.symbol)
                 }

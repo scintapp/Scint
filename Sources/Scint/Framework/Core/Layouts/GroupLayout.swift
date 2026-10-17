@@ -279,8 +279,13 @@ struct GroupHeader: View {
 
     enum Field { case name, description }
 
-    private var harness: Reference? { Space.with(ref, { $0.interface }).flatMap { $0 } }
-    private var intent: Intent? { harness.map { Intent(rawValue: $0.descriptor.name.lowercased()) ?? .none } }
+    private var interface: Reference? { Space.with(ref, { $0.interface }).flatMap { $0 } }
+    private var intent: Intent? {
+        guard let interface else { return nil }
+        let values = Space.with(ref, { $0.input }).flatMap { Document.with($0, { $0.values(interface) }) }
+        let intent: Intent? = if case .property(.string(let raw))? = values?["intent"] { Intent(rawValue: raw) } else { ref.context?.intent }
+        return intent == Intent.none ? nil : intent
+    }
 
     private var updated: String {
         let relative = ref.descriptor.updated.formatted(.relative(presentation: .named))

@@ -25,12 +25,12 @@ struct InboxSettings: Mapper {
 
 struct ProjectOutline: Mapper {
     static func controls(_ model: any Model) -> Controls {
-        let harness = HarnessGroup.controls(model)
+        let interface = HarnessGroup.controls(model)
         let commands = CommandsGroup.controls(model)
 
         func source(for item: ItemParams) -> Controls {
             if item.ref?.type is Command.Type { return commands }
-            return harness
+            return interface
         }
 
         return .init(
@@ -118,7 +118,7 @@ struct ProjectOutline: Mapper {
 
 struct ProjectSettings: Mapper {
     static func controls(_ model: any Model) -> Controls {
-        let harness = HarnessGroup.controls(model)
+        let interface = HarnessGroup.controls(model)
         let settings = SettingsGroup.controls(model)
         let commands = CommandsGroup.controls(model)
         let files = FilesGroup.controls(model)
@@ -126,11 +126,11 @@ struct ProjectSettings: Mapper {
         func source(for item: ItemParams) -> Controls {
             if let key = item.key {
                 if key == "add-files" { return files }
-                if item.origin?.type is Command.Type { return settings }
-                return harness
+                if item.origin?.type is Interface.Type { return settings }
+                return interface
             }
             if item.ref?.type is Command.Type { return commands }
-            if item.ref?.type is Interface.Type { return harness }
+            if item.ref?.type is Interface.Type { return interface }
             return files
         }
 
@@ -321,10 +321,10 @@ struct AgendaSettings: Mapper {
                         }
                     case "repeat":
                         Document.update(task) { TaskHeader.schedule(&$0, TaskHeader.schedule($0).moment ?? .now, repeats: item.value.flatMap(When.Repeat.init(rawValue:)) ?? .never) }
-                    case let slot?:
+                    case "command":
                         Document.update(task) { document in
-                            guard let harness = Space.with(document.origin, { $0.interface }) ?? nil, let ref = item.ref else { return }
-                            document.header.argument(.reference(ref), slot, for: harness)
+                            guard let interface = Space.with(document.origin, { $0.interface }) ?? nil else { return }
+                            document.header.argument(item.ref.map(Value.reference), "command", for: interface)
                         }
                     default:
                         break
@@ -332,7 +332,7 @@ struct AgendaSettings: Mapper {
             }
         )
 
-        func source(for item: ItemParams) -> Controls { item.origin?.type is Command.Type ? settings : own }
+        func source(for item: ItemParams) -> Controls { item.origin?.type is Interface.Type ? settings : own }
 
         return .init(
             onToggle: { item in source(for: item).onToggle?(item) },
@@ -346,12 +346,8 @@ struct AgendaSettings: Mapper {
         guard let task = model.session.document, let document = Document.with(task, { $0 }), document.header.content == .task
         else { return .init() }
 
-        let harness = Space.with(document.origin, { $0.interface }) ?? nil
-        let command = harness.flatMap { document.command("start", of: $0) }
-        let slot = harness.flatMap {
-            harness in Interface
-                .with(harness, { $0.method("start")?.name }) ?? nil
-        }
+        let interface = Space.with(document.origin, { $0.interface }) ?? nil
+        let command = interface.flatMap { document.values($0)["command"]?.references.first }
         let space: Reference? = if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil }
         let schedule = TaskHeader.schedule(document)
         let moment = schedule.moment.map(Value.formatter.string(from:))
@@ -399,11 +395,10 @@ struct AgendaSettings: Mapper {
             description: schedule.moment?.formatted(date: .omitted, time: .shortened) ?? ""
         )
 
-        let agent = slot.map { slot in
-            ItemParams(
+        let agent = ItemParams(
                 ref: command,
-                key: slot,
-                name: Argument.label(slot),
+                key: "command",
+                name: "Command",
                 image: command.map { Iconography.icon(for: $0).symbol } ?? "switch.2",
                 tint: Style.Foreground.secondary,
                 trailingKind: .load,
@@ -411,7 +406,7 @@ struct AgendaSettings: Mapper {
                 items: providers.map { ref in
                     ItemParams(
                         ref: ref,
-                        key: slot,
+                        key: "command",
                         name: ref.descriptor.name,
                         image: Iconography.icon(for: ref).symbol,
                         tint: Style.Foreground.secondary,
@@ -420,9 +415,8 @@ struct AgendaSettings: Mapper {
                     )
                 }
             )
-        }
 
-        let parameters = SettingsGroup.parameters(model).sections.flatMap(\.items).filter { $0.origin == command }
+        let parameters = SettingsGroup.parameters(model).sections.flatMap(\.items).filter { $0.origin == interface }
 
         return .init(
             ref: task,
@@ -447,7 +441,7 @@ struct AgendaSettings: Mapper {
                     name: "Settings",
                     header: true,
                     tint: Style.Foreground.secondary,
-                    items: (agent.map { [$0] } ?? []) + parameters
+                    items: [agent] + parameters
                 ),
                 .init(
                     id: "note",

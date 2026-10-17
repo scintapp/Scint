@@ -3,6 +3,15 @@ import ScintRuntime
 import ScintComponents
 
 
+extension AnyTransition {
+    static var disclosure: AnyTransition {
+        .asymmetric(
+            insertion: .opacity.combined(with: .offset(y: -6)).animation(.easeOut(duration: 0.18).delay(0.07)),
+            removal: .move(edge: .top).combined(with: .opacity)
+        )
+    }
+}
+
 struct ListLabel: View {
     let name: String
     let image: String
@@ -209,25 +218,22 @@ struct ListHeader: View {
                 .foregroundStyle(.secondary.opacity(0.7))
                 .padding(.bottom, 6)
 
-            if let onToggle {
+            if onToggle != nil {
                 Spacer()
 
-                Button { withAnimation(reduceMotion ? nil : .default, onToggle) } label: {
-                    Image(systemName: expanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.secondary.opacity(0.7))
-                        .contentTransition(.symbolEffect(.replace))
-                        .frame(width: 12, height: 12)
-                        .padding(.bottom, 6)
-                }
-                .buttonStyle(.plain)
-                .opacity(isHovered ? 1 : 0)
-                .allowsHitTesting(isHovered)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(.secondary.opacity(0.7))
+                    .rotationEffect(.degrees(expanded ? 90 : 0))
+                    .frame(width: 14, height: 14)
+                    .padding(.bottom, 6)
+                    .opacity(isHovered ? 1 : 0)
             }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(.horizontal, 4)
         .contentShape(RoundedRectangle(cornerRadius: 10.0))
+        .onTapGesture { if let onToggle { withAnimation(reduceMotion ? nil : .snappy(duration: 0.25), onToggle) } }
         .onHover { isHovered = $0 }
     }
 }
@@ -302,18 +308,18 @@ struct ListLayout<Content: View>: View {
         if let leadingAccessory {
             leadingAccessory
         } else {
-            Button(role: nil, action: { withAnimation(reduceMotion ? nil : .default, onToggleExpanded) }) {
+            Button(role: nil, action: { withAnimation(reduceMotion ? nil : .snappy(duration: 0.25), onToggleExpanded) }) {
                 let size = iconSize * 1.25
                 ZStack {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(.tertiary.opacity(0.3))
                         .frame(width: size, height: size, alignment: .center)
 
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    Image(systemName: "chevron.right")
                         .frame(width: size, height: size, alignment: .center)
                         .font(.system(size: 8, weight: .heavy))
                         .foregroundStyle(.secondary.opacity(0.8))
-                        .contentTransition(.symbolEffect(.replace))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
                 .frame(width: size, height: size, alignment: .center)
                 .padding(.trailing, 4)
@@ -345,6 +351,6 @@ struct ListLayout<Content: View>: View {
         )
 
         rowWrapper(row)
-        if isExpanded { content() }
+        if isExpanded { content().transition(.disclosure) }
     }
 }

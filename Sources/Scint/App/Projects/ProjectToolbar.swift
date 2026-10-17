@@ -149,17 +149,14 @@ struct ProjectCommand: Surface {
     var space: Reference? { model.session.selection.structure }
     var interface: Reference? { space.flatMap { Space.with($0, { $0.interface }) ?? nil } }
 
-    var inputs: [Input] { interface.flatMap { Interface.with($0, { $0.inputs }) } ?? [] }
     
-    var command: Reference? { slot.flatMap { config[$0]?.references.first } }
+    var command: Reference? { interface.flatMap { interface in input.flatMap { Document.with($0, { $0.values(interface)["command"]?.references.first }) ?? nil } } }
     var settings: [ItemParams] { SettingsGroup.parameters(model).sections.flatMap(\.items) }
     var range: ItemParams? { settings.first { $0.trailingKind == .range } }
-    var models: ItemParams? { settings.first { $0.key == "model" } }
+    var models: ItemParams? { settings.first { $0.key == "--model" } }
 
     var input: Reference? { space.flatMap { Space.with($0, { $0.input }) } }
-    var config: [String: Value] { interface.flatMap { interface in input.flatMap { Document.with($0, { $0.values(interface) }) } } ?? [:] }
 
-    var slot: String? { inputs.first.flatMap { if case .command = $0.schema.bare { $0.name } else { nil } } }
 
     var providers: [Reference] {
         Runtime.shared.all(as: Command.self)
@@ -174,8 +171,7 @@ struct ProjectCommand: Surface {
     }
 
     private func choices(_ provider: Reference) -> [String] {
-        let model = Command.with(provider, { $0.inputs.first { $0.name == "model" } }) ?? nil
-        return model?.schema.choices.compactMap(\.rendered.last) ?? []
+        (Command.with(provider, { $0.arguments }) ?? []).lazy.compactMap { if case .options("--model", let choices, _) = $0 { choices } else { nil } }.first ?? []
     }
 
     private func go(_ next: Page) {
@@ -184,8 +180,8 @@ struct ProjectCommand: Surface {
     }
 
     private func choose(_ provider: Reference, _ value: String?) {
-        if let slot { configure(.reference(provider), for: slot, of: interface) }
-        configure(value.map { .property(.string($0)) }, for: "model", of: provider)
+        configure(.reference(provider), for: "command", of: interface)
+        configure(value.map { .property(.string($0)) }, for: "--model", of: interface)
         go(.summary)
     }
 

@@ -4,7 +4,7 @@ import ScintComponents
 import ScintRuntime
 
 
-@Observable final class InspectorFrame: Frame {
+@Observable final class Inspector: Frame {
     var state: StateContainer = .init()
     var surface: HostSurface = .outline
     let hole = Cutout(insets: .init(top: 9, leading: 0, bottom: 9, trailing: 9))

@@ -17,13 +17,7 @@ struct AgendaCard: View {
     var preview: [Block] { document?.blocks ?? [] }
     var title: String { document.flatMap(TaskHeader.task)?.text ?? "" }
     var done: Bool { document.flatMap(TaskHeader.task)?.done ?? false }
-    var command: Reference? {
-        document
-            .flatMap {
-                document in (Space.with(document.origin, { $0.interface }) ?? nil)
-                    .flatMap { document.command("start", of: $0) }
-            }
-    }
+    var command: Reference? { document.flatMap { document in (Space.with(document.origin, { $0.interface }) ?? nil).flatMap { document.values($0)["command"]?.references.first } } }
     var space: Reference? { document.flatMap { document in if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil } } }
 
     var due: String? {

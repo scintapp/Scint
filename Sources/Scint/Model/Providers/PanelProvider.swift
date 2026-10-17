@@ -122,10 +122,16 @@ final class FloatingPanel: NSPanel {
     private func monitor() {
         unmonitor()
         if params.dismissal.contains(.outsideClick) {
-            let outside = { if !self.panel.frame.contains(NSEvent.mouseLocation) { self.hide() } }
+            let outside = { !self.panel.frame.contains(NSEvent.mouseLocation) }
+            let anchored = { if case .anchored(let anchor) = self.params.placement { anchor.contains(NSEvent.mouseLocation) } else { false } }
             monitors = [
-                NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { outside(); return $0 },
-                NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { _ in outside() }
+                NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { event in
+                    guard outside() else { return event }
+                    let swallowed = anchored()
+                    self.hide()
+                    return swallowed ? nil : event
+                },
+                NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { _ in if outside() { self.hide() } }
             ].compactMap { $0 }
         }
         if params.dismissal.contains(.resignKey) {

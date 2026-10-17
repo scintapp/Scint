@@ -3,6 +3,53 @@ import ScintRuntime
 import ScintComponents
 
 
+extension Arg {
+    static func label(_ text: String) -> String {
+        text.trimmingCharacters(in: CharacterSet(charactersIn: "-=")).reduce(into: "") { label, character in
+            if character == "-" || character == "_" { label.append(" ") }
+            else {
+                if character.isUppercase, !label.isEmpty { label.append(" ") }
+                label.append(character)
+            }
+        }.capitalized
+    }
+
+    static func clock(_ key: String) -> Bool { key.lowercased().contains("time") }
+
+    static func title(_ key: String) -> String {
+        label(key).lowercased().split(separator: " ").reversed().lazy.compactMap { word -> String? in
+            switch true {
+                case word.hasPrefix("effort"): "Effort"
+                case word.hasPrefix("sandbox"), word.hasPrefix("permission"): "Sandbox"
+                case word.hasPrefix("model"): "Model"
+                default: nil
+            }
+        }.first ?? label(key)
+    }
+
+    static func symbol(_ key: String) -> String {
+        label(key).lowercased().split(separator: " ").reversed().lazy.compactMap { word -> String? in
+            switch true {
+                case word.hasPrefix("dir"), word.hasPrefix("folder"), word.hasPrefix("path"): "folder"
+                case word.hasPrefix("timeout"), word.hasPrefix("interval"), word.hasPrefix("latency"): "timer"
+                case word.hasPrefix("time"): "clock"
+                case word.hasPrefix("model"): "cpu"
+                case word.hasPrefix("effort"): "lightbulb.max"
+                case word.hasPrefix("sandbox"), word.hasPrefix("permission"): "lock.shield"
+                case word.hasPrefix("command"), word == "action": "switch.2"
+                case word.hasPrefix("target"), word.hasPrefix("space"): "target"
+                case word.hasPrefix("schedule"), word.hasPrefix("date"), word == "at", word == "when": "calendar"
+                case word.hasPrefix("repeat"), word.hasPrefix("every"): "repeat"
+                case word.hasPrefix("url"), word.hasPrefix("endpoint"): "link"
+                case word.hasPrefix("event"): "bolt"
+                case word.hasPrefix("label"), word.hasPrefix("name"): "tag"
+                case word.hasPrefix("check"), word.hasPrefix("query"): "magnifyingglass"
+                default: nil
+            }
+        }.first ?? "slider.horizontal.3"
+    }
+}
+
 struct FilesGroup: Mapper {
     static func controls(_ model: any Model) -> Controls {
         guard let space = model.session.focus.ref else { return .init() }
@@ -215,67 +262,51 @@ struct SettingsGroup: Mapper {
     }
 
     static func parameters(_ model: any Model) -> Params {
-        guard let ref = document(model), let document = Document.with(ref, { $0 }), let harness = Space.with(document.origin, { $0.interface })
+        guard let ref = document(model), let document = Document.with(ref, { $0 }), let interface = Space.with(document.origin, { $0.interface })
         else { return .init() }
 
         func all<T: Resolvable>(_ type: T.Type) -> [Reference] { Runtime.shared.all(as: type).map { $0.0 } }
 
-        func item(_ input: Input, of command: Reference) -> ItemParams? {
-            let value = document.values(command)[input.name]
-            let resting = value ?? input.schema.fallback
-
-            let choices = input.schema.choices.compactMap(\.rendered.last).map {
-                ItemParams(key: input.name, origin: command, name: Argument.label($0), value: $0)
+        func item(_ arg: Arg) -> ItemParams? {
+            let spec: (name: String, fallback: Value?, kind: ItemParams.TrailingKind, choices: [String])? = switch arg {
+                case .flag(let name, let enabled): (name, .property(.bool(enabled)), .toggle, [])
+                case .text(let name, let value, false): (name, value.map { .property(.string($0)) }, .field, [])
+                case .date(let name, let value, false): (name, value.map { .date($0) }, Arg.clock(name) ? .time : .date, [])
+                case .options(let name, let choices, let value): (name, value.map { .property(.string($0)) }, .picker, choices)
+                case .range(let name, let choices, let value): (name, value.map { .property(.string($0)) }, .range, choices)
+                default: nil
             }
 
-            let library: (Reference) -> [ItemParams] = { expected in
-                [ItemParams(key: input.name, origin: command, name: "Default", image: "circle.dashed", tint: Style.Foreground.secondary, active: value == nil)]
-                + (expected.type.map { all($0) } ?? [])
-                    .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
-                    .map { ItemParams(ref: $0, key: input.name, origin: command, name: $0.descriptor.name, active: value?.references.first == $0) }
-            }
+            guard let spec else { return nil }
+            let value = document.values(interface)[spec.name]
+            let resting = value ?? spec.fallback
+            let choices = spec.choices.map { ItemParams(key: spec.name, origin: interface, name: Arg.label($0), value: $0) }
 
-            let trailing: (kind: ItemParams.TrailingKind, items: [ItemParams], active: Bool)
-
-            switch input.schema.bare {
-                case .bool: trailing = (.toggle, [], resting == .property(true))
-                case .integer, .decimal, .string: trailing = (.field, [], true)
-                case .date: trailing = (Argument.clock(input.name) ? .time : .date, [], value != nil)
-                case .options: trailing = (.picker, [ItemParams(name: "Default")] + choices, true)
-                case .range: trailing = (.range, choices, true)
-                case .reference(let expected): trailing = (.load, library(expected), true)
-                case .command(let inner):
-                    guard case .reference(let expected) = inner.bare else { return nil }
-                    trailing = (.load, library(expected), true)
-                default: return nil
+            let active = switch spec.kind {
+                case .toggle: resting == .property(true)
+                case .date, .time: value != nil
+                default: true
             }
 
             return .init(
-                key: input.name,
-                origin: command,
-                name: input.title,
-                image: value?.references.first.map { Iconography.icon(for: $0).symbol } ?? Argument.symbol(input.name),
+                key: spec.name,
+                origin: interface,
+                name: Arg.title(spec.name),
+                image: value?.references.first.map { Iconography.icon(for: $0).symbol } ?? Arg.symbol(spec.name),
                 tint: Style.Foreground.secondary,
-                trailingKind: trailing.kind,
+                trailingKind: spec.kind,
                 value: resting?.rendered.last ?? "",
-                description: value?.references.first?.descriptor.name ?? value.map { Argument.label($0.title) } ?? "Default",
-                active: trailing.active,
-                items: trailing.items
+                description: value?.references.first?.descriptor.name ?? value.map { Arg.label($0.title) } ?? "Default",
+                active: active,
+                items: choices
             )
         }
 
-        var items: [ItemParams] {
-            (Interface.with(harness, { $0.methods.map(\.name) }) ?? [])
-                .compactMap { document.command($0, of: harness) }
-                .flatMap { command in
-                    (Command.with(command, { $0.inputs }) ?? [])
-                        .filter { $0.supply == .user }
-                        .compactMap { item($0, of: command) }
-                }
-                .reduce(into: [ItemParams]()) { items, item in
-                    if !items.contains(where: { $0.key == item.key }) { items.append(item) }
-                }
-        }
+        let values = document.values(interface)
+        let intent: Intent? = if case .property(.string(let raw))? = values["intent"] { Intent(rawValue: raw) } else { document.origin.context?.intent }
+        let command = values["command"]?.references.first ?? intent.flatMap { intent in Interface.with(interface, { intent.method(of: $0)?.command }) ?? nil }
+
+        var items: [ItemParams] { (command.flatMap { Command.with($0, { $0.arguments }) } ?? []).compactMap(item) }
 
         return .init(
             ref: document.origin,
@@ -283,7 +314,7 @@ struct SettingsGroup: Mapper {
             header: false,
             sections: items.isEmpty ? [] : [
                 .init(
-                    id: "harness-settings",
+                    id: "interface-settings",
                     name: "Settings",
                     header: false,
                     tint: Style.Foreground.secondary,
@@ -298,24 +329,19 @@ struct HarnessGroup: Mapper {
     static func controls(_ model: any Model) -> Controls {
         guard case .structure(let space) = model.session.focus else { return .init() }
 
-        func load(_ interface: Reference) {
-            Space.update(space) { $0.interface = interface }
-        }
-
         func configure(_ value: Value?, for key: String) {
-            guard let harness = Space.with(space, { $0.interface }), let input = Space.with(space, { $0.input }) else { return }
-            Document.update(input) { $0.header.argument(value, key, for: harness) }
+            guard let interface = Space.with(space, { $0.interface }), let input = Space.with(space, { $0.input }) else { return }
+            Document.update(input) { $0.header.argument(value, key, for: interface) }
         }
 
         return .init(
             onChange: { item, selection in
-                guard item.key == "intent", let interface = selection.ref else { return }
-                load(interface)
+                guard item.key == "intent" else { return }
+                configure(selection.value.map { .property(.string($0)) }, for: "intent")
             },
             onSelect: { item in
-                if item.key == "intent", let interface = item.ref, !item.active { return load(interface) }
-                guard let key = item.key else { return }
-                configure(item.ref.map(Value.reference), for: key)
+                guard item.key == "command" else { return }
+                configure(item.ref.map(Value.reference), for: "command")
             }
         )
     }
@@ -323,69 +349,54 @@ struct HarnessGroup: Mapper {
     static func parameters(_ model: any Model) -> Params {
         guard case .structure(let space) = model.session.focus else { return .init() }
 
-        let harness = Space.with(space, { $0.interface })
-        let config: [String: Value] = harness.flatMap { harness in Space.with(space, { $0.input }).flatMap { Document.with($0, { $0.values(harness) }) } } ?? [:]
+        let interface = Space.with(space, { $0.interface })
+        let config: [String: Value] = interface.flatMap { interface in Space.with(space, { $0.input }).flatMap { Document.with($0, { $0.values(interface) }) } } ?? [:]
+        let provider = config["command"]?.references.first
+        let intent: Intent? = if case .property(.string(let raw))? = config["intent"] { Intent(rawValue: raw) } else { nil }
 
-        func intent(_ interface: Reference) -> Intent { Intent(rawValue: interface.descriptor.name.lowercased()) ?? .none }
-        func position(_ interface: Reference) -> Int { Intent.allCases.firstIndex(of: intent(interface)) ?? 0 }
-
-        let interfaces = (Space.with(space, { $0.closure.interfaces }) ?? [])
-            .filter { $0.type is Interface.Type }
-            .sorted { (position($0), $0.descriptor.name) < (position($1), $1.descriptor.name) }
-
-        let commands = Runtime.shared.all(as: Command.self)
+        let providers = Runtime.shared.all(as: Command.self)
             .map { $0.0 }
             .filter { $0.descriptor.tags.contains("provider") }
             .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
 
-        let slots = (harness.flatMap { Interface.with($0, { $0.methods.filter { $0.schema.literal == nil } }) } ?? [])
-            .reduce(into: [Input]()) { slots, slot in
-                if !slots.contains(where: { $0.name == slot.name }) { slots.append(slot) }
-            }
-
-        func slot(_ input: Input) -> ItemParams {
-            let selected = config[input.name]?.references.first
-            return .init(
-                ref: selected,
-                key: input.name,
-                name: input.title,
-                image: selected.map { Iconography.icon(for: $0).symbol } ?? "switch.2",
-                tint: Style.Foreground.secondary,
-                trailingKind: .load,
-                description: selected?.descriptor.name ?? (input.schema.required ? "Required" : "Default"),
-                items: (input.schema.required ? [] : [.init(key: input.name, name: "Default", image: "circle.dashed", tint: Style.Foreground.secondary, active: selected == nil)])
-                    + commands.map { ref in
-                        ItemParams(
-                            ref: ref,
-                            key: input.name,
-                            name: ref.descriptor.name,
-                            image: Iconography.icon(for: ref).symbol,
-                            tint: Style.Foreground.secondary,
-                            description: ref.descriptor.description,
-                            active: ref == selected
-                        )
-                    }
-            )
-        }
-
-        let loader = ItemParams(
-            ref: harness,
+        let mode = ItemParams(
             key: "intent",
             name: "Intent",
             image: "gearshape",
             tint: Style.Foreground.secondary,
             trailingKind: .picker,
-            value: harness?.handle,
-            description: harness?.descriptor.name ?? "",
-            items: interfaces.map { option in
+            value: intent?.rawValue,
+            description: intent?.forms.label ?? "Automatic",
+            items: [ItemParams(key: "intent", name: "Automatic", image: Iconography.dotSymbol, tint: Style.Foreground.secondary, active: intent == nil)]
+                + Intent.allCases.filter { $0 != .none }.map { option in
+                    ItemParams(
+                        key: "intent",
+                        name: option.forms.label,
+                        image: Iconography.dotSymbol,
+                        tint: Iconography.icon(for: option).tint,
+                        value: option.rawValue,
+                        active: option == intent
+                    )
+                }
+        )
+
+        let source = ItemParams(
+            ref: provider,
+            key: "command",
+            name: "Provider",
+            image: provider.map { Iconography.icon(for: $0).symbol } ?? "switch.2",
+            tint: Style.Foreground.secondary,
+            trailingKind: .load,
+            description: provider?.descriptor.name ?? "Default",
+            items: providers.map { ref in
                 ItemParams(
-                    ref: option,
-                    key: "intent",
-                    name: option.descriptor.name,
-                    image: Iconography.dotSymbol,
-                    tint: Iconography.icon(for: intent(option)).tint,
-                    value: option.handle,
-                    active: option == harness
+                    ref: ref,
+                    key: "command",
+                    name: ref.descriptor.name,
+                    image: Iconography.icon(for: ref).symbol,
+                    tint: Style.Foreground.secondary,
+                    description: ref.descriptor.description,
+                    active: ref == provider
                 )
             }
         )
@@ -398,11 +409,11 @@ struct HarnessGroup: Mapper {
             header: false,
             sections: [
                 .init(
-                    id: "harness",
-                    name: "Harness",
+                    id: "interface",
+                    name: "Interface",
                     header: false,
                     tint: Style.Foreground.secondary,
-                    items: [loader] + slots.map(slot)
+                    items: [mode, source]
                 )
             ]
         )

@@ -30,9 +30,9 @@ struct TranscriptContent: Surface {
             return thread(ref)
                 .filter { entry in
                     switch entry {
-                        case .record(let record, _): record.fields["channel"] != .string("reasoning")
+                        case .message(let message, _): message.fields["channel"] != .string("reasoning")
                         case .signal(_, .fail, _): true
-                        case .signal, .transcript: false
+                        case .invocation, .signal, .transcript: false
                     }
                 }
                 .enumerated()

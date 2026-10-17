@@ -109,14 +109,8 @@ struct TaskTarget: View {
 struct TaskAction: View {
     let ref: Reference
 
-    var harness: Reference? { Document.with(ref, { $0.origin }).flatMap { Space.with($0, { $0.interface }) ?? nil } }
-    var selected: Reference? {
-        harness
-            .flatMap {
-                harness in Document
-                    .with(ref, { $0.command("start", of: harness) }) ?? nil
-            }
-    }
+    var interface: Reference? { Document.with(ref, { $0.origin }).flatMap { Space.with($0, { $0.interface }) ?? nil } }
+    var selected: Reference? { interface.flatMap { interface in Document.with(ref, { $0.values(interface)["command"]?.references.first }) ?? nil } }
 
     var library: [Reference] {
         Runtime.shared.all(as: Command.self).map { $0.0 }.sorted { $0.descriptor.name < $1.descriptor.name }
@@ -124,9 +118,8 @@ struct TaskAction: View {
 
     var body: some View {
         LoadMenu(items: library.map { ItemParams(ref: $0, name: $0.descriptor.name, active: $0 == selected) }) { item in
-            guard let option = item.ref, option != selected, let harness, let slot = Interface.with(harness, { $0.method("start")?.name }) ?? nil
-                    else { return }
-            Document.update(ref) { $0.header.argument(.reference(option), slot, for: harness) }
+            guard let option = item.ref, option != selected, let interface else { return }
+            Document.update(ref) { $0.header.argument(.reference(option), "command", for: interface) }
         } label: {
             if let selected { Label { Text(selected.descriptor.name) } icon: { Iconography.icon(for: selected) } }
             else { Label("Command", systemImage: "switch.2") }

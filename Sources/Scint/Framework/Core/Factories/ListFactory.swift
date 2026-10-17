@@ -17,6 +17,7 @@ import ScintComponents
             ForEach(section.items) {
                 build(surface, $0, controls)
                     .padding(.vertical, 1)
+                    .transition(.disclosure)
             }
         }
     }

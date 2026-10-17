@@ -46,7 +46,7 @@ struct AgendaMapper: Mapper {
             let body = Array(document.blocks.dropFirst(2))
             let summary: String = if case .paragraph(_, let text)? = body.first { text } else { "" }
             let space: Reference? = if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil }
-            let command = (Space.with(document.origin, { $0.interface }) ?? nil).flatMap { document.command("start", of: $0) }
+            let command = (Space.with(document.origin, { $0.interface }) ?? nil).flatMap { document.values($0)["command"]?.references.first }
             let notes = (summary.isEmpty ? body : Array(body.dropFirst())).compactMap { block -> ItemParams? in
                 switch block {
                     case .paragraph(let id, let text): ItemParams(ref: document.ref, entryId: id, name: text)

@@ -7,7 +7,7 @@ import ScintComponents
     @ViewBuilder static func build(_ entries: [Entry]) -> some View {
         let runs = entries.reduce(into: [[Entry]]()) { runs, entry in
             switch (runs.last?.last, entry) {
-                case (.record(let last, _)?, .record(let next, _)) where last.fields["type"] == .string("method") && next.fields["type"] == .string("method"):
+                case (.message(let last, _)?, .message(let next, _)) where last.fields["type"] == .string("method") && next.fields["type"] == .string("method"):
                     runs[runs.count - 1].append(entry)
                 default:
                     runs.append([entry])
@@ -18,7 +18,7 @@ import ScintComponents
             ForEach(runs, id: \.first?.id) { run in
                 Group {
                     switch run.first {
-                        case .record(let record, _)? where record.fields["type"] == .string("method"):
+                        case .message(let record, _)? where record.fields["type"] == .string("method"):
                             TranscriptActivity(entries: run)
 
                         case let entry?:
@@ -43,17 +43,20 @@ import ScintComponents
 
     @ViewBuilder static func build(_ entry: Entry) -> some View {
         switch entry {
-            case .record(let record, let created):
-                switch (record.fields["type"], record.fields["channel"]) {
+            case .message(let message, let created):
+                switch (message.fields["type"], message.fields["channel"]) {
                     case (.string("input")?, _):
-                        EntryControls(created: created) { build(record) }
+                        EntryControls(created: created) { build(message) }
 
                     case (.string("output")?, nil):
-                        EntryControls(created: created, trailing: false) { build(record) }
+                        EntryControls(created: created, trailing: false) { build(message) }
 
                     default:
-                        build(record)
+                        build(message)
                 }
+
+            case .invocation:
+                EmptyView()
 
             case .signal(_, let signal, _):
                 switch signal {
@@ -66,7 +69,7 @@ import ScintComponents
         }
     }
 
-    @ViewBuilder static func build(_ record: Record) -> some View {
+    @ViewBuilder static func build(_ record: Message) -> some View {
         switch (record.fields["type"], record.fields["channel"], record.fields["content"]) {
             case (.string("input")?, _, .string("")?):
                 EmptyView()

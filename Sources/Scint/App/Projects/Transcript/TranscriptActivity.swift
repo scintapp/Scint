@@ -8,7 +8,7 @@ struct TranscriptActivity: View {
     
     @State private var expanded = false
 
-    var tools: [EntryTool] { entries.compactMap { if case .record(let record, _) = $0 { EntryTool(record: record) } else { nil } } }
+    var tools: [EntryTool] { entries.compactMap { if case .message(let record, _) = $0 { EntryTool(record: record) } else { nil } } }
 
     var summary: String {
         var phrases: [(one: String, many: String, count: Int)] = []

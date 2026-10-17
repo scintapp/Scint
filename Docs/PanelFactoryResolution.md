@@ -36,7 +36,7 @@ TranscriptFactory is being repaired separately. Do not modify it. Do not expand 
    | ChoiceMenu | Filtering supplied choices, cursor navigation, selection indication, dismissal, invoking onPick |
    | EditorMenu | Commands/references/forms, externally supplied query changes, cursor navigation, choosing commands, form transitions, insertion, dismissal and editor focus restoration |
 
-   Establish a build baseline using the shared Scint scheme in Scint.xcodeproj. Record pre-existing failures so they are not attributed to this repair. Inspect the existing test runners before choosing which remain applicable; do not assume an editor harness covers panel behavior.
+   Establish a build baseline using the shared Scint scheme in Scint.xcodeproj. Record pre-existing failures so they are not attributed to this repair. Inspect the existing test runners before choosing which remain applicable; do not assume an editor interface covers panel behavior.
 
 2. **Introduce the small, explicit interface additions needed to replace hidden factory behavior.**
 
@@ -151,7 +151,7 @@ TranscriptFactory is being repaired separately. Do not modify it. Do not expand 
 
 7. **Verify behavior and inspect the boundary directly.**
 
-   Build the shared Scint scheme after the migration and run applicable existing checks. Add focused behavior tests where the existing harness can exercise the changed logic. Prefer tests of observable navigation, query changes, action delivery, and cancellation over tests that merely repeat implementation branches. Exercise UI focus and window dismissal in the running app; source inspection alone does not verify those behaviors.
+   Build the shared Scint scheme after the migration and run applicable existing checks. Add focused behavior tests where the existing interface can exercise the changed logic. Prefer tests of observable navigation, query changes, action delivery, and cancellation over tests that merely repeat implementation branches. Exercise UI focus and window dismissal in the running app; source inspection alone does not verify those behaviors.
 
    Required coverage:
 

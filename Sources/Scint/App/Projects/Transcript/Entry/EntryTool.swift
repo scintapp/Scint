@@ -5,7 +5,7 @@ import ScintServer
 
 
 struct EntryTool: View {
-    var record: Record
+    var record: Message
 
     enum Kind { case call, command, search }
 

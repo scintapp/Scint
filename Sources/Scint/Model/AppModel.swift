@@ -4,7 +4,7 @@ import ScintComponents
 
 @Observable final class AppModel: Model {
     var content: ContentFrame
-    var inspector: InspectorFrame
+    var inspector: Inspector
     var navigator: Navigator
     var session: Session
 

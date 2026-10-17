@@ -31,7 +31,7 @@ Apply this rule: **parameters declares the structure; controls supplies behavior
            .init(id: "interfaces", name: "Interfaces", header: false, image: "switch.2", layout: .list, sections: [
                .init(id: "artifact", name: "Artifacts", layout: .list),
                .init(id: "command", name: "Commands", layout: .list),
-               .init(id: "harness", name: "Harnesses", layout: .list)
+               .init(id: "interface", name: "Harnesses", layout: .list)
            ]),
            .init(id: "projects", name: "Projects", header: false, image: "cube.transparent", layout: .list, sections: [
                .init(id: "structure", layout: .list)

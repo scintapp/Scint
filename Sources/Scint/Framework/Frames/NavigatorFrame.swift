@@ -2,7 +2,7 @@ import SwiftUI
 import ScintComponents
 
 
-@Observable final class NavigatorFrame: Frame {
+@Observable final class Navigator: Frame {
     var state: StateContainer = .init(presented: true)
     var surface: HostSurface = .navigator
 

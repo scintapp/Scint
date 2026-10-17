@@ -89,7 +89,7 @@ import ScintComponents
     static func view(_ model: any Model) -> [ActionParams] {
         guard let app = model as? AppModel else { return [] }
         let inspector = app.inspector
-        return InspectorFrame.HostSurface.allCases.map { surface in
+        return Inspector.HostSurface.allCases.map { surface in
             ActionParams(id: surface.rawValue, label: "Show \(surface.label)", image: surface.symbol, keywords: ["inspector", "sidebar", "panel"]) { _ in
                 inspector.surface = surface
                 inspector.state.presented = true
