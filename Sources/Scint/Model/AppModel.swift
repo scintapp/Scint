@@ -5,7 +5,7 @@ import ScintComponents
 @Observable final class AppModel: Model {
     var content: ContentFrame
     var inspector: InspectorFrame
-    var navigator: NavigatorFrame
+    var navigator: Navigator
     var session: Session
 
     init(_ session: Session) {

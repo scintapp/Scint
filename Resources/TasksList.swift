@@ -95,7 +95,7 @@ import ScintComponents
 //    var model: any Model
 //
 //    var tasks: [Reference] {
-//        guard let tasks = Space.with(model.session.tasks, { $0.documents }) else { return [] }
+//        guard let tasks = Space.with(model.session.agenda, { $0.documents }) else { return [] }
 //        return tasks.filter { if case .task(_, _, false, _)? = Document.with($0, { $0.blocks.first }) ?? nil { true } else { false } }
 //    }
 //

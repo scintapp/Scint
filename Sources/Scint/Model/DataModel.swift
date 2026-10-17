@@ -4,23 +4,21 @@ import ScintRuntime
 
 
 @Observable final class DataModel {
-    var app: Reference = Space.sentinel()
-    var inbox: Reference = Space.sentinel()
-    var spaces: Reference = Space.sentinel()
-    var library: Reference = Space.sentinel()
-    var tasks: Reference = Space.sentinel()
+    var app: Reference
+    var agenda: Reference
+    var library: Reference
+    var spaces: Reference
 
     init(_ app: Reference) {
         self.app = app
-        self.inbox = scope("Inbox")
-        self.library = scope("Library")
-        self.spaces = scope("Spaces")
-        self.tasks = scope("Tasks")
+        self.agenda = Self.scope(app, "Agenda")
+        self.library = Self.scope(app, "Library")
+        self.spaces = Self.scope(app, "Spaces")
     }
 
-    func scope( _ name: String) -> Reference {
-        guard let spaces = Space.with(app, { $0 })?.spaces, let scope = spaces.first(where: { $0.descriptor.name == name })
-        else { fatalError() }
+    static func scope(_ model: Reference, _ name: String) -> Reference {
+        guard let spaces = Space.with(model, { $0 })?.spaces else { fatalError("Invalid model \(model)") }
+        guard let scope = spaces.first(where: { $0.descriptor.name == name }) else { fatalError("Unknown scope \(name)") }
         return scope
     }
 }

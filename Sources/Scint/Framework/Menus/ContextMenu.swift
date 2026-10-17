@@ -8,6 +8,7 @@ struct ContextMenu: View {
     @Environment(ScintModel.self) private var scint: ScintModel?
     var ref: Reference
     var model: any Model
+    var anchor: PanelAnchor.Box?
 
     var space: Bool { ref.type is Space.Type }
     var topLevel: Bool { Space.with(model.session.spaces, { $0.spaces.contains(ref) }) ?? false }
@@ -40,7 +41,7 @@ struct ContextMenu: View {
             ActionParams(id: "settings", label: "Settings…", image: "slider.horizontal.3", keywords: ["icon", "color", "customize"]) { _ in
                 guard let window = NSApp.keyWindow ?? NSApp.mainWindow else { return }
                 panels.settings.ref = ref
-                panels.settings.anchor = CGRect(origin: NSEvent.mouseLocation, size: .zero)
+                panels.settings.anchor = anchor?.view.map { window.convertToScreen($0.convert($0.bounds, to: nil)) } ?? CGRect(origin: NSEvent.mouseLocation, size: .zero)
                 panels.present(panels.settings, in: window)
             }
         ]

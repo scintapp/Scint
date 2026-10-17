@@ -7,15 +7,16 @@ struct LibraryHeader: View {
     var model: any Model
 
     var ref: Reference {
-        if let folder = model.session.selection.structure { return folder }
+        guard let ref = model.session.selection.structure
         else { return model.session.library }
+        return ref
     }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             IconButton(systemImage: "plus") {
                 model.session
-                    .open(Document.new(from: .init(name: "New Document", origin: ref, header: .document)))
+                    .open(ScintRuntime.Document.new(.init(name: "New Document", origin: ref)))
             }
                 .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
 

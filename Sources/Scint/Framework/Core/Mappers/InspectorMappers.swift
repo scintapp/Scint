@@ -287,7 +287,7 @@ struct DocumentSettings: Mapper {
     }
 }
 
-struct TaskOutline: Mapper {
+struct AgendaOutline: Mapper {
     static func controls(_ model: any Model) -> Controls {
         .init()
     }
@@ -297,7 +297,7 @@ struct TaskOutline: Mapper {
     }
 }
 
-struct TaskSettings: Mapper {
+struct AgendaSettings: Mapper {
     static func controls(_ model: any Model) -> Controls {
         guard let task = model.session.document else { return .init() }
 
@@ -464,20 +464,18 @@ struct TaskSettings: Mapper {
 struct InspectorOutline: Mapper {
     static func controls(_ model: any Model) -> Controls {
         switch model.session.selection.root {
-            case model.session.inbox: return InboxOutline.controls(model)
+            case model.session.agenda: return AgendaOutline.controls(model)
             case model.session.library: return DocumentOutline.controls(model)
             case model.session.spaces: return ProjectOutline.controls(model)
-            case model.session.tasks: return TaskOutline.controls(model)
             default: return Controls()
         }
     }
 
     static func parameters(_ model: any Model) -> Params {
         switch model.session.selection.root {
-            case model.session.inbox: return InboxOutline.parameters(model)
+            case model.session.agenda: return AgendaOutline.parameters(model)
             case model.session.library: return DocumentOutline.parameters(model)
             case model.session.spaces: return ProjectOutline.parameters(model)
-            case model.session.tasks: return TaskOutline.parameters(model)
             default: return Params()
         }
     }
@@ -486,20 +484,18 @@ struct InspectorOutline: Mapper {
 struct InspectorSettings: Mapper {
     static func controls(_ model: any Model) -> Controls {
         switch model.session.selection.root {
-            case model.session.inbox: return InboxSettings.controls(model)
+            case model.session.agenda: return AgendaSettings.controls(model)
             case model.session.library: return DocumentSettings.controls(model)
             case model.session.spaces: return ProjectSettings.controls(model)
-            case model.session.tasks: return TaskSettings.controls(model)
             default: return Controls()
         }
     }
 
     static func parameters(_ model: any Model) -> Params {
         switch model.session.selection.root {
-            case model.session.inbox: return InboxSettings.parameters(model)
+            case model.session.agenda: return AgendaSettings.parameters(model)
             case model.session.library: return DocumentSettings.parameters(model)
             case model.session.spaces: return ProjectSettings.parameters(model)
-            case model.session.tasks: return TaskSettings.parameters(model)
             default: return Params()
         }
     }

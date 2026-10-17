@@ -4,48 +4,6 @@ import ScintRuntime
 import ScintComponents
 
 
-struct LibraryContent: Surface {
-    var host: any Host
-    var model: any Model
-
-    var documents: [Reference] {
-        if model.session.selection.structure == model.session.library { return model.session.documents }
-        else { return model.session.folder }
-    }
-
-    var body: some View {
-//        if let doc = model.session.opened.document, Document.with(doc, { $0.header }) != .task {
-//            DocumentContent(host: host, model: model)
-//        } else {
-            ScrollView {
-                LibraryColumns(minimum: 230, maximum: 230, spacing: 20) {
-                    ForEach(Array(documents.enumerated()), id: \.element) { index, ref in
-                        LibraryCard(
-                            ref: ref,
-                            model: model,
-                            weight: index.isMultiple(of: 2) ? 0.25 : 0.33 + 0.33 * CGFloat(ref.id.uuid.0) / 255,
-                            hovered: false
-                        )
-                        .onTapGesture { model.select(ref) }
-                        .onTapGesture(count: 2) { model.open(ref) }
-                        .contextMenu { ContextMenu(ref: ref, model: model) }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-                .scrollIndicators(.hidden)
-                .contentShape(Rectangle())
-                .padding(.horizontal, Style.Spacing.entry)
-                .padding(.top, Style.Spacing.entry)
-            }
-            .onTapGesture { if let ref = model.session.selection.content { model.session.close(ref) } }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .background(Style.Background.canvas)
-            .scrollEdgeEffectStyle(.hard, for: .vertical)
-            .safeAreaBar(edge: .top) { LibraryHeader(model: model) }
-        }
-//    }
-}
-
 struct LibraryColumns: SwiftUI.Layout {
     let minimum: CGFloat
     let maximum: CGFloat
@@ -73,6 +31,52 @@ struct LibraryColumns: SwiftUI.Layout {
         let arranged = arrange(bounds.width, subviews)
         for (subview, origin) in zip(subviews, arranged.origins) {
             subview.place(at: CGPoint(x: bounds.minX + origin.x, y: bounds.minY + origin.y), proposal: .init(width: arranged.column, height: nil))
+        }
+    }
+}
+
+struct LibraryContent: Surface {
+    var host: any Host
+    var model: any Model
+
+    var documents: [Reference] {
+        if model.session.selection.structure == model.session.library { return model.session.documents }
+        else { return model.session.folder }
+    }
+
+    var open: Bool {
+        guard let _ = model.session.opened.document else { return false }
+        return true
+    }
+
+    var body: some View {
+        if open { DocumentContent(host: host, model: model) }
+        else {
+            ScrollView {
+                LibraryColumns(minimum: 230, maximum: 230, spacing: 20) {
+                    ForEach(Array(documents.enumerated()), id: \.element) { index, ref in
+                        LibraryCard(
+                            ref: ref,
+                            model: model,
+                            weight: index.isMultiple(of: 2) ? 0.25 : 0.33 + 0.33 * CGFloat(ref.id.uuid.0) / 255,
+                            hovered: false
+                        )
+                        .onTapGesture { model.select(ref) }
+                        .onTapGesture(count: 2) { model.open(ref) }
+                        .contextMenu { ContextMenu(ref: ref, model: model) }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .scrollIndicators(.hidden)
+                .contentShape(Rectangle())
+                .padding(.horizontal, Style.Spacing.entry)
+                .padding(.top, Style.Spacing.entry)
+            }
+            .onTapGesture { if let ref = model.session.selection.content { model.session.close(ref) } }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .background(Style.Background.canvas)
+            .scrollEdgeEffectStyle(.hard, for: .vertical)
+            .safeAreaBar(edge: .top) { LibraryHeader(model: model) }
         }
     }
 }

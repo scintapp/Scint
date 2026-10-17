@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 import ScintRuntime
 
 
-enum Layout: CaseIterable { case grid, group, list, table }
+enum Layout: CaseIterable { case grid, group, list, table, row }
 
 struct Controls {
     enum Input { case move(Int), submit, secondary, cancel }

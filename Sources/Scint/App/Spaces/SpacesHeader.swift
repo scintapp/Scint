@@ -3,7 +3,7 @@ import ScintComponents
 import ScintRuntime
 
 
-struct InboxHeader: View {
+struct SpacesHeader: View {
     var ref: Reference
 
     var body: some View {

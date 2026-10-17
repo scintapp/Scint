@@ -104,7 +104,7 @@ Keep a single vertical scroll owner in the content shell. RowFactory/TableFactor
 
 | Display/operation | Existing source or owner |
 | --- | --- |
-| Task collection | Documents attached to model.session.tasks; retain only actual task documents using Header.content and the valid task block |
+| Task collection | Documents attached to model.session.agenda; retain only actual task documents using Header.content and the valid task block |
 | Title / completion | The task block returned by TaskHeader.task(document), not an assumed matching descriptor name |
 | Date / repetition | TaskHeader.schedule(document) and When; keep calendar computation in the mapper |
 | Summary / expanded text | The document's actual body blocks, excluding its metadata/title block; reuse existing read-only block rendering |

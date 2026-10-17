@@ -4,7 +4,7 @@ import ScintComponents
 
 
 struct TranscriptActivity: View {
-    var entries: [Transcript.Entry]
+    var entries: [Entry]
     
     @State private var expanded = false
 

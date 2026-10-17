@@ -75,7 +75,6 @@ struct ViewContainer<Content: View>: View {
                             ref: ref,
                             subtitle: params.name,
                             described: params.described,
-                            tabs: params.tabbed ? params.sections.filter(\.header) : [],
                             active: tab?.id,
                             onSelect: { state.surface = $0.id == tab?.id ? "" : $0.id.base as? String ?? "" }
                         )

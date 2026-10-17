@@ -13,14 +13,27 @@ import ScintComponents
         var label: String { rawValue.capitalized }
     }
 
+    func controls(_ model: any Model) -> Controls {
+        switch model.session.selection.root {
+            case model.session.agenda: AgendaMapper.controls(model)
+            default: .init()
+        }
+    }
+
+    func parameters(_ model: any Model) -> Params {
+        switch model.session.selection.root {
+            case model.session.agenda: AgendaMapper.parameters(model)
+            default: .init()
+        }
+    }
+
     func surface(_ model: AppModel) -> some View {
         ZStack {
             if let root = model.session.selection.root {
                 switch root {
-                    case model.session.inbox: InboxContent(host: self, model: model)
+                    case model.session.agenda: AgendaContent(host: self, model: model)
                     case model.session.library: LibraryContent(host: self, model: model)
                     case model.session.spaces: ProjectContent(host: self, model: model)
-                    case model.session.tasks: AgendaContent(host: self, model: model)
                     default: NoReference(ref: root, title: "Nothing Here")
                 }
             }

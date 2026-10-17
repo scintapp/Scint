@@ -267,32 +267,6 @@ struct GroupRow<Leading: View, Trailing: View>: View {
     }
 }
 
-struct GroupTabs: View {
-    let tabs: [SectionParams]
-    let active: AnyHashable?
-    let onSelect: (SectionParams) -> Void
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 2) {
-            ForEach(tabs) { tab in
-                Button { onSelect(tab) } label: {
-                    Image(systemName: tab.image)
-                        .font(.system(size: 14))
-                        .foregroundStyle(tab.tint ?? Style.Foreground.secondary)
-                        .frame(width: 28, height: 28)
-                        .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(tab.id == active ? Style.Background.selection : .clear))
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help(tab.name)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 2)
-        .padding(.bottom, 4)
-    }
-}
-
 struct GroupHeader: View {
     @State private var name: String?
     @State private var description: String?
@@ -300,7 +274,6 @@ struct GroupHeader: View {
     let ref: Reference
     var subtitle = ""
     var described = true
-    var tabs: [SectionParams] = []
     var active: AnyHashable?
     var onSelect: (SectionParams) -> Void = { _ in }
 
@@ -383,11 +356,6 @@ struct GroupHeader: View {
                 .padding(.bottom, 8)
                 .padding(.horizontal, 6)
                 .font(.system(size: 12))
-            }
-
-            if !tabs.isEmpty {
-                GroupDivider()
-                GroupTabs(tabs: tabs, active: active, onSelect: onSelect)
             }
         }
         .padding(.horizontal, 8)

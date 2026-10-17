@@ -35,7 +35,7 @@ struct NavigatorMapper: Mapper {
                     return AnyView(view.contextMenu { ContextMenu(ref: model.session.library, model: model) })
                 }
                 if section.id == AnyHashable("tasks") {
-                    return AnyView(view.contextMenu { ContextMenu(ref: model.session.tasks, model: model) })
+                    return AnyView(view.contextMenu { ContextMenu(ref: model.session.agenda, model: model) })
                 }
                 return view
             },
@@ -74,7 +74,7 @@ struct NavigatorMapper: Mapper {
                     header: false,
                     items: [
                         .init(
-                            ref: model.session.tasks,
+                            ref: model.session.agenda,
                             name: "Agenda",
                             image: "calendar",
                             tint: Style.Foreground.secondary
@@ -86,7 +86,7 @@ struct NavigatorMapper: Mapper {
                             tint: Style.Foreground.secondary
                         ),
                         .init(
-                            ref: model.session.inbox,
+                            ref: model.session.spaces,
                             name: "Spaces",
                             image: "cube.transparent",
                             tint: Style.Foreground.secondary

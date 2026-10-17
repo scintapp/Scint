@@ -9,11 +9,10 @@ import ScintComponents
     var selection: Selection
     var navigation: Navigation
 
-    var opened: Opened { selection.opened }
-    var inbox: Reference { data.inbox }
+    var agenda: Reference { data.agenda }
     var library: Reference { data.library }
     var spaces: Reference { data.spaces }
-    var tasks: Reference { data.tasks }
+    var opened: Opened { selection.opened }
 
     init(_ data: DataModel) {
         self.data = data

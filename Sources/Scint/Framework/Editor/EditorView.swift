@@ -15,7 +15,7 @@ struct EditorView: View {
     let ref: Reference
     let autofocus: Bool
 
-    init(ref: Reference, autofocus: Bool = true) {
+    init(ref: Reference, autofocus: Bool = false) {
         self.ref = ref
         self.autofocus = autofocus
         _focus = State(initialValue: EditorFocus(ref))

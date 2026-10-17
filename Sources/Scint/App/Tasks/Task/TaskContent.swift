@@ -17,8 +17,8 @@ struct TaskContent: Surface {
             if let ref {
                 VStack(alignment: .leading, spacing: Style.Spacing.section) {
                     TaskHeader(ref: ref, onCompose: {
-                        Space.update(model.session.tasks, { $0.input(ref) })
-                        let _ = model.compose(model.session.tasks)
+                        Space.update(model.session.agenda, { $0.input(ref) })
+                        let _ = model.compose(model.session.agenda)
                     }, onCancel: { let _ = model.cancel(ref) })
 
                     Divider()
@@ -28,8 +28,8 @@ struct TaskContent: Surface {
                         TaskDate(ref: ref, placeholder: "Time", symbol: "clock", components: [.hourAndMinute])
                         TaskRepeat(ref: ref)
                         Spacer()
-//                        TaskTarget(ref: ref, scope: model.session.spaces)
-//                        TaskAction(ref: ref)
+                        TaskTarget(ref: ref, scope: model.session.spaces)
+                        TaskAction(ref: ref)
                     }
 
                     EditorView(ref: ref, autofocus: false)

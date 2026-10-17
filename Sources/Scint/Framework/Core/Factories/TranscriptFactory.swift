@@ -4,8 +4,8 @@ import ScintComponents
 
 
 @MainActor struct TranscriptFactory {
-    @ViewBuilder static func build(_ entries: [Transcript.Entry]) -> some View {
-        let runs = entries.reduce(into: [[Transcript.Entry]]()) { runs, entry in
+    @ViewBuilder static func build(_ entries: [Entry]) -> some View {
+        let runs = entries.reduce(into: [[Entry]]()) { runs, entry in
             switch (runs.last?.last, entry) {
                 case (.record(let last, _)?, .record(let next, _)) where last.fields["type"] == .string("method") && next.fields["type"] == .string("method"):
                     runs[runs.count - 1].append(entry)
@@ -41,7 +41,7 @@ import ScintComponents
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    @ViewBuilder static func build(_ entry: Transcript.Entry) -> some View {
+    @ViewBuilder static func build(_ entry: Entry) -> some View {
         switch entry {
             case .record(let record, let created):
                 switch (record.fields["type"], record.fields["channel"]) {

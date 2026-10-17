@@ -23,15 +23,15 @@ struct AgendaContent: Surface {
     }
 
     var tasks: [Reference] {
-        guard let tasks = Space.with(model.session.tasks, { $0 })?.documents
+        guard let tasks = Space.with(model.session.agenda, { $0 })?.documents
         else { return [] }
         return tasks
     }
 
     var body: some View {
-//        if let task = model.session.opened.document, Document.with(task, { $0 }) == .task {
-//            TaskContent(host: host, model: model)
-//        } else {
+        if let task = model.session.opened.document, Document.with(task, { $0 }) == .task {
+            TaskContent(host: host, model: model)
+        } else {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 230, maximum: 240), spacing: 20)], alignment: .leading, spacing: 20) {
                     ForEach(tasks) { task in

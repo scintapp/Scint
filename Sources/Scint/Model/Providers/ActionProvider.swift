@@ -31,7 +31,7 @@ import ScintComponents
             (name: "Go", items: go),
             (name: "View", items: view(model))
         ]
-        .filter { !$0.items.isEmpty }
+            .filter { !$0.items.isEmpty }
     }
 
     static func items(for ref: Reference, in model: any Model) -> [ActionParams] {
@@ -42,7 +42,7 @@ import ScintComponents
         let items: [ActionParams?] = [
             ref.type is any ScintRuntime.Material.Type ?
             ActionParams(id: "open", label: "Open", image: "arrow.up.forward.square", keywords: ["show", "view", "launch"]) { $0.open(ref) } :
-            ActionParams(id: "compose", label: "Compose", image: "play", keywords: ["run", "start", "execute", "play"]) { $0.compose(ref) },
+                ActionParams(id: "compose", label: "Compose", image: "play", keywords: ["run", "start", "execute", "play"]) { $0.compose(ref) },
             ActionParams(id: "cancel", label: "Cancel", image: "stop", keywords: ["stop", "halt", "abort"]) { $0.cancel(ref) },
             ActionParams(id: "rename", label: "Rename…", image: "pencil", keywords: ["name", "title", "edit"]) { _ in rename(ref) },
             ActionParams(id: "copy-link", label: "Copy Link", image: "link", keywords: ["url", "share", "clipboard"]) { _ in copy(ref.url?.absoluteString) },
@@ -68,8 +68,10 @@ import ScintComponents
         let within = { (root: Reference) in space.flatMap { $0 == root || Navigation().spaces(to: $0).contains(root) ? $0 : nil } ?? root }
         let folder = within(session.library), project = within(session.spaces)
         return [
-            ActionParams(id: "new-document", label: "New Document", image: "doc.badge.plus", keywords: ["create", "doc", "note", "page", "write"]) { $0.open(Document.new(from: .init(name: "New Document", origin: folder))) },
-            ActionParams(id: "new-task", label: "New Task", image: "checkmark.app", keywords: ["create", "todo", "reminder"]) { $0.open(Document.new(from: .init(name: "New Task", origin: $0.session.tasks, header: .task))) },
+            ActionParams(id: "new-document", label: "New Document", image: "doc.badge.plus", keywords: ["create", "doc", "note", "page", "write"]) { $0.open(ScintRuntime.Document.new(.init(name: "New Document", origin: folder))) },
+            ActionParams(id: "new-task", label: "New Task", image: "checkmark.app", keywords: ["create", "todo", "reminder"]) {
+                $0.open(Document.new(.init(name: "New Task", origin: $0.session.agenda)))
+            },
             ActionParams(id: "new-folder", label: "New Folder…", image: "folder.badge.plus", keywords: ["create", "directory", "group"]) { _ in newSpace(in: folder, named: "New Folder", intent: .none) },
             ActionParams(id: "new-project", label: "New Space…", image: "square.stack.3d.up", keywords: ["create", "space", "workspace"]) { _ in newSpace(in: project, named: "New Space", intent: .compose) }
         ]
@@ -78,10 +80,10 @@ import ScintComponents
     static let go: [ActionParams] = [
         ActionParams(id: "back", label: "Back", image: "chevron.backward", keywords: ["previous", "history", "return"], enabled: { $0.session.navigation.canGoBack }) { $0.session.back() },
         ActionParams(id: "forward", label: "Forward", image: "chevron.forward", keywords: ["next", "history"], enabled: { $0.session.navigation.canGoForward }) { $0.session.forward() },
-        ActionParams(id: "inbox", label: "Inbox", image: "tray", keywords: ["open", "show", "messages"]) { $0.select($0.session.inbox) },
+        //        ActionParams(id: "inbox", label: "Inbox", image: "tray", keywords: ["open", "show", "messages"]) { $0.select($0.session.inbox) },
         ActionParams(id: "library", label: "Library", image: "books.vertical", keywords: ["open", "show", "documents", "folders"]) { $0.select($0.session.library) },
         ActionParams(id: "spaces", label: "Spaces", image: "app", keywords: ["open", "show", "spaces", "workspaces"]) { $0.select($0.session.spaces) },
-        ActionParams(id: "tasks", label: "Tasks", image: "checklist", keywords: ["open", "show", "todos", "reminders"]) { $0.select($0.session.tasks) }
+        ActionParams(id: "tasks", label: "Tasks", image: "checklist", keywords: ["open", "show", "todos", "reminders"]) { $0.select($0.session.agenda) }
     ]
 
     static func view(_ model: any Model) -> [ActionParams] {
@@ -104,11 +106,11 @@ import ScintComponents
     }
 
     static func newSpace(in origin: Reference, named name: String, intent: Intent) {
-        prompt(name) { name in Space.new(from: .init(name: name, space: origin, intent: intent)) }
+        prompt(name) { name in Space.new(.init(name: name, origin: origin, intent: intent)) }
     }
 
     static func newDocument(in origin: Reference) {
-        prompt("New Document") { name in Document.new(from: .init(name: "Input", origin: origin)) }
+        prompt("New Document") { name in ScintRuntime.Document.new(.init(name: "Input", origin: origin)) }
     }
 
     static func remove(_ ref: Reference) {

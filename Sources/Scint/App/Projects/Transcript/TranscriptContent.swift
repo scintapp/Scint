@@ -17,10 +17,10 @@ struct TranscriptContent: Surface {
 
     var last: AnyHashable? { ref.flatMap { _ in entries.last?.id } }
 
-    var entries: [Transcript.Entry] {
-        func thread(_ ref: Reference) -> [Transcript.Entry] {
+    var entries: [Entry] {
+        func thread(_ ref: Reference) -> [Entry] {
             let entries = Transcript.with(ref, { $0.entries }) ?? []
-            return entries + entries.flatMap { entry -> [Transcript.Entry] in
+            return entries + entries.flatMap { entry -> [Entry] in
                 guard case .transcript(let branch, _, _) = entry else { return [] }
                 return thread(branch)
             }
