@@ -48,3 +48,6 @@ playground.xcworkspace
 
 # Dependency-manager build output
 Carthage/Build/
+
+# Claude Code
+.claude/
