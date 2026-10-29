@@ -18,7 +18,7 @@ struct AgendaCard: View {
     var title: String { document.flatMap(TaskHeader.task)?.text ?? "" }
     var done: Bool { document.flatMap(TaskHeader.task)?.done ?? false }
     var command: Reference? { document.flatMap { document in (Space.with(document.origin, { $0.interface }) ?? nil).flatMap { document.values($0)["command"]?.references.first } } }
-    var space: Reference? { document.flatMap { document in if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil } } }
+    var space: Reference? { document.flatMap { document in (Space.with(document.origin, { $0.interface }) ?? nil).flatMap { document.values($0)["space"]?.references.first } } }
 
     var due: String? {
         guard let schedule = document.map(TaskHeader.schedule), let moment = schedule.moment else { return nil }

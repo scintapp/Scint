@@ -7,24 +7,38 @@ import ScintComponents
     @ViewBuilder static func build(_ surface: some Surface, _ section: SectionParams, _ controls: Controls) -> some View {
         if section.layout == .grid {
             GroupGrid(title: section.name) {
-                ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
+                ForEach(section.items) { item in
                     Group {
                         switch item.trailingKind {
-                            case .load:
-                                LoadMenu(items: item.items) { controls.onSelect?($0) } label: { GroupTile(item, disclosure: true) }
-                                    .buttonStyle(.plain)
-
                             case .date, .time:
                                 GroupMoment(item: item, elements: item.trailingKind == .date ? .yearMonthDay : .hourMinute) { controls.onValueChange?(item, $0) }
 
                             case .field:
                                 GroupNote(placeholder: item.name) { controls.onValueChange?(item, $0) }
 
+                            case .picker:
+                                SwiftUI.Menu {
+                                    ForEach(item.items) { option in
+                                        Toggle(option.name, isOn: .init(get: { option.active }, set: { _ in controls.onSelect?(option) }))
+                                    }
+                                } label: {
+                                    Image(systemName: item.image)
+                                        .font(.system(size: 16, weight: .light))
+                                        .foregroundStyle(Style.Foreground.secondary)
+                                        .frame(width: 44, height: 44)
+                                }
+                                .menuStyle(.button)
+                                .buttonStyle(.plain)
+                                .menuIndicator(.hidden)
+                                .fixedSize()
+                                .disabled(!item.actionable)
+                                .opacity(item.active ? 1 : Style.Opacity.inactive)
+
                             default:
-                                EmptyView()
+                                build(surface, item, controls)
                         }
                     }
-                    .fixedSize(horizontal: index > 0, vertical: false)
+                    .background(Style.Shape.group.fill(Style.Background.group))
                 }
             }
         } else if section.layout == .list {
@@ -48,10 +62,19 @@ import ScintComponents
                 .padding(6)
             }
         } else {
-            GroupLayout(title: section.name, footer: section.description.isEmpty ? nil : section.description) {
+            let key: [AnyHashable] = ["section", section.id]
+
+            GroupLayout(
+                title: section.name,
+                footer: section.description.isEmpty ? nil : section.description,
+                expanded: !section.disclosable || surface.isExpanded(key, initially: true),
+                onToggle: section.disclosable ? { surface.setExpanded(key, initially: true) } : nil
+            ) {
                 ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
                     if index > 0 { GroupDivider() }
-                    build(surface, item, controls)
+
+                    if item.trailingKind == .meter { GroupMeter(item: item) }
+                    else { build(surface, item, controls) }
                 }
             }
         }

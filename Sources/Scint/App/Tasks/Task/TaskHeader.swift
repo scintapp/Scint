@@ -9,7 +9,7 @@ struct TaskHeader: View {
     var onCancel: () -> Void
 
     static func task(_ document: ScintRuntime.Document) -> (id: UUID, text: String, done: Bool)? {
-        if case .task(let id, let text, let done)? = document.blocks.dropFirst().first { (id, text, done) } else { nil }
+        if case .task(let id, let text, let done)? = document.blocks.first { (id, text, done) } else { nil }
     }
 
     static func schedule(_ document: ScintRuntime.Document) -> (moment: Date?, repeats: When.Repeat) {
@@ -60,7 +60,7 @@ struct TaskHeader: View {
             get: { task?.done ?? false },
             set: { complete in
                 guard let task else { return }
-                Document.update(ref) { $0.update(.task(task.id, task.text, complete), at: 1) }
+                Document.update(ref) { $0.update(.task(task.id, task.text, complete), at: 0) }
             }
         )
     }
@@ -70,7 +70,7 @@ struct TaskHeader: View {
             get: { task?.text ?? "" },
             set: { text in
                 guard let task else { return }
-                Document.update(ref) { $0.update(.task(task.id, text, task.done), at: 1) }
+                Document.update(ref) { $0.update(.task(task.id, text, task.done), at: 0) }
             }
         )
     }

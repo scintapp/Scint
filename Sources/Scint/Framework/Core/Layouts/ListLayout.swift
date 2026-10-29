@@ -12,6 +12,18 @@ extension AnyTransition {
     }
 }
 
+struct Disclosure: View {
+    let expanded: Bool
+
+    var body: some View {
+        Image(systemName: "chevron.right")
+            .font(.system(size: 10.5, weight: .semibold))
+            .foregroundStyle(.secondary.opacity(0.7))
+            .rotationEffect(.degrees(expanded ? 90 : 0))
+            .frame(width: 14, height: 14)
+    }
+}
+
 struct ListLabel: View {
     let name: String
     let image: String
@@ -221,11 +233,7 @@ struct ListHeader: View {
             if onToggle != nil {
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(.secondary.opacity(0.7))
-                    .rotationEffect(.degrees(expanded ? 90 : 0))
-                    .frame(width: 14, height: 14)
+                Disclosure(expanded: expanded)
                     .padding(.bottom, 6)
                     .opacity(isHovered ? 1 : 0)
             }

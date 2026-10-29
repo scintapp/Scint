@@ -91,8 +91,6 @@
 		7CBB43923021077200B9D4D7 /* Exceptions for "Sources" folder in "Scint" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Scint/App/Tasks/AgendaContent.swift,
-				Scint/App/Tasks/AgendaHeader.swift,
 				ScintService/main.swift,
 			);
 			target = 7C4C36E62ED17D5A00D6F1CF /* Scint */;

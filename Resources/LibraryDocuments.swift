@@ -28,7 +28,6 @@ struct LibraryDocuments: Surface {
             .padding(.horizontal, Style.Spacing.entry)
             .padding(.top, Style.Spacing.section)
         }
-        .onTapGesture { if let ref = model.session.selection.content { model.session.close(ref) } }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .background(Style.Background.canvas)
         .scrollEdgeEffectStyle(.hard, for: .vertical)

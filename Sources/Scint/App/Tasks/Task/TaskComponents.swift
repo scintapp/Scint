@@ -79,7 +79,8 @@ struct TaskTarget: View {
     let ref: Reference
     let scope: Reference
 
-    var space: Reference? { Document.with(ref, { document in if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil } }) ?? nil }
+    var interface: Reference? { Document.with(ref, { $0.origin }).flatMap { Space.with($0, { $0.interface }) ?? nil } }
+    var space: Reference? { interface.flatMap { interface in Document.with(ref, { $0.values(interface)["space"]?.references.first }) ?? nil } }
 
     var spaces: [Reference] {
         var spaces: [Reference] = []
@@ -94,13 +95,10 @@ struct TaskTarget: View {
 
     var body: some View {
         LoadMenu(items: items) { item in
-            Document.update(ref) { document in
-                guard case .metadata(_, let values)? = document.blocks.first else { return }
-                document.update(.metadata(item.ref ?? document.origin, values), at: 0)
-            }
+            guard let interface else { return }
+            Document.update(ref) { $0.header.argument(item.ref.map(Value.reference), "space", for: interface) }
         } label: {
-            if let space { Label { Text(space.descriptor.name) } icon: { Iconography.icon(for: space) } }
-            else { Label("Space", systemImage: "square.stack") }
+            Label { Text(space?.descriptor.name ?? "Space") } icon: { Iconography.icon(for: space ?? scope) }
         }
         .buttonStyle(.soft)
     }

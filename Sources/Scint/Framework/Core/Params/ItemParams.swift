@@ -23,7 +23,7 @@ public struct ItemParams: Hashable, Identifiable {
     public let _isParent: Bool?
     public var isParent: Bool { _isParent ?? !items.isEmpty }
 
-    public enum TrailingKind: Hashable { case toggle, load, action, picker, range, field, date, time, moment, remove, button }
+    public enum TrailingKind: Hashable { case toggle, load, action, picker, range, field, date, time, moment, remove, button, meter }
 
     public init(
         ref: Reference? = nil,

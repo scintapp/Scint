@@ -56,53 +56,72 @@ struct ProjectOutline: Mapper {
             if case .transcript(let ref, let intent, let started) = entry { (ref, intent, started) } else { nil }
         }
 
-        let ended = entries.reduce(into: [Reference: (date: Date, failed: Bool)]()) { ended, entry in
+        let ended = entries.reduce(into: [Reference: [(date: Date, failed: Bool)]]()) { ended, entry in
             switch entry {
-                case .signal(_, .complete(let ref), let date): ended[ref] = (date, false)
-                case .signal(_, .fail(let ref), let date): ended[ref] = (date, true)
+                case .signal(_, .complete(let ref), let date): ended[ref, default: []].append((date, false))
+                case .signal(_, .fail(let ref), let date): ended[ref, default: []].append((date, true))
                 default: break
             }
         }
 
-        func tokens(_ refs: [Reference]) -> Int {
-            refs.flatMap { Transcript.with($0, { $0.records }) ?? [] }.reduce(0) { $0 + $1.value.rendered.joined(separator: "\n").utf8.count } / 4
+        let runs = branches.flatMap { branch -> [(intent: Intent, start: Date, end: (date: Date, failed: Bool)?)] in
+            let invoked: [Date] = Transcript.with(branch.ref, { $0.entries.compactMap { entry -> Date? in if case .invocation(_, let date) = entry { date } else { nil } } }) ?? []
+            let starts: [Date] = invoked.isEmpty ? [branch.started] : invoked
+            let stops = ended[branch.ref] ?? []
+            return starts.enumerated().map { index, start -> (intent: Intent, start: Date, end: (date: Date, failed: Bool)?) in
+                (branch.intent, start, index < stops.count ? stops[index] : nil)
+            }
         }
 
-        let total = tokens([root] + branches.map(\.ref))
+        let messages = entries.compactMap { entry -> (message: Message, intent: Intent?, created: Date)? in
+            guard case .message(let message, let created) = entry else { return nil }
+            return (message, runs.last { $0.start <= created && created <= ($0.end?.date ?? .now) }?.intent, created)
+        }
 
-        func tab(_ intent: Intent?) -> SectionParams {
-            let id = intent?.rawValue ?? ""
-            let name = intent?.forms.label ?? "Messages"
-            let runs = intent == nil ? branches : branches.filter { $0.intent == intent }
-            let refs = intent == nil ? [root] : runs.map(\.ref)
-            let records = refs.flatMap { Transcript.with($0, { $0.records }) ?? [] }
-            let used = tokens(refs)
-            let updated = refs.compactMap { Transcript.with($0, { $0.entries.last?.created }) ?? nil }.max() ?? root.descriptor.updated
-            let created = refs.map(\.descriptor.created).min() ?? root.descriptor.created
-            let time = runs.reduce(0) { $0 + (ended[$1.ref]?.date ?? .now).timeIntervalSince($1.started) }
-            let failed = runs.filter { ended[$0.ref]?.failed == true }.count
-            let complete = runs.filter { ended[$0.ref]?.failed == false }.count
+        let intents = Intent.allCases.filter { intent in runs.contains { $0.intent == intent } }
 
-            return .init(
-                id: id,
-                name: name,
-                header: intent != nil,
-                image: "app",
-                tint: intent.map { Iconography.icon(for: $0).tint },
-                sections: [
-                    .init(id: "\(name.lowercased())-metrics", name: name, layout: .table, items: [
-                        ItemParams(key: "updated", name: "Updated", image: "clock", value: updated.formatted(.relative(presentation: .named))),
-                        ItemParams(key: "age", name: "Age", image: "calendar", value: Duration.seconds(Date.now.timeIntervalSince(created)).formatted(.units(allowed: [.days, .hours, .minutes, .seconds], width: .wide, maximumUnitCount: 1))),
-                        ItemParams(key: "tokens", name: "Tokens", image: "number", value: "≈ \(used.formatted(.number.notation(.compactName)))"),
-                        ItemParams(key: "share", name: "Share", image: "chart.pie", value: (Double(used) / Double(max(total, 1))).formatted(.percent.precision(.fractionLength(0)))),
-                        ItemParams(key: "entries", name: "Entries", image: "list.bullet", value: records.count.formatted()),
-                        ItemParams(key: "tools", name: "Tool Calls", image: "wrench.and.screwdriver", value: records.filter { $0.fields["type"] == .string("method") }.count.formatted()),
-                        ItemParams(key: "runs", name: "Runs", image: "square.stack", value: runs.count.formatted(), description: runs.isEmpty ? "" : "\(complete) complete · \(failed) failed"),
-                        ItemParams(key: "time", name: "Run Time", image: "stopwatch", value: Duration.seconds(time).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .abbreviated, maximumUnitCount: 2)))
-                    ])
-                ]
+        func tokens(_ messages: [(message: Message, intent: Intent?, created: Date)]) -> Int {
+            messages.reduce(0) { $0 + $1.message.value.rendered.joined(separator: "\n").utf8.count } / 4
+        }
+
+        func compact(_ count: Int) -> String { count.formatted(.number.notation(.compactName).precision(.fractionLength(0...1))).lowercased() }
+
+        let total = tokens(messages)
+        let shared = tokens(messages.filter { $0.intent == nil })
+        let work = intents.map { intent in (intent: intent, tokens: tokens(messages.filter { $0.intent == intent })) }
+
+        let overview = ItemParams(
+            key: "stored",
+            name: "Stored context",
+            image: "cylinder.split.1x2",
+            trailingKind: .meter,
+            value: "≈ \(compact(total))",
+            items: [
+                ItemParams(key: "shared", name: "Messages", items: [
+                    ItemParams(key: "segment", name: "Shared", tint: Style.Foreground.secondary, count: shared, value: "shared")
+                ]),
+                ItemParams(key: "work", name: "Work", items: work.map { part in
+                    ItemParams(key: "segment", name: part.intent.forms.label, tint: Iconography.icon(for: part.intent).tint, count: part.tokens, value: part.intent.rawValue)
+                })
+            ]
+        )
+
+        let nested = Intent.allCases.filter { $0 != .none }.map { intent in
+            let count = runs.filter { $0.intent == intent }.count
+            return ItemParams(
+                key: intent.rawValue,
+                name: intent.forms.label,
+                image: Iconography.icon(for: intent).symbol,
+                tint: count == 0 ? Style.Foreground.subtle : Iconography.icon(for: intent).tint,
+                value: compact(tokens(messages.filter { $0.intent == intent })),
+                description: "\(count) \(count == 1 ? "run" : "runs")"
             )
         }
+
+        let time = runs.reduce(0.0) { $0 + ($1.end?.date ?? Date.now).timeIntervalSince($1.start) }
+        let failed = runs.filter { $0.end?.failed == true }.count
+        let complete = runs.filter { $0.end?.failed == false }.count
+        let updated = messages.last?.created ?? root.descriptor.updated
 
         return .init(
             ref: space,
@@ -110,8 +129,25 @@ struct ProjectOutline: Mapper {
             layout: .group,
             header: true,
             described: false,
-            tabbed: true,
-            sections: [tab(nil)] + Intent.allCases.filter { intent in branches.contains { $0.intent == intent } }.map { tab($0) }
+            sections: [
+                SectionParams(id: "overview", name: "Overview", disclosable: true, items: [overview]),
+                .init(id: "branches", name: "Branches", disclosable: true, items: nested),
+                .init(id: "properties", name: "Properties", disclosable: true, items: [
+                    ItemParams(key: "tokens", name: "Stored tokens", image: "number", value: "≈ \(compact(total))"),
+                    ItemParams(key: "entries", name: "Entries", image: "list.bullet", value: messages.count.formatted())
+                ]),
+                .init(id: "activity", name: "Activity", disclosable: true, items: [
+                    ItemParams(key: "tools", name: "Tool calls", image: "wrench.and.screwdriver", value: messages.filter { $0.message.fields["type"] == Property.string("method") }.count.formatted()),
+                    ItemParams(key: "runs", name: "Runs", image: "square.stack", value: runs.count.formatted(), description: runs.isEmpty ? "" : "\(complete) complete · \(failed) failed"),
+                    ItemParams(key: "time", name: "Run time", image: "stopwatch", value: Duration.seconds(time).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .abbreviated, maximumUnitCount: 2))),
+                    ItemParams(key: "updated", name: "Updated", image: "clock", value: updated.formatted(.relative(presentation: .named))),
+                    ItemParams(key: "age", name: "Age", image: "calendar", value: Duration.seconds(Date.now.timeIntervalSince(root.descriptor.created)).formatted(.units(allowed: [.days, .hours, .minutes, .seconds], width: .wide, maximumUnitCount: 1)))
+                ]),
+                .init(id: "manage", name: "Manage", disclosable: true, items: [
+                    ItemParams(key: "reset", name: "Reset shared context...", image: "arrow.counterclockwise", trailingKind: .button),
+                    ItemParams(key: "new", name: "New transcript...", image: "plus.bubble", trailingKind: .button)
+                ])
+            ].filter { !$0.items.isEmpty }
         )
     }
 }
@@ -316,8 +352,8 @@ struct AgendaSettings: Mapper {
                 switch item.key {
                     case "space":
                         Document.update(task) { document in
-                            guard case .metadata(_, let values)? = document.blocks.first else { return }
-                            document.update(.metadata(item.ref ?? document.origin, values), at: 0)
+                            guard let interface = Space.with(document.origin, { $0.interface }) ?? nil else { return }
+                            document.header.argument(item.ref.map(Value.reference), "space", for: interface)
                         }
                     case "repeat":
                         Document.update(task) { TaskHeader.schedule(&$0, TaskHeader.schedule($0).moment ?? .now, repeats: item.value.flatMap(When.Repeat.init(rawValue:)) ?? .never) }
@@ -348,7 +384,7 @@ struct AgendaSettings: Mapper {
 
         let interface = Space.with(document.origin, { $0.interface }) ?? nil
         let command = interface.flatMap { document.values($0)["command"]?.references.first }
-        let space: Reference? = if case .metadata(let space, _)? = document.blocks.first, space != document.origin { space } else { nil }
+        let space = interface.flatMap { document.values($0)["space"]?.references.first }
         let schedule = TaskHeader.schedule(document)
         let moment = schedule.moment.map(Value.formatter.string(from:))
 
@@ -358,16 +394,14 @@ struct AgendaSettings: Mapper {
             return spaces
         }
 
-        let providers = Runtime.shared.all(as: Command.self)
+        let commands = Runtime.shared.all(as: Command.self)
             .map { $0.0 }
-            .filter { $0.descriptor.tags.contains("provider") }
             .sorted { $0.descriptor.name.localizedCaseInsensitiveCompare($1.descriptor.name) == .orderedAscending }
 
         let place = ItemParams(
             ref: space,
             key: "space",
             name: "Space",
-            image: "square.stack",
             trailingKind: .load,
             description: space?.descriptor.name ?? "",
             items: [ItemParams(key: "space", name: "None", image: "circle.dashed", tint: Style.Foreground.secondary, active: space == nil)]
@@ -390,26 +424,35 @@ struct AgendaSettings: Mapper {
         let time = ItemParams(
             key: "time",
             name: "Time",
+            image: "clock",
             trailingKind: .time,
             value: moment,
             description: schedule.moment?.formatted(date: .omitted, time: .shortened) ?? ""
+        )
+
+        let repeats = ItemParams(
+            key: "repeats",
+            name: "Repeat",
+            image: "repeat",
+            trailingKind: .picker,
+            active: schedule.repeats != .never,
+            items: When.Repeat.allCases.map { option in
+                ItemParams(key: "repeat", name: option.rawValue.capitalized, value: option.rawValue, active: option == schedule.repeats)
+            },
+            actionable: schedule.moment != nil
         )
 
         let agent = ItemParams(
                 ref: command,
                 key: "command",
                 name: "Command",
-                image: command.map { Iconography.icon(for: $0).symbol } ?? "switch.2",
-                tint: Style.Foreground.secondary,
                 trailingKind: .load,
                 description: command?.descriptor.name ?? "Required",
-                items: providers.map { ref in
+                items: commands.map { ref in
                     ItemParams(
                         ref: ref,
                         key: "command",
                         name: ref.descriptor.name,
-                        image: Iconography.icon(for: ref).symbol,
-                        tint: Style.Foreground.secondary,
                         description: ref.descriptor.description,
                         active: ref == command
                     )
@@ -428,12 +471,11 @@ struct AgendaSettings: Mapper {
                     name: "Schedule",
                     header: true,
                     layout: .grid,
-                    items: [date, time]
+                    items: [date, time, repeats]
                 ),
                 .init(
                     id: "space",
-                    name: "Schedule",
-                    layout: .table,
+                    name: "Space",
                     items: [place]
                 ),
                 .init(

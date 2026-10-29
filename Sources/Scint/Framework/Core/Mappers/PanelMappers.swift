@@ -40,12 +40,12 @@ struct ReferenceList: Mapper {
             section.items = model.search(query, filters: [section.id.base as? String ?? ""], limit: 24).all.map {
                 ItemParams(ref: $0.ref, name: $0.ref.descriptor.name, description: $0.ref.descriptor.description)
             }
-            return [section]
+            return section.items.isEmpty ? [] : [section]
         })
     }
 
     static func parameters(_ model: any Model) -> Params {
-        .init(description: "No references", sections: [.init(id: "", header: false, layout: .list)])
+        .init(description: "No references", sections: ["document", "artifact", "command"].map { SectionParams(id: $0, header: false, layout: .list) })
     }
 }
 

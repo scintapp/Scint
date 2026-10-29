@@ -153,6 +153,7 @@ import ScintRuntime
                 next.entry = nil
                 next.url = url
             case is any Material.Type:
+                next.opened.clear()
                 next.interface = nil
                 next.content = ref
                 next.entry = entry

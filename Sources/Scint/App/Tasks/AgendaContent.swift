@@ -8,6 +8,7 @@ struct AgendaContent: Surface {
     var model: any Model
 
     @State private var scope: Scope = .today
+    @State private var presentation: Presentation = .grid
 
     enum Scope: String, CaseIterable {
         case today, upcoming, later, all
@@ -22,6 +23,17 @@ struct AgendaContent: Surface {
         }
     }
 
+    enum Presentation: CaseIterable {
+        case list, grid
+
+        var image: String {
+            switch self {
+                case .list: "checklist.checked"
+                case .grid: "circle.grid.2x2.topleft.checkmark.filled"
+            }
+        }
+    }
+
     var tasks: [Reference] {
         guard let tasks = Space.with(model.session.agenda, { $0 })?.documents
         else { return [] }
@@ -29,28 +41,25 @@ struct AgendaContent: Surface {
     }
 
     var body: some View {
-        if let task = model.session.opened.document, Document.with(task, { $0 }) == .task {
-            TaskContent(host: host, model: model)
-        } else {
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 230, maximum: 240), spacing: 20)], alignment: .leading, spacing: 20) {
-                    ForEach(tasks) { task in
-                        AgendaCard(ref: task, model: model, hovered: false)
-                            .onTapGesture(count: 2) { model.open(task) }
-                            .onTapGesture { model.select(task) }
-                            .contextMenu { ContextMenu(ref: task, model: model) }
-                    }
+        if let _ = model.session.opened.document { TaskContent(host: host, model: model) }
+        else {
+            Group {
+                switch presentation {
+                    case .grid: AgendaGrid(host: host, model: model)
+                    case .list: AgendaList(host: host, model: model, scope: $scope)
                 }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-                .scrollIndicators(.hidden)
-                .contentShape(Rectangle())
-                .padding(.horizontal, Style.Spacing.entry)
-                .padding(.top, Style.Spacing.section)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .background(Style.Background.canvas)
             .scrollEdgeEffectStyle(.hard, for: .vertical)
-            .safeAreaBar(edge: .top) { AgendaHeader(host: host, model: model, scope: $scope) }
+            .safeAreaBar(edge: .top) {
+                AgendaHeader(
+                    host: host,
+                    model: model,
+                    scope: $scope,
+                    presentation: $presentation
+                )
+            }
         }
-//    }
+    }
 }

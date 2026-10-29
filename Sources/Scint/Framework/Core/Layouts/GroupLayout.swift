@@ -73,8 +73,11 @@ struct GroupMoment: View {
     @State private var editing = false
 
     var body: some View {
-        if editing {
-            GroupTile(image: item.image, disclosure: item.image.isEmpty) {
+        GroupRow(label: editing ? "" : item.description.isEmpty ? item.name : item.description) {
+            Image(systemName: item.image)
+                .frame(width: 18, height: 18, alignment: .center)
+        } trailing: {
+            if editing {
                 DateField(
                     date: Value.formatter.date(from: item.value ?? "") ?? .now,
                     elements: elements,
@@ -83,10 +86,9 @@ struct GroupMoment: View {
                 )
                 .fixedSize()
             }
-        } else {
-            Button { editing = true } label: { GroupTile(item, disclosure: item.image.isEmpty) }
-                .buttonStyle(.plain)
         }
+        .contentShape(Rectangle())
+        .onTapGesture { editing = true }
     }
 }
 
@@ -100,10 +102,9 @@ struct GroupNote: View {
         SwiftUI.TextField("Note", text: $text, prompt: SwiftUI.Text(placeholder).foregroundStyle(Style.Foreground.subtle), axis: .vertical)
             .textFieldStyle(.plain)
             .font(.system(size: 13))
-            .lineLimit(1...8)
-            .padding(12)
-            .frame(maxWidth: .infinity, minHeight: GroupMetrics.tile, alignment: .topLeading)
-            .background(Style.Shape.group.fill(Style.Background.group))
+            .lineLimit(4...12)
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
             .onSubmit {
                 let note = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !note.isEmpty else { return }
@@ -176,6 +177,79 @@ struct GroupOutline: View {
                 }
             }
         }
+    }
+}
+
+struct GroupMeter: View {
+    let item: ItemParams
+
+    var segments: [ItemParams] { item.items.flatMap(\.items).filter { ($0.count ?? 0) > 0 } }
+    var total: Int { segments.compactMap(\.count).reduce(0, +) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: item.image)
+                    .font(.system(size: 16, weight: .light))
+                    .foregroundStyle(Style.Foreground.secondary)
+                    .frame(width: 18, height: 18)
+                    .padding(.trailing, 12)
+
+                SwiftUI.Text(item.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.88))
+
+                Spacer()
+
+                if let value = item.value { SwiftUI.Text(value).font(.system(size: 13)).monospacedDigit() }
+            }
+            .frame(height: 18)
+
+            GeometryReader { geometry in
+                let width = geometry.size.width - CGFloat(max(segments.count - 1, 0))
+
+                HStack(spacing: 1) {
+                    ForEach(segments) { segment in
+                        Rectangle()
+                            .fill(segment.tint ?? Style.Foreground.secondary)
+                            .frame(width: max(width * CGFloat(segment.count ?? 0) / CGFloat(max(total, 1)), 2))
+                    }
+                }
+            }
+            .frame(height: 12)
+            .background(Style.Background.selection)
+            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+            HStack(alignment: .top) {
+                ForEach(item.items) { legend in
+                    HStack(alignment: .top, spacing: 10) {
+                        HStack(spacing: 3) {
+                            ForEach(legend.items) { segment in
+                                Circle()
+                                    .fill(segment.tint ?? Style.Foreground.secondary)
+                                    .frame(width: 9, height: 9)
+                            }
+                        }
+                        .frame(height: 16)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            SwiftUI.Text(legend.name)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Style.Foreground.secondary)
+
+                            if let value = legend.value {
+                                SwiftUI.Text(value)
+                                    .font(.system(size: 13))
+                                    .monospacedDigit()
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 13)
     }
 }
 
@@ -294,7 +368,7 @@ struct GroupHeader: View {
 
     private var heading: (id: UUID, level: Int, text: String)? {
         Document.with(ref, { document in
-            if case .heading(let id, let level, let text)? = document.blocks.dropFirst().first { (id, level, text) } else { nil }
+            if case .heading(let id, let level, let text)? = document.blocks.first { (id, level, text) } else { nil }
         }) ?? nil
     }
 
@@ -323,7 +397,7 @@ struct GroupHeader: View {
                         .focused($focused, equals: .name)
                         .onSubmit {
                             if let name, !name.trimmingCharacters(in: .whitespaces).isEmpty {
-                                if let heading { Document.update(ref) { $0.update(.heading(heading.id, heading.level, name), at: 1) } }
+                                if let heading { Document.update(ref) { $0.update(.heading(heading.id, heading.level, name), at: 0) } }
                                 else { Catalog.shared.update(ref) { $0.name = name } }
                             }
                             name = nil
@@ -398,35 +472,62 @@ struct GroupGrid<Content: View>: View {
 }
 
 struct GroupLayout<Content: View>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hovered = false
     let title: String
     let footer: String?
+    let expanded: Bool
+    let onToggle: (() -> Void)?
     @ViewBuilder let content: () -> Content
 
-    init(title: String, footer: String?, @ViewBuilder content: @escaping () -> Content) {
+    init(title: String, footer: String?, expanded: Bool = true, onToggle: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.title = title
         self.footer = footer
+        self.expanded = expanded
+        self.onToggle = onToggle
         self.content = content
     }
 
     var body: some View {
-        VStack {
-            SwiftUI.Text(title)
-                .padding(.leading, 4)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary.opacity(0.75))
-
-            VStack(spacing: 0) { content() }
-                .frame(maxWidth: .infinity, alignment: .top)
-                .background(Style.Shape.group.fill(Style.Background.group))
-
-            if let footer {
-                SwiftUI.Text(footer)
-                    .padding(.leading, 4)
-                    .font(.system(size: 11, weight: .light))
+        VStack(spacing: 0) {
+            HStack {
+                SwiftUI.Text(title)
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary.opacity(0.75))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if onToggle != nil {
+                    Spacer()
+
+                    Disclosure(expanded: expanded)
+                        .padding(.trailing, 4)
+                        .opacity(hovered ? 1 : 0)
+                }
             }
+            .padding(.leading, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture { if let onToggle { withAnimation(reduceMotion ? nil : .snappy(duration: 0.25), onToggle) } }
+            .onHover { hovered = $0 }
+
+            VStack {
+                if expanded {
+                    VStack(spacing: 0) { content() }
+                        .frame(maxWidth: .infinity, alignment: .top)
+                        .background(Style.Shape.group.fill(Style.Background.group))
+                        .transition(.disclosure)
+
+                    if let footer {
+                        SwiftUI.Text(footer)
+                            .padding(.leading, 4)
+                            .font(.system(size: 11, weight: .light))
+                            .foregroundStyle(.secondary.opacity(0.75))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .transition(.disclosure)
+                    }
+                }
+            }
+            .padding(.top, expanded ? 8 : 0)
+            .clipped()
         }
     }
 }

@@ -21,6 +21,7 @@ import ScintComponents
         navigation = .init()
     }
 
+
     mutating func focus(_ ref: Reference?) {
         guard let ref else { focus = .nothing; return }
         switch ref.type {
@@ -33,33 +34,36 @@ import ScintComponents
 
     mutating func select(_ ref: Reference, entry: UUID? = nil, url: URL? = nil) {
         focus(ref)
+        if opened.document != nil  && opened.document != ref { close(opened.document!) }
         apply(selection.selecting(ref, entry,  url))
     }
 
     mutating func open(_ ref: Reference) {
-        selection.opened.open(ref)
+        focus(ref)
         select(ref)
+        selection.opened.open(ref)
     }
 
     mutating func close(_ ref: Reference) {
         selection.opened.close(ref)
+        if selection.content == ref { selection = selection.clearing(.content) }
+        if focus == .content(ref) { focus = .nothing }
     }
 
     @discardableResult
     mutating func back() -> Selection? {
-        if selection.opened.document != nil { close(selection.opened.document!) }
+        if opened.document != nil { close(opened.document!) }
         guard let target = navigation.back() else { return nil }
         apply(target, push: false)
-        if let content = selection.opened.document { selection.opened.open(content) }
+        if let content = selection.content { selection.opened.open(content) }
         return target
     }
 
     @discardableResult
     mutating func forward() -> Selection? {
-        if selection.opened.document != nil { close(selection.opened.document!) }
         guard let target = navigation.forward() else { return nil }
         apply(target, push: false)
-        if let content = selection.opened.document { selection.opened.open(content) }
+        if let content = selection.content { selection.opened.open(content) }
         return target
     }
 
@@ -142,3 +146,7 @@ extension Session {
         ])
     }
 }
+
+
+
+
